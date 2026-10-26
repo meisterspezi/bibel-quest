@@ -220,6 +220,7 @@ code{font-family:ui-monospace,Consolas,monospace;font-size:.85em;background:var(
 .vers blockquote{margin:0;font-family:var(--serif);font-style:italic;font-weight:500;font-size:1.1rem;line-height:1.45}
 .vers figcaption{font-size:.74rem;color:var(--muted);margin-top:6px;letter-spacing:.04em}
 .vers.klein blockquote{font-size:1rem}
+.vers .vers-label{display:block;font:800 .7rem var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
 .vers.tag::before{content:"Vers des Tages";display:block;font:800 .7rem var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
 .quests{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:11px}
 .quests li{display:grid;grid-template-columns:24px 1fr auto;gap:10px;align-items:center}
@@ -486,6 +487,19 @@ textarea.field{resize:vertical;min-height:110px;font:inherit}.fb-name{display:fl
 .gk-stapel button{margin-left:-12px;background:none;border:0;padding:0;cursor:pointer}
 .gk-mehr{margin-left:-6px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font:900 11px/26px var(--body);text-align:center;z-index:3}
 .gk-namen{font-size:.78rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+/* Podest Platz 2/3: Lichtstrahlen in Silber/Bronze, Waffenrüstung unter den Namen */
+.gk .ruest{justify-content:center}
+.gk-p{width:auto;min-width:68px;gap:6px}
+.gk-leute{gap:12px 18px}
+.gk-licht{position:relative;overflow:hidden;isolation:isolate}
+.gk-licht.gk-k2{--lc:#e6ecf7;--lr:#eef3ff2a;--lb:#d9dfeb}
+.gk-licht.gk-k3{--lc:#f0a65c;--lr:#ffc58a26;--lb:#d88a3e}
+.gk-licht::before{content:"";position:absolute;left:50%;top:-40px;width:200px;height:200px;transform:translateX(-50%);background:repeating-conic-gradient(from 0deg,var(--lr) 0deg 8deg,transparent 8deg 22.5deg);border-radius:50%;-webkit-mask:radial-gradient(closest-side,#000 30%,transparent);mask:radial-gradient(closest-side,#000 30%,transparent);pointer-events:none;z-index:-1;animation:gkStrahlen 40s linear infinite}
+.gk-licht.gk-k2,.gk-licht.gk-k3{background:radial-gradient(circle at 50% 30%,color-mix(in srgb,var(--lc) 22%,transparent),transparent 65%),linear-gradient(160deg,color-mix(in srgb,var(--lb) 18%,var(--surface2)),var(--surface2));border-color:color-mix(in srgb,var(--lb) 75%,transparent);box-shadow:0 0 18px color-mix(in srgb,var(--lb) 22%,transparent)}
+@media (prefers-reduced-motion:reduce){.gk-licht::before{animation:none}}
+.gk-k .gk-stapel{justify-content:center}
+.gk-wer{display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center}
+.gk-wer b{font-size:.82rem}.gk-wer .me b{color:var(--accent)}
 /* Postkasten des Verwalters */
 .pk-btn{position:relative;border-color:color-mix(in srgb,var(--ar-gemeinde) 50%,var(--line))}.pk-btn svg{width:24px!important;height:24px!important}
 .pk-btn[hidden]{display:none}

@@ -83,6 +83,13 @@ const streakNow = () => (S.lastDay === today() || S.lastDay === yesterday() ? S.
 const armorCount = (owned = S.owned) => RUESTUNG.filter(r => owned.includes("ar-" + r.id)).length;
 const svg = (k, c) => `<svg viewBox="0 0 24 24" aria-hidden="true" style="color:${c || "currentColor"}">${ICONS[k] || ""}</svg>`;
 const STAR = on => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" fill="${on ? "#f2c14e" : "#3a4380"}"/></svg>`;
+const MONATE = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+/* Lernvers der Gemeinde für den laufenden Monat (statt „Vers des Tages“) */
+function monatsversHtml() {
+  const d = new Date(), k = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+  const v = typeof MONATSVERSE !== "undefined" && MONATSVERSE[k];
+  return v ? `<figure class="vers monat klein"><span class="vers-label">Lernvers im ${MONATE[d.getMonth()]}</span><blockquote>${esc(v[0])}</blockquote><figcaption>${esc(v[1])} · ${VERS_QUELLE}</figcaption></figure>` : "";
+}
 const versHtml = (key, cls = "") => { const v = VERSE[key]; return v ? `<figure class="vers ${cls}"><blockquote>${esc(v[0])}</blockquote><figcaption>${esc(v[1])} · ${VERS_QUELLE}</figcaption></figure>` : ""; };
 const pick = a => a[Math.floor(Math.random() * a.length)];
 
@@ -576,7 +583,7 @@ VIEWS.home = () => {
       <button data-go="share">${svg("share")}<span>Teilen</span></button>
       ${deferredInstall ? `<button id="installBtn">${svg("down")}<span>Installieren</span></button>` : ""}
     </nav>
-    ${versHtml(vKey, "tag klein")}
+    ${monatsversHtml() || versHtml(vKey, "tag klein")}
     ${entwickler && postfachNeu ? `<button class="erinnerung pf-hinweis" data-go="postfach">${svg("chat")}<span><b>${postfachNeu} ${postfachNeu === 1 ? "neue Meldung" : "neue Meldungen"} im Postkasten</b><span class="small muted">Feedback, Status und Datenbank</span></span></button>` : ""}
     <button class="feedback-link" id="fbLink">${svg("chat")} Idee oder Fehler? Feedback an den Entwickler</button>
   </div>`;
@@ -1353,13 +1360,15 @@ VIEWS.rank = (tab) => {
       const g1 = gruppe(1), g2 = gruppe(2), g3 = gruppe(3), wert1 = rankWert(g1[0]);
       const voll = rankTab === "kette" && wert1 >= KETTE_SUB[ketteSub][2];
       const vollText = { bibel: "Alle 66 Bücher geschafft!", at: "Das ganze Alte Testament geschafft!", nt: "Das ganze Neue Testament geschafft!", rueck: "Alle 66 Bücher rückwärts geschafft!" }[ketteSub];
-      const person = (r, sz) => `<button class="gk-p ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}">${avatarLv(r, sz)}<b>${esc(r.name)}</b></button>`;
+      /* Waffenrüstung (bzw. Siegel bei „Bewährt“) auch auf dem Podest */
+      const ext = r => rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor);
+      const person = (r, sz) => `<button class="gk-p ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}">${avatarLv(r, sz)}<b>${esc(r.name)}</b>${ext(r)}</button>`;
       const gold = `<div class="gk-gold"><span class="pod-krone">${svg("crown")}</span>
         <div class="gk-t">${voll ? vollText : `Platz 1 · ${wert1} ${esc(unit)}`}${g1.length > 1 ? `<small>${g1.length} Spieler teilen sich Platz 1</small>` : voll ? `<small>${wert1} ${esc(unit)}</small>` : ""}</div>
         <div class="gk-leute">${g1.map(r => person(r, g1.length > 4 ? 44 : 50)).join("")}</div></div>`;
-      const klein = (n, g) => g.length ? `<div class="gk-k gk-k${n}"><div class="gk-h"><span class="gk-med">${n}</span><span>${rankWert(g[0])} ${esc(unit)}</span></div>
+      const klein = (n, g) => g.length ? `<div class="gk-k gk-k${n} gk-licht"><div class="gk-h"><span class="gk-med">${n}</span><span>${rankWert(g[0])} ${esc(unit)}</span></div>
         <div class="gk-stapel">${g.slice(0, 5).map(r => `<button data-pid="${esc(r.id)}" class="${r.id === me ? "me" : ""}">${avatarLv(r, 36)}</button>`).join("")}${g.length > 5 ? `<span class="gk-mehr">+${g.length - 5}</span>` : ""}</div>
-        <div class="gk-namen">${g.map(r => esc(r.name)).join(", ")}</div></div>` : "";
+        <div class="gk-wer">${g.slice(0, 3).map(r => `<div class="${r.id === me ? "me" : ""}"><b>${esc(r.name)}</b>${ext(r)}</div>`).join("")}${g.length > 3 ? `<div class="small muted">+${g.length - 3} weitere</div>` : ""}</div></div>` : "";
       const pod = `<div class="gk">${gold}${g2.length ? `<div class="gk-zd">${klein(2, g2)}${klein(3, g3)}</div>` : ""}</div>`;
       const rest = rows.map((r, i) => [r, platz[i]]).filter(([, p]) => p > 3).slice(0, 80).map(([r, p], k, arr) => `<button class="rrow ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}"><div class="rk">${k && arr[k - 1][1] === p ? "" : p}</div>${avatarLv(r, 38)}<div class="who"><b>${esc(r.name)}${r.id === me ? '<span class="you">DU</span>' : ""}</b><span>${esc(rangVon(r))}</span>${rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)}</div><div class="val">${rankWert(r)}</div></button>`).join("");
       if ($("rcount")) $("rcount").textContent = (rankTab === "woche" ? wk.split("-W")[1] + ". KW · " : "") + rows.length + " Spieler";

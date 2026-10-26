@@ -85,6 +85,12 @@ const VERSE = {
   lieder: ["Lasst das Wort des Christus reichlich in euch wohnen in aller Weisheit …", "Kolosser 3,16"]
 };
 const VERS_QUELLE = "Schlachter 2000";
+/* Monats-Lernvers der Gemeinde (Quelle: GoDi Assistent / Abläufe des Monats), Schlüssel "JJJJ-MM".
+   Ohne Eintrag für den aktuellen Monat erscheint wieder der „Vers des Tages“. */
+const MONATSVERSE = {
+  "2026-10": ["Seid in allem dankbar; denn das ist der Wille Gottes in Christus Jesus für euch.", "1. Thessalonicher 5,18"],
+  "2026-11": ["Ob ihr nun esst oder trinkt oder sonst etwas tut — tut alles zur Ehre Gottes!", "1. Korinther 10,31"]
+};
 /* Wechselnder „Vers des Tages“ – das einzige Bibelzitat auf der Startseite */
 const VERS_DES_TAGES = ["leuchte", "herz", "honig", "lust", "josua", "kind", "nuetze", "brot", "ewig", "lebendig", "lieder"];
 
