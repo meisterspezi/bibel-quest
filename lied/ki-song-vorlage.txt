@@ -1,0 +1,52 @@
+KI-Song: „In des Alten Bundes Schriften“ (Schlachter-Reihenfolge)
+================================================================
+
+1) STIL (bei Suno unter „Style of Music“ einfügen):
+
+deutsches Kinderlied, fröhlich, Akustikgitarre und Klavier, Kinderchor mit klarer Aussprache, 105 BPM, Mitsing-Refrain, gut verständliche Wörter
+
+Varianten: „Worship-Pop, Band, Frauen- und Männerstimme“ oder „ruhiges Lagerfeuerlied, Gitarre, Gemeindechor“.
+Wichtig: keine bekannte Melodie und keinen Künstlernamen angeben – dann entsteht eine eigene, neue Melodie.
+
+2) TITEL:
+
+In des Alten Bundes Schriften
+
+3) LIEDTEXT (bei Suno unter „Lyrics“ einfügen, Modus „Custom“):
+
+[Strophe 1 – Altes Testament]
+In des Alten Bundes Schriften merke an der ersten Stell:
+Mose, Josua und Richter, Ruth und zwei von Samuel.
+
+[Strophe 2]
+Zwei der Könige, Chronik, Esra, Nehemia, Esther mit.
+Hiob, Psalter, dann die Sprüche, Prediger und Hoheslied.
+
+[Strophe 3]
+Jesaja und Jeremia, Klagelieder, Hesekiel, Daniel.
+Dann Hosea, Joel, Amos, Obadja und Jonas Fehl,
+
+[Strophe 4]
+Micha, welchem Nahum folget, Habakuk, Zephania,
+dann Haggai und Sacharja, schließlich noch Malachia.
+
+[Strophe 5 – Neues Testament]
+In dem Neuen stehn Matthäus, Markus, Lukas und Johann,
+samt den Taten der Apostel unter allen vornean.
+
+[Strophe 6]
+An die Römer, zwei Korinther, Galater und Epheser,
+die Philipper und Kolosser, beide Thessalonicher.
+
+[Strophe 7]
+Zwei Timotheus, an Titus, an Philemon, die Hebräer,
+Jakobus und Petrus zwei, drei Johannes, Judas dabei.
+
+[Strophe 8]
+Endlich schließt die Offenbarung das gesamte Bibelbuch.
+Mensch, gebrauche, was du liesest, dir zum Segen, nicht zum Fluch.
+
+4) DANACH:
+- Mehrere Versionen erzeugen lassen und die mit der deutlichsten Aussprache aller Buchnamen wählen.
+- Als MP3 herunterladen, in diesen Ordner (app\lied) legen, z. B. als ganzes-lied.mp3.
+- In aufnahmen.json eintragen: {"ganzes-lied": "ganzes-lied.mp3"} – oder Claude bitten, das zu erledigen.
