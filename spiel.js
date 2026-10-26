@@ -1469,10 +1469,12 @@ let entwickler = false, postfachNeu = 0;
    Gibt es denselben Namen mehrfach MIT eigenen Geräten, sind es vermutlich verschiedene Personen –
    dann kommt nur ein Hinweis ins Postfach. Punkte (XP) werden addiert, Bestwerte übernommen. */
 const nameSchluessel = n => String(n || "").trim().toLowerCase().replace(/\s+/g, " ");
+let doppelteGeprueft = 0;
 async function doppelteZusammenfuehren(erzwingen) {
   const L = window.LB; if (!L || !L.alleSpieler || !L.verwalterZusammenfuehren) return [];
   if (!erzwingen && S.dupCheck === today()) return [];
   const alle = (await L.alleSpieler()).filter(r => r.name);
+  doppelteGeprueft = alle.length;
   const gruppen = {}; alle.forEach(r => { (gruppen[nameSchluessel(r.name)] = gruppen[nameSchluessel(r.name)] || []).push(r); });
   const verknuepft = r => Array.isArray(r.owners) && r.owners.length > 0;
   const berichte = [];
@@ -1497,7 +1499,7 @@ async function doppelteZusammenfuehren(erzwingen) {
     try {
       await L.verwalterZusammenfuehren(ziel.id, dups.map(r => r.id), werte);
       berichte.push(`Automatisch zusammengeführt: „${ziel.name}“ – ${teil.length} Einträge zu einem (jetzt ${xp.toLocaleString("de-DE")} XP, Level ${werte.level}).`);
-    } catch (e) { berichte.push(`„${ziel.name}“ konnte nicht zusammengeführt werden (${e && e.code ? e.code : "Fehler"}).`); }
+    } catch (e) { berichte.push(`„${ziel.name}“ konnte nicht zusammengeführt werden (${e && e.code ? e.code : "Fehler"}${e && e.message ? ": " + String(e.message).slice(0, 120) : ""}).`); }
   }
   S.dupCheck = today(); save();
   for (const text of berichte) await postkastenMelden("datenbank", text, "dup-" + today() + "-" + text.slice(0, 30));
@@ -1550,10 +1552,18 @@ VIEWS.postfach = (kat) => {
   <nav class="rk-nav pk-nav" aria-label="Postkasten">${PK_KAT.map(([k, n, ic]) => `<button data-pk="${k}" aria-pressed="${k === pkKategorie}"><span class="rk-ic">${svg(ic)}</span><span>${n}<i class="pk-n" data-pkn="${k}"></i></span></button>`).join("")}</nav>
   <div class="card rk-liste" style="margin-top:10px"><div class="rk-kopf"><div><b>${esc(PK_KAT.find(k => k[0] === pkKategorie)[1])}</b><span class="small muted" id="pkAnz"></span></div>
     <div class="rk-var" role="group" aria-label="Filter">${[["neu", "Neu"], ["alle", "Alle"], ["erledigt", "Erledigt"]].map(([k, n]) => `<button data-pf="${k}" aria-pressed="${k === postfachFilter}">${n}</button>`).join("")}</div></div>
-  <div class="stack" id="pfListe" style="margin-top:6px"><p class="muted small">Lade …</p></div></div>`;
+  <div class="stack" id="pfListe" style="margin-top:6px"><p class="muted small">Lade …</p></div></div>
+  ${pkKategorie === "datenbank" || pkKategorie === "alle" ? `<button class="btn ghost breit" id="dupJetzt" style="margin-top:10px;width:100%">${svg("people")} Doppelte Namen jetzt prüfen</button>` : ""}`;
   wireGo();
   screen.querySelectorAll("[data-pf]").forEach(b => b.onclick = () => { SFX.tap(); postfachFilter = b.dataset.pf; go("postfach"); });
   screen.querySelectorAll("[data-pk]").forEach(b => b.onclick = () => { SFX.tap(); go("postfach", b.dataset.pk); });
+  if ($("dupJetzt")) $("dupJetzt").onclick = async () => {
+    SFX.tap(); const k = $("dupJetzt"); k.disabled = true; k.textContent = "Prüfe …";
+    try {
+      const b = await doppelteZusammenfuehren(true);
+      modal(`<div class="label">Doppelte Namen</div><h2>${b.length ? "Ergebnis" : "Alles in Ordnung"}</h2>${b.length ? `<ul class="hinweisliste">${b.map(t => `<li>${esc(t)}</li>`).join("")}</ul>` : `<p class="muted">${doppelteGeprueft} Einträge geprüft – kein Name kommt doppelt vor.</p>`}<button class="btn primary" data-close>OK</button>`, () => go("postfach"));
+    } catch (e) { modal(`<h2>Prüfung fehlgeschlagen</h2><p class="muted small">${esc((e && e.code) || "")} ${esc(String((e && e.message) || e).slice(0, 200))}</p><button class="btn primary" data-close>OK</button>`, () => go("postfach")); }
+  };
   if (!entwickler || !L || !L.ok) { $("pfListe").innerHTML = `<p class="muted">Der Postkasten braucht Internet.</p>`; return; }
   const zeichne = (liste) => {
     postfachNeu = liste.filter(f => !f.erledigt).length; renderHud();
