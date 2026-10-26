@@ -1,5 +1,5 @@
 rules_version = '2';
-// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.5)
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.10 – automatisches Zusammenführen doppelter Namen)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -18,10 +18,19 @@ service cloud.firestore {
     function text(d, f, max) { return !(f in d) || (d[f] is string && d[f].size() <= max); }
 
     // Gültiger Ranglisten-Eintrag (alte App-Versionen senden nur einen Teil der Felder – das ist erlaubt)
+    function felder() {
+      return ['name','xp','level','bestChain','chainAT','chainNT','chainRueck','stars','badges','badgeIds',
+              'streak','bestStreak','blitz','combo','week','weekXp','avatar','frame','title','armor','atP','ntP','tl','t28','sg','bew','von','owners','code','updated'];
+    }
     function gueltig(d) {
-      return d.keys().hasOnly(['name','xp','level','bestChain','chainAT','chainNT','chainRueck','stars','badges','badgeIds',
-                               'streak','bestStreak','blitz','combo','week','weekXp','avatar','frame','title','armor','atP','ntP','tl','t28','sg','bew','von','owners','code','updated'])
-        && d.name is string && d.name.size() >= 2 && d.name.size() <= 20
+      return d.keys().hasOnly(felder()) && werteOk(d);
+    }
+    // Der Verwalter darf zusätzlich „zu“ setzen (= Eintrag wurde mit einem anderen zusammengeführt)
+    function gueltigVerwalter(d) {
+      return d.keys().hasOnly(felder().concat(['zu'])) && werteOk(d) && (!('zu' in d) || (d.zu is string && d.zu.size() <= 64));
+    }
+    function werteOk(d) {
+      return d.name is string && d.name.size() >= 2 && d.name.size() <= 20
         && d.xp is int && d.xp >= 0 && d.xp <= 10000000
         && d.level is int && d.level >= 1 && d.level <= 1000
         && d.week is string && d.week.size() <= 10
@@ -76,8 +85,12 @@ service cloud.firestore {
           (pid == ich() && (!('owners' in request.resource.data) || request.resource.data.owners == [ich()]))
           || (pid.matches('^[A-Za-z0-9]+-[a-z0-9]{4}$') && pid.split('-')[0] == ich()
               && 'owners' in request.resource.data && request.resource.data.owners == [ich()]));
-      allow update: if angemeldet() && gueltig(request.resource.data) && besitzerBleiben() && hoechstensIchDazu(pid)
-        && (istBesitzer(pid) || perAuswahl() || perZusammenfuehrung(pid) || perCode(pid));
+      allow update: if angemeldet() && (
+          (gueltig(request.resource.data) && besitzerBleiben() && hoechstensIchDazu(pid)
+            && (istBesitzer(pid) || perAuswahl() || perZusammenfuehrung(pid) || perCode(pid)))
+          // Verwalter: doppelte Namen zusammenführen (Besitzerlisten bleiben unverändert)
+          || (istEntwickler() && gueltigVerwalter(request.resource.data) && besitzerBleiben()
+              && (!('owners' in resource.data) || request.resource.data.owners == resource.data.owners)));
       allow delete: if angemeldet() && istBesitzer(pid);
     }
 
@@ -120,7 +133,7 @@ service cloud.firestore {
       allow create: if angemeldet()
         && request.resource.data.keys().hasOnly(['text','art','ver','geraet','uid','name','pid','geschrieben','zeit'])
         && request.resource.data.text is string && request.resource.data.text.size() >= 3 && request.resource.data.text.size() <= 2000
-        && request.resource.data.art in ['idee','fehler','lob','frage']
+        && request.resource.data.art in ['idee','fehler','lob','frage','info']
         && request.resource.data.uid == ich()
         && request.resource.data.zeit == request.time
         && text(request.resource.data, 'ver', 20) && text(request.resource.data, 'geraet', 80)
@@ -129,7 +142,10 @@ service cloud.firestore {
 
     // Zusammenführungen legt nur der Verwalter in der Konsole an; jedes Gerät darf nur seine eigene lesen
     match /zusammenfuehren/{uid} {
-      allow get: if angemeldet() && ich() == uid;
+      allow get: if angemeldet() && (ich() == uid || istEntwickler());
+      // Der Verwalter (Entwickler) legt Zusammenführungen automatisch aus der App an
+      allow create, update: if istEntwickler() && request.resource.data.keys().hasOnly(['zu'])
+        && request.resource.data.zu is string && request.resource.data.zu.size() <= 64;
     }
   }
 }

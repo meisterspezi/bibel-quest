@@ -1075,6 +1075,8 @@ async function lbStart() {
     if (S.lbName && !S.pid) { await offlineNamePruefen(); return; }
     if (S.lbName) {
       if (S.ownersSet || S.pid !== L.uid) { const r = await L.loadState(S.pid).catch(() => null); if (r) { zusammenfuehren(r); save(); renderHud(); } }
+      /* Höhere Werte aus dem eigenen Ranglisten-Eintrag übernehmen (z. B. nach automatischem Zusammenführen) */
+      if (L.holeSpieler) { const e = await L.holeSpieler(S.pid).catch(() => null); if (e && !e.zu && (e.xp || 0) > S.xp) { zusammenfuehren(ausRangliste(e)); save(); renderHud(); } }
       lbSync(true); cloudSync();
     }
   } catch (e) {}
@@ -1082,7 +1084,7 @@ async function lbStart() {
 const uidAnderweitigBelegt = () => { const L = window.LB; return GERAET.liste.some(p => p.key !== GERAET.aktiv && p.pid === L.uid); };
 /* Werte eines Ranglisten-Eintrags als Spielstand (falls kein Online-Spielstand vorhanden ist) */
 function ausRangliste(d) {
-  return { xp: d.xp, bestChain: d.bestChain, chainAT: d.chainAT, chainNT: d.chainNT, chainRueck: d.chainRueck, bestBlitz: d.blitz, bestCombo: d.combo, bestStreak: d.bestStreak, badges: d.badgeIds || [], tage: Array.isArray(d.tl) ? d.tl : [] };
+  return { weekKey: d.week, weekXp: d.weekXp || 0, xp: d.xp, bestChain: d.bestChain, chainAT: d.chainAT, chainNT: d.chainNT, chainRueck: d.chainRueck, bestBlitz: d.blitz, bestCombo: d.combo, bestStreak: d.bestStreak, badges: d.badgeIds || [], tage: Array.isArray(d.tl) ? d.tl : [] };
 }
 /* Gerät hat schon einen Ranglisten-Eintrag, aber kein Name ist gespeichert: nachfragen */
 function wiedererkennen(r) {
@@ -1454,16 +1456,57 @@ function feedbackOeffnen() {
 
 /* ---------- Feedback-Postfach (nur für den Entwickler) ---------- */
 let entwickler = false, postfachNeu = 0;
+/* Doppelte Namen automatisch zusammenführen.
+   Läuft auf dem Gerät des Verwalters (Entwickler) höchstens einmal am Tag.
+   Sicher: Automatisch zusammengeführt werden nur Einträge OHNE Geräte-Verknüpfung (alte App-Versionen).
+   Gibt es denselben Namen mehrfach MIT eigenen Geräten, sind es vermutlich verschiedene Personen –
+   dann kommt nur ein Hinweis ins Postfach. Punkte (XP) werden addiert, Bestwerte übernommen. */
+const nameSchluessel = n => String(n || "").trim().toLowerCase().replace(/\s+/g, " ");
+async function doppelteZusammenfuehren(erzwingen) {
+  const L = window.LB; if (!L || !L.alleSpieler || !L.verwalterZusammenfuehren) return [];
+  if (!erzwingen && S.dupCheck === today()) return [];
+  const alle = (await L.alleSpieler()).filter(r => r.name);
+  const gruppen = {}; alle.forEach(r => { (gruppen[nameSchluessel(r.name)] = gruppen[nameSchluessel(r.name)] || []).push(r); });
+  const verknuepft = r => Array.isArray(r.owners) && r.owners.length > 0;
+  const berichte = [];
+  for (const g of Object.values(gruppen)) {
+    if (g.length < 2) continue;
+    const mitGeraet = g.filter(verknuepft);
+    const ziel = mitGeraet.length ? mitGeraet.slice().sort((a, b) => (b.xp || 0) - (a.xp || 0))[0] : g.slice().sort((a, b) => (b.xp || 0) - (a.xp || 0))[0];
+    const dups = g.filter(r => r.id !== ziel.id && !verknuepft(r));
+    if (mitGeraet.length > 1) berichte.push(`Bitte prüfen: „${g[0].name}“ gibt es ${mitGeraet.length}× mit eigenen Geräten – vermutlich verschiedene Personen, darum nicht automatisch zusammengeführt.`);
+    if (!dups.length) continue;
+    const wk = weekKey(), teil = [ziel, ...dups];
+    const mx = k => Math.max(0, ...teil.map(r => +r[k] || 0));
+    const xp = teil.reduce((a, r) => a + (+r.xp || 0), 0);
+    const ids = [...new Set(teil.flatMap(r => Array.isArray(r.badgeIds) ? r.badgeIds : []))].slice(0, 80);
+    const tl = [...new Set(teil.flatMap(r => Array.isArray(r.tl) ? r.tl : []))].sort((a, b) => a - b).slice(-31);
+    const werte = { xp, level: levelOf(xp), week: wk, weekXp: teil.filter(r => r.week === wk).reduce((a, r) => a + (+r.weekXp || 0), 0),
+      bestChain: Math.min(mx("bestChain"), 65), chainAT: Math.min(mx("chainAT"), 38), chainNT: Math.min(mx("chainNT"), 26), chainRueck: Math.min(mx("chainRueck"), 65),
+      stars: Math.min(mx("stars"), 24), badges: Math.max(mx("badges"), ids.length), streak: mx("streak"), bestStreak: mx("bestStreak"),
+      blitz: mx("blitz"), combo: Math.min(mx("combo"), 1000), armor: Math.min(mx("armor"), 6), atP: Math.min(mx("atP"), 100), ntP: Math.min(mx("ntP"), 100), bew: Math.min(mx("bew"), 16) };
+    if (ids.length) werte.badgeIds = ids;
+    if (tl.length) { werte.tl = tl; werte.t28 = Math.min(tage28(tl), 31); }
+    try {
+      await L.verwalterZusammenfuehren(ziel.id, dups.map(r => r.id), werte);
+      berichte.push(`Automatisch zusammengeführt: „${ziel.name}“ – ${teil.length} Einträge zu einem (jetzt ${xp.toLocaleString("de-DE")} XP, Level ${werte.level}).`);
+    } catch (e) { berichte.push(`„${ziel.name}“ konnte nicht zusammengeführt werden (${e && e.code ? e.code : "Fehler"}).`); }
+  }
+  S.dupCheck = today(); save();
+  for (const text of berichte) { try { await L.feedback({ text, art: "info", ver: APP_VERSION, geraet: "automatisch" }); } catch (e) {} }
+  return berichte;
+}
 async function entwicklerPruefen() {
   const L = window.LB; if (!L || !L.ok || !L.entwicklerPid || !S.pid) return;
   try {
     const pid = await L.entwicklerPid(); entwickler = !!pid && pid === S.pid;
     if (!entwickler) return;
+    await doppelteZusammenfuehren();
     const liste = await L.feedbackListe(); postfachNeu = liste.filter(f => !f.erledigt).length;
     if (["home", "profil"].includes(current) && !document.querySelector(".modal")) go(current);
   } catch (e) { entwickler = false; }
 }
-const ART_NAME = { idee: "Idee", fehler: "Fehler", lob: "Lob", frage: "Frage" };
+const ART_NAME = { idee: "Idee", fehler: "Fehler", lob: "Lob", frage: "Frage", info: "Automatik" };
 let postfachFilter = "neu";
 VIEWS.postfach = () => {
   const L = window.LB;

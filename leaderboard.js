@@ -118,14 +118,26 @@ if (!configured) {
 
     LB.holeSpieler = async (pid) => { const d = await fs.getDoc(ref("spieler", pid)); return d.exists() ? { id: d.id, ...d.data() } : null; };
 
+    // Einträge mit „zu“ wurden zusammengeführt und werden nirgends mehr angezeigt
+    const aktiv = docs => docs.map(d => ({ id: d.id, ...d.data() })).filter(r => !r.zu);
     LB.findeName = async (name) => {
-      const s = await fs.getDocs(fs.query(spieler, fs.where("name", "==", name), fs.limit(5)));
-      return s.docs.map(d => ({ id: d.id, ...d.data() }));
+      const s = await fs.getDocs(fs.query(spieler, fs.where("name", "==", name), fs.limit(10)));
+      return aktiv(s.docs).slice(0, 5);
     };
 
     LB.nameTaken = async (name) => {
-      const s = await fs.getDocs(fs.query(spieler, fs.where("name", "==", name), fs.limit(1)));
-      return !s.empty;
+      const s = await fs.getDocs(fs.query(spieler, fs.where("name", "==", name), fs.limit(10)));
+      return aktiv(s.docs).length > 0;
+    };
+
+    // Für den Verwalter: alle Einträge (zum Finden doppelter Namen) und Zusammenführen in einem Schritt
+    LB.alleSpieler = async () => aktiv((await fs.getDocs(fs.query(spieler, fs.limit(500)))).docs);
+    LB.verwalterZusammenfuehren = async (ziel, dups, werte) => {
+      await LB.signIn();
+      const b = fs.writeBatch(db);
+      b.update(ref("spieler", ziel), { ...werte, updated: fs.serverTimestamp() });
+      dups.forEach(id => { b.set(ref("zusammenfuehren", id), { zu: ziel }); b.update(ref("spieler", id), { zu: ziel }); });
+      await b.commit();
     };
 
     // Live-Listen
@@ -134,7 +146,7 @@ if (!configured) {
       const q = kind === "woche"
         ? fs.query(spieler, fs.where("week", "==", week), fs.limit(500))
         : fs.query(spieler, fs.orderBy(FELD[kind] || "xp", "desc"), fs.limit(100));
-      return fs.onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() }))), e => onErr && onErr(e));
+      return fs.onSnapshot(q, snap => cb(aktiv(snap.docs)), e => onErr && onErr(e));
     };
 
     LB.ok = true;
