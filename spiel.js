@@ -425,7 +425,7 @@ function titelCheck() {
 /* ---------- Kopfleiste ---------- */
 function renderHud() {
   const n = levelOf(S.xp), lo = cum(n), hi = cum(n + 1);
-  $("hLvl").textContent = n; $("hAvatar").innerHTML = avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "?" }, 42); $("hTitle").textContent = (S.lbName ? S.lbName + " · " : "") + titleOf(n);
+  $("hLvl").textContent = n; $("hAvatar").innerHTML = avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "?" }, 42); $("hTitle").textContent = (S.lbName ? S.lbName + " · " : "") + (entwickler ? ENTW_RANG : titleOf(n));
   $("hBar").style.width = ((S.xp - lo) / (hi - lo) * 100) + "%"; $("hXp").textContent = `${S.xp - lo} / ${hi - lo} XP`;
   $("hStreak").textContent = streakNow(); $("hTal").textContent = S.tal;
   const pk = $("pkBtn"); if (pk) { pk.hidden = !entwickler; pk.innerHTML = `${svg("post")}${postfachNeu ? `<span class="pk-zahl">${postfachNeu > 99 ? "99+" : postfachNeu}</span>` : ""}`; pk.setAttribute("aria-label", `Postkasten${postfachNeu ? ", " + postfachNeu + " neu" : ""}`); }
@@ -442,6 +442,13 @@ function avatarHtml(p, size = 44) {
 /* Avatar mit Rahmen und Level-Münze (Rangliste) */
 const avatarLv = (p, size) => `<span class="avw">${avatarHtml(p, size)}<span class="lvc" title="Level ${p.level || 1}">${p.level || 1}</span></span>`;
 const titelName = id => { const t = TITEL.find(x => x.id === id); return t && t.id !== "none" ? t.name : ""; };
+const ENTW_RANG = "Entwickler";
+/* Angezeigter Rang eines Ranglisten-Eintrags bzw. (ohne r) des eigenen Profils */
+function rangVon(r) {
+  if (!r) return entwickler ? ENTW_RANG : titelName(S.title) || titleOf(levelOf(S.xp));
+  if (ENTW_PID && r.id === ENTW_PID) return ENTW_RANG;
+  return titelName(r.title) || titleOf(r.level || 1);
+}
 function ruestungHtml(n, klein = true) {
   if (!n) return "";
   return `<span class="ruest ${klein ? "klein" : ""}" title="Waffenrüstung Gottes: ${n} von 6">${RUESTUNG.slice(0, n).map(r => svg("ar-" + r.id)).join("")}</span>`;
@@ -972,7 +979,7 @@ function kaufen(id, preis, el) {
 }
 VIEWS.shop = (tab) => {
   if (tab) shopTab = tab;
-  const vorschau = `<div class="shop-vorschau card">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "Du" }, 64)}<div><b>${esc(S.lbName || "Du")}</b><div class="small muted">${esc(titelName(S.title) || titleOf(levelOf(S.xp)))}</div>${ruestungHtml(armorCount(), false)}</div></div>`;
+  const vorschau = `<div class="shop-vorschau card">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "Du" }, 64)}<div><b>${esc(S.lbName || "Du")}</b><div class="small muted">${esc(rangVon())}</div>${ruestungHtml(armorCount(), false)}</div></div>`;
   let inhalt = "";
   const karte = (o) => `<div class="item ${o.akt ? "aktiv" : ""}"><div class="ivor">${o.vor}</div><div class="itext"><b>${esc(o.name)}</b>${o.text ? `<span class="small muted">${esc(o.text)}</span>` : ""}${o.bezug ? `<span class="ibezug">${esc(o.bezug)}</span>` : ""}${o.vers ? `<span class="ivers">${esc(o.vers)}</span>` : ""}</div>${o.knopf}</div>`;
   const knopf = (kat, it, aktiv) => {
@@ -1046,7 +1053,7 @@ VIEWS.profil = () => {
   const L = window.LB, online = L && L.ok;
   screen.innerHTML = `${backBtn()}<h1>Mein Profil</h1>
   <div class="card profil-kopf">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "Du" }, 84)}
-    <div><h2 style="margin:0">${esc(S.lbName || "Noch ohne Namen")}</h2>${!S.pid && !S.offlineOnly ? `<div class="small muted">Erscheint in der Rangliste, sobald Internet da ist.</div>` : ""}<div class="muted">${esc(titelName(S.title) || titleOf(levelOf(S.xp)))}</div>${ruestungHtml(armorCount(), false)}</div></div>
+    <div><h2 style="margin:0">${esc(S.lbName || "Noch ohne Namen")}</h2>${!S.pid && !S.offlineOnly ? `<div class="small muted">Erscheint in der Rangliste, sobald Internet da ist.</div>` : ""}<div class="muted">${esc(rangVon())}</div>${ruestungHtml(armorCount(), false)}</div></div>
   <div class="row-btns" style="margin:10px 0"><button class="btn" data-go="shop">Aussehen ändern</button><button class="btn ghost" data-go="badges">Meine Abzeichen</button></div>
   <div class="card stack">${titelKarte(AT_TITEL, atP, "AT")}${titelKarte(NT_TITEL, ntP, "NT")}
     <p class="small muted" style="margin:0">Die Titel wachsen mit deinen Sternen in den Lektionen und deiner Kette im AT bzw. NT.</p></div>
@@ -1354,7 +1361,7 @@ VIEWS.rank = (tab) => {
         <div class="gk-stapel">${g.slice(0, 5).map(r => `<button data-pid="${esc(r.id)}" class="${r.id === me ? "me" : ""}">${avatarLv(r, 36)}</button>`).join("")}${g.length > 5 ? `<span class="gk-mehr">+${g.length - 5}</span>` : ""}</div>
         <div class="gk-namen">${g.map(r => esc(r.name)).join(", ")}</div></div>` : "";
       const pod = `<div class="gk">${gold}${g2.length ? `<div class="gk-zd">${klein(2, g2)}${klein(3, g3)}</div>` : ""}</div>`;
-      const rest = rows.map((r, i) => [r, platz[i]]).filter(([, p]) => p > 3).slice(0, 80).map(([r, p], k, arr) => `<button class="rrow ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}"><div class="rk">${k && arr[k - 1][1] === p ? "" : p}</div>${avatarLv(r, 38)}<div class="who"><b>${esc(r.name)}${r.id === me ? '<span class="you">DU</span>' : ""}</b><span>${esc(titelName(r.title) || titleOf(r.level || 1))}</span>${rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)}</div><div class="val">${rankWert(r)}</div></button>`).join("");
+      const rest = rows.map((r, i) => [r, platz[i]]).filter(([, p]) => p > 3).slice(0, 80).map(([r, p], k, arr) => `<button class="rrow ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}"><div class="rk">${k && arr[k - 1][1] === p ? "" : p}</div>${avatarLv(r, 38)}<div class="who"><b>${esc(r.name)}${r.id === me ? '<span class="you">DU</span>' : ""}</b><span>${esc(rangVon(r))}</span>${rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)}</div><div class="val">${rankWert(r)}</div></button>`).join("");
       if ($("rcount")) $("rcount").textContent = (rankTab === "woche" ? wk.split("-W")[1] + ". KW · " : "") + rows.length + " Spieler";
       body.innerHTML = `${pod}${rest ? `<div class="rlist">${rest}</div>` : ""}`;
       body.querySelectorAll("[data-pid]").forEach(b => b.onclick = () => { SFX.tap(); profilVergleich(rows.find(r => r.id === b.dataset.pid)); });
@@ -1510,7 +1517,7 @@ function profilVergleich(r) {
   const zeilenR = statsZeilen(r), zeilenI = statsZeilen(ich);
   const hatIds = Array.isArray(r.badgeIds);
   const m = modal(`<div class="vergleich">
-    <div class="vg-kopf">${avatarLv(r, 72)}<div><h2 style="margin:0">${esc(r.name)}</h2><div class="muted small">${esc(titelName(r.title) || "Level " + (r.level || 1) + " · " + titleOf(r.level || 1))}</div><div class="small"><span class="tag at">AT</span> ${esc(AT_TITEL[titelIndex(AT_TITEL, r.atP || 0)][1])} · <span class="tag nt">NT</span> ${esc(NT_TITEL[titelIndex(NT_TITEL, r.ntP || 0)][1])}</div>${ruestungHtml(r.armor, false)}</div></div>
+    <div class="vg-kopf">${avatarLv(r, 72)}<div><h2 style="margin:0">${esc(r.name)}</h2><div class="muted small">${esc(ENTW_PID && r.id === ENTW_PID ? "Level " + (r.level || 1) + " · " + ENTW_RANG : titelName(r.title) || "Level " + (r.level || 1) + " · " + titleOf(r.level || 1))}</div><div class="small"><span class="tag at">AT</span> ${esc(AT_TITEL[titelIndex(AT_TITEL, r.atP || 0)][1])} · <span class="tag nt">NT</span> ${esc(NT_TITEL[titelIndex(NT_TITEL, r.ntP || 0)][1])}</div>${ruestungHtml(r.armor, false)}</div></div>
     <table class="werte vg"><thead><tr><th></th><th>${esc(r.name)}</th>${istIch ? "" : "<th>Du</th>"}</tr></thead><tbody>
       ${zeilenR.map(([k, v], j) => `<tr><th>${k}</th><td>${esc(v)}</td>${istIch ? "" : `<td>${esc(zeilenI[j][1])}</td>`}</tr>`).join("")}</tbody></table>
     ${Array.isArray(r.sg) ? `<div class="label" style="margin:12px 0 6px">Siegel</div>${siegelReihe(r)}` : ""}
@@ -1563,6 +1570,8 @@ function feedbackOeffnen() {
 
 /* ---------- Feedback-Postfach (nur für den Entwickler) ---------- */
 let entwickler = false, postfachNeu = 0;
+/* Profil-ID des Verwalters (einstellungen/entwickler) – sein Rang heißt für alle „Entwickler“ */
+let ENTW_PID = null;
 /* Doppelte Namen automatisch zusammenführen.
    Läuft auf dem Gerät des Verwalters (Entwickler) höchstens einmal am Tag.
    Sicher: Automatisch zusammengeführt werden nur Einträge OHNE Geräte-Verknüpfung (alte App-Versionen).
@@ -1606,9 +1615,12 @@ async function doppelteZusammenfuehren(erzwingen) {
   return berichte;
 }
 async function entwicklerPruefen() {
-  const L = window.LB; if (!L || !L.ok || !L.entwicklerPid || !S.pid) return;
+  const L = window.LB; if (!L || !L.ok || !L.entwicklerPid) return;
   try {
-    const pid = await L.entwicklerPid(); entwickler = !!pid && pid === S.pid;
+    const pid = await L.entwicklerPid();
+    if (pid !== ENTW_PID) { ENTW_PID = pid || null; if (current === "rank" && !document.querySelector(".modal")) go("rank"); }
+    if (!S.pid) return;
+    entwickler = !!pid && pid === S.pid;
     if (!entwickler) { renderHud(); return; }
     await doppelteZusammenfuehren();
     await statusBerichte();

@@ -1,4 +1,4 @@
-const APP_VERSION = "6.14";
+const APP_VERSION = "6.15";
 /* =====================================================================
    Bibelbuch-Quest – Spieldaten
    Bücher (Schlachter 2000), Lieder, Bibelverse (Schlachter 2000 © Genfer Bibelgesellschaft),
@@ -198,7 +198,7 @@ const RUESTUNG = [
 ];
 
 /* ---------- Level ---------- */
-const TITLES = ["Schriftrollen-Lehrling", "Bücherwurm", "Fleißiger Leser", "Junger Schreiber", "Psalmensänger", "Weisheitssucher", "Prophetenschüler", "Schriftkundiger", "Bibelkenner", "Ältester", "Bibel-Meister", "Lebendiges Register"];
+const TITLES = ["Schriftrollen-Lehrling", "Bücherwurm", "Fleißiger Leser", "Junger Schreiber", "Psalmensänger", "Weisheitssucher", "Prophetenschüler", "Schriftkundiger", "Bibelkenner", "Wortbewahrer", "Bibel-Meister", "Lebendiges Register"];
 
 /* ---------- Gemeinde-Treue ---------- */
 const TREUE_TAGE = 3;                       // ab so vielen Spieltagen pro Woche ist man „treu“
@@ -275,7 +275,7 @@ const BADGES = [
   { id: "quests10", kat: "ausdauer", name: "Täter des Worts", d: "10-mal alle Tagesaufgaben erfüllt (Jakobus 1,22)", ic: "target", tal: 20, ok: s => (s.questBonusCount || 0) >= 10 },
 
   { id: "lvl5", kat: "wachstum", name: "Psalmensänger", d: "Level 5 erreicht", ic: "crown", ok: s => levelOf(s.xp) >= 5 },
-  { id: "lvl10", kat: "wachstum", name: "Ältester", d: "Level 10 erreicht", ic: "crown", tal: 15, ok: s => levelOf(s.xp) >= 10 },
+  { id: "lvl10", kat: "wachstum", name: "Wortbewahrer", d: "Level 10 erreicht", ic: "crown", tal: 15, ok: s => levelOf(s.xp) >= 10 },
   { id: "lvl15", kat: "wachstum", name: "Säule", d: "Level 15 erreicht (Galater 2,9)", ic: "crown", tal: 30, ok: s => levelOf(s.xp) >= 15 },
   { id: "xp5000", kat: "wachstum", name: "Talente vermehrt", d: "5.000 XP gesammelt (Matthäus 25)", ic: "gem", tal: 15, ok: s => s.xp >= 5000 },
   { id: "xp20000", kat: "wachstum", name: "Guter und treuer Knecht", d: "20.000 XP gesammelt (Matthäus 25,21)", ic: "gem", tal: 40, ok: s => s.xp >= 20000 },
