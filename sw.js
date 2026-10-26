@@ -1,6 +1,6 @@
 // Offline-Speicher für Bibelbuch-Quest. Bei Änderungen an der App die Versionsnummer erhöhen.
-const VERSION = "bibel-quest-v5";
-const APP = ["./", "index.html", "logo.png", "qrcode.js", "firebase-config.js", "leaderboard.js", "manifest.webmanifest",
+const VERSION = "bibel-quest-v6-5";
+const APP = ["./", "index.html", "daten.js", "spiel.js", "logo.png", "qrcode.js", "firebase-config.js", "leaderboard.js", "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "icons/icon-180.png", "icons/favicon-32.png"];
 // Fremde Dateien, die offline mitgespeichert werden dürfen (Schriften, Firebase-Bibliothek).
 // Die Ranglisten-Daten selbst (googleapis.com) werden NIE zwischengespeichert.
@@ -19,6 +19,7 @@ self.addEventListener("fetch", e => {
   const url = new URL(req.url);
   const same = url.origin === self.location.origin;
   if (!same && !CACHE_HOSTS.includes(url.hostname)) return; // Rangliste & Anmeldung immer live
+  if (req.headers.has("range") || url.pathname.includes("/lied/")) return; // Lieder (Audio, PDF) direkt laden
 
   // Seite und eigene Skripte: erst Netz (für Updates), sonst Offline-Kopie
   if (same) {

@@ -1,24 +1,135 @@
 rules_version = '2';
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.5)
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /spieler/{uid} {
-      // Jeder darf die Rangliste lesen
+
+    function angemeldet() { return request.auth != null; }
+    function ich() { return request.auth.uid; }
+    function spielerPfad(pid) { return /databases/$(database)/documents/spieler/$(pid); }
+
+    // Gehört das Profil pid zu mir? (neue Profile: Liste "owners", alte Profile: Dokument-ID = meine Kennung)
+    function besitzer(pid) {
+      return exists(spielerPfad(pid)) && (
+        ('owners' in get(spielerPfad(pid)).data && ich() in get(spielerPfad(pid)).data.owners)
+        || (!('owners' in get(spielerPfad(pid)).data) && ich() == pid));
+    }
+
+    function zahl(d, f, max) { return !(f in d) || (d[f] is int && d[f] >= 0 && d[f] <= max); }
+    function text(d, f, max) { return !(f in d) || (d[f] is string && d[f].size() <= max); }
+
+    // Gültiger Ranglisten-Eintrag (alte App-Versionen senden nur einen Teil der Felder – das ist erlaubt)
+    function gueltig(d) {
+      return d.keys().hasOnly(['name','xp','level','bestChain','chainAT','chainNT','chainRueck','stars','badges','badgeIds',
+                               'streak','bestStreak','blitz','combo','week','weekXp','avatar','frame','title','armor','atP','ntP','tl','t28','sg','bew','von','owners','code','updated'])
+        && d.name is string && d.name.size() >= 2 && d.name.size() <= 20
+        && d.xp is int && d.xp >= 0 && d.xp <= 10000000
+        && d.level is int && d.level >= 1 && d.level <= 1000
+        && d.week is string && d.week.size() <= 10
+        && zahl(d, 'weekXp', 1000000) && zahl(d, 'bestChain', 65) && zahl(d, 'chainAT', 38) && zahl(d, 'chainNT', 26)
+        && zahl(d, 'chainRueck', 65) && zahl(d, 'stars', 24) && zahl(d, 'badges', 100) && zahl(d, 'streak', 100000)
+        && zahl(d, 'bestStreak', 100000) && zahl(d, 'blitz', 1000) && zahl(d, 'combo', 1000) && zahl(d, 'armor', 6) && zahl(d, 'atP', 100) && zahl(d, 'ntP', 100) && zahl(d, 't28', 31) && zahl(d, 'bew', 16) && text(d, 'von', 64)
+        && text(d, 'avatar', 20) && text(d, 'frame', 20) && text(d, 'title', 30) && text(d, 'code', 12)
+        && (!('badgeIds' in d) || (d.badgeIds is list && d.badgeIds.size() <= 80))
+        && (!('tl' in d) || (d.tl is list && d.tl.size() <= 31))
+        && (!('sg' in d) || (d.sg is list && d.sg.size() <= 8))
+        && (!('owners' in d) || (d.owners is list && d.owners.size() <= 10));
+    }
+
+    function bisherigeBesitzer() { return 'owners' in resource.data ? resource.data.owners : []; }
+    // Niemand darf aus der Besitzerliste entfernt werden (schützt auch vor alten App-Versionen)
+    function besitzerBleiben() {
+      return !('owners' in resource.data)
+        || ('owners' in request.resource.data && request.resource.data.owners.hasAll(resource.data.owners));
+    }
+    // Hinzukommen darf höchstens das eigene Gerät (und die ursprüngliche Profil-Kennung)
+    function hoechstensIchDazu(pid) {
+      return !('owners' in request.resource.data)
+        || request.resource.data.owners.hasOnly(bisherigeBesitzer().concat([ich(), pid]));
+    }
+    function istBesitzer(pid) {
+      return ('owners' in resource.data && ich() in resource.data.owners)
+        || (!('owners' in resource.data) && ich() == pid);
+    }
+    // „Ich spiele schon mit“: jedes angemeldete Gerät darf sich selbst als Besitzer eintragen
+    // (bewusst ohne PIN – in der Gemeinde vertrauen wir einander)
+    function perAuswahl() {
+      return 'owners' in request.resource.data && ich() in request.resource.data.owners;
+    }
+    // Zusammenführung, die der Verwalter in der Firebase-Konsole angelegt hat
+    function perZusammenfuehrung(pid) {
+      return exists(/databases/$(database)/documents/zusammenfuehren/$(ich()))
+        && get(/databases/$(database)/documents/zusammenfuehren/$(ich())).data.zu == pid;
+    }
+    // Gültiger, nicht abgelaufener Kopplungscode für genau dieses Profil
+    function perCode(pid) {
+      return 'code' in request.resource.data
+        && exists(/databases/$(database)/documents/kopplung/$(request.resource.data.code))
+        && get(/databases/$(database)/documents/kopplung/$(request.resource.data.code)).data.pid == pid
+        && get(/databases/$(database)/documents/kopplung/$(request.resource.data.code)).data.exp > request.time;
+    }
+
+    match /spieler/{pid} {
       allow read: if true;
-      // Jeder darf nur seinen eigenen Eintrag löschen
-      allow delete: if request.auth != null && request.auth.uid == uid;
-      // Jeder darf nur seinen eigenen Eintrag schreiben, mit plausiblen Werten
-      allow create, update: if request.auth != null && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['name','xp','level','bestChain','stars','badges','streak','week','weekXp','updated'])
-        && request.resource.data.name is string
-        && request.resource.data.name.size() >= 2 && request.resource.data.name.size() <= 20
-        && request.resource.data.xp is int && request.resource.data.xp >= 0 && request.resource.data.xp <= 1000000
-        && request.resource.data.weekXp is int && request.resource.data.weekXp >= 0 && request.resource.data.weekXp <= 100000
-        && request.resource.data.bestChain is int && request.resource.data.bestChain >= 0 && request.resource.data.bestChain <= 65
-        && request.resource.data.level is int && request.resource.data.level >= 1 && request.resource.data.level <= 500
-        && request.resource.data.stars is int && request.resource.data.stars >= 0 && request.resource.data.stars <= 24
-        && request.resource.data.badges is int && request.resource.data.badges >= 0 && request.resource.data.badges <= 50
-        && request.resource.data.streak is int && request.resource.data.streak >= 0 && request.resource.data.streak <= 10000
-        && request.resource.data.week is string && request.resource.data.week.size() <= 10;
+      // Neuer Eintrag: Dokument-ID = Gerätekennung, oder – für weitere Spieler am selben Gerät –
+      // Gerätekennung + "-" + 4 Zeichen (dann ist die Besitzerliste Pflicht)
+      allow create: if angemeldet() && gueltig(request.resource.data) && (
+          (pid == ich() && (!('owners' in request.resource.data) || request.resource.data.owners == [ich()]))
+          || (pid.matches('^[A-Za-z0-9]+-[a-z0-9]{4}$') && pid.split('-')[0] == ich()
+              && 'owners' in request.resource.data && request.resource.data.owners == [ich()]));
+      allow update: if angemeldet() && gueltig(request.resource.data) && besitzerBleiben() && hoechstensIchDazu(pid)
+        && (istBesitzer(pid) || perAuswahl() || perZusammenfuehrung(pid) || perCode(pid));
+      allow delete: if angemeldet() && istBesitzer(pid);
+    }
+
+    // Kompletter Spielstand – nur für die Geräte des Spielers
+    match /spielstand/{pid} {
+      allow read, delete: if angemeldet() && besitzer(pid);
+      allow create, update: if angemeldet() && besitzer(pid)
+        && request.resource.data.keys().hasOnly(['daten', 'updated'])
+        && request.resource.data.daten is string && request.resource.data.daten.size() <= 40000;
+    }
+
+    // Kopplungscodes: nur über den genauen Code lesbar, höchstens 30 Minuten gültig
+    match /kopplung/{code} {
+      allow get: if angemeldet();
+      allow list: if false;
+      allow create: if angemeldet() && code.size() == 6
+        && request.resource.data.keys().hasOnly(['pid', 'exp'])
+        && request.resource.data.pid is string && besitzer(request.resource.data.pid)
+        && request.resource.data.exp is timestamp
+        && request.resource.data.exp <= request.time + duration.value(30, 'm');
+      allow delete: if angemeldet() && besitzer(resource.data.pid);
+    }
+
+    // Wer ist der Entwickler? Das Dokument einstellungen/entwickler {pid: "<Spieler-ID>"} legt der Verwalter
+    // in der Firebase-Konsole an. Alle Geräte dieses Spielerprofils dürfen das Feedback-Postfach öffnen.
+    function istEntwickler() {
+      let e = /databases/$(database)/documents/einstellungen/entwickler;
+      return angemeldet() && exists(e) && besitzer(get(e).data.pid);
+    }
+    match /einstellungen/{id} {
+      allow get: if angemeldet();
+    }
+
+    // Feedback an den Entwickler: jedes angemeldete Gerät darf schreiben, nur der Entwickler lesen
+    match /feedback/{id} {
+      // Lesen, als erledigt markieren und löschen darf nur der Entwickler (Postfach in der App)
+      allow read, delete: if istEntwickler();
+      allow update: if istEntwickler() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['erledigt'])
+        && request.resource.data.erledigt is bool;
+      allow create: if angemeldet()
+        && request.resource.data.keys().hasOnly(['text','art','ver','geraet','uid','name','pid','geschrieben','zeit'])
+        && request.resource.data.text is string && request.resource.data.text.size() >= 3 && request.resource.data.text.size() <= 2000
+        && request.resource.data.art in ['idee','fehler','lob','frage']
+        && request.resource.data.uid == ich()
+        && request.resource.data.zeit == request.time
+        && text(request.resource.data, 'ver', 20) && text(request.resource.data, 'geraet', 80)
+        && text(request.resource.data, 'name', 20) && text(request.resource.data, 'pid', 64) && text(request.resource.data, 'geschrieben', 40);
+    }
+
+    // Zusammenführungen legt nur der Verwalter in der Konsole an; jedes Gerät darf nur seine eigene lesen
+    match /zusammenfuehren/{uid} {
+      allow get: if angemeldet() && ich() == uid;
     }
   }
 }
