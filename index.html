@@ -266,15 +266,13 @@ summary svg{width:14px;height:14px;vertical-align:-2px}
 .kk-rec b{font-size:1.3rem;display:block}
 .kette-karte.voll{border-color:color-mix(in srgb,var(--good) 60%,var(--line))}
 .av{--s:44px;width:var(--s);height:var(--s);flex:0 0 auto;border-radius:50%;display:inline-grid;place-items:center;background:radial-gradient(circle at 35% 30%,#3d499c,#232a5c);color:#f6e7b8;position:relative;font:900 calc(var(--s)*.42)/1 var(--body);box-sizing:border-box}
-.av svg{width:60%;height:60%}
-.fr-holz{box-shadow:0 0 0 3px #8a5a2b,0 0 0 5px #4f3217}
-.fr-bronze{box-shadow:0 0 0 3px #cd7f32,0 0 0 5px #7a4a1c}
-.fr-silber{box-shadow:0 0 0 3px #e2e6f0,0 0 0 5px #8a92ad}
-.fr-gold{box-shadow:0 0 0 3px #f2c14e,0 0 0 5px #a8781a,0 0 14px #f2c14e88}
-.fr-regenbogen{border:4px solid transparent;background:radial-gradient(circle at 35% 30%,#3d499c,#232a5c) padding-box,conic-gradient(#ff5d5d,#ffb84d,#ffe55c,#5fd38a,#5cc8ff,#9b7bff,#ff5d5d) border-box}
-.fr-licht{box-shadow:0 0 0 3px #fffbe8,0 0 18px 4px #fff6c8;animation:glimmen 2.6s ease-in-out infinite}
-.fr-gewappnet{box-shadow:0 0 0 3px #f2c14e,0 0 0 6px #b0222f,0 0 0 8px #f2c14e,0 0 16px #f2c14e77}
-@keyframes glimmen{50%{box-shadow:0 0 0 3px #fffbe8,0 0 28px 9px #fff6c8}}
+.av>svg:not(.av-fr){width:60%;height:60%}
+/* Rahmen: SVG-Ornament über dem Avatar (aus symbole.js) */
+.av .av-fr{position:absolute;left:-30.65%;top:-30.65%;width:161.3%;height:161.3%;pointer-events:none;overflow:visible}
+.av:has(.av-fr){margin:calc(var(--s)*.12)}
+.fr-licht .fr-schein{animation:frSchein 2.6s ease-in-out infinite;transform-origin:50% 50%}
+@keyframes frSchein{50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){.fr-licht .fr-schein{animation:none}}
 .ruest{display:flex;gap:2px;margin-top:4px;color:#f2c14e}
 .ruest svg{width:17px;height:17px}
 .ruest.klein svg{width:13px;height:13px}
@@ -292,11 +290,6 @@ summary svg{width:14px;height:14px;vertical-align:-2px}
 .tabs button{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:8px 13px;font-weight:800;font-size:.88rem;cursor:pointer}
 .tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .tabs.sub{margin:-6px 0 0}
-.rang-nav{display:flex;flex-direction:column;gap:8px}
-.gruppen{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:16px;background:var(--surface);border:1px solid var(--line)}
-.gruppen button{border:0;background:none;color:var(--muted);border-radius:12px;padding:9px 4px;font-weight:900;font-size:.92rem;cursor:pointer}
-.gruppen button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
-.rang-nav .tabs{margin:0;padding:0}.tabs.mitte{justify-content:center;flex-wrap:wrap;overflow:visible}
 .tabs.sub2 button{padding:4px 10px;font-size:.75rem;background:transparent}
 .tabs.sub2 button[aria-selected="true"]{background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--fg);border-color:var(--accent)}
 .tabs.sub button{padding:6px 11px;font-size:.8rem}
@@ -440,6 +433,55 @@ textarea.field{resize:vertical;min-height:110px;font:inherit}.fb-name{display:fl
 .treue-skala .stufe em{font-style:normal;font-size:.66rem;font-weight:800;color:var(--muted);margin-top:14px}
 .treue-skala .stufe.an i{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .treue-skala .stufe:last-child{transform:translateX(-100%)}
+/* Bereichsfarben – dezente Orientierung: Lernen blau, Spielen bernstein, Gemeinde grün, Belohnungen violett */
+:root{--ar-lernen:#7fc8ff;--ar-spielen:#ffb54a;--ar-gemeinde:#5fe0b0;--ar-lohn:#b38cff;--ar:var(--accent)}
+[data-go="lernen"],[data-go="lied"],[data-go="learn"],[data-go="lektion"],[data-go="path"]{--ar:var(--ar-lernen)}
+[data-go="spielen"],[data-go="blitz"],[data-go="chain"],[data-go="gap"]{--ar:var(--ar-spielen)}
+[data-go="rank"],[data-go="profil"],[data-go="share"],[data-go="postfach"]{--ar:var(--ar-gemeinde)}
+[data-go="shop"],[data-go="badges"]{--ar:var(--ar-lohn)}
+.bereich{background:linear-gradient(135deg,color-mix(in srgb,var(--ar) 14%,var(--surface)),var(--surface) 70%);border-color:color-mix(in srgb,var(--ar) 28%,var(--line))}
+.bereich .b-ic,.bereich.klein .b-ic{background:radial-gradient(circle at 50% 38%,color-mix(in srgb,var(--ar) 34%,var(--surface2)),var(--bg2) 78%);border:1px solid color-mix(in srgb,var(--ar) 45%,transparent);box-shadow:inset 0 1px 0 #ffffff22}
+.bereich .b-ic svg{width:38px;height:38px}.bereich.klein .b-ic svg{width:32px;height:32px}
+.bereich .b-info{color:var(--ar)}
+.leiste button{border-color:color-mix(in srgb,var(--ar) 30%,var(--line))!important}
+.leiste button svg{width:30px!important;height:30px!important}
+/* Symbole „Himmlisches Licht“: Glanz, Funkeln, gesperrte Zustände */
+.wr{overflow:visible}
+.wr .wr-spark{transform-box:fill-box;transform-origin:center;opacity:0;animation:wrFunkeln 3.4s ease-in-out infinite}
+.wr .wr-halo{animation:wrPuls 4s ease-in-out infinite}
+@keyframes wrFunkeln{0%,70%,100%{opacity:0;transform:scale(.3)}80%{opacity:1;transform:scale(1)}}
+@keyframes wrPuls{0%,100%{opacity:.55}50%{opacity:1}}
+.btn .wr-spark,.pill .wr-spark,.ilock .wr-spark,.iok .wr-spark,.ruest.klein .wr-spark,.toast .wr-spark,.rk-nav .wr-spark,.tk-ic .wr-spark,.rrow .wr-spark,.small .wr-spark{display:none}
+.ruest-figur span:not(.an) .wr,.ruest-ic:not(.an) .wr,.badge:not(.got) .wr,.nbtn.locked .wr,button:disabled .wr,.rk-nav button[aria-pressed="false"] .wr-halo{filter:grayscale(1) brightness(.6);opacity:.7}
+.ruest-figur span:not(.an) .wr-spark,.ruest-ic:not(.an) .wr-spark,.badge:not(.got) .wr-spark,.nbtn.locked .wr-spark,button:disabled .wr-spark,.ruest-figur span:not(.an) .wr-halo,.ruest-ic:not(.an) .wr-halo,.badge:not(.got) .wr-halo,.nbtn.locked .wr-halo,button:disabled .wr-halo,.rk-nav button[aria-pressed="false"] .wr-halo{display:none}
+@media (prefers-reduced-motion:reduce){.wr *{animation:none!important}}
+/* Rangliste – kompakt, eine Navigationsebene */
+.rk-head{margin:2px 0 4px}.rk-head h1{margin:0;font-size:1.5rem;line-height:1.1}
+.treue-kurz{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:0;overflow:hidden}
+.treue-kurz summary{list-style:none;display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer}
+.treue-kurz summary::-webkit-details-marker{display:none}
+.treue-kurz summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin:0 4px 4px 2px;transition:transform .2s}
+.treue-kurz[open] summary::after{transform:rotate(225deg);margin-bottom:-2px}
+.tk-ic svg{width:30px;height:30px;display:block}
+.tk-tx{flex:1;display:flex;flex-direction:column;gap:5px;min-width:0}.tk-tx b{font-size:.92rem}
+.tk-bar{display:block;height:7px;border-radius:9px;background:var(--bg2);overflow:hidden}.tk-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#fff);border-radius:9px;transition:width .5s}
+.tk-st{font-size:.85rem;color:var(--muted);white-space:nowrap}.tk-st b{color:var(--fg);font-size:1rem}.tk-st em{font-style:normal;color:var(--accent);font-weight:800;margin-left:2px}
+.tk-mehr{padding:0 14px 14px}
+.rk-nav{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}.rk-nav button{flex:0 0 calc(25% - 4.5px)}
+.rk-nav button{display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:8px 2px 7px;color:var(--muted);font:800 .74rem var(--body);cursor:pointer;transition:transform .08s,background .15s}
+.rk-nav button:active{transform:scale(.96)}
+.rk-nav .rk-ic svg{width:30px;height:30px;display:block}
+.rk-nav button[aria-pressed="true"]{background:color-mix(in srgb,var(--accent) 20%,var(--surface));border-color:var(--accent);color:var(--fg);box-shadow:0 0 14px color-mix(in srgb,var(--accent) 30%,transparent)}
+.rk-liste{padding:14px}
+.rk-kopf{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.rk-kopf>div:first-child{display:flex;flex-direction:column}.rk-kopf b{font-size:1rem}
+.rk-var{display:flex;gap:2px;background:var(--bg2);border-radius:999px;padding:3px}
+.rk-var button{border:0;background:none;color:var(--muted);font:800 .76rem var(--body);padding:6px 9px;border-radius:999px;cursor:pointer}
+.rk-var button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.du-bar{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:5;display:flex;align-items:center;gap:10px;background:color-mix(in srgb,var(--surface2) 92%,transparent);backdrop-filter:blur(8px);border:1px solid var(--accent);border-radius:16px;padding:8px 12px;box-shadow:0 8px 24px #0009}
+.du-bar:empty{display:none}
+.du-tx{flex:1;display:flex;flex-direction:column;min-width:0}.du-tx b{font-size:.95rem}.du-tx span{font-size:.8rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.du-krone svg{width:28px;height:28px;display:block}
 </style>
 </head>
 <body>
@@ -466,6 +508,7 @@ textarea.field{resize:vertical;min-height:110px;font:inherit}.fb-name{display:fl
 <script src="qrcode.js"></script>
 <script src="firebase-config.js"></script>
 <script src="daten.js"></script>
+<script src="symbole.js"></script>
 <script src="spiel.js"></script>
 <script type="module" src="leaderboard.js"></script>
 </body>

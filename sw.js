@@ -1,7 +1,7 @@
 // Offline-Speicher für Bibelbuch-Quest. Bei Änderungen an der App die Versionsnummer erhöhen.
-const VERSION = "bibel-quest-v6-5";
-const APP = ["./", "index.html", "daten.js", "spiel.js", "logo.png", "qrcode.js", "firebase-config.js", "leaderboard.js", "manifest.webmanifest",
-  "icons/icon-192.png", "icons/icon-512.png", "icons/icon-180.png", "icons/favicon-32.png"];
+const VERSION = "bibel-quest-v6-7";
+const APP = ["./", "index.html", "daten.js", "symbole.js", "spiel.js", "logo.png", "qrcode.js", "firebase-config.js", "leaderboard.js", "manifest.webmanifest",
+  "icons/icon-192.png", "icons/icon-512.png", "icons/icon-512-maskable.png", "icons/icon-180.png", "icons/favicon-32.png"];
 // Fremde Dateien, die offline mitgespeichert werden dürfen (Schriften, Firebase-Bibliothek).
 // Die Ranglisten-Daten selbst (googleapis.com) werden NIE zwischengespeichert.
 const CACHE_HOSTS = ["fonts.googleapis.com", "fonts.gstatic.com", "www.gstatic.com"];

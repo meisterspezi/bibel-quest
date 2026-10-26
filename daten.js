@@ -61,18 +61,6 @@ const LIED = [
     ["Mensch, gebrauche, was du liesest, dir zum Segen, nicht zum Fluch."]
   ] }
 ];
-/* Zweites Lied: Bibel-Lern-Song (Aufnahme + Textblatt vom Verfasser, Verbreitung mit Nennung erlaubt) */
-const BIBELSONG = {
-  titel: "Bibel-Lern-Song",
-  mp3: "lied/bibel-lern-song.mp3",
-  pdf: "lied/bibel-lern-song.pdf",
-  credits: "Stephan C. Thomas (Rechte beim Verfasser) · Sprecher: Nathanael und Stephan C. Thomas · Arrangement, Instrumente und Produktion: Stephan C. Thomas",
-  hinweise: [
-    "Der Song folgt der Lutherbibel. Bei den Briefen am Ende des Neuen Testaments ist die Reihenfolge anders als in der Schlachter 2000: Dort kommen erst Hebräer und Jakobus, dann 1.–2. Petrus, 1.–3. Johannes und Judas.",
-    "Einige Namen klingen anders: Ijob = Hiob, Ester = Esther, Zefania = Zephanja.",
-    "Die Apokryphen, die im Song kurz erwähnt werden, gehören nicht zu den 66 Büchern der Schlachter 2000."
-  ]
-};
 const zeileText = line => line.map(s => (typeof s === "string" ? s : s.t)).join("");
 /* Für jedes Buch: in welcher Strophe/Zeile/Segment steht es? */
 const BUCH_IM_LIED = [];

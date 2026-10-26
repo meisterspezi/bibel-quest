@@ -16,8 +16,3 @@ Hinweis zu Rechten: Der Liedtext ist ein alter, gemeinfreier Merkvers. Die Melod
 „Eine Insel mit zwei Bergen“ ist dagegen urheberrechtlich geschützt. Eine Aufnahme mit
 dieser Melodie öffentlich ins Internet zu stellen, kann GEMA-pflichtig sein. Unproblematisch
 ist eine Aufnahme mit einer eigenen Melodie (z. B. selbst komponiert oder KI-erzeugt).
-
-Bereits enthalten:
-- bibel-lern-song.mp3 und bibel-lern-song.pdf – „Bibel-Lern-Song“ von Stephan C. Thomas
-  (Rechte beim Verfasser; Verbreitung unter Nennung der Verfasserangaben erlaubt).
-  Die App zeigt ihn unter Lernen → Lieder mit Player, Textblatt und Hinweisen zur Reihenfolge.

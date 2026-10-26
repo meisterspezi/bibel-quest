@@ -365,7 +365,8 @@ function applyTheme() { document.body.dataset.acc = S.theme; }
 function avatarHtml(p, size = 44) {
   const av = p.avatar || "initial", fr = p.frame || "none";
   const inner = av === "initial" || !ICONS["av-" + av] ? `<b>${esc(String(p.name || "?").trim().charAt(0).toUpperCase() || "?")}</b>` : svg("av-" + av);
-  return `<span class="av fr-${esc(fr)}" style="--s:${size}px">${inner}</span>`;
+  const rahmen = fr !== "none" && window.RAHMEN_SVG && RAHMEN_SVG[fr] ? RAHMEN_SVG[fr] : "";
+  return `<span class="av fr-${esc(fr)}" style="--s:${size}px">${inner}${rahmen}</span>`;
 }
 const titelName = id => { const t = TITEL.find(x => x.id === id); return t && t.id !== "none" ? t.name : ""; };
 function ruestungHtml(n, klein = true) {
@@ -490,7 +491,7 @@ VIEWS.home = () => {
     <button class="bereich" data-go="rank"><span class="b-ic">${svg("trophy")}</span><span class="b-tx"><b>Gemeinschaft</b><span>${S.lbName ? `Rangliste · ${S.weekKey === weekKey() ? S.weekXp : 0} XP diese Woche` : "Rangliste der Gemeinde"}</span></span><span class="b-info"></span></button>
     <nav class="leiste" aria-label="Weitere Bereiche">
       <button data-go="shop">${svg("shop")}<span>Laden</span></button>
-      <button data-go="badges">${svg("crown")}<span>Abzeichen</span></button>
+      <button data-go="badges">${svg("medal")}<span>Abzeichen</span></button>
       <button data-go="profil">${svg("user")}<span>Profil</span></button>
       <button data-go="share">${svg("share")}<span>Teilen</span></button>
       ${deferredInstall ? `<button id="installBtn">${svg("down")}<span>Installieren</span></button>` : ""}
@@ -514,10 +515,9 @@ VIEWS.lernen = () => {
   <div class="stack lek-liste">${GROUPS.slice(0, 5).map((g, i) => lektion(g, i)).join("")}</div>
   <div class="titelzeile" style="margin-top:16px"><span class="tag nt">NT</span> <b>${esc(NT_TITEL[titelIndex(NT_TITEL, ntP)][1])}</b><span class="tbar"><i style="width:${ntP}%"></i></span><span class="small muted">${ntP}%</span></div>
   <div class="stack lek-liste">${GROUPS.slice(5).map((g, i) => lektion(g, i + 5)).join("")}</div>
-  <div class="label" style="margin:20px 0 8px">Lieder</div>
+  <div class="label" style="margin:20px 0 8px">Lied</div>
   <div class="stack">
     <button class="bereich klein" data-go="lied"><span class="b-ic">${svg("music")}</span><span class="b-tx"><b>In des Alten Bundes Schriften</b><span>Mitlesen und anhören · ${S.songHeard.length}/8 Strophen</span></span></button>
-    <button class="bereich klein" data-go="bibelsong"><span class="b-ic">${svg("play")}</span><span class="b-tx"><b>Bibel-Lern-Song</b><span>von Stephan C. Thomas · 2:32 Min.</span></span></button>
   </div>
   <div class="label" style="margin:20px 0 8px">Nachschlagen</div>
   <button class="bereich klein" data-go="learn"><span class="b-ic">${svg("eye")}</span><span class="b-tx"><b>Spickzettel</b><span>Alle 66 Bücher auf einen Blick, zum Abdecken</span></span></button>`;
@@ -607,6 +607,7 @@ VIEWS.lektion = (arg) => {
 VIEWS.path = VIEWS.lernen; VIEWS.stage = VIEWS.lektion;
 
 /* ---------- Das Lied ---------- */
+VIEWS.bibelsong = () => go("lied"); /* alter Link → Lied */
 VIEWS.lied = () => {
   aufnahmenPruefen();
   let html = `${backBtn("lernen", "Lernen")}<h1>In des Alten Bundes Schriften</h1>
@@ -648,25 +649,6 @@ VIEWS.lied = () => {
       vorlesen(z, fertig);
     }
   };
-};
-
-/* ---------- Bibel-Lern-Song ---------- */
-VIEWS.bibelsong = () => {
-  screen.innerHTML = `${backBtn("lernen", "Lernen")}<h1>${esc(BIBELSONG.titel)}</h1>
-  <div class="card stack">
-    <audio id="bsAudio" controls preload="metadata" src="${BIBELSONG.mp3}" style="width:100%"></audio>
-    <a class="btn breit" href="${BIBELSONG.pdf}" target="_blank" rel="noopener">${svg("book")} Liedtext öffnen (PDF)</a>
-    <p class="small muted" style="margin:0">${esc(BIBELSONG.credits)}</p>
-  </div>
-  <div class="card stack" style="margin-top:12px"><b>Gut zu wissen</b>
-    <ul class="hinweisliste">${BIBELSONG.hinweise.map(h => `<li>${esc(h)}</li>`).join("")}</ul>
-    <div class="small muted">So lautet die Reihenfolge in der Schlachter 2000:</div>
-    <div class="blist">${GROUPS[7].books.map((b, k) => `<span class="bk"><span class="n">${58 + k}</span><span class="t">${esc(b)}</span></span>`).join("")}</div>
-  </div>`;
-  wireGo();
-  const a = $("bsAudio");
-  a.onplay = () => vorlesenStop();
-  a.onended = () => { quest("lied", 2); if (!S.bibelsongGehoert) { S.bibelsongGehoert = true; addXp(30); } save(); };
 };
 
 /* ---------- Lied-Lückenquiz ---------- */
@@ -971,7 +953,7 @@ VIEWS.profil = () => {
   <div class="row-btns" style="margin-top:12px"><button class="btn ghost mini" id="wechseln">Spieler wechseln</button><button class="btn ghost mini" id="rename">Namen ändern</button>${S.pid && online && !S.offlineOnly ? `<button class="btn ghost mini" id="leave">Aus der Rangliste austreten</button>` : ""}</div><div id="pextra"></div>
   ${entwickler ? `<button class="btn" data-go="postfach" style="margin-top:12px;width:100%">${svg("chat")} Feedback-Postfach${postfachNeu ? ` (${postfachNeu} neu)` : ""}</button>` : ""}
   <button class="feedback-link" id="fbLink2">${svg("chat")} Feedback an den Entwickler</button>
-  <p class="small muted" style="margin-top:18px">Bibelverse: ${VERS_QUELLE} © Genfer Bibelgesellschaft. Bibel-Lern-Song: Stephan C. Thomas.</p>`;
+  <p class="small muted" style="margin-top:18px">Bibelverse: ${VERS_QUELLE} © Genfer Bibelgesellschaft.</p>`;
   wireGo();
   $("wechseln").onclick = () => { SFX.tap(); go("wer"); };
   $("fbLink2").onclick = () => { SFX.tap(); feedbackOeffnen(); };
@@ -1145,14 +1127,9 @@ const RANK_TABS = {
   abzeichen: { label: "Abzeichen", val: r => r.badges || 0, unit: "", titel: "Abzeichen-Sammler" },
   blitz: { label: "Blitz", unit: "Richtige", titel: "Blitz-Rekord" }
 };
-/* Übersicht: drei Gruppen, darunter die Listen (wie bei der Kette) */
-const RANK_GRUPPEN = {
-  punkte: { label: "Punkte", tabs: ["woche", "gesamt"] },
-  koennen: { label: "Weisheit", tabs: ["kette", "blitz"] },
-  treue: { label: "Treue", tabs: ["treue", "bewaehrt", "abzeichen"] }
-};
-const TAB_LABEL = { woche: "Woche", gesamt: "Gesamt", kette: "Kette", blitz: "Blitz", treue: "Spieltage", bewaehrt: "Bewährt", abzeichen: "Abzeichen" };
-const gruppeVon = tab => Object.keys(RANK_GRUPPEN).find(g => RANK_GRUPPEN[g].tabs.includes(tab)) || "punkte";
+const RANK_REIHE = ["woche", "gesamt", "kette", "blitz", "treue", "bewaehrt", "abzeichen"];
+const RANK_ICON = { woche: "sun", gesamt: "trophy", kette: "link", blitz: "bolt", treue: "fire", bewaehrt: "siegel", abzeichen: "medal" };
+const TAB_LABEL = { woche: "Woche", gesamt: "Gesamt", kette: "Kette", blitz: "Blitz", treue: "Treue", bewaehrt: "Bewährt", abzeichen: "Abzeichen" };
 const BLITZ_SUB = { richtige: ["Richtige", "blitz", "Richtige", "Blitz-Rekord"], folge: ["In Folge", "combo", "in Folge", "Richtige in Folge (60 Sek.)"] };
 let blitzSub = "richtige";
 const KETTE_SUB = { bibel: ["Bibel", "bestChain", 66], at: ["AT", "chainAT", 39], nt: ["NT", "chainNT", 27], rueck: ["Rückwärts", "chainRueck", 66] };
@@ -1184,7 +1161,7 @@ function treueBonusPruefen(b) {
 VIEWS.rank = (tab) => {
   if (tab && RANK_TABS[tab]) rankTab = tab;
   const L = window.LB;
-  let html = `${backBtn()}<div class="church lg"><img src="logo.png" alt="Logo der Freien Baptisten Eichstätt" onerror="this.remove()"><div><h1 style="margin:0">Gemeinde-Rangliste</h1><span>Freie Baptisten Eichstätt</span></div></div>`;
+  let html = `${backBtn()}<div class="church rk-head"><img src="logo.png" alt="Logo der Freien Baptisten Eichstätt" onerror="this.remove()"><div><h1>Rangliste</h1><span>Freie Baptisten Eichstätt</span></div></div>`;
   if (!L) { screen.innerHTML = html + `<div class="card"><p class="muted" style="margin:0">Rangliste wird geladen …</p></div>`; wireGo(); return; }
   if (!L.configured) { screen.innerHTML = html + `<div class="card stack"><b>Noch nicht eingerichtet</b><p class="muted small" style="margin:0">Die Rangliste braucht einen gemeinsamen Online-Speicher. Bis dahin kannst du ganz normal spielen – dein Fortschritt wird später übernommen.</p></div>`; wireGo(); return; }
   if (!L.ok) { screen.innerHTML = html + `<div class="card stack"><b>Keine Verbindung</b><p class="muted small" style="margin:0">Für die Rangliste brauchst du Internet. Deine Punkte werden übertragen, sobald du wieder online bist.</p><button class="btn" id="retry">Neu laden</button></div>`; wireGo(); $("retry").onclick = () => location.reload(); return; }
@@ -1192,23 +1169,22 @@ VIEWS.rank = (tab) => {
     $("wieder").onclick = () => { SFX.coin(); S.offlineOnly = false; save(); lbStart().then(() => go("rank")); }; return; }
   if (!S.pid && !S.ownersSet) { lbStart(); }
   const T = RANK_TABS[rankTab];
-  screen.innerHTML = html + `<div class="stack">
-    <div class="card ziel" id="zielBox"><div class="label">Gemeinde-Treue diese Woche</div><div class="small muted">wird berechnet …</div></div>
-    <div class="rang-nav">
-      <div class="gruppen" role="tablist" aria-label="Ranglisten-Gruppe">${Object.entries(RANK_GRUPPEN).map(([g, v]) => `<button role="tab" data-gruppe="${g}" aria-selected="${g === gruppeVon(rankTab)}">${v.label}</button>`).join("")}</div>
-      <div class="tabs sub mitte" role="tablist" aria-label="Rangliste">${RANK_GRUPPEN[gruppeVon(rankTab)].tabs.map(k => `<button role="tab" data-tab="${k}" aria-selected="${k === rankTab}">${TAB_LABEL[k]}</button>`).join("")}</div>
-      ${rankTab === "kette" ? `<div class="tabs sub2 mitte">${Object.entries(KETTE_SUB).map(([k, v]) => `<button data-sub="${k}" aria-selected="${k === ketteSub}">${v[0]}</button>`).join("")}</div>` : ""}
-      ${rankTab === "blitz" ? `<div class="tabs sub2 mitte">${Object.entries(BLITZ_SUB).map(([k, v]) => `<button data-bsub="${k}" aria-selected="${k === blitzSub}">${v[0]}</button>`).join("")}</div>` : ""}
+  const varianten = rankTab === "kette" ? Object.entries(KETTE_SUB).map(([k, v]) => `<button data-sub="${k}" aria-pressed="${k === ketteSub}">${v[0]}</button>`).join("")
+    : rankTab === "blitz" ? Object.entries(BLITZ_SUB).map(([k, v]) => `<button data-bsub="${k}" aria-pressed="${k === blitzSub}">${v[0]}</button>`).join("") : "";
+  const titel = rankTab === "kette" ? T.titel : rankTab === "blitz" ? "Blitz-Rekord" : T.titel;
+  screen.innerHTML = html + `<div class="stack rk">
+    <details class="treue-kurz" id="zielBox"><summary><span class="tk-ic">${svg("people")}</span><span class="tk-tx"><b>Gemeinde-Treue</b><span class="tk-bar"><i style="width:0"></i></span></span><span class="tk-st">…</span></summary><div class="tk-mehr small muted">wird berechnet …</div></details>
+    <nav class="rk-nav" aria-label="Ranglisten">${RANK_REIHE.map(k => `<button data-tab="${k}" aria-pressed="${k === rankTab}"><span class="rk-ic">${svg(RANK_ICON[k])}</span><span>${TAB_LABEL[k]}</span></button>`).join("")}</nav>
+    <div class="card rk-liste">
+      <div class="rk-kopf"><div><b>${esc(titel)}</b><span class="small muted" id="rcount">${rankTab === "woche" ? weekKey().split("-W")[1] + ". Kalenderwoche" : ""}</span></div>${varianten ? `<div class="rk-var" role="group" aria-label="Variante">${varianten}</div>` : ""}</div>
+      <div id="rbody"><p class="muted" style="margin:0">Lade Rangliste …</p></div>
     </div>
-    <div class="card stack" id="rbody"><p class="muted" style="margin:0">Lade Rangliste …</p></div>
-    <div class="card stack" id="rme"></div>
-    <p class="small muted" style="margin:0">Tippe auf einen Namen, um Abzeichen und Werte zu vergleichen.</p>
+    <div class="du-bar" id="rme"></div>
   </div>`;
   wireGo();
   screen.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { SFX.tap(); go("rank", b.dataset.tab); });
   screen.querySelectorAll("[data-sub]").forEach(b => b.onclick = () => { SFX.tap(); ketteSub = b.dataset.sub; go("rank", "kette"); });
   screen.querySelectorAll("[data-bsub]").forEach(b => b.onclick = () => { SFX.tap(); blitzSub = b.dataset.bsub; go("rank", "blitz"); });
-  screen.querySelectorAll("[data-gruppe]").forEach(b => b.onclick = () => { SFX.tap(); const g = b.dataset.gruppe; if (g !== gruppeVon(rankTab)) go("rank", RANK_GRUPPEN[g].tabs[0]); });
   const me = S.pid || L.uid; const wk = weekKey(); let zeilen = [];
   /* Gemeinde-Treue */
   lbUnsub.push(L.watch("woche", wk, rows => {
@@ -1216,11 +1192,13 @@ VIEWS.rank = (tab) => {
     const b = treueBarometer(rows, me), max = TREUE_STUFEN[TREUE_STUFEN.length - 1][0];
     const naechste = TREUE_STUFEN.find(([n]) => b.treu < n);
     treueBonusPruefen(b);
-    $("zielBox").innerHTML = `<div class="topline"><div class="label">Gemeinde-Treue diese Woche</div><span class="small muted">treu = ${TREUE_TAGE} Spieltage</span></div>
-      <div class="treue-skala"><div class="zielbar"><i style="width:${Math.min(1, b.treu / max) * 100}%"></i></div>
+    const box = $("zielBox"); if (!box) return;
+    box.querySelector(".tk-bar i").style.width = Math.min(1, b.treu / max) * 100 + "%";
+    box.querySelector(".tk-st").innerHTML = naechste ? `<b>${b.treu}</b>/${naechste[0]} <em>${naechste[2]}</em>` : `<b>${b.treu}</b> <em>Gold</em>`;
+    box.querySelector(".tk-mehr").innerHTML = `<div class="treue-skala"><div class="zielbar"><i style="width:${Math.min(1, b.treu / max) * 100}%"></i></div>
         ${TREUE_STUFEN.map(([n, tal, name]) => `<span class="stufe ${b.treu >= n ? "an" : ""}" style="left:${n / max * 100}%"><i>${n}</i><em>${name}</em></span>`).join("")}</div>
-      <div class="small"><b>${b.treu} ${b.treu === 1 ? "Treuer" : "Treue"}</b>${naechste ? ` – noch ${naechste[0] - b.treu} bis ${naechste[2]} (+${naechste[1]} Talente für jeden Treuen)` : " – Gold erreicht! Ein Leib, viele Glieder."}</div>
-      <div class="small muted">Du: ${b.meineTage}/${TREUE_TAGE} Tage ${b.ichTreu ? "– du zählst mit!" : "– spiel noch " + (TREUE_TAGE - b.meineTage) + " Tag(e), um mitzuzählen."}</div>`;
+      <p style="margin:0">Treu ist, wer diese Woche an ${TREUE_TAGE} Tagen spielt. ${naechste ? `Noch ${naechste[0] - b.treu} bis ${naechste[2]}: +${naechste[1]} Talente für jeden Treuen.` : "Gold erreicht! Ein Leib, viele Glieder."}</p>
+      <p style="margin:6px 0 0">Du: ${b.meineTage}/${TREUE_TAGE} Tage ${b.ichTreu ? "– du zählst mit!" : "– noch " + (TREUE_TAGE - b.meineTage) + " Tag(e), dann zählst du mit."}</p>`;
   }, () => {}));
   lbUnsub.push(L.watch(rankKind(), wk, rows => {
     if (current !== "rank") return;
@@ -1238,12 +1216,13 @@ VIEWS.rank = (tab) => {
       const top = rows.slice(0, 3), order = [1, 0, 2].filter(i => top[i]);
       const pod = `<div class="podium">${order.map(i => { const r = top[i]; return `<button class="pod p${i + 1} ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}">${avatarHtml(r, i === 0 ? 70 : 56)}<div class="nm">${esc(r.name)}</div><div class="vl">${rankWert(r)} ${unit}</div><div class="base">${i + 1}</div></button>`; }).join("")}</div>`;
       const rest = rows.slice(3, 80).map((r, k) => `<button class="rrow ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}"><div class="rk">${k + 4}</div>${avatarHtml(r, 38)}<div class="who"><b>${esc(r.name)}${r.id === me ? '<span class="you">DU</span>' : ""}</b><span>${esc(titelName(r.title) || "Level " + (r.level || 1) + " · " + titleOf(r.level || 1))}</span>${rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)}</div><div class="val">${rankWert(r)}</div></button>`).join("");
-      body.innerHTML = `<div class="label">${rankTab === "kette" ? T.titel + " · " + KETTE_SUB[ketteSub][0] : rankTab === "blitz" ? BLITZ_SUB[blitzSub][3] : T.titel}${rankTab === "woche" ? " · " + wk.split("-W")[1] + ". KW" : ""} · ${rows.length} Spieler</div>${pod}${rest ? `<div class="rlist">${rest}</div>` : ""}`;
+      if ($("rcount")) $("rcount").textContent = (rankTab === "woche" ? wk.split("-W")[1] + ". KW · " : "") + rows.length + " Spieler";
+      body.innerHTML = `${pod}${rest ? `<div class="rlist">${rest}</div>` : ""}`;
       body.querySelectorAll("[data-pid]").forEach(b => b.onclick = () => { SFX.tap(); profilVergleich(rows.find(r => r.id === b.dataset.pid)); });
     }
     const mv = myIdx > -1 ? rankWert(rows[myIdx]) : 0, ahead = myIdx > 0 ? rankWert(rows[myIdx - 1]) - mv : 0;
-    $("rme").innerHTML = `<div class="mystat"><div><b>${myIdx > -1 ? myIdx + 1 : "–"}</b><span>Dein Platz</span></div><div><b>${mv}</b><span>${unit || "Anzahl"}</span></div><div><b>${myIdx > 0 ? "+" + (ahead + 1) : myIdx === 0 ? svg("crown", accent()).replace("<svg", '<svg style="width:22px;height:22px"') : "–"}</b><span>${myIdx > 0 ? "bis Platz " + myIdx : myIdx === 0 ? "Spitze!" : "noch kein Platz"}</span></div></div>
-      ${myIdx > 0 ? `<p class="small muted" style="margin:0">Noch ${ahead + 1} ${unit} und du überholst ${esc(rows[myIdx - 1].name)}.</p>` : ""}`;
+    const ich = myIdx > -1 ? rows[myIdx] : { name: S.lbName, avatar: S.avatar, frame: S.frame };
+    $("rme").innerHTML = `${avatarHtml(ich, 36)}<div class="du-tx"><b>Platz ${myIdx > -1 ? myIdx + 1 : "–"} · ${mv} ${esc(unit || "")}</b><span>${myIdx > 0 ? `Noch ${ahead + 1} bis ${esc(rows[myIdx - 1].name)}` : myIdx === 0 ? "Du bist an der Spitze!" : "Spiel eine Runde für deinen Platz"}</span></div>${myIdx === 0 ? `<span class="du-krone">${svg("crown")}</span>` : ""}`;
   }, () => { if ($("rbody")) $("rbody").innerHTML = `<p class="muted" style="margin:0">Rangliste konnte nicht geladen werden. Prüfe die Internetverbindung.</p>`; }));
 };
 /* Name wählen (Pflicht): neuer Spieler oder bestehenden Spieler aus der Rangliste */
