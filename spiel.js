@@ -358,6 +358,7 @@ function renderHud() {
   $("hLvl").textContent = n; $("hAvatar").innerHTML = avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "?" }, 42); $("hTitle").textContent = (S.lbName ? S.lbName + " · " : "") + titleOf(n);
   $("hBar").style.width = ((S.xp - lo) / (hi - lo) * 100) + "%"; $("hXp").textContent = `${S.xp - lo} / ${hi - lo} XP`;
   $("hStreak").textContent = streakNow(); $("hTal").textContent = S.tal;
+  const pk = $("pkBtn"); if (pk) { pk.hidden = !entwickler; pk.innerHTML = `${svg("post")}${postfachNeu ? `<span class="pk-zahl">${postfachNeu > 99 ? "99+" : postfachNeu}</span>` : ""}`; pk.setAttribute("aria-label", `Postkasten${postfachNeu ? ", " + postfachNeu + " neu" : ""}`); }
 }
 function applyTheme() { document.body.dataset.acc = S.theme; }
 
@@ -498,7 +499,7 @@ VIEWS.home = () => {
       ${deferredInstall ? `<button id="installBtn">${svg("down")}<span>Installieren</span></button>` : ""}
     </nav>
     ${versHtml(vKey, "tag klein")}
-    ${entwickler && postfachNeu ? `<button class="erinnerung pf-hinweis" data-go="postfach">${svg("chat")}<span><b>${postfachNeu} neues Feedback</b><span class="small muted">Tippen, um das Postfach zu öffnen</span></span></button>` : ""}
+    ${entwickler && postfachNeu ? `<button class="erinnerung pf-hinweis" data-go="postfach">${svg("chat")}<span><b>${postfachNeu} ${postfachNeu === 1 ? "neue Meldung" : "neue Meldungen"} im Postkasten</b><span class="small muted">Feedback, Status und Datenbank</span></span></button>` : ""}
     <button class="feedback-link" id="fbLink">${svg("chat")} Idee oder Fehler? Feedback an den Entwickler</button>
   </div>`;
   wireGo();
@@ -958,7 +959,7 @@ VIEWS.profil = () => {
     <p class="small muted" style="margin:0">Öffne die App auf dem anderen Gerät und wähle <b>Ich spiele schon mit</b> (spielt dort schon jemand: oben auf Level/Namen tippen → Weiteren Spieler hinzufügen). Dann tippe deinen Namen an. Dann spielst du dort mit demselben Spielstand weiter.</p>
   </div>
   <div class="row-btns" style="margin-top:12px"><button class="btn ghost mini" id="wechseln">Spieler wechseln</button><button class="btn ghost mini" id="rename">Namen ändern</button>${S.pid && online && !S.offlineOnly ? `<button class="btn ghost mini" id="leave">Aus der Rangliste austreten</button>` : ""}</div><div id="pextra"></div>
-  ${entwickler ? `<button class="btn" data-go="postfach" style="margin-top:12px;width:100%">${svg("chat")} Feedback-Postfach${postfachNeu ? ` (${postfachNeu} neu)` : ""}</button>` : ""}
+  ${entwickler ? `<button class="btn" data-go="postfach" style="margin-top:12px;width:100%">${svg("post")} Postkasten${postfachNeu ? ` (${postfachNeu} neu)` : ""}</button>` : ""}
   <button class="feedback-link" id="fbLink2">${svg("chat")} Feedback an den Entwickler</button>
   <p class="small muted" style="margin-top:18px">Bibelverse: ${VERS_QUELLE} © Genfer Bibelgesellschaft.</p>`;
   wireGo();
@@ -994,14 +995,20 @@ function lbSync(now) {
   clearTimeout(lbTimer);
   lbTimer = setTimeout(() => {
     const opts = {}; if (!S.ownersSet && eigenePid(S.pid)) opts.owners = [L.uid];
-    L.push(S.pid, lbPayload(), opts).then(() => { if (opts.owners) { S.ownersSet = true; try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} geraetSpeichern(); } }).catch(() => {});
+    L.push(S.pid, lbPayload(), opts).then(() => { if (opts.owners) { S.ownersSet = true; try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} geraetSpeichern(); } }).catch(e => dbFehler("Rangliste speichern", e));
   }, now ? 0 : 2500);
+}
+/* Datenbankfehler (z. B. abgelehnt durch die Regeln) an den Verwalter melden – Verbindungsprobleme nicht */
+function dbFehler(was, e) {
+  const code = (e && e.code) || "unbekannt";
+  if (["unavailable", "deadline-exceeded", "cancelled"].includes(code) || (typeof navigator !== "undefined" && navigator.onLine === false) || String(e && e.message) === "offline") return;
+  postkastenMelden("datenbank", `${was} fehlgeschlagen (${code}) – Spieler ${S.lbName || "?"}, Profil ${S.pid || "?"}, Version ${APP_VERSION}.`, "dbf-" + was + "-" + code);
 }
 /* Kompletten Spielstand online sichern (nur wer in der Rangliste ist) */
 function cloudSync(now) {
   const L = window.LB; if (!S.lbName || S.offlineOnly || !S.pid || !S.ownersSet || !L || !L.ok || !L.saveState) return;
   clearTimeout(cloudTimer);
-  cloudTimer = setTimeout(() => { L.saveState(S.pid, spielstandExport()).catch(() => {}); }, now ? 0 : 4000);
+  cloudTimer = setTimeout(() => { L.saveState(S.pid, spielstandExport()).catch(e => dbFehler("Spielstand sichern", e)); }, now ? 0 : 4000);
 }
 function spielstandExport() { const c = JSON.parse(JSON.stringify(S)); delete c.mute; delete c.beat; return c; }
 /* Zwei Spielstände zusammenführen – nichts geht verloren */
@@ -1493,45 +1500,78 @@ async function doppelteZusammenfuehren(erzwingen) {
     } catch (e) { berichte.push(`„${ziel.name}“ konnte nicht zusammengeführt werden (${e && e.code ? e.code : "Fehler"}).`); }
   }
   S.dupCheck = today(); save();
-  for (const text of berichte) { try { await L.feedback({ text, art: "info", ver: APP_VERSION, geraet: "automatisch" }); } catch (e) {} }
+  for (const text of berichte) await postkastenMelden("datenbank", text, "dup-" + today() + "-" + text.slice(0, 30));
   return berichte;
 }
 async function entwicklerPruefen() {
   const L = window.LB; if (!L || !L.ok || !L.entwicklerPid || !S.pid) return;
   try {
     const pid = await L.entwicklerPid(); entwickler = !!pid && pid === S.pid;
-    if (!entwickler) return;
+    if (!entwickler) { renderHud(); return; }
     await doppelteZusammenfuehren();
-    const liste = await L.feedbackListe(); postfachNeu = liste.filter(f => !f.erledigt).length;
+    await statusBerichte();
+    const liste = await L.feedbackListe(); postfachNeu = liste.filter(f => !f.erledigt).length; renderHud();
     if (["home", "profil"].includes(current) && !document.querySelector(".modal")) go(current);
   } catch (e) { entwickler = false; }
 }
-const ART_NAME = { idee: "Idee", fehler: "Fehler", lob: "Lob", frage: "Frage", info: "Automatik" };
+const ART_NAME = { idee: "Idee", fehler: "Fehler", lob: "Lob", frage: "Frage", info: "Datenbank", datenbank: "Datenbank", status: "Status" };
+/* Postkasten des Verwalters: Feedback der Spieler, Statusberichte und Datenbankmeldungen.
+   Status und Datenbank werden als Art „info“ gespeichert; „geraet“ beginnt mit „status“ oder „datenbank“. */
+const pkKat = f => f.art !== "info" ? "feedback" : String(f.geraet || "").startsWith("status") ? "status" : "datenbank";
+const PK_KAT = [["alle", "Alle", "post"], ["feedback", "Feedback", "chat"], ["status", "Status", "sun"], ["datenbank", "Datenbank", "netz"]];
+let pkKategorie = "alle";
+/* Meldung in den Postkasten schreiben (status | datenbank) – höchstens einmal pro Schlüssel und Tag */
+async function postkastenMelden(kat, text, schluessel) {
+  const L = window.LB; if (!L || !L.ok || !L.feedback) return;
+  const k = "bq-pk-" + (schluessel || kat + text.slice(0, 40)), heute = today();
+  try { if (localStorage.getItem(k) === heute) return; } catch (e) {}
+  try { await L.feedback({ text: text.slice(0, 2000), art: "info", ver: APP_VERSION, geraet: (kat + " · " + geraetBeschreibung()).slice(0, 80), ...(S.lbName ? { name: S.lbName, pid: S.pid || "" } : {}) }); try { localStorage.setItem(k, heute); } catch (e) {} } catch (e) {}
+}
+/* Statusberichte für den Verwalter: neue App-Version, Wochenbericht */
+async function statusBerichte() {
+  const L = window.LB; if (!entwickler || !L || !L.alleSpieler) return;
+  if (S.pkVersion !== APP_VERSION) { await postkastenMelden("status", `App-Version ${APP_VERSION} ist aktiv${S.pkVersion ? ` (vorher ${S.pkVersion})` : ""}.`, "version-" + APP_VERSION); S.pkVersion = APP_VERSION; save(); }
+  const wk = weekKey(); if (S.pkWoche === wk) return;
+  try {
+    const alle = await L.alleSpieler(), vorher = S.pkWoche;
+    const aktivWoche = alle.filter(r => r.week === wk && (r.weekXp || 0) > 0).length;
+    const altWoche = vorher ? alle.filter(r => r.week === vorher).length : 0;
+    const treu = alle.filter(r => Array.isArray(r.tl) && r.tl.filter(n => weekKey(datumVon(n)) === wk).length >= TREUE_TAGE).length;
+    const top = alle.slice().sort((a, b) => (b.xp || 0) - (a.xp || 0)).slice(0, 3).map(r => `${r.name} (${(r.xp || 0).toLocaleString("de-DE")} XP)`).join(", ");
+    await postkastenMelden("status", `Wochenbericht KW ${wk.split("-W")[1]}: ${alle.length} Spieler in der Rangliste, ${aktivWoche} haben diese Woche schon gespielt, ${treu} sind treu (${TREUE_TAGE} Tage).${vorher ? ` Letzte Woche aktiv: ${altWoche}.` : ""} Spitze gesamt: ${top || "–"}.`, "woche-" + wk);
+    S.pkWoche = wk; save();
+  } catch (e) {}
+}
 let postfachFilter = "neu";
-VIEWS.postfach = () => {
-  const L = window.LB;
-  screen.innerHTML = `${backBtn("profil")}<h1>Feedback-Postfach</h1>
-  <p class="muted small" style="margin:0 0 10px">Nur du siehst diese Seite. Erledigte Einträge bleiben gespeichert, bis du sie löschst.</p>
-  <div class="tabs sub mitte" role="tablist">${[["neu", "Neu"], ["alle", "Alle"], ["erledigt", "Erledigt"]].map(([k, n]) => `<button role="tab" data-pf="${k}" aria-selected="${k === postfachFilter}">${n}</button>`).join("")}</div>
-  <div class="stack" id="pfListe" style="margin-top:10px"><p class="muted small">Lade …</p></div>`;
+VIEWS.postfach = (kat) => {
+  const L = window.LB; if (kat && PK_KAT.some(k => k[0] === kat)) pkKategorie = kat;
+  screen.innerHTML = `${backBtn()}<h1>Postkasten</h1>
+  <p class="muted small" style="margin:0 0 10px">Nur für dich als Verwalter: Feedback der Spieler, Statusberichte und Meldungen aus der Datenbank.</p>
+  <nav class="rk-nav pk-nav" aria-label="Postkasten">${PK_KAT.map(([k, n, ic]) => `<button data-pk="${k}" aria-pressed="${k === pkKategorie}"><span class="rk-ic">${svg(ic)}</span><span>${n}<i class="pk-n" data-pkn="${k}"></i></span></button>`).join("")}</nav>
+  <div class="card rk-liste" style="margin-top:10px"><div class="rk-kopf"><div><b>${esc(PK_KAT.find(k => k[0] === pkKategorie)[1])}</b><span class="small muted" id="pkAnz"></span></div>
+    <div class="rk-var" role="group" aria-label="Filter">${[["neu", "Neu"], ["alle", "Alle"], ["erledigt", "Erledigt"]].map(([k, n]) => `<button data-pf="${k}" aria-pressed="${k === postfachFilter}">${n}</button>`).join("")}</div></div>
+  <div class="stack" id="pfListe" style="margin-top:6px"><p class="muted small">Lade …</p></div></div>`;
   wireGo();
   screen.querySelectorAll("[data-pf]").forEach(b => b.onclick = () => { SFX.tap(); postfachFilter = b.dataset.pf; go("postfach"); });
-  if (!entwickler || !L || !L.ok) { $("pfListe").innerHTML = `<p class="muted">Das Postfach braucht Internet.</p>`; return; }
+  screen.querySelectorAll("[data-pk]").forEach(b => b.onclick = () => { SFX.tap(); go("postfach", b.dataset.pk); });
+  if (!entwickler || !L || !L.ok) { $("pfListe").innerHTML = `<p class="muted">Der Postkasten braucht Internet.</p>`; return; }
   const zeichne = (liste) => {
-    postfachNeu = liste.filter(f => !f.erledigt).length;
-    const z = liste.filter(f => postfachFilter === "alle" || (postfachFilter === "neu" ? !f.erledigt : f.erledigt));
-    $("pfListe").innerHTML = z.length ? z.map(f => `<div class="card pf ${f.erledigt ? "erledigt" : ""}" data-id="${esc(f.id)}">
-        <div class="topline"><span class="pf-art art-${esc(f.art)}">${esc(ART_NAME[f.art] || f.art)}</span><span class="small muted">${f.zeit ? new Date(f.zeit).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : ""}</span></div>
+    postfachNeu = liste.filter(f => !f.erledigt).length; renderHud();
+    PK_KAT.forEach(([k]) => { const n = liste.filter(f => !f.erledigt && (k === "alle" || pkKat(f) === k)).length; const e = screen.querySelector(`[data-pkn="${k}"]`); if (e) e.textContent = n ? n : ""; });
+    const z = liste.filter(f => (pkKategorie === "alle" || pkKat(f) === pkKategorie) && (postfachFilter === "alle" || (postfachFilter === "neu" ? !f.erledigt : f.erledigt)));
+    if ($("pkAnz")) $("pkAnz").textContent = z.length + (z.length === 1 ? " Eintrag" : " Einträge");
+    $("pfListe").innerHTML = z.length ? z.map(f => { const kt = pkKat(f); return `<div class="card pf pk-${kt} ${f.erledigt ? "erledigt" : ""}" data-id="${esc(f.id)}">
+        <div class="topline"><span class="pf-art art-${esc(kt === "feedback" ? f.art : kt)}">${esc(kt === "feedback" ? (ART_NAME[f.art] || f.art) : ART_NAME[kt])}</span><span class="small muted">${f.zeit ? new Date(f.zeit).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : ""}</span></div>
         <p class="pf-text">${esc(f.text)}</p>
-        <div class="small muted">${f.name ? `von <b>${esc(f.name)}</b>` : "anonym"} · ${esc(f.ver || "?")} · ${esc(f.geraet || "")}</div>
-        <div class="row-btns" style="margin-top:8px"><button class="btn ghost mini" data-erl="${esc(f.id)}">${f.erledigt ? "Wieder als neu" : "Erledigt"}</button><button class="btn ghost mini" data-del="${esc(f.id)}">Löschen</button></div></div>`).join("")
-      : `<p class="muted">${postfachFilter === "neu" ? "Kein neues Feedback. 🙂" : "Keine Einträge."}</p>`;
+        <div class="small muted">${kt === "feedback" ? (f.name ? `von <b>${esc(f.name)}</b>` : "anonym") : (f.name ? esc(f.name) : "automatisch")} · ${esc(f.ver || "?")} · ${esc(String(f.geraet || "").replace(/^(status|datenbank) · /, ""))}</div>
+        <div class="row-btns" style="margin-top:8px"><button class="btn ghost mini" data-erl="${esc(f.id)}">${f.erledigt ? "Wieder als neu" : "Erledigt"}</button><button class="btn ghost mini" data-del="${esc(f.id)}">Löschen</button></div></div>`; }).join("")
+      : `<p class="muted" style="margin:6px 0">${postfachFilter === "neu" ? "Nichts Neues. 🙂" : "Keine Einträge."}</p>`;
     $("pfListe").querySelectorAll("[data-erl]").forEach(b => b.onclick = async () => { SFX.tap(); const f = liste.find(x => x.id === b.dataset.erl); try { await L.feedbackErledigt(f.id, !f.erledigt); f.erledigt = !f.erledigt; zeichne(liste); } catch (e) { toast("<div>Das hat nicht geklappt.</div>"); } });
     $("pfListe").querySelectorAll("[data-del]").forEach(b => b.onclick = () => { SFX.tap();
-      modal(`<h2>Feedback löschen?</h2><p class="muted small">Das lässt sich nicht rückgängig machen.</p><button class="btn primary" data-close="ja">Löschen</button><button class="btn ghost" data-close>Abbrechen</button>`, async a => {
+      modal(`<h2>Eintrag löschen?</h2><p class="muted small">Das lässt sich nicht rückgängig machen.</p><button class="btn primary" data-close="ja">Löschen</button><button class="btn ghost" data-close>Abbrechen</button>`, async a => {
         if (a !== "ja") return; try { await L.feedbackLoeschen(b.dataset.del); liste = liste.filter(x => x.id !== b.dataset.del); zeichne(liste); } catch (e) { toast("<div>Löschen hat nicht geklappt.</div>"); } }); });
   };
-  L.feedbackListe().then(zeichne).catch(() => { $("pfListe").innerHTML = `<p class="muted">Postfach konnte nicht geladen werden.</p>`; });
+  L.feedbackListe().then(zeichne).catch(() => { $("pfListe").innerHTML = `<p class="muted">Postkasten konnte nicht geladen werden.</p>`; });
 };
 
 /* ---------- Teilen ---------- */
