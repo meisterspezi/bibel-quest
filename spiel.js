@@ -355,7 +355,7 @@ function titelCheck() {
 /* ---------- Kopfleiste ---------- */
 function renderHud() {
   const n = levelOf(S.xp), lo = cum(n), hi = cum(n + 1);
-  $("hLvl").textContent = n; $("hTitle").textContent = (S.lbName ? S.lbName + " · " : "") + titleOf(n);
+  $("hLvl").textContent = n; $("hAvatar").innerHTML = avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "?" }, 42); $("hTitle").textContent = (S.lbName ? S.lbName + " · " : "") + titleOf(n);
   $("hBar").style.width = ((S.xp - lo) / (hi - lo) * 100) + "%"; $("hXp").textContent = `${S.xp - lo} / ${hi - lo} XP`;
   $("hStreak").textContent = streakNow(); $("hTal").textContent = S.tal;
 }
@@ -368,6 +368,8 @@ function avatarHtml(p, size = 44) {
   const rahmen = fr !== "none" && window.RAHMEN_SVG && RAHMEN_SVG[fr] ? RAHMEN_SVG[fr] : "";
   return `<span class="av fr-${esc(fr)}" style="--s:${size}px">${inner}${rahmen}</span>`;
 }
+/* Avatar mit Rahmen und Level-Münze (Rangliste) */
+const avatarLv = (p, size) => `<span class="avw">${avatarHtml(p, size)}<span class="lvc" title="Level ${p.level || 1}">${p.level || 1}</span></span>`;
 const titelName = id => { const t = TITEL.find(x => x.id === id); return t && t.id !== "none" ? t.name : ""; };
 function ruestungHtml(n, klein = true) {
   if (!n) return "";
@@ -469,8 +471,7 @@ VIEWS.home = () => {
     return `<li class="${it.done ? "done" : ""}"><span class="qcheck">${it.done ? svg("check") : ""}</span><span class="qtext">${esc(a.text)}</span><span class="qbar"><i style="width:${pr / a.ziel * 100}%"></i></span><span class="qval">${pr}/${a.ziel}</span></li>`; }).join("");
   const sterne = Object.values(S.stars).reduce((a, b) => a + b, 0);
   screen.innerHTML = `
-  <div class="church"><img src="logo.png" alt="Logo der Freien Baptisten Eichstätt" onerror="this.remove()"><span>Freie Baptisten Eichstätt</span></div>
-  <h1>Bibelbuch-Quest</h1>
+  <div class="titel-wappen"><div class="halo"></div><img src="logo.png" alt="Logo der Freien Baptisten Eichstätt" onerror="this.remove()"><h1>Bibelbuch-Quest</h1><div class="linie"><i></i><span>Alle <b>66</b> Bücher – Schritt für Schritt</span><i></i></div></div>
   <div class="stack" style="margin-top:12px">
     <div class="card heute ${S.dq.bonus ? "fertig" : ""}">
       <div class="heute-kopf">
@@ -877,6 +878,12 @@ VIEWS.shop = (tab) => {
   const knopf = (kat, it, aktiv) => {
     if (it.price < 0) return S.badges.includes(it.need) ? (aktiv ? `<button class="btn ghost mini" disabled>Aktiv</button>` : `<button class="btn mini" data-eq="${kat}" data-id="${it.id}">Anlegen</button>`) : `<span class="ilock">${svg("lock")} Abzeichen „${esc((BADGES.find(b => b.id === it.need) || {}).name || "")}“</span>`;
     if (itemFrei(kat === "farbe" ? "" : kat.slice(0, 2) + "-", it)) return aktiv ? `<button class="btn ghost mini" disabled>Aktiv</button>` : `<button class="btn mini" data-eq="${kat}" data-id="${it.id}">Anlegen</button>`;
+    /* Avatare und Rahmen: Schritt für Schritt – erst das günstigere, dann das nächste */
+    if (kat === "av" || kat === "fr") {
+      const liste = (kat === "av" ? AVATARE : RAHMEN).filter(x => x.price > 0);
+      const naechstes = liste.find(x => !S.owned.includes(kat + "-" + x.id));
+      if (naechstes && naechstes.id !== it.id) return `<span class="ilock">${svg("lock")} erst ${esc(naechstes.name)}</span>`;
+    }
     return `<button class="btn primary mini" data-buy="${kat}" data-id="${it.id}" data-p="${it.price}">${it.price} ${svg("coin")}</button>`;
   };
   if (shopTab === "ruestung") {
@@ -911,12 +918,12 @@ VIEWS.shop = (tab) => {
     if (!kaufen(pre + id, p, b)) return;
     if (kat === "av") S.avatar = id; if (kat === "fr") S.frame = id; if (kat === "ti") S.title = id; if (kat === "farbe") { S.theme = id; applyTheme(); }
     if (kat === "ruestung") { const r = RUESTUNG.find(x => x.id === id); rain(60); modal(`<div class="label">Angelegt</div><div class="ruest-gross">${svg("ar-" + id)}</div><h2>${esc(r.name)}</h2><figure class="vers klein"><blockquote>${esc(r.vers)}</blockquote><figcaption>${esc(r.ref)} · ${VERS_QUELLE}</figcaption></figure><button class="btn primary" data-close>Amen</button>`); }
-    save(); lbSync(); VIEWS.shop();
+    save(); lbSync(); renderHud(); VIEWS.shop();
   });
   screen.querySelectorAll("[data-eq]").forEach(b => b.onclick = () => {
     const kat = b.dataset.eq, id = b.dataset.id; SFX.tap();
     if (kat === "av") S.avatar = id; if (kat === "fr") S.frame = id; if (kat === "ti") S.title = id; if (kat === "farbe") { S.theme = id; applyTheme(); }
-    save(); lbSync(); VIEWS.shop();
+    save(); lbSync(); renderHud(); VIEWS.shop();
   });
 };
 
@@ -1127,9 +1134,16 @@ const RANK_TABS = {
   abzeichen: { label: "Abzeichen", val: r => r.badges || 0, unit: "", titel: "Abzeichen-Sammler" },
   blitz: { label: "Blitz", unit: "Richtige", titel: "Blitz-Rekord" }
 };
-const RANK_REIHE = ["woche", "gesamt", "kette", "blitz", "treue", "bewaehrt", "abzeichen"];
-const RANK_ICON = { woche: "sun", gesamt: "trophy", kette: "link", blitz: "bolt", treue: "fire", bewaehrt: "siegel", abzeichen: "medal" };
-const TAB_LABEL = { woche: "Woche", gesamt: "Gesamt", kette: "Kette", blitz: "Blitz", treue: "Treue", bewaehrt: "Bewährt", abzeichen: "Abzeichen" };
+/* Vier Kategorien; Unterteilungen erscheinen als kleiner Umschalter im Listenkopf */
+const RANK_KAT = [
+  { id: "erfahrung", name: "Erfahrung", icon: "star", tabs: ["woche", "gesamt"] },
+  { id: "kette", name: "Kette", icon: "link", tabs: ["kette"] },
+  { id: "blitz", name: "Blitz", icon: "bolt", tabs: ["blitz"] },
+  { id: "ausdauer", name: "Ausdauer", icon: "fire", tabs: ["treue", "bewaehrt", "abzeichen"] }
+];
+const katVon = tab => RANK_KAT.find(k => k.tabs.includes(tab)) || RANK_KAT[0];
+const letzterTab = {};
+const TAB_LABEL = { woche: "Woche", gesamt: "Gesamt", kette: "Kette", blitz: "Blitz", treue: "Spieltage", bewaehrt: "Bewährt", abzeichen: "Abzeichen" };
 const BLITZ_SUB = { richtige: ["Richtige", "blitz", "Richtige", "Blitz-Rekord"], folge: ["In Folge", "combo", "in Folge", "Richtige in Folge (60 Sek.)"] };
 let blitzSub = "richtige";
 const KETTE_SUB = { bibel: ["Bibel", "bestChain", 66], at: ["AT", "chainAT", 39], nt: ["NT", "chainNT", 27], rueck: ["Rückwärts", "chainRueck", 66] };
@@ -1169,12 +1183,14 @@ VIEWS.rank = (tab) => {
     $("wieder").onclick = () => { SFX.coin(); S.offlineOnly = false; save(); lbStart().then(() => go("rank")); }; return; }
   if (!S.pid && !S.ownersSet) { lbStart(); }
   const T = RANK_TABS[rankTab];
-  const varianten = rankTab === "kette" ? Object.entries(KETTE_SUB).map(([k, v]) => `<button data-sub="${k}" aria-pressed="${k === ketteSub}">${v[0]}</button>`).join("")
+  const kat = katVon(rankTab); letzterTab[kat.id] = rankTab;
+  const varianten = kat.tabs.length > 1 ? kat.tabs.map(k => `<button data-tab="${k}" aria-pressed="${k === rankTab}">${TAB_LABEL[k]}</button>`).join("")
+    : rankTab === "kette" ? Object.entries(KETTE_SUB).map(([k, v]) => `<button data-sub="${k}" aria-pressed="${k === ketteSub}">${v[0]}</button>`).join("")
     : rankTab === "blitz" ? Object.entries(BLITZ_SUB).map(([k, v]) => `<button data-bsub="${k}" aria-pressed="${k === blitzSub}">${v[0]}</button>`).join("") : "";
   const titel = rankTab === "kette" ? T.titel : rankTab === "blitz" ? "Blitz-Rekord" : T.titel;
   screen.innerHTML = html + `<div class="stack rk">
     <details class="treue-kurz" id="zielBox"><summary><span class="tk-ic">${svg("people")}</span><span class="tk-tx"><b>Gemeinde-Treue</b><span class="tk-bar"><i style="width:0"></i></span></span><span class="tk-st">…</span></summary><div class="tk-mehr small muted">wird berechnet …</div></details>
-    <nav class="rk-nav" aria-label="Ranglisten">${RANK_REIHE.map(k => `<button data-tab="${k}" aria-pressed="${k === rankTab}"><span class="rk-ic">${svg(RANK_ICON[k])}</span><span>${TAB_LABEL[k]}</span></button>`).join("")}</nav>
+    <nav class="rk-nav" aria-label="Ranglisten">${RANK_KAT.map(k => `<button data-kat="${k.id}" aria-pressed="${k.id === kat.id}"><span class="rk-ic">${svg(k.icon)}</span><span>${k.name}</span></button>`).join("")}</nav>
     <div class="card rk-liste">
       <div class="rk-kopf"><div><b>${esc(titel)}</b><span class="small muted" id="rcount">${rankTab === "woche" ? weekKey().split("-W")[1] + ". Kalenderwoche" : ""}</span></div>${varianten ? `<div class="rk-var" role="group" aria-label="Variante">${varianten}</div>` : ""}</div>
       <div id="rbody"><p class="muted" style="margin:0">Lade Rangliste …</p></div>
@@ -1183,6 +1199,7 @@ VIEWS.rank = (tab) => {
   </div>`;
   wireGo();
   screen.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { SFX.tap(); go("rank", b.dataset.tab); });
+  screen.querySelectorAll("[data-kat]").forEach(b => b.onclick = () => { SFX.tap(); const k = RANK_KAT.find(x => x.id === b.dataset.kat); go("rank", letzterTab[k.id] || k.tabs[0]); });
   screen.querySelectorAll("[data-sub]").forEach(b => b.onclick = () => { SFX.tap(); ketteSub = b.dataset.sub; go("rank", "kette"); });
   screen.querySelectorAll("[data-bsub]").forEach(b => b.onclick = () => { SFX.tap(); blitzSub = b.dataset.bsub; go("rank", "blitz"); });
   const me = S.pid || L.uid; const wk = weekKey(); let zeilen = [];
@@ -1205,24 +1222,39 @@ VIEWS.rank = (tab) => {
     rows = rows.filter(r => rankWert(r) > 0 || r.id === me).sort((a, b) => rankWert(b) - rankWert(a) || String(a.name).localeCompare(String(b.name)));
     zeilen = rows;
     const myIdx = rows.findIndex(r => r.id === me);
+    /* Gleichstand: gleicher Wert = gleicher Platz; Plätze ohne Lücke (1, 1, 1, 2, 3 …) */
+    const platz = []; rows.forEach((r, i) => { platz[i] = i && rankWert(r) === rankWert(rows[i - 1]) ? platz[i - 1] : (i ? platz[i - 1] + 1 : 1); });
+    const meinPlatz = myIdx > -1 ? platz[myIdx] : 0;
     if (rankTab === "woche" && myIdx > -1 && rankWert(rows[myIdx]) > 0) {
-      if (myIdx < 3 && rows.length >= 3 && !S.podium) { S.podium = true; save(); checkBadges(); }
-      if (myIdx === 0 && rows.length >= 5 && !S.wochensieger) { S.wochensieger = true; save(); checkBadges(); }
+      if (meinPlatz <= 3 && rows.length >= 3 && !S.podium) { S.podium = true; save(); checkBadges(); }
+      if (meinPlatz === 1 && rows.length >= 5 && !S.wochensieger) { S.wochensieger = true; save(); checkBadges(); }
     }
     const unit = rankTab === "kette" ? "Bücher" : rankTab === "blitz" ? BLITZ_SUB[blitzSub][2] : T.unit;
     const body = $("rbody");
     if (!rows.length) body.innerHTML = `<p class="muted" style="margin:0">${rankTab === "woche" ? "Diese Woche hat noch niemand gespielt. Hol dir den ersten Platz!" : "Noch keine Einträge."}</p>`;
     else {
-      const top = rows.slice(0, 3), order = [1, 0, 2].filter(i => top[i]);
-      const pod = `<div class="podium">${order.map(i => { const r = top[i]; return `<button class="pod p${i + 1} ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}">${avatarHtml(r, i === 0 ? 70 : 56)}<div class="nm">${esc(r.name)}</div><div class="vl">${rankWert(r)} ${unit}</div><div class="base">${i + 1}</div></button>`; }).join("")}</div>`;
-      const rest = rows.slice(3, 80).map((r, k) => `<button class="rrow ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}"><div class="rk">${k + 4}</div>${avatarHtml(r, 38)}<div class="who"><b>${esc(r.name)}${r.id === me ? '<span class="you">DU</span>' : ""}</b><span>${esc(titelName(r.title) || "Level " + (r.level || 1) + " · " + titleOf(r.level || 1))}</span>${rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)}</div><div class="val">${rankWert(r)}</div></button>`).join("");
+      const gruppe = n => rows.filter((_, i) => platz[i] === n);
+      const g1 = gruppe(1), g2 = gruppe(2), g3 = gruppe(3), wert1 = rankWert(g1[0]);
+      const voll = rankTab === "kette" && wert1 >= KETTE_SUB[ketteSub][2];
+      const vollText = { bibel: "Alle 66 Bücher geschafft!", at: "Das ganze Alte Testament geschafft!", nt: "Das ganze Neue Testament geschafft!", rueck: "Alle 66 Bücher rückwärts geschafft!" }[ketteSub];
+      const person = (r, sz) => `<button class="gk-p ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}">${avatarLv(r, sz)}<b>${esc(r.name)}</b></button>`;
+      const gold = `<div class="gk-gold"><span class="pod-krone">${svg("crown")}</span>
+        <div class="gk-t">${voll ? vollText : `Platz 1 · ${wert1} ${esc(unit)}`}${g1.length > 1 ? `<small>${g1.length} Spieler teilen sich Platz 1</small>` : voll ? `<small>${wert1} ${esc(unit)}</small>` : ""}</div>
+        <div class="gk-leute">${g1.map(r => person(r, g1.length > 4 ? 44 : 50)).join("")}</div></div>`;
+      const klein = (n, g) => g.length ? `<div class="gk-k gk-k${n}"><div class="gk-h"><span class="gk-med">${n}</span><span>${rankWert(g[0])} ${esc(unit)}</span></div>
+        <div class="gk-stapel">${g.slice(0, 5).map(r => `<button data-pid="${esc(r.id)}" class="${r.id === me ? "me" : ""}">${avatarLv(r, 36)}</button>`).join("")}${g.length > 5 ? `<span class="gk-mehr">+${g.length - 5}</span>` : ""}</div>
+        <div class="gk-namen">${g.map(r => esc(r.name)).join(", ")}</div></div>` : "";
+      const pod = `<div class="gk">${gold}${g2.length ? `<div class="gk-zd">${klein(2, g2)}${klein(3, g3)}</div>` : ""}</div>`;
+      const rest = rows.map((r, i) => [r, platz[i]]).filter(([, p]) => p > 3).slice(0, 80).map(([r, p], k, arr) => `<button class="rrow ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}"><div class="rk">${k && arr[k - 1][1] === p ? "" : p}</div>${avatarLv(r, 38)}<div class="who"><b>${esc(r.name)}${r.id === me ? '<span class="you">DU</span>' : ""}</b><span>${esc(titelName(r.title) || titleOf(r.level || 1))}</span>${rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)}</div><div class="val">${rankWert(r)}</div></button>`).join("");
       if ($("rcount")) $("rcount").textContent = (rankTab === "woche" ? wk.split("-W")[1] + ". KW · " : "") + rows.length + " Spieler";
       body.innerHTML = `${pod}${rest ? `<div class="rlist">${rest}</div>` : ""}`;
       body.querySelectorAll("[data-pid]").forEach(b => b.onclick = () => { SFX.tap(); profilVergleich(rows.find(r => r.id === b.dataset.pid)); });
     }
-    const mv = myIdx > -1 ? rankWert(rows[myIdx]) : 0, ahead = myIdx > 0 ? rankWert(rows[myIdx - 1]) - mv : 0;
-    const ich = myIdx > -1 ? rows[myIdx] : { name: S.lbName, avatar: S.avatar, frame: S.frame };
-    $("rme").innerHTML = `${avatarHtml(ich, 36)}<div class="du-tx"><b>Platz ${myIdx > -1 ? myIdx + 1 : "–"} · ${mv} ${esc(unit || "")}</b><span>${myIdx > 0 ? `Noch ${ahead + 1} bis ${esc(rows[myIdx - 1].name)}` : myIdx === 0 ? "Du bist an der Spitze!" : "Spiel eine Runde für deinen Platz"}</span></div>${myIdx === 0 ? `<span class="du-krone">${svg("crown")}</span>` : ""}`;
+    const mv = myIdx > -1 ? rankWert(rows[myIdx]) : 0;
+    const vor = myIdx > -1 && meinPlatz > 1 ? rows.filter((_, i) => platz[i] === meinPlatz - 1) : [];
+    const ahead = vor.length ? rankWert(vor[0]) - mv : 0;
+    const ich = myIdx > -1 ? rows[myIdx] : { name: S.lbName, avatar: S.avatar, frame: S.frame, level: levelOf(S.xp) };
+    $("rme").innerHTML = `${avatarLv(ich, 36)}<div class="du-tx"><b>Platz ${meinPlatz || "–"} · ${mv} ${esc(unit || "")}</b><span>${vor.length ? `Noch ${ahead + 1} bis Platz ${meinPlatz - 1} (${esc(vor[0].name)}${vor.length > 1 ? " u. a." : ""})` : meinPlatz === 1 ? "Du bist an der Spitze!" : "Spiel eine Runde für deinen Platz"}</span></div>${meinPlatz === 1 ? `<span class="du-krone">${svg("crown")}</span>` : ""}`;
   }, () => { if ($("rbody")) $("rbody").innerHTML = `<p class="muted" style="margin:0">Rangliste konnte nicht geladen werden. Prüfe die Internetverbindung.</p>`; }));
 };
 /* Name wählen (Pflicht): neuer Spieler oder bestehenden Spieler aus der Rangliste */
@@ -1369,7 +1401,7 @@ function profilVergleich(r) {
   const zeilenR = statsZeilen(r), zeilenI = statsZeilen(ich);
   const hatIds = Array.isArray(r.badgeIds);
   const m = modal(`<div class="vergleich">
-    <div class="vg-kopf">${avatarHtml(r, 72)}<div><h2 style="margin:0">${esc(r.name)}</h2><div class="muted small">${esc(titelName(r.title) || "Level " + (r.level || 1) + " · " + titleOf(r.level || 1))}</div><div class="small"><span class="tag at">AT</span> ${esc(AT_TITEL[titelIndex(AT_TITEL, r.atP || 0)][1])} · <span class="tag nt">NT</span> ${esc(NT_TITEL[titelIndex(NT_TITEL, r.ntP || 0)][1])}</div>${ruestungHtml(r.armor, false)}</div></div>
+    <div class="vg-kopf">${avatarLv(r, 72)}<div><h2 style="margin:0">${esc(r.name)}</h2><div class="muted small">${esc(titelName(r.title) || "Level " + (r.level || 1) + " · " + titleOf(r.level || 1))}</div><div class="small"><span class="tag at">AT</span> ${esc(AT_TITEL[titelIndex(AT_TITEL, r.atP || 0)][1])} · <span class="tag nt">NT</span> ${esc(NT_TITEL[titelIndex(NT_TITEL, r.ntP || 0)][1])}</div>${ruestungHtml(r.armor, false)}</div></div>
     <table class="werte vg"><thead><tr><th></th><th>${esc(r.name)}</th>${istIch ? "" : "<th>Du</th>"}</tr></thead><tbody>
       ${zeilenR.map(([k, v], j) => `<tr><th>${k}</th><td>${esc(v)}</td>${istIch ? "" : `<td>${esc(zeilenI[j][1])}</td>`}</tr>`).join("")}</tbody></table>
     ${Array.isArray(r.sg) ? `<div class="label" style="margin:12px 0 6px">Siegel</div>${siegelReihe(r)}` : ""}
