@@ -1,5 +1,5 @@
 // Offline-Speicher für Bibelbuch-Quest. Bei Änderungen an der App die Versionsnummer erhöhen.
-const VERSION = "bibel-quest-v6-11";
+const VERSION = "bibel-quest-v6-12";
 const APP = ["./", "index.html", "daten.js", "symbole.js", "spiel.js", "logo.png", "qrcode.js", "firebase-config.js", "leaderboard.js", "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "icons/icon-512-maskable.png", "icons/icon-180.png", "icons/favicon-32.png"];
 // Fremde Dateien, die offline mitgespeichert werden dürfen (Schriften, Firebase-Bibliothek).
@@ -23,7 +23,8 @@ self.addEventListener("fetch", e => {
 
   // Seite und eigene Skripte: erst Netz (für Updates), sonst Offline-Kopie
   if (same) {
-    e.respondWith(fetch(req).then(r => {
+    // „no-cache“: beim Server nachfragen, ob es eine neuere Datei gibt (sonst hält der Browser bis zu 10 Min. die alte)
+    e.respondWith(fetch(req.url, { cache: "no-cache", credentials: "same-origin" }).then(r => {
       if (r.ok) { const c = r.clone(); caches.open(VERSION).then(x => x.put(req.mode === "navigate" ? "index.html" : req, c)); }
       return r;
     }).catch(() => caches.match(req.mode === "navigate" ? "index.html" : req, { ignoreSearch: true })));
