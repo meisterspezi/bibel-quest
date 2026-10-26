@@ -14,7 +14,7 @@ const DEF = {
   siegelGesehen: { bibel: 0, at: 0, nt: 0, rueck: 0 }, aufgefrischt: false, eingeladenVon: "", eingeladen: false, fischerDabei: false, menschenfischer: false,
   songHeard: [], gapPerfect: false, peeked: false, earlyBird: false,
   dq: { day: "", items: [], bonus: false }, questBonusCount: 0,
-  mute: false, beat: true, atTi: 0, ntTi: 0,
+  mute: false, beat: true, gapSing: false, atTi: 0, ntTi: 0,
   lbName: "", pid: "", ownersSet: false, offlineOnly: false, weekKey: "", weekXp: 0, podium: false, wochensieger: false, wochenziel: false,
   ver: 6
 };
@@ -119,6 +119,7 @@ function vorlesenStop() {
   try { if (TTS_OK) speechSynthesis.cancel(); } catch (e) {}
   if (audioEl) { try { audioEl.pause(); } catch (e) {} audioEl = null; }
   document.querySelectorAll(".lz.on").forEach(e => e.classList.remove("on"));
+  document.querySelectorAll(".lz .sing").forEach(e => e.classList.remove("sing"));
   document.querySelectorAll("[data-play].spielt").forEach(b => { b.classList.remove("spielt"); b.innerHTML = svg("play") + (b.id === "ganzBtn" ? " Ganzes Lied anhören" : " Anhören"); });
 }
 /* zeilen: [{text, el}] – liest nacheinander vor, markiert die aktuelle Zeile */
@@ -148,11 +149,19 @@ let aufnahmenGeprueft = null;
 /* Liste der Aufnahmen: lied/aufnahmen.json, z. B. {"strophe-1":"strophe-1.mp3","ganzes-lied":"lied.mp3"} */
 function aufnahmenPruefen() {
   if (aufnahmenGeprueft) return aufnahmenGeprueft;
-  aufnahmenGeprueft = fetch("lied/aufnahmen.json", { cache: "no-store" }).then(r => (r.ok ? r.json() : {})).then(j => {
+  aufnahmenGeprueft = fetch("lied/aufnahmen.json", { cache: "no-cache" }).then(r => (r.ok ? r.json() : {})).then(j => {
     Object.entries(j || {}).forEach(([k, v]) => { if (typeof v === "string" && /^[\w.-]+\.(mp3|m4a|ogg|wav)$/i.test(v)) AUFNAHMEN[k] = "lied/" + v; });
+    /* Zeitmarken der gesungenen Aufnahme: jede Liedzeile [Anfang, Ende] und der Einsatz jedes Buchs (Sekunden) */
+    const z = j && j.zeiten;
+    if (z && typeof z.datei === "string" && /^[\w.-]+\.(mp3|m4a|ogg)$/i.test(z.datei) && Array.isArray(z.zeilen) && z.zeilen.length === LZ_ANZ)
+      LIEDZEIT = { src: "lied/" + z.datei, zeilen: z.zeilen, buecher: z.buecher || {} };
   }).catch(() => {});
   return aufnahmenGeprueft;
 }
+/* Fortlaufende Nummer einer Liedzeile (Strophe vi, Zeile li) */
+const LZ_START = []; let LZ_ANZ = 0;
+LIED.forEach((v, vi) => { LZ_START[vi] = LZ_ANZ; LZ_ANZ += v.lines.length; });
+let LIEDZEIT = null;
 function aufnahmeSpielen(src, zeilenEls, fertig) {
   vorlesenStop(); const lauf = ++ttsLauf;
   audioEl = new Audio(src); audioEl.play().catch(() => {});
@@ -160,6 +169,67 @@ function aufnahmeSpielen(src, zeilenEls, fertig) {
     audioEl.ontimeupdate = () => { if (lauf !== ttsLauf || !audioEl || !audioEl.duration) return; const k = Math.min(zeilenEls.length - 1, Math.floor(audioEl.currentTime / audioEl.duration * zeilenEls.length)); zeilenEls.forEach((e, j) => e.classList.toggle("on", j === k)); };
   }
   audioEl.onended = () => { if (lauf !== ttsLauf) return; vorlesenStop(); fertig && fertig(); };
+}
+/* Singt genau die übergebenen Liedzeilen (.lz-Elemente) aus der Aufnahme – mit Zeilen- und Buch-Markierung.
+   Gibt false zurück, wenn keine Aufnahme mit Zeitmarken da ist (dann liest die Vorlesestimme). */
+function liedSingen(els, fertig, ersatz, bis) {
+  if (!LIEDZEIT || !els.length) return false;
+  /* laufende Wiedergabe beenden, aber den gerade gedrückten Knopf („Stopp“) nicht zurücksetzen */
+  ttsLauf++; clearInterval(beatTimer); beatTimer = null;
+  try { if (TTS_OK) speechSynthesis.cancel(); } catch (e) {}
+  if (audioEl) { try { audioEl.pause(); } catch (e) {} audioEl = null; }
+  document.querySelectorAll(".lz.on, .lz .sing").forEach(e => e.classList.remove("on", "sing"));
+  const lauf = ++ttsLauf;
+  const zeilen = els.map(el => {
+    const vi = +el.dataset.v, li = +el.dataset.l, n = LZ_START[vi] + li, [a, b] = LIEDZEIT.zeilen[n];
+    const segs = LIED[vi].lines[li].filter(x => typeof x !== "string").map(x => LIEDZEIT.buecher[x.b[0]]);
+    return { el, n, a, b, segs, spans: [...el.querySelectorAll("span")] };
+  }).sort((x, y) => x.n - y.n);
+  /* aufeinanderfolgende Zeilen am Stück abspielen */
+  const teile = [];
+  zeilen.forEach(z => { const t = teile[teile.length - 1]; if (t && t.letzte + 1 === z.n) { t.b = z.b; t.letzte = z.n; } else teile.push({ a: z.a, b: z.b, letzte: z.n }); });
+  if (bis) { const t = teile[teile.length - 1]; t.b = Math.min(t.b, bis); } /* z. B. im Lückenquiz: nicht die noch offenen Bücher vorsingen */
+  let ti = 0, gestartet = false;
+  audioEl = new Audio(LIEDZEIT.src); audioEl.preload = "auto";
+  const springe = () => { try { audioEl.currentTime = teile[ti].a; } catch (e) {} };
+  audioEl.addEventListener("loadedmetadata", () => { if (lauf === ttsLauf) springe(); }, { once: true });
+  audioEl.play().then(() => { gestartet = true; }).catch(() => {});
+  audioEl.onerror = () => { if (lauf !== ttsLauf || gestartet) return; vorlesenStop(); ersatz && ersatz(); };
+  const ende = () => { if (lauf !== ttsLauf) return; vorlesenStop(); fertig && fertig(); };
+  audioEl.ontimeupdate = () => {
+    if (lauf !== ttsLauf || !audioEl) return;
+    const t = audioEl.currentTime;
+    if (t < teile[ti].a - 0.5 && audioEl.readyState >= 1) { springe(); return; }
+    if (t >= teile[ti].b) { ti++; if (ti >= teile.length) return ende(); springe(); return; }
+    zeilen.forEach(z => {
+      const an = t >= z.a && t < z.b; z.el.classList.toggle("on", an);
+      let k = -1; if (an) z.segs.forEach((s, j) => { if (s != null && t >= s - 0.08) k = j; });
+      z.spans.forEach((sp, j) => sp.classList.toggle("sing", j === k));
+    });
+  };
+  audioEl.onended = ende;
+  return true;
+}
+
+/* Liedzeilen mit eigenem „Anhören“-Knopf: singt genau diese Zeilen aus der Aufnahme */
+function singBox(zeilenHtml, extra = "") {
+  return `<div class="sing-box">${zeilenHtml}<div class="row-btns" style="margin-top:8px"><button class="btn mini" data-play data-sing>${svg("play")} Anhören</button>${extra}</div></div>`;
+}
+function wireSing(wurzel = screen) {
+  wurzel.querySelectorAll("[data-sing]").forEach(b => b.onclick = e => {
+    e.preventDefault(); e.stopPropagation();
+    if (b.classList.contains("spielt")) { vorlesenStop(); return; }
+    SFX.tap();
+    const els = [...b.closest(".sing-box").querySelectorAll(".lz")];
+    const fertig = () => {
+      const vs = [...new Set(els.map(el => +el.dataset.v))];
+      if (vs.length && els.length >= vs.length * 2) { vs.forEach(vi => { if (!S.songHeard.includes(vi)) S.songHeard.push(vi); }); save(); checkBadges(); }
+    };
+    const lesen = () => vorlesen(els.map(el => ({ text: el.textContent, el })), fertig);
+    vorlesenStop();
+    b.classList.add("spielt"); b.innerHTML = svg("stop") + " Stopp";
+    if (!liedSingen(els, fertig, lesen)) lesen();
+  });
 }
 
 /* ---------- Partikel-Effekte ---------- */
@@ -446,8 +516,9 @@ function strophePlay(vi, btn) {
   };
   if (btn) { btn.classList.add("spielt"); btn.innerHTML = svg("stop") + " Stopp"; }
   const rec = AUFNAHMEN["strophe-" + (vi + 1)];
+  const lesen = () => vorlesen(zeilenPlain(vi).map((t, j) => ({ text: t, el: els[j] })), fertig);
   if (rec) aufnahmeSpielen(rec, els, fertig);
-  else vorlesen(zeilenPlain(vi).map((t, j) => ({ text: t, el: els[j] })), fertig);
+  else if (!liedSingen(els, fertig, lesen)) lesen();
 }
 function liedHinweisHtml(gi) {
   return strophenVonGruppe(gi).map(vi => `<div class="lied-mini">${LIED[vi].lines.map((_, li) => zeileHtml(vi, li)).join("<br>")}</div>`).join("");
@@ -545,6 +616,7 @@ VIEWS.spielen = () => {
 
 /* ---------- Geführte Lektion: ansehen → anhören → ordnen ---------- */
 VIEWS.lektion = (arg) => {
+  aufnahmenPruefen();
   const gi = +arg, g = GROUPS[gi]; let schritt = 1;
   const start = GROUPS.slice(0, gi).reduce((a, x) => a + x.books.length, 0);
   const kopf = () => `<button class="back" data-go="lernen">← Lernen</button>
@@ -566,8 +638,9 @@ VIEWS.lektion = (arg) => {
         const b = $("hoeren"); if (b.classList.contains("spielt")) { vorlesenStop(); return; }
         const strophen = strophenVonGruppe(gi), els = [...screen.querySelectorAll(".lz")];
         const z = []; strophen.forEach(vi => zeilenPlain(vi).forEach(t => z.push({ text: t, el: els[z.length] })));
+        const fertig = () => { strophen.forEach(vi => { if (!S.songHeard.includes(vi)) S.songHeard.push(vi); }); quest("lied", strophen.length); save(); checkBadges(); };
         b.classList.add("spielt"); b.innerHTML = svg("stop") + " Stopp";
-        vorlesen(z, () => { strophen.forEach(vi => { if (!S.songHeard.includes(vi)) S.songHeard.push(vi); }); quest("lied", strophen.length); save(); checkBadges(); });
+        if (!liedSingen(els, fertig, () => vorlesen(z, fertig))) vorlesen(z, fertig);
       };
     } else {
       let pos = 0, err = 0;
@@ -598,10 +671,12 @@ VIEWS.lektion = (arg) => {
     setTimeout(() => {
       addXp(xp); addTal(Math.max(0, stars - prev) * 2);
       const next = gi + 1 < GROUPS.length;
-      modal(`<div class="label">Lektion geschafft</div><div class="stars" style="justify-content:center;gap:8px">${[1, 2, 3].map(k => `<span style="display:inline-block;width:44px;animation:pop .4s ${k * 0.15}s both">${STAR(stars >= k)}</span>`).join("")}</div>
+      const m = modal(`<div class="label">Lektion geschafft</div><div class="stars" style="justify-content:center;gap:8px">${[1, 2, 3].map(k => `<span style="display:inline-block;width:44px;animation:pop .4s ${k * 0.15}s both">${STAR(stars >= k)}</span>`).join("")}</div>
       <h2>${err === 0 ? "Fehlerfrei!" : err + " Fehler"}</h2><div class="rewards"><span class="pill">+${xp} XP</span>${stars > prev ? `<span class="pill">+${(stars - prev) * 2} Talente</span>` : ""}</div>
+      ${LIEDZEIT ? `<div class="hilfe belohnung"><div class="label">${svg("music")} Liedbelohnung – freiwillig</div>${singBox(strophenVonGruppe(gi).map(vi => `<div class="lied-mini">${LIED[vi].lines.map((_, li) => zeileHtml(vi, li)).join("<br>")}</div>`).join(""))}</div>` : ""}
       <button class="btn primary" data-close="${next ? "next" : "lernen"}">${next ? "Nächste Lektion" : "Zur Übersicht"}</button><button class="btn ghost" data-close="again">Nochmal ordnen</button>`,
-        r => { if (r === "next") go("lektion", gi + 1); else if (r === "again") { schritt = 3; zeige(); } else go("lernen"); });
+        r => { vorlesenStop(); if (r === "next") go("lektion", gi + 1); else if (r === "again") { schritt = 3; zeige(); } else go("lernen"); });
+      wireSing(m);
     }, 400);
   }
   zeige();
@@ -614,12 +689,12 @@ VIEWS.lied = () => {
   aufnahmenPruefen();
   let html = `${backBtn("lernen", "Lernen")}<h1>In des Alten Bundes Schriften</h1>
   <div class="card stack">
-    <p class="small muted" style="margin:0">Traditioneller Merkvers, gesungen auf die Melodie von „Eine Insel mit zwei Bergen“ – angepasst an die Reihenfolge der Schlachter 2000 (<span class="neu">so markiert</span>). Farben: <span class="bk-geschichte">Geschichte</span>, <span class="bk-lehre">Lehre &amp; Poesie</span>, <span class="bk-prophetie">Prophetie</span>.</p>
+    <p class="small muted" style="margin:0">Traditioneller Merkvers, angepasst an die Reihenfolge der Schlachter 2000 (<span class="neu">so markiert</span>). Die App singt ihn mit einer eigenen, flotten Melodie – die gesungene Zeile und das Buch leuchten mit. Farben: <span class="bk-geschichte">Geschichte</span>, <span class="bk-lehre">Lehre &amp; Poesie</span>, <span class="bk-prophetie">Prophetie</span>.</p>
     <div class="row-btns">
       <button class="btn primary" id="ganzBtn" data-play>${svg("play")} Ganzes Lied anhören</button>
       <button class="btn" data-go="gap" data-arg="alle">${svg("target")} Lückenquiz: ganzes Lied</button>
     </div>
-    <label class="schalter"><input type="checkbox" id="beatCb" ${S.beat ? "checked" : ""}> Leiser Takt beim Vorlesen</label>
+    <label class="schalter"><input type="checkbox" id="beatCb" ${S.beat ? "checked" : ""}> Leiser Takt zur Vorlesestimme (nur ohne Aufnahme, z. B. offline)</label>
   </div>`;
   let lastT = "";
   LIED.forEach((v, vi) => {
@@ -631,8 +706,6 @@ VIEWS.lied = () => {
       <div class="row-btns"><button class="btn mini" data-play="${vi}">${svg("play")} Anhören</button><button class="btn ghost mini" data-go="gap" data-arg="${vi}">Lückenquiz</button></div>
     </div>`;
   });
-  html += `<div class="card stack" style="margin-top:14px"><b>Eigene Aufnahme verwenden</b>
-    <p class="small muted" style="margin:0">Liegen im Ordner <code>lied</code> eigene Aufnahmen (eingetragen in <code>lied/aufnahmen.json</code>), spielt die App sie statt der Vorlesestimme ab – etwa vom Kinderchor gesungen. ${Object.keys(AUFNAHMEN).length ? `<b>${Object.keys(AUFNAHMEN).length} Aufnahme(n) gefunden.</b>` : ""}</p></div>`;
   screen.innerHTML = html; wireGo();
   $("beatCb").onchange = e => { S.beat = e.target.checked; save(); };
   screen.querySelectorAll("[data-play]").forEach(b => {
@@ -645,16 +718,19 @@ VIEWS.lied = () => {
     const els = [...screen.querySelectorAll(".lz")];
     const fertig = () => { LIED.forEach((_, vi) => { if (!S.songHeard.includes(vi)) S.songHeard.push(vi); }); quest("lied", 8); save(); checkBadges(); b.innerHTML = svg("play") + " Ganzes Lied anhören"; };
     b.classList.add("spielt"); b.innerHTML = svg("stop") + " Stopp";
-    if (AUFNAHMEN["ganzes-lied"]) aufnahmeSpielen(AUFNAHMEN["ganzes-lied"], els, fertig);
-    else {
+    const lesen = () => {
       const z = []; LIED.forEach((_, vi) => zeilenPlain(vi).forEach((t, j) => z.push({ text: t, el: screen.querySelector(`.lz[data-v="${vi}"][data-l="${j}"]`) })));
       vorlesen(z, fertig);
-    }
+    };
+    if (LIEDZEIT) { if (!liedSingen(els, fertig, lesen)) lesen(); }
+    else if (AUFNAHMEN["ganzes-lied"]) aufnahmeSpielen(AUFNAHMEN["ganzes-lied"], els, fertig);
+    else lesen();
   };
 };
 
 /* ---------- Lied-Lückenquiz ---------- */
 VIEWS.gap = (arg) => {
+  aufnahmenPruefen();
   const alle = arg === "alle"; const strophen = alle ? LIED.map((_, i) => i) : [+arg];
   const luecken = [];
   strophen.forEach(vi => LIED[vi].lines.forEach((ln, li) => ln.forEach((s, si) => { if (typeof s !== "string") luecken.push({ vi, li, si, t: s.t }); })));
@@ -670,15 +746,28 @@ VIEWS.gap = (arg) => {
     screen.innerHTML = `${backBtn(alle ? "spielen" : "lied", "Zurück")}<h1>Lückenquiz${alle ? "" : " · Strophe " + (L.vi + 1)}</h1>
       <div class="stack"><div class="topline"><span>${k + 1} / ${luecken.length}</span><span>Fehler: ${fehler}</span></div>
       <div class="progress"><i style="width:${k / luecken.length * 100}%"></i></div>
-      <div class="card"><p class="liedtext gross">${strophe}</p></div>
+      <div class="card"><p class="liedtext gross" id="gapText">${strophe}</p></div>
+      ${LIEDZEIT ? `<label class="schalter"><input type="checkbox" id="gapSingCb" ${S.gapSing ? "checked" : ""}> ${svg("music")} Nach jeder Lücke die Zeile singen</label>` : ""}
       <div class="opts" id="go">${shuffle([L.t, ...nah]).map(t => `<button class="opt" data-t="${esc(t)}">${esc(t)}</button>`).join("")}</div></div>`;
     wireGo();
+    if ($("gapSingCb")) $("gapSingCb").onchange = e => { S.gapSing = e.target.checked; save(); };
     screen.querySelectorAll("#go .opt").forEach(b => b.onclick = () => {
       if (lock) return;
       if (b.dataset.t === L.t) {
         lock = true; b.classList.add("right"); SFX.right(k % 12); richtig(1); xp += 3; offen.add(L.vi + "-" + L.li + "-" + L.si);
         const [x, y] = centerOf(b); burst(x, y, 10);
-        setTimeout(() => { k++; if (k >= luecken.length) ende(); else render(); }, 450);
+        let weiter = false; const naechste = () => { if (weiter) return; weiter = true; vorlesenStop(); k++; if (k >= luecken.length) ende(); else render(); };
+        if (S.gapSing && LIEDZEIT) {
+          /* Zeile mit eingesetztem Buch zeigen und singen – „Weiter“ überspringt */
+          $("gapText").innerHTML = LIED[L.vi].lines.map((_, li) => zeileHtml(L.vi, li, -1, offen)).join("<br>");
+          const zl = $("gapText").querySelector(`.lz[data-l="${L.li}"]`);
+          const sk = document.createElement("button"); sk.className = "btn ghost mini"; sk.textContent = "Weiter ›"; sk.onclick = () => { SFX.tap(); naechste(); };
+          $("go").innerHTML = ""; $("go").appendChild(sk);
+          /* nur bis zum eingesetzten Buch singen – die übrigen Lücken der Zeile nicht verraten */
+          const spaeter = LIED[L.vi].lines[L.li].slice(L.si + 1).find(x => typeof x !== "string" && !offen.has(L.vi + "-" + L.li + "-" + LIED[L.vi].lines[L.li].indexOf(x)));
+          const bis = spaeter ? LIEDZEIT.buecher[spaeter.b[0]] - 0.05 : null;
+          setTimeout(() => { if (!weiter && !liedSingen([zl], naechste, naechste, bis)) naechste(); }, 250);
+        } else setTimeout(naechste, 450);
       } else { fehler++; b.classList.add("wrong"); b.disabled = true; SFX.wrong(); shakeScreen(); }
     });
   };
@@ -689,8 +778,11 @@ VIEWS.gap = (arg) => {
     screen.innerHTML = `<div class="card result stack"><div class="label">Lückenquiz geschafft</div><div class="big">${luecken.length - Math.min(fehler, luecken.length)} / ${luecken.length}</div>
       <div class="muted">${perfekt ? "Ohne Fehler – stark!" : fehler + " Fehler"}</div>
       <div class="rewards"><span class="pill">+${xp} XP</span></div>
+      <div class="hilfe" style="text-align:left"><div class="label">${alle ? "Jetzt das ganze Lied am Stück" : "Jetzt die Strophe am Stück"}</div>${alle
+        ? `<details class="lied-det"><summary>${svg("music")} Liedtext zeigen</summary>${singBox(LIED.map((v, vi) => `<div class="lied-mini">${v.lines.map((_, li) => zeileHtml(vi, li)).join("<br>")}</div>`).join(""))}</details>`
+        : singBox(`<div class="lied-mini">${LIED[strophen[0]].lines.map((_, li) => zeileHtml(strophen[0], li)).join("<br>")}</div>`)}</div>
       <button class="btn primary" id="again">Nochmal</button><button class="btn ghost" data-go="${alle ? "spielen" : "lied"}">Zurück</button></div>`;
-    wireGo(); $("again").onclick = () => { SFX.tap(); VIEWS.gap(arg); };
+    wireGo(); wireSing(); $("again").onclick = () => { SFX.tap(); vorlesenStop(); VIEWS.gap(arg); };
     SFX.win(); if (perfekt) rain(80);
     if (xp) addXp(xp); save(); checkBadges();
   };
@@ -717,7 +809,7 @@ function countdown(cb) {
 }
 function playBlitz(scope) {
   const idx = []; ALL.forEach((x, i) => { if (i < ALL.length - 1 && (scope === "all" || (x.t === scope && ALL[i + 1].t === scope))) idx.push(i); });
-  let time = 60, right = 0, wrong = 0, combo = 0, maxCombo = 0, xp = 0, cur = -1, lock = false;
+  let time = 60, right = 0, wrong = 0, combo = 0, maxCombo = 0, xp = 0, cur = -1, lock = false; const fehlerBuecher = [];
   screen.innerHTML = `<div class="stack">
     <div class="topline"><span id="bt">60 s</span><span>${svg("check", "var(--good)").replace('<svg', '<svg style="width:18px;height:18px;vertical-align:-3px"')} <span id="br">0</span></span><span id="bx">0 XP</span></div>
     <div class="timer"><i id="tb"></i></div>
@@ -741,10 +833,16 @@ function playBlitz(scope) {
       if (combo % 5 === 0) { tone(1568, 0, .15, "sine", .12); shakeScreen(); }
       setTimeout(next, 320);
     } else {
-      combo = 0; wrong++; time -= 3; btn.classList.add("wrong"); SFX.wrong(); vibrate([40, 30, 40]); shakeScreen();
+      fehlerBuecher.push(cur + 1); combo = 0; wrong++; time -= 3; btn.classList.add("wrong"); SFX.wrong(); vibrate([40, 30, 40]); shakeScreen();
       [...$("bo").children].forEach(x => { if (x.textContent === correct) x.classList.add("right"); }); lock = true; setTimeout(next, 700);
     }
     const c = $("bc"); c.textContent = combo >= 2 ? `Combo ${combo} · x${mult()}` : ""; c.className = "combo" + (mult() >= 3 ? " hot" : "");
+  }
+  /* Freiwillig: die Liedzeilen zu den verpassten Büchern (höchstens 3) */
+  function blitzLiedHilfe() {
+    const zeilen = []; fehlerBuecher.forEach(b => { const p = BUCH_IM_LIED[b]; if (p && !zeilen.some(z => z.v === p.v && z.l === p.l)) zeilen.push(p); });
+    if (!zeilen.length) return "";
+    return `<div class="hilfe"><div class="label">${svg("music")} So geht's im Lied${zeilen.length > 3 ? " · die ersten 3 Fehler" : ""}</div>${zeilen.slice(0, 3).map(z => singBox(zeileHtml(z.v, z.l))).join('<div style="height:10px"></div>')}</div>`;
   }
   function end() {
     clearTimers(); const rec = right > S.bestBlitz;
@@ -753,8 +851,9 @@ function playBlitz(scope) {
     const tal = Math.floor(right / 5) + (rec ? 3 : 0);
     screen.innerHTML = `<div class="card result stack"><div class="label">Zeit abgelaufen</div><div class="big">${right}</div><div class="muted">Richtige · ${wrong} Fehler · beste Combo ${maxCombo}</div>${rec && right > 0 ? '<h2>Neuer Rekord!</h2>' : ''}
       <div class="rewards"><span class="pill">+${xp} XP</span><span class="pill">+${tal} Talente</span></div>
-      <button class="btn primary" id="again">Nochmal</button><button class="btn ghost" data-go="spielen">Zurück</button></div>`; wireGo();
-    $("again").onclick = () => { SFX.tap(); VIEWS.blitz(); };
+      ${blitzLiedHilfe()}
+      <button class="btn primary" id="again">Nochmal</button><button class="btn ghost" data-go="spielen">Zurück</button></div>`; wireGo(); wireSing();
+    $("again").onclick = () => { SFX.tap(); vorlesenStop(); VIEWS.blitz(); };
     if (right > 0) { SFX.win(); if (rec) rain(90); }
     if (xp) addXp(xp); addTal(tal); save(); checkBadges(); lbSync();
   }
@@ -818,11 +917,11 @@ function playChain(mode) {
     const vorher = ALL[seq[i]].b;
     screen.innerHTML = `<div class="card result stack"><div class="label">${full ? "Großartig" : "Kette gerissen"}</div><div class="big">${i + 1} / ${seq.length}</div>
       <div class="muted">${full ? `${esc(K.name)} komplett in der richtigen Reihenfolge!` : `${K.rueck ? "Vor" : "Nach"} „${esc(vorher)}“ ${K.rueck ? "steht" : "kommt"} „${esc(correct)}“.`}</div>${rec && !full ? '<h2>Neuer Rekord!</h2>' : ''}
-      ${!full && BUCH_IM_LIED[seq[i + 1]] ? `<div class="hilfe"><div class="label">So geht's im Lied</div>${zeileHtml(BUCH_IM_LIED[seq[i + 1]].v, BUCH_IM_LIED[seq[i + 1]].l)}</div>` : ""}
+      ${!full && BUCH_IM_LIED[seq[i + 1]] ? `<div class="hilfe"><div class="label">So geht's im Lied</div>${singBox(zeileHtml(BUCH_IM_LIED[seq[i + 1]].v, BUCH_IM_LIED[seq[i + 1]].l))}</div>` : ""}
       ${sieg ? `<div class="siegel-box">${siegelHtml(sieg.nachher, true, true)}<div><b>${SIEGEL[sieg.nachher].name}-Siegel</b><div class="small muted">${sieg.nachher < 4 ? "Nächstes: " + SIEGEL[sieg.nachher + 1].name + " – " + SIEGEL[sieg.nachher + 1].text : "Höchste Stufe!"}<br>Bleibt ${SIEGEL_FRISCH} Tage frisch – danach einfach wiederholen.</div></div></div>` : ""}
       <div class="rewards"><span class="pill">+${xp} XP</span><span class="pill">+${tal + (sieg ? sieg.tal : 0)} Talente</span></div>
-      <button class="btn primary" id="cagain">Nochmal</button><button class="btn ghost" data-go="spielen">Andere Kette</button></div>`; wireGo();
-    $("cagain").onclick = () => { SFX.tap(); countdown(() => playChain(mode)); };
+      <button class="btn primary" id="cagain">Nochmal</button><button class="btn ghost" data-go="spielen">Andere Kette</button></div>`; wireGo(); wireSing();
+    $("cagain").onclick = () => { SFX.tap(); vorlesenStop(); countdown(() => playChain(mode)); };
     if (full) { SFX.level(); rain(200); } else if (rec) SFX.win();
     if (xp) addXp(xp); addTal(tal); save(); checkBadges(); lbSync();
   }
@@ -836,9 +935,9 @@ VIEWS.learn = () => {
   GROUPS.forEach((g, gi) => {
     html += `<div class="grp"><span class="tag ${g.t.toLowerCase()}">${g.t}</span> <b>${g.name}</b><div class="small muted">${g.tip}</div><div class="blist">` +
       g.books.map(b => { n++; return `<button class="bk"><span class="n">${n}</span><span class="t">${b}</span></button>`; }).join("") +
-      `</div><details class="lied-det"><summary>${svg("music")} Im Lied</summary>${liedHinweisHtml(gi)}</details></div>`;
+      `</div><details class="lied-det"><summary>${svg("music")} Im Lied</summary>${singBox(liedHinweisHtml(gi))}</details></div>`;
   });
-  screen.innerHTML = html + "</div>"; wireGo();
+  screen.innerHTML = html + "</div>"; wireGo(); wireSing(); aufnahmenPruefen();
   const bks = [...screen.querySelectorAll(".bk")];
   bks.forEach(b => b.onclick = () => { b.classList.toggle("hid"); SFX.tap(); });
   $("hideAll").onclick = () => { bks.forEach(b => b.classList.add("hid")); SFX.tap(); screen.dataset.all = "1"; };
@@ -1130,6 +1229,7 @@ document.addEventListener("visibilitychange", async () => {
 });
 addEventListener("lb-ready", () => {
   lbStart();
+  aufnahmenPruefen();
   if (current === "name") { const e = $("bAltSub"); if (e && window.LB && window.LB.ok) e.textContent = "Meinen Namen aus der Rangliste auswählen"; return; }
   if (["rank", "home", "profil"].includes(current) && !document.querySelector(".modal")) go(current);
 });

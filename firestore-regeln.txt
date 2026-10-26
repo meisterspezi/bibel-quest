@@ -1,5 +1,5 @@
 rules_version = '2';
-// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.10 – automatisches Zusammenführen doppelter Namen)
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.14 – automatisches Zusammenführen doppelter Namen)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -26,8 +26,8 @@ service cloud.firestore {
       return d.keys().hasOnly(felder()) && werteOk(d);
     }
     // Der Verwalter darf zusätzlich „zu“ setzen (= Eintrag wurde mit einem anderen zusammengeführt)
-    function gueltigVerwalter(d) {
-      return d.keys().hasOnly(felder().concat(['zu'])) && werteOk(d) && (!('zu' in d) || (d.zu is string && d.zu.size() <= 64));
+    function zuOk(d) {
+      return !('zu' in d) || (d.zu is string && d.zu.size() <= 64);
     }
     function werteOk(d) {
       return d.name is string && d.name.size() >= 2 && d.name.size() <= 20
@@ -85,12 +85,13 @@ service cloud.firestore {
           (pid == ich() && (!('owners' in request.resource.data) || request.resource.data.owners == [ich()]))
           || (pid.matches('^[A-Za-z0-9]+-[a-z0-9]{4}$') && pid.split('-')[0] == ich()
               && 'owners' in request.resource.data && request.resource.data.owners == [ich()]));
-      allow update: if angemeldet() && (
-          (gueltig(request.resource.data) && besitzerBleiben() && hoechstensIchDazu(pid)
+      // Werte nur EINMAL prüfen (Firestore erlaubt höchstens 1000 Rechenschritte pro Regel)
+      allow update: if angemeldet() && werteOk(request.resource.data) && besitzerBleiben() && (
+          (request.resource.data.keys().hasOnly(felder()) && hoechstensIchDazu(pid)
             && (istBesitzer(pid) || perAuswahl() || perZusammenfuehrung(pid) || perCode(pid)))
           // Verwalter: doppelte Namen zusammenführen (Besitzerlisten bleiben unverändert)
-          || (istEntwickler() && gueltigVerwalter(request.resource.data) && besitzerBleiben()
-              && (!('owners' in resource.data) || request.resource.data.owners == resource.data.owners)));
+          || (request.resource.data.keys().hasOnly(felder().concat(['zu'])) && zuOk(request.resource.data)
+              && (!('owners' in resource.data) || request.resource.data.owners == resource.data.owners) && istEntwickler()));
       allow delete: if angemeldet() && istBesitzer(pid);
     }
 
