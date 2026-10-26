@@ -509,7 +509,7 @@ VIEWS.home = () => {
 /* ---------- Bereich Lernen ---------- */
 VIEWS.lernen = () => {
   const { atP, ntP } = fortschritt();
-  const lektion = (g, i) => { const st = S.stars[i] || 0; return `<button class="lek ${st ? "done" : ""}" data-go="lektion" data-arg="${i}"><span class="lek-nr">${i + 1}</span><span class="lek-tx"><b>${g.name}</b><span>${g.books.length} Bücher · ${g.books[0]} – ${g.books[g.books.length - 1]}</span></span><span class="stars">${STAR(st >= 1)}${STAR(st >= 2)}${STAR(st >= 3)}</span></button>`; };
+  const lektion = (g, i) => { const st = S.stars[i] || 0; return `<button class="lek ${st ? "done" : ""}" data-go="lektion" data-arg="${i}"><span class="lek-nr" aria-label="Lektion ${i + 1}">${svg("lek-" + (i + 1))}</span><span class="lek-tx"><b>${g.name}</b><span>${g.books.length} Bücher · ${g.books[0]} – ${g.books[g.books.length - 1]}</span></span><span class="stars">${STAR(st >= 1)}${STAR(st >= 2)}${STAR(st >= 3)}</span></button>`; };
   screen.innerHTML = `${backBtn()}<h1>Lernen</h1>
   <p class="muted small" style="margin:0 0 12px">Jede Lektion hat drei Schritte: ansehen, anhören, selbst ordnen.</p>
   <div class="titelzeile"><span class="tag at">AT</span> <b>${esc(AT_TITEL[titelIndex(AT_TITEL, atP)][1])}</b><span class="tbar"><i style="width:${atP}%"></i></span><span class="small muted">${atP}%</span></div>
@@ -533,7 +533,7 @@ VIEWS.spielen = () => {
     <div class="label" style="margin:10px 0 0">Die Kette – ein Fehler beendet sie</div>
     <p class="small muted" style="margin:0">Wer eine Kette komplett schafft, bekommt ein Siegel. Wiederhole sie in verschiedenen Wochen und Monaten für Silber, Gold und Diamant. Nach ${SIEGEL_FRISCH} Tagen verblasst ein Siegel – dann einfach auffrischen.</p>
     ${Object.entries(KETTEN).map(([id, k]) => { const max = k.seq.length, rec = kettenBuecher(k.key), voll = rec >= max, t = S.meister[id] || [], st = siegelStufe(t), fr = siegelFrisch(t);
-      return `<button class="kette-karte ${voll ? "voll" : ""}" data-k="${id}"><div class="ic">${st ? siegelHtml(st, fr) : svg(k.rueck ? "back" : "link", "#7cc4ff")}</div>
+      return `<button class="kette-karte ${voll ? "voll" : ""}" data-k="${id}"><div class="ic">${st ? siegelHtml(st, fr) : svg("kette-" + id)}</div>
         <div class="kk-text"><b>${k.name}</b><span class="small muted">${st ? `${SIEGEL[st].name}-Siegel · ${fr ? "frisch noch " + siegelRest(t) + " Tage" : "verblasst – auffrischen!"}` : k.info}</span><span class="progress kk"><i style="width:${rec / max * 100}%"></i></span></div>
         <div class="kk-rec"><b>${rec}</b><span class="small muted">/ ${max}</span></div></button>`; }).join("")}
     <button class="bereich klein" data-go="gap" data-arg="alle"><span class="b-ic">${svg("music")}</span><span class="b-tx"><b>Lied-Lückenquiz</b><span>Welches Buch fehlt in der Liedzeile?</span></span></button>
@@ -773,7 +773,7 @@ VIEWS._chainAlt = () => {
   <p class="muted small" style="margin:0 0 10px">Immer das nächste Buch – ein Fehler beendet die Kette. Die Lied-Hilfe gibt es nur im Lernteil.</p>
   <div class="stack">${Object.entries(KETTEN).map(([id, k]) => { const max = k.seq.length, rec = kettenBuecher(k.key), voll = rec >= max;
     return `<button class="kette-karte ${voll ? "voll" : ""}" data-k="${id}">
-      <div class="ic">${svg(k.rueck ? "back" : "link", voll ? "var(--good)" : "#7cc4ff")}</div>
+      <div class="ic">${svg("kette-" + id)}</div>
       <div class="kk-text"><b>${k.name}</b><span class="small muted">${k.info}</span><span class="progress kk"><i style="width:${rec / max * 100}%"></i></span></div>
       <div class="kk-rec"><b>${rec}</b><span class="small muted">/ ${max}</span></div></button>`; }).join("")}
   </div>`;

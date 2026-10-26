@@ -259,7 +259,8 @@ summary svg{width:14px;height:14px;vertical-align:-2px}
 .kette-karte{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:18px;padding:14px;cursor:pointer;border-bottom:4px solid #0006;color:inherit;font:inherit;width:100%}
 .kette-karte:active{transform:translateY(3px)}
 .kette-karte .ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--surface2)}
-.kette-karte .ic svg{width:24px;height:24px}
+.kette-karte .ic svg{width:36px;height:36px}
+.kette-karte .ic{background:radial-gradient(circle at 50% 38%,color-mix(in srgb,var(--ar-spielen) 30%,var(--surface2)),var(--bg2) 78%);border:1px solid color-mix(in srgb,var(--ar-spielen) 40%,transparent)}
 .kk-text{display:flex;flex-direction:column;gap:3px;min-width:0}
 .progress.kk{height:6px;margin-top:4px;display:block}
 .kk-rec{text-align:right;font-variant-numeric:tabular-nums}
@@ -384,9 +385,10 @@ textarea.field{resize:vertical;min-height:110px;font:inherit}.fb-name{display:fl
 .leiste button{display:flex;flex-direction:column;align-items:center;gap:5px;padding:12px 4px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:800 .78rem var(--body);cursor:pointer}
 .leiste button svg{width:22px;height:22px;color:var(--accent)}
 .lek-liste{gap:8px}
-.lek{display:grid;grid-template-columns:36px 1fr auto;gap:12px;align-items:center;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:11px 12px;cursor:pointer;color:inherit;font:inherit}
-.lek-nr{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--surface2);font-weight:900}
-.lek.done .lek-nr{background:var(--good);color:#002b19}
+.lek{display:grid;grid-template-columns:48px 1fr auto;gap:12px;align-items:center;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:11px 12px;cursor:pointer;color:inherit;font:inherit}
+.lek-nr{width:48px;height:48px;border-radius:13px;display:grid;place-items:center;flex:0 0 auto;background:radial-gradient(circle at 50% 38%,color-mix(in srgb,var(--ar-lernen) 30%,var(--surface2)),var(--bg2) 78%);border:1px solid color-mix(in srgb,var(--ar-lernen) 40%,transparent)}
+.lek-nr svg{width:40px;height:40px}
+.lek.done .lek-nr{border-color:var(--good);box-shadow:0 0 12px color-mix(in srgb,var(--good) 40%,transparent)}
 .lek-tx{display:flex;flex-direction:column;min-width:0}
 .lek-tx span{font-size:.8rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lek .stars svg{width:15px;height:15px}
