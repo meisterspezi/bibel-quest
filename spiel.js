@@ -203,7 +203,10 @@ function liedSingen(els, fertig, ersatz, bis) {
   audioEl.play().then(() => { gestartet = true; }).catch(() => {});
   audioEl.onerror = () => { if (lauf !== ttsLauf || gestartet) return; vorlesenStop(); ersatz && ersatz(); };
   const ende = () => { if (lauf !== ttsLauf) return; vorlesenStop(); fertig && fertig(); };
-  audioEl.ontimeupdate = () => {
+  /* timeupdate meldet sich nur etwa alle 0,25 s – zusätzlich jedes Bild prüfen, damit genau am Ende gestoppt wird */
+  const genau = () => { if (lauf !== ttsLauf || !audioEl) return; if (!audioEl.paused) pruefe(); requestAnimationFrame(genau); };
+  requestAnimationFrame(genau);
+  const pruefe = audioEl.ontimeupdate = () => {
     if (lauf !== ttsLauf || !audioEl) return;
     const t = audioEl.currentTime;
     if (t < teile[ti].a - 0.5 && audioEl.readyState >= 1) { springe(); return; }
@@ -743,6 +746,7 @@ VIEWS.lied = () => {
 };
 
 /* ---------- Lied-Lückenquiz ---------- */
+const GAP_VORLAUF = 0.3; /* Sekunden Abstand vor dem nächsten gesuchten Buch (Sänger setzt etwas früher ein) */
 VIEWS.gap = (arg) => {
   aufnahmenPruefen();
   const alle = arg === "alle"; const strophen = alle ? LIED.map((_, i) => i) : [+arg];
@@ -777,9 +781,12 @@ VIEWS.gap = (arg) => {
           const zl = $("gapText").querySelector(`.lz[data-l="${L.li}"]`);
           const sk = document.createElement("button"); sk.className = "btn ghost mini"; sk.textContent = "Weiter ›"; sk.onclick = () => { SFX.tap(); naechste(); };
           $("go").innerHTML = ""; $("go").appendChild(sk);
-          /* nur bis zum eingesetzten Buch singen – die übrigen Lücken der Zeile nicht verraten */
-          const spaeter = LIED[L.vi].lines[L.li].slice(L.si + 1).find(x => typeof x !== "string" && !offen.has(L.vi + "-" + L.li + "-" + LIED[L.vi].lines[L.li].indexOf(x)));
-          const bis = spaeter ? LIEDZEIT.buecher[spaeter.b[0]] - 0.05 : null;
+          /* nur bis kurz vor das nächste noch offene Buch singen – auch wenn es erst in der nächsten Zeile beginnt.
+             So ist vom nächsten gesuchten Buch nichts zu hören, bevor man antworten muss. */
+          const tJetzt = LIEDZEIT.buecher[LIED[L.vi].lines[L.li][L.si].b[0]] || 0;
+          const offeneZeiten = luecken.filter(x => !offen.has(x.vi + "-" + x.li + "-" + x.si))
+            .map(x => LIEDZEIT.buecher[LIED[x.vi].lines[x.li][x.si].b[0]]).filter(z => z != null && z > tJetzt);
+          const bis = offeneZeiten.length ? Math.min(...offeneZeiten) - GAP_VORLAUF : null;
           setTimeout(() => { if (!weiter && !liedSingen([zl], naechste, naechste, bis)) naechste(); }, 250);
         } else setTimeout(naechste, 450);
       } else { fehler++; b.classList.add("wrong"); b.disabled = true; SFX.wrong(); shakeScreen(); }
