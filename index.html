@@ -432,13 +432,6 @@ textarea.field{resize:vertical;min-height:110px;font:inherit}.fb-name{display:fl
 .siegel-box{display:flex;gap:12px;align-items:center;text-align:left;background:var(--bg2);border-radius:14px;padding:10px 12px}
 .erinnerung{display:flex;gap:12px;align-items:center;width:100%;text-align:left;border:1px solid var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--surface));border-radius:16px;padding:12px 14px;color:inherit;font:inherit;cursor:pointer}
 .erinnerung>span{display:flex;flex-direction:column;gap:2px}
-.treue-skala{position:relative;padding:4px 0 30px;margin:6px 6px 4px}
-.treue-skala .zielbar{margin:8px 0 0}
-.treue-skala .stufe{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px}
-.treue-skala .stufe i{font-style:normal;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:.8rem;background:var(--surface2);border:2px solid var(--line)}
-.treue-skala .stufe em{font-style:normal;font-size:.66rem;font-weight:800;color:var(--muted);margin-top:14px}
-.treue-skala .stufe.an i{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.treue-skala .stufe:last-child{transform:translateX(-100%)}
 /* Kopfleiste: Avatar mit Rahmen + Level-Münze; Titel im goldenen Schriftzug */
 .hav{position:relative;flex:0 0 auto;display:grid;place-items:center;width:52px;height:52px}
 .hav .av{margin:0!important}
@@ -531,16 +524,6 @@ textarea.field{resize:vertical;min-height:110px;font:inherit}.fb-name{display:fl
 @media (prefers-reduced-motion:reduce){.wr *{animation:none!important}}
 /* Rangliste – kompakt, eine Navigationsebene */
 .rk-head{margin:2px 0 4px}.rk-head h1{margin:0;font-size:1.5rem;line-height:1.1}
-.treue-kurz{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:0;overflow:hidden}
-.treue-kurz summary{list-style:none;display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer}
-.treue-kurz summary::-webkit-details-marker{display:none}
-.treue-kurz summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin:0 4px 4px 2px;transition:transform .2s}
-.treue-kurz[open] summary::after{transform:rotate(225deg);margin-bottom:-2px}
-.tk-ic svg{width:30px;height:30px;display:block}
-.tk-tx{flex:1;display:flex;flex-direction:column;gap:5px;min-width:0}.tk-tx b{font-size:.92rem}
-.tk-bar{display:block;height:7px;border-radius:9px;background:var(--bg2);overflow:hidden}.tk-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#fff);border-radius:9px;transition:width .5s}
-.tk-st{font-size:.85rem;color:var(--muted);white-space:nowrap}.tk-st b{color:var(--fg);font-size:1rem}.tk-st em{font-style:normal;color:var(--accent);font-weight:800;margin-left:2px}
-.tk-mehr{padding:0 14px 14px}
 .rk-nav{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}.rk-nav button{flex:0 0 calc(25% - 4.5px)}
 .rk-nav button{display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:8px 2px 7px;color:var(--muted);font:800 .74rem var(--body);cursor:pointer;transition:transform .08s,background .15s}
 .rk-nav button:active{transform:scale(.96)}

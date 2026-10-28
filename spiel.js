@@ -29,6 +29,9 @@ const LS = lsKey(GERAET.aktiv);
 try { const v = JSON.parse(localStorage.getItem(LS) || "null"); if (v) S = Object.assign(JSON.parse(JSON.stringify(DEF)), v); } catch (e) {}
 /* Umzug von Version 5: Rekord-Serie nachtragen */
 if (!S.bestStreak) S.bestStreak = S.streak || 0;
+/* Abzeichen, die es nicht mehr gibt (z. B. „Ein Leib“ seit Wegfall der Gemeinde-Treue), aussortieren */
+function badgesBereinigen() { S.badges = (S.badges || []).filter(id => BADGES.some(b => b.id === id)); }
+badgesBereinigen();
 function geraetSpeichern() {
   const eintrag = { key: GERAET.aktiv, name: S.lbName, avatar: S.avatar, frame: S.frame, xp: Math.round(S.xp), pid: S.pid };
   const i = GERAET.liste.findIndex(p => p.key === GERAET.aktiv);
@@ -292,7 +295,7 @@ function tagMerken() {
   const wk = weekKey();
   if (tageDieseWoche() >= TREUE_TAGE && !S.treueWochen.includes(wk)) {
     S.treueWochen.push(wk); S.treueWochen = S.treueWochen.slice(-60);
-    setTimeout(() => { SFX.badge(); toast(`${svg("people", accent())}<div><b>Treue Woche!</b><div class="small muted">Du hast an ${TREUE_TAGE} Tagen gespielt und zählst für die Gemeinde-Treue.</div></div>`); }, 1800);
+    setTimeout(() => { SFX.badge(); toast(`${svg("people", accent())}<div><b>Treue Woche!</b><div class="small muted">Du hast an ${TREUE_TAGE} Tagen gespielt – eine treue Woche!</div></div>`); }, 1800);
   }
 }
 
@@ -562,18 +565,7 @@ VIEWS.home = () => {
   screen.innerHTML = `
   <div class="titel-wappen"><div class="halo"></div><img src="logo.png" alt="Logo der Freien Baptisten Eichstätt" onerror="this.remove()"><h1>Bibelbuch-Quest</h1><div class="linie"><i></i><span>Alle <b>66</b> Bücher – Schritt für Schritt</span><i></i></div></div>
   <div class="stack" style="margin-top:12px">
-    <div class="card heute ${S.dq.bonus ? "fertig" : ""}">
-      <div class="heute-kopf">
-        <svg class="ring" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--surface2)" stroke-width="6"/><circle cx="24" cy="24" r="20" fill="none" stroke="${S.dq.bonus ? "var(--good)" : "var(--accent)"}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - erledigt / 3)}" transform="rotate(-90 24 24)"/><text x="24" y="29" text-anchor="middle" fill="var(--fg)" font-weight="900" font-size="14" font-family="Nunito, sans-serif">${erledigt}/3</text></svg>
-        <div class="heute-titel"><b>Tagesaufgaben</b><span class="small muted">${S.dq.bonus ? "Geschafft – bis morgen!" : "Bonus für alle 3 →"}</span></div>
-        <div class="preis ${S.dq.bonus ? "erhalten" : ""}" aria-label="Belohnung: ${AUFGABE_BONUS_XP} XP und ${AUFGABE_BONUS} Talente${S.dq.bonus ? ", erhalten" : ""}">
-          <span class="preis-xp">+${AUFGABE_BONUS_XP}<small>XP</small></span>
-          <span class="preis-tal"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="#f2c14e"/><circle cx="12" cy="12" r="6" fill="none" stroke="#a8781a" stroke-width="2"/></svg>+${AUFGABE_BONUS}</span>
-          ${S.dq.bonus ? `<span class="preis-ok">${svg("check")}</span>` : ""}
-        </div>
-      </div>
-      <ul class="quests">${aufg}</ul>
-    </div>
+    ${monatsversHtml() || versHtml(vKey, "tag klein")}
     ${(() => { const f = Object.entries(KETTEN).map(([id, k]) => ({ id, k, t: S.meister[id] || [] })).filter(x => x.t.length && siegelRest(x.t) <= 5).sort((a, b) => siegelRest(a.t) - siegelRest(b.t))[0];
       return f ? `<button class="erinnerung" data-go="spielen">${siegelHtml(siegelStufe(f.t), siegelFrisch(f.t), true)}<span><b>${siegelFrisch(f.t) ? `Dein Siegel „${esc(f.k.name)}“ verblasst in ${siegelRest(f.t)} Tag(en)` : `Dein Siegel „${esc(f.k.name)}“ ist verblasst`}</b><span class="small muted">Jetzt die Kette wiederholen und auffrischen${siegelFrisch(f.t) ? "" : ` (+${AUFFRISCH_TAL} Talente)`}</span></span></button>` : ""; })()}
     <button class="bereich" data-go="lernen"><span class="b-ic">${svg("book")}</span><span class="b-tx"><b>Lernen</b><span>Lektionen · Lieder · Spickzettel</span></span><span class="b-info">${sterne}/24 ★</span></button>
@@ -586,7 +578,18 @@ VIEWS.home = () => {
       <button data-go="share">${svg("share")}<span>Teilen</span></button>
       ${deferredInstall ? `<button id="installBtn">${svg("down")}<span>Installieren</span></button>` : ""}
     </nav>
-    ${monatsversHtml() || versHtml(vKey, "tag klein")}
+    <div class="card heute ${S.dq.bonus ? "fertig" : ""}">
+      <div class="heute-kopf">
+        <svg class="ring" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--surface2)" stroke-width="6"/><circle cx="24" cy="24" r="20" fill="none" stroke="${S.dq.bonus ? "var(--good)" : "var(--accent)"}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - erledigt / 3)}" transform="rotate(-90 24 24)"/><text x="24" y="29" text-anchor="middle" fill="var(--fg)" font-weight="900" font-size="14" font-family="Nunito, sans-serif">${erledigt}/3</text></svg>
+        <div class="heute-titel"><b>Tagesaufgaben</b><span class="small muted">${S.dq.bonus ? "Geschafft – bis morgen!" : "Bonus für alle 3 →"}</span></div>
+        <div class="preis ${S.dq.bonus ? "erhalten" : ""}" aria-label="Belohnung: ${AUFGABE_BONUS_XP} XP und ${AUFGABE_BONUS} Talente${S.dq.bonus ? ", erhalten" : ""}">
+          <span class="preis-xp">+${AUFGABE_BONUS_XP}<small>XP</small></span>
+          <span class="preis-tal"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="#f2c14e"/><circle cx="12" cy="12" r="6" fill="none" stroke="#a8781a" stroke-width="2"/></svg>+${AUFGABE_BONUS}</span>
+          ${S.dq.bonus ? `<span class="preis-ok">${svg("check")}</span>` : ""}
+        </div>
+      </div>
+      <ul class="quests">${aufg}</ul>
+    </div>
     ${entwickler && postfachNeu ? `<button class="erinnerung pf-hinweis" data-go="postfach">${svg("chat")}<span><b>${postfachNeu} ${postfachNeu === 1 ? "neue Meldung" : "neue Meldungen"} im Postkasten</b><span class="small muted">Feedback, Status und Datenbank</span></span></button>` : ""}
     <button class="feedback-link" id="fbLink">${svg("chat")} Idee oder Fehler? Feedback an den Entwickler</button>
   </div>`;
@@ -1141,7 +1144,7 @@ function zusammenfuehren(r) {
   S.treueWochen = [...new Set([...(S.treueWochen || []), ...(r.treueWochen || [])])];
   ["bibel", "at", "nt", "rueck"].forEach(k => { S.meister[k] = [...new Set([...((S.meister || {})[k] || []), ...((r.meister || {})[k] || [])])].sort((a, b) => a - b); });
   ["peeked", "gapPerfect", "earlyBird", "podium", "wochensieger", "wochenziel"].forEach(k => { S[k] = !!(S[k] || r[k]); });
-  ["badges", "owned", "songHeard"].forEach(k => { S[k] = [...new Set([...(S[k] || []), ...(r[k] || [])])]; });
+  ["badges", "owned", "songHeard"].forEach(k => { S[k] = [...new Set([...(S[k] || []), ...(r[k] || [])])]; }); badgesBereinigen();
   Object.entries(r.stars || {}).forEach(([k, v]) => { S.stars[k] = Math.max(S.stars[k] || 0, v || 0); });
   if (dayNum(r.lastDay) > dayNum(S.lastDay)) { S.lastDay = r.lastDay; S.streak = r.streak; } else if (r.lastDay === S.lastDay) S.streak = Math.max(S.streak, r.streak || 0);
   if (r.weekKey === S.weekKey) S.weekXp = Math.max(S.weekXp, r.weekXp || 0); else if ((r.weekKey || "") > (S.weekKey || "")) { S.weekKey = r.weekKey; S.weekXp = r.weekXp; }
@@ -1285,23 +1288,6 @@ function rankWert(r) {
   return RANK_TABS[rankTab].val(r);
 }
 function rankKind() { return rankTab === "kette" ? "kette_" + ketteSub : rankTab === "blitz" ? (blitzSub === "folge" ? "combo" : "blitz") : rankTab; }
-/* Gemeinde-Treue: wie viele haben diese Woche an mindestens TREUE_TAGE Tagen gespielt? */
-function treueBarometer(rows, me) {
-  const wk = weekKey();
-  const treu = rows.filter(r => r.id !== me && Array.isArray(r.tl) && r.tl.filter(n => weekKey(datumVon(n)) === wk).length >= TREUE_TAGE).length + (tageDieseWoche() >= TREUE_TAGE ? 1 : 0);
-  return { treu, ichTreu: tageDieseWoche() >= TREUE_TAGE, meineTage: tageDieseWoche() };
-}
-function treueBonusPruefen(b) {
-  const wk = weekKey(); if (S.treueBonus.week !== wk) S.treueBonus = { week: wk, stufen: [] };
-  if (!b.ichTreu) return;
-  TREUE_STUFEN.forEach(([n, tal, name], k) => {
-    if (b.treu >= n && !S.treueBonus.stufen.includes(k)) {
-      S.treueBonus.stufen.push(k); S.tal += tal; if (k === TREUE_STUFEN.length - 1) S.wochenziel = true;
-      setTimeout(() => { SFX.win(); rain(60); toast(`${svg("people", accent())}<div><b>Gemeinde-Treue ${name}!</b><div class="small muted">${n} Treue diese Woche – du bekommst +${tal} Talente.</div></div>`); }, 600 + k * 900);
-    }
-  });
-  save(); renderHud(); checkBadges();
-}
 VIEWS.rank = (tab) => {
   if (tab && RANK_TABS[tab]) rankTab = tab;
   const L = window.LB;
@@ -1319,7 +1305,6 @@ VIEWS.rank = (tab) => {
     : rankTab === "blitz" ? Object.entries(BLITZ_SUB).map(([k, v]) => `<button data-bsub="${k}" aria-pressed="${k === blitzSub}">${v[0]}</button>`).join("") : "";
   const titel = rankTab === "kette" ? T.titel : rankTab === "blitz" ? "Blitz-Rekord" : T.titel;
   screen.innerHTML = html + `<div class="stack rk">
-    <details class="treue-kurz" id="zielBox"><summary><span class="tk-ic">${svg("people")}</span><span class="tk-tx"><b>Gemeinde-Treue</b><span class="tk-bar"><i style="width:0"></i></span></span><span class="tk-st">…</span></summary><div class="tk-mehr small muted">wird berechnet …</div></details>
     <nav class="rk-nav" aria-label="Ranglisten">${RANK_KAT.map(k => `<button data-kat="${k.id}" aria-pressed="${k.id === kat.id}"><span class="rk-ic">${svg(k.icon)}</span><span>${k.name}</span></button>`).join("")}</nav>
     <div class="card rk-liste">
       <div class="rk-kopf"><div><b>${esc(titel)}</b><span class="small muted" id="rcount">${rankTab === "woche" ? weekKey().split("-W")[1] + ". Kalenderwoche" : ""}</span></div>${varianten ? `<div class="rk-var" role="group" aria-label="Variante">${varianten}</div>` : ""}</div>
@@ -1333,20 +1318,6 @@ VIEWS.rank = (tab) => {
   screen.querySelectorAll("[data-sub]").forEach(b => b.onclick = () => { SFX.tap(); ketteSub = b.dataset.sub; go("rank", "kette"); });
   screen.querySelectorAll("[data-bsub]").forEach(b => b.onclick = () => { SFX.tap(); blitzSub = b.dataset.bsub; go("rank", "blitz"); });
   const me = S.pid || L.uid; const wk = weekKey(); let zeilen = [];
-  /* Gemeinde-Treue */
-  lbUnsub.push(L.watch("woche", wk, rows => {
-    if (current !== "rank") return;
-    const b = treueBarometer(rows, me), max = TREUE_STUFEN[TREUE_STUFEN.length - 1][0];
-    const naechste = TREUE_STUFEN.find(([n]) => b.treu < n);
-    treueBonusPruefen(b);
-    const box = $("zielBox"); if (!box) return;
-    box.querySelector(".tk-bar i").style.width = Math.min(1, b.treu / max) * 100 + "%";
-    box.querySelector(".tk-st").innerHTML = naechste ? `<b>${b.treu}</b>/${naechste[0]} <em>${naechste[2]}</em>` : `<b>${b.treu}</b> <em>Gold</em>`;
-    box.querySelector(".tk-mehr").innerHTML = `<div class="treue-skala"><div class="zielbar"><i style="width:${Math.min(1, b.treu / max) * 100}%"></i></div>
-        ${TREUE_STUFEN.map(([n, tal, name]) => `<span class="stufe ${b.treu >= n ? "an" : ""}" style="left:${n / max * 100}%"><i>${n}</i><em>${name}</em></span>`).join("")}</div>
-      <p style="margin:0">Treu ist, wer diese Woche an ${TREUE_TAGE} Tagen spielt. ${naechste ? `Noch ${naechste[0] - b.treu} bis ${naechste[2]}: +${naechste[1]} Talente für jeden Treuen.` : "Gold erreicht! Ein Leib, viele Glieder."}</p>
-      <p style="margin:6px 0 0">Du: ${b.meineTage}/${TREUE_TAGE} Tage ${b.ichTreu ? "– du zählst mit!" : "– noch " + (TREUE_TAGE - b.meineTage) + " Tag(e), dann zählst du mit."}</p>`;
-  }, () => {}));
   lbUnsub.push(L.watch(rankKind(), wk, rows => {
     if (current !== "rank") return;
     rows = rows.filter(r => rankWert(r) > 0 || r.id === me).sort((a, b) => rankWert(b) - rankWert(a) || String(a.name).localeCompare(String(b.name)));

@@ -1,4 +1,4 @@
-const APP_VERSION = "6.17";
+const APP_VERSION = "6.18";
 /* =====================================================================
    Bibelbuch-Quest – Spieldaten
    Bücher (Schlachter 2000), Lieder, Bibelverse (Schlachter 2000 © Genfer Bibelgesellschaft),
@@ -206,11 +206,8 @@ const RUESTUNG = [
 /* ---------- Level ---------- */
 const TITLES = ["Schriftrollen-Lehrling", "Bücherwurm", "Fleißiger Leser", "Junger Schreiber", "Psalmensänger", "Weisheitssucher", "Prophetenschüler", "Schriftkundiger", "Bibelkenner", "Wortbewahrer", "Bibel-Meister", "Lebendiges Register"];
 
-/* ---------- Gemeinde-Treue ---------- */
-const TREUE_TAGE = 3;                       // ab so vielen Spieltagen pro Woche ist man „treu“
-const TREUE_STUFEN = [                       // [treue Spieler, Talente für jeden Treuen, Name]
-  [3, 10, "Bronze"], [6, 20, "Silber"], [10, 40, "Gold"]
-];
+/* ---------- Treue Woche (persönlich) ---------- */
+const TREUE_TAGE = 3;                       // ab so vielen Spieltagen pro Woche ist die Woche „treu“
 
 /* ---------- Siegel: Meisterschaft durch Wiederholen ---------- */
 const SIEGEL = [
@@ -291,7 +288,6 @@ const BADGES = [
   { id: "wochensieger", kat: "gemeinschaft", name: "Wochensieger", d: "Platz 1 der Woche bei mindestens 5 Spielern", ic: "trophy", tal: 20, ok: s => s.wochensieger },
   { id: "treu1", kat: "gemeinschaft", name: "Treue Woche", d: "An 3 Tagen in einer Woche gespielt", ic: "people", ok: s => (s.treueWochen || []).length >= 1 },
   { id: "treu4", kat: "gemeinschaft", name: "Vier treue Wochen", d: "In 4 Wochen jeweils an 3 Tagen gespielt", ic: "people", tal: 20, ok: s => (s.treueWochen || []).length >= 4 },
-  { id: "einleib", kat: "gemeinschaft", name: "Ein Leib", d: "Gemeinde-Treue in Gold erreicht und selbst treu gewesen (1. Korinther 12)", ic: "people", tal: 15, ok: s => s.wochenziel },
   // Menschenfischer in drei Stufen: einladen → jemand ist dabei → jemand ist treu
   { id: "netz", kat: "gemeinschaft", name: "Netz ausgeworfen", d: "Deinen Einladungslink geteilt (Lukas 5,4)", ic: "netz", ok: s => s.eingeladen || s.fischerDabei || s.menschenfischer },
   { id: "fang", kat: "gemeinschaft", name: "Erster Fang", d: "Jemand spielt über deinen Link mit – wie Andreas, der seinen Bruder zu Jesus brachte (Johannes 1,41-42)", ic: "netz", tal: 10, ok: s => s.fischerDabei || s.menschenfischer },
