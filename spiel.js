@@ -485,7 +485,7 @@ function go(name, arg) {
   tabbarSetzen(name); (VIEWS[name] || VIEWS.home)(arg);
 }
 /* Untere Menüleiste: zu welchem Reiter gehört eine Ansicht? */
-const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Spielen", "bolt"], ["rank", "Gemeinde", "trophy"], ["ich", "Schatz", "shop"]];
+const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Spielen", "bolt"], ["rank", "Gemeinde", "trophy"], ["ich", "Laden", "shop"]];
 const TAB_VON = { lektion: "lernen", lied: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen",
   shop: "ich" };
 function tabbarSetzen(name) {
@@ -1165,7 +1165,7 @@ VIEWS.shop = (tab, wahl) => {
       : `<span class="kb-titel-ic">${svg(it.id === "none" ? "user" : "scroll")}</span>`;
     const marke = z.art === "aktiv" ? `<span class="pz ok">${z.text}</span>` : z.art === "frei" ? `<span class="pz ok">${it.price > 0 ? "gekauft" : "frei"}</span>` : z.art === "zu" ? `<span class="pz zu">${svg("lock")}</span>` : `<span class="pz ${S.tal >= z.preis ? "" : "arm"}">${z.preis}${muenze}</span>`;
     return `<button class="kb-item ${it.id === sel.id ? "gewaehlt" : ""} ${z.art === "zu" ? "gesperrt" : ""}" data-wahl="${it.id}" aria-label="${esc(it.name)}">${z.art === "aktiv" ? `<span class="an-haken">${svg("check")}</span>` : ""}<span class="vor">${bild}</span><small>${esc(it.name)}</small>${marke}</button>`; };
-  screen.innerHTML = `${seitenKopf("Schatz", `${muenze}${S.tal} Talente`)}
+  screen.innerHTML = `${seitenKopf("Laden", `${muenze}${S.tal} Talente`)}
     <section class="kb-buehne ${shopTab}">
       <div class="podest">${buehneBild}</div>
       <div class="kb-info"><span class="kb-tag">${shopTab === "ruestung" ? `Teil ${RUESTUNG.indexOf(sel) + 1} von 6` : zs.art === "aktiv" ? "Trägst du gerade" : "Vorschau"}</span><b>${esc(sel.name)}</b>
