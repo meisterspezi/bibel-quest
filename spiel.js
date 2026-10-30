@@ -587,18 +587,18 @@ VIEWS.home = () => {
   const vKey = VERS_DES_TAGES[dayNum(today()) % VERS_DES_TAGES.length];
   const geschafft = GROUPS.filter((_, k) => S.stars[k]).length;
   const ni = naechsteLektion();
-  /* Weiter-Karte: nächster Lernschritt – oder, wenn alles mit 3 Sternen geschafft ist, die Kette */
-  const weiter = ni >= 0 ? (() => { const g = GROUPS[ni], st = S.stars[ni] || 0;
-    return `<section class="weiter-karte" data-ar="lernen">
-      <div class="label wk-label">${st ? "Noch mehr Sterne holen" : geschafft ? "Weiter, wo du warst" : "Hier geht's los"}</div>
-      <div class="wk-kopf"><span class="lek-nr">${svg("lek-" + (ni + 1))}</span><div class="wk-tx"><b>${esc(g.name)}</b><span>Lektion ${ni + 1} von ${GROUPS.length} · ${g.books.length} Bücher</span></div>${ringSvg(geschafft / GROUPS.length, "var(--ar-lernen)", `${geschafft}/${GROUPS.length}`, 48)}</div>
-      <div class="wk-schritte">${["Ansehen", "Anhören", "Ordnen"].map(n => `<span>${n}</span>`).join("<i>›</i>")}${st ? `<span class="stars wk-sterne">${STAR(st >= 1)}${STAR(st >= 2)}${STAR(st >= 3)}</span>` : ""}</div>
-      <button class="btn gold breit" data-go="lektion" data-arg="${ni}">${svg("play")} ${st ? "Lektion wiederholen" : geschafft ? "Weiter lernen" : "Erste Lektion starten"}</button>
-    </section>`; })()
-    : `<section class="weiter-karte" data-ar="spielen">
-      <div class="label wk-label">Alle Lektionen mit 3 Sternen!</div>
-      <div class="wk-kopf"><span class="lek-nr">${svg("kette-bibel")}</span><div class="wk-tx"><b>Die ganze Kette</b><span>1. Mose bis Offenbarung ohne Fehler</span></div></div>
-      <button class="btn gold breit" data-go="spielen">${svg("play")} Zur Kette</button></section>`;
+  /* Zwei große Knöpfe: Lernen (Übersicht, nächste Lektion ist dort hervorgehoben) und Spielen */
+  const ziel = ni >= 0 ? `<b>${esc(GROUPS[ni].name)}</b>${S.stars[ni] ? " · mehr Sterne" : ""}` : "Alle Lektionen geschafft!";
+  const weiter = `<div class="start-tore">
+    <button class="tor" data-ar="lernen" data-go="lernen">
+      <span class="tor-ic">${svg("book")}</span><span class="tor-titel">Lernen</span>
+      <span class="tor-info">${ni >= 0 ? "Als Nächstes" : ""}<span>${ziel}</span></span>
+      ${ringSvg(geschafft / GROUPS.length, "var(--ar-lernen)", `${geschafft}/${GROUPS.length}`, 40)}</button>
+    <button class="tor" data-ar="spielen" data-go="spielen">
+      <span class="tor-ic">${svg("bolt")}</span><span class="tor-titel">Spielen</span>
+      <span class="tor-info">Blitz · Kette<span>Lückenquiz</span></span>
+      <span class="tor-rek">${S.bestBlitz ? `Rekord<b>${S.bestBlitz}</b>` : ""}</span></button>
+  </div>`;
   const erledigt = S.dq.items.filter(i => i.done).length;
   const aufg = S.dq.items.map(it => { const a = AUFGABEN.find(x => x.id === it.id); if (!a) return ""; const pr = Math.min(it.prog, a.ziel);
     return `<li class="${it.done ? "done" : ""}">${ringSvg(pr / a.ziel, it.done ? "var(--good)" : "var(--accent)", it.done ? "✓" : "", 30)}<span>${esc(a.text)}<small>${pr}/${a.ziel}</small></span></li>`; }).join("");
@@ -615,10 +615,6 @@ VIEWS.home = () => {
         <span class="h2-preis ${S.dq.bonus ? "erhalten" : ""}" aria-label="Belohnung für alle drei: ${AUFGABE_BONUS_XP} XP und ${AUFGABE_BONUS} Talente">${S.dq.bonus ? svg("check") : ""}+${AUFGABE_BONUS_XP} XP · +${AUFGABE_BONUS}${TAL_MUENZE}</span></div>
       <ul class="h2-liste">${aufg}</ul>
     </section>
-    <div class="duo">
-      <button class="mini-karte" data-go="blitz"><span class="lek-nr">${svg("bolt")}</span><b>Blitz-Runde</b><span>${S.bestBlitz ? "Rekord " + S.bestBlitz : "60 Sekunden"}</span></button>
-      <button class="mini-karte" data-go="rank"><span class="lek-nr">${svg("trophy")}</span><b>Rangliste</b><span>${S.lbName ? `${wocheXp} XP diese Woche` : "der Gemeinde"}</span></button>
-    </div>
     ${entwickler && postfachNeu ? `<button class="erinnerung pf-hinweis" data-go="postfach">${svg("chat")}<span><b>${postfachNeu} ${postfachNeu === 1 ? "neue Meldung" : "neue Meldungen"} im Postkasten</b><span class="small muted">Feedback, Status und Datenbank</span></span></button>` : ""}
   </div>`;
   wireGo();
