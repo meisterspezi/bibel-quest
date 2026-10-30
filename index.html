@@ -903,7 +903,8 @@ body[data-acc="zeder"]::after{background:url("data:image/svg+xml,%3Csvg xmlns='h
 /* Laden-Knopf: Leuchtpunkt statt Talente-Zahl, wenn etwas kaufbar ist */
 .tabbar .tb-punkt{position:absolute;top:4px;left:calc(50% + 10px);width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff6c8,#f2c14e 60%);box-shadow:0 0 0 2px #151a3d,0 0 10px #f2c14e}
 .kb-tabs button{position:relative}
-.kb-tabs .kat-punkt{position:absolute;top:5px;left:calc(50% + 9px);width:9px;height:9px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff6c8,#f2c14e 60%);box-shadow:0 0 0 2px #151a3d,0 0 8px #f2c14e;pointer-events:none}
+.kb-tabs .kat-punkt{position:absolute;top:4px;left:calc(50% + 10px);width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff6c8,#f2c14e 60%);box-shadow:0 0 0 2px #151a3d,0 0 14px 3px #f2c14e;pointer-events:none}
+.kb-tabs button:has(.kat-punkt)>:first-child{filter:drop-shadow(0 0 6px #f2c14e88)}
 .tabbar .tb-punkt[hidden]{display:none}
 @media (prefers-reduced-motion:no-preference){.tabbar .tb-punkt{animation:tbpuls 2.4s ease-in-out infinite}}
 @keyframes tbpuls{50%{box-shadow:0 0 0 2px #151a3d,0 0 2px #f2c14e}}
