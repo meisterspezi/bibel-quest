@@ -910,6 +910,16 @@ body[data-acc="zeder"]::after{background:url("data:image/svg+xml,%3Csvg xmlns='h
 .tal-n{display:inline-flex;align-items:center;gap:2px;white-space:nowrap;vertical-align:-.15em}
 .tal-n svg{width:1.15em;height:1.15em;flex:0 0 auto}
 .toast .tal-n svg,.modal .tal-n svg{width:1.2em;height:1.2em}
+
+/* Gold-Farbwelt „Bundeslade“ (v6.26): warmer Goldton, Lichtschein unten mit Cherub-Flügeln (2. Mose 25,20) */
+body[data-acc="gold"]{--bg:color-mix(in srgb,#f2c14e 8%,#0b0e20);--bg2:color-mix(in srgb,#f2c14e 10%,#121630);
+ --surface:color-mix(in srgb,#f2c14e 11%,#171c3c);--surface2:color-mix(in srgb,#f2c14e 15%,#20274f);
+ --line:color-mix(in srgb,#f2c14e 28%,#2c3466);--muted:color-mix(in srgb,#f2c14e 22%,#a3abd8);
+ background:radial-gradient(130% 55% at 50% -12%,color-mix(in srgb,#f2c14e 40%,#1a2050) 0%,color-mix(in srgb,#f2c14e 15%,#111633) 32%,transparent 64%) fixed,var(--bg)}
+body[data-acc="gold"] .tabbar{border-color:#f2c14e73}
+body[data-acc="gold"]::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background-repeat:no-repeat;background-size:100% 100%;
+ background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 700' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23f2c14e' stroke-linecap='round'%3E%3Cg opacity='.55' stroke-width='3'%3E%3Cpath d='M188 545C150 410 70 330 -10 315'/%3E%3Cpath d='M202 545C240 410 320 330 400 315'/%3E%3C/g%3E%3Cg opacity='.38' stroke-width='2.6'%3E%3Cpath d='M178 548C140 440 75 385 -10 375'/%3E%3Cpath d='M212 548C250 440 315 385 400 375'/%3E%3C/g%3E%3Cg opacity='.24' stroke-width='2.2'%3E%3Cpath d='M168 552C130 470 85 440 -10 435'/%3E%3Cpath d='M222 552C260 470 305 440 400 435'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"),
+ radial-gradient(30% 13% at 50% 79%,#fff3c880,#f2c14e30 55%,transparent 75%),radial-gradient(70% 35% at 50% 0,#f2c14e33,transparent)}
 </style>
 </head>
 <body>
