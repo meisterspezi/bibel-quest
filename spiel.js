@@ -443,7 +443,7 @@ function renderHud() {
   const n = levelOf(S.xp), lo = cum(n), hi = cum(n + 1);
   $("hLvl").textContent = n; $("hAvatar").innerHTML = avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "?" }, 42); $("hTitle").textContent = (S.lbName ? S.lbName + " · " : "") + (entwickler ? ENTW_RANG : titleOf(n));
   $("hBar").style.width = ((S.xp - lo) / (hi - lo) * 100) + "%"; $("hXp").textContent = `${S.xp - lo} / ${hi - lo} XP`;
-  $("hStreak").textContent = streakNow(); $("hTal").textContent = S.tal;
+  $("hStreak").textContent = streakNow(); $("hTal").textContent = S.tal; const tbT = $("tbTal"); if (tbT) tbT.textContent = S.tal;
   const pk = $("pkBtn"); if (pk) { pk.hidden = !entwickler; pk.innerHTML = `${svg("post")}${postfachNeu ? `<span class="pk-zahl">${postfachNeu > 99 ? "99+" : postfachNeu}</span>` : ""}`; pk.setAttribute("aria-label", `Postkasten${postfachNeu ? ", " + postfachNeu + " neu" : ""}`); }
 }
 function applyTheme() { document.body.dataset.acc = S.theme; }
@@ -485,7 +485,7 @@ function go(name, arg) {
   tabbarSetzen(name); (VIEWS[name] || VIEWS.home)(arg);
 }
 /* Untere Menüleiste: zu welchem Reiter gehört eine Ansicht? */
-const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Spielen", "bolt"], ["rank", "Gemeinde", "trophy"], ["ich", "Ich", "user"]];
+const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Spielen", "bolt"], ["rank", "Gemeinde", "trophy"], ["ich", "Schatz", "shop"]];
 const TAB_VON = { lektion: "lernen", lied: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen",
   shop: "ich", badges: "ich", profil: "ich", share: "ich", wer: "ich", postfach: "ich" };
 function tabbarSetzen(name) {
@@ -493,7 +493,7 @@ function tabbarSetzen(name) {
   const aktiv = TAB_VON[name] || name;
   document.body.dataset.tab = name === "name" ? "" : aktiv;
   if (!nav.dataset.fertig) {
-    nav.innerHTML = TABS.map(([k, t, i]) => `<button data-tab="${k}" aria-label="${t}"><span class="tb-ic">${svg(i)}</span><span>${t}</span></button>`).join("");
+    nav.innerHTML = TABS.map(([k, t, i]) => `<button data-tab="${k}" aria-label="${t}"><span class="tb-ic">${svg(i)}</span><span>${t}</span>${k === "ich" ? `<span class="tb-badge" id="tbTal">${S.tal}</span>` : ""}</button>`).join("");
     nav.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { SFX.tap(); go(b.dataset.tab); });
     nav.dataset.fertig = "1";
   }
@@ -712,30 +712,8 @@ VIEWS.home = () => {
   void sterne;
 };
 
-/* ---------- Ich: alles Persönliche an einem Ort ---------- */
-VIEWS.ich = () => {
-  const n = levelOf(S.xp);
-  const kachel = (go, ic, t, info) => `<button class="ich-kachel" data-go="${go}"><span class="lek-nr">${svg(ic)}</span><b>${t}</b><span>${info}</span></button>`;
-  screen.innerHTML = `${seitenKopf("Ich")}
-  <button class="card ich-kopf" data-go="profil">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "?" }, 64)}
-    <span class="ik-tx"><b>${esc(S.lbName || "Noch ohne Namen")}</b><span>${esc(rangVon())} · Level ${n}</span>${ruestungHtml(armorCount())}</span><span class="ik-pfeil">›</span></button>
-  <div class="ich-raster">
-    ${kachel("shop", "shop", "Laden", `${S.tal} Talente`)}
-    ${kachel("badges", "medal", "Abzeichen", `${S.badges.length} von ${BADGES.length}`)}
-    ${kachel("profil", "user", "Profil", "Titel, Siegel, Werte")}
-    ${kachel("share", "share", "Teilen", "QR-Code für Freunde")}
-  </div>
-  <div class="stack ich-weiteres">
-    <button class="bereich klein" id="ichWer"><span class="b-ic">${svg("people")}</span><span class="b-tx"><b>Wer spielt?</b><span>Spieler wechseln oder hinzufügen</span></span><span class="b-info">›</span></button>
-    ${deferredInstall ? `<button class="bereich klein" id="installBtn"><span class="b-ic">${svg("down")}</span><span class="b-tx"><b>App installieren</b><span>Auf den Startbildschirm legen · +10 Talente</span></span><span class="b-info">›</span></button>` : ""}
-    ${entwickler ? `<button class="bereich klein" data-go="postfach"><span class="b-ic">${svg("post")}</span><span class="b-tx"><b>Postkasten</b><span>${postfachNeu ? postfachNeu + " neu" : "Feedback und Meldungen"}</span></span><span class="b-info">›</span></button>` : ""}
-    <button class="feedback-link" id="fbLink">${svg("chat")} Idee oder Fehler? Feedback an den Entwickler</button>
-  </div>`;
-  wireGo();
-  $("fbLink").onclick = () => { SFX.tap(); feedbackOeffnen(); };
-  $("ichWer").onclick = () => { SFX.tap(); $("hWer").click(); };
-  const ib = $("installBtn"); if (ib) ib.onclick = async () => { SFX.tap(); deferredInstall.prompt(); try { await deferredInstall.userChoice; } catch (e) {} deferredInstall = null; go("ich"); };
-};
+/* ---------- Schatz (Reiter „Ich“): Profil oben, darunter direkt der Laden ---------- */
+VIEWS.ich = (tab) => VIEWS.shop(tab);
 
 /* ---------- Bereich Lernen ---------- */
 let lernTeil = null;
@@ -1125,7 +1103,7 @@ function badgeGrid(haben, vergleich) {
   }).join("");
 }
 VIEWS.badges = () => {
-  screen.innerHTML = `${backBtn("ich", "Ich")}<h1>Abzeichen</h1><p class="muted small" style="margin:0 0 4px">${S.badges.length} von ${BADGES.length} gesammelt · jedes bringt Talente.</p>${badgeGrid(S.badges)}`;
+  screen.innerHTML = `${backBtn("ich", "Schatz")}<h1>Abzeichen</h1><p class="muted small" style="margin:0 0 4px">${S.badges.length} von ${BADGES.length} gesammelt · jedes bringt Talente.</p>${badgeGrid(S.badges)}`;
   wireGo();
 };
 
@@ -1140,7 +1118,6 @@ function kaufen(id, preis, el) {
 }
 VIEWS.shop = (tab) => {
   if (tab) shopTab = tab;
-  const vorschau = `<div class="shop-vorschau card">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "Du" }, 64)}<div><b>${esc(S.lbName || "Du")}</b><div class="small muted">${esc(rangVon())}</div>${ruestungHtml(armorCount(), false)}</div></div>`;
   let inhalt = "";
   const karte = (o) => `<div class="item ${o.akt ? "aktiv" : ""}"><div class="ivor">${o.vor}</div><div class="itext"><b>${esc(o.name)}</b>${o.text ? `<span class="small muted">${esc(o.text)}</span>` : ""}${o.bezug ? `<span class="ibezug">${esc(o.bezug)}</span>` : ""}${o.vers ? `<span class="ivers">${esc(o.vers)}</span>` : ""}</div>${o.knopf}</div>`;
   const knopf = (kat, it, aktiv) => {
@@ -1173,12 +1150,20 @@ VIEWS.shop = (tab) => {
     inhalt = THEMES.map(t => karte({ name: t.name, bezug: t.bezug, akt: S.theme === t.id, vor: `<span class="swatch" style="background:linear-gradient(135deg,${t.c},#1b2146)"></span>`, knopf: knopf("farbe", t, S.theme === t.id) })).join("");
 
   }
-  screen.innerHTML = `${backBtn("ich", "Ich")}<h1>Talente-Laden</h1>
-    <p class="muted small" style="margin:0 0 10px">Talente verdienst du mit Sternen, Tagesaufgaben, Blitz-Runden, Ketten, Abzeichen und Levelaufstiegen.</p>
-    ${vorschau}
+  const n = levelOf(S.xp);
+  const chip = (go, ic, t, id = "") => `<button class="schatz-chip" ${id ? `id="${id}"` : `data-go="${go}"`}>${svg(ic)}<span>${t}</span></button>`;
+  screen.innerHTML = `${seitenKopf("Schatz", `${TAL_MUENZE}${S.tal} Talente`)}
+    <button class="card ich-kopf" data-go="profil">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "?" }, 60)}
+      <span class="ik-tx"><b>${esc(S.lbName || "Noch ohne Namen")}</b><span>${esc(rangVon())} · Level ${n}</span>${ruestungHtml(armorCount())}</span><span class="ik-pfeil">›</span></button>
+    <div class="schatz-chips">${chip("badges", "medal", `Abzeichen ${S.badges.length}`)}${chip("share", "share", "Teilen")}${chip("", "people", "Wer spielt?", "ichWer")}${entwickler ? chip("postfach", "post", postfachNeu ? `Post ${postfachNeu}` : "Post") : ""}${deferredInstall ? chip("", "down", "Installieren", "installBtn") : ""}</div>
+    <div class="label schatz-label">${svg("shop")} Laden <span class="sl-info">Talente gibt es fürs Lernen &amp; Spielen</span></div>
     <div class="tabs" role="tablist">${SHOP_TABS.map(([id, n]) => `<button role="tab" data-tab="${id}" aria-selected="${shopTab === id}">${n}</button>`).join("")}</div>
-    <div class="stack">${inhalt}</div>`;
+    <div class="stack">${inhalt}</div>
+    <button class="feedback-link" id="fbLink">${svg("chat")} Idee oder Fehler? Feedback an den Entwickler</button>`;
   wireGo();
+  $("fbLink").onclick = () => { SFX.tap(); feedbackOeffnen(); };
+  $("ichWer").onclick = () => { SFX.tap(); $("hWer").click(); };
+  const ib = $("installBtn"); if (ib) ib.onclick = async () => { SFX.tap(); deferredInstall.prompt(); try { await deferredInstall.userChoice; } catch (e) {} deferredInstall = null; go("ich"); };
   screen.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { SFX.tap(); VIEWS.shop(b.dataset.tab); });
   screen.querySelectorAll("[data-buy]").forEach(b => b.onclick = () => {
     const kat = b.dataset.buy, id = b.dataset.id, p = +b.dataset.p;
@@ -1212,7 +1197,7 @@ function titelKarte(liste, p, tag) {
 VIEWS.profil = () => {
   const me = lbPayload(), { atP, ntP } = fortschritt();
   const L = window.LB, online = L && L.ok;
-  screen.innerHTML = `${backBtn("ich", "Ich")}<h1>Mein Profil</h1>
+  screen.innerHTML = `${backBtn("ich", "Schatz")}<h1>Mein Profil</h1>
   <div class="card profil-kopf">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "Du" }, 84)}
     <div><h2 style="margin:0">${esc(S.lbName || "Noch ohne Namen")}</h2>${!S.pid && !S.offlineOnly ? `<div class="small muted">Erscheint in der Rangliste, sobald Internet da ist.</div>` : ""}<div class="muted">${esc(rangVon())}</div>${ruestungHtml(armorCount(), false)}</div></div>
   <div class="row-btns" style="margin:10px 0"><button class="btn" data-go="shop">Aussehen ändern</button><button class="btn ghost" data-go="badges">Meine Abzeichen</button></div>
@@ -1617,7 +1602,7 @@ function spielerUmbenennen(key) {
 VIEWS.wer = () => {
   geraetSpeichern();
   const liste = GERAET.liste.filter(p => p.name);
-  screen.innerHTML = `${backBtn("ich", "Ich")}<h1>Wer spielt?</h1>
+  screen.innerHTML = `${backBtn("ich", "Schatz")}<h1>Wer spielt?</h1>
   <p class="muted" style="margin:0 0 12px">Spielen mehrere Personen auf diesem Gerät, hat jeder seinen eigenen Fortschritt.</p>
   <div class="stack">${liste.map(p => `<div class="wer-zeile"><button class="rrow wahl ${p.key === GERAET.aktiv ? "me" : ""}" data-key="${esc(p.key)}">${avatarHtml(p, 44)}<div class="who"><b>${esc(p.name)}${p.key === GERAET.aktiv ? '<span class="you">JETZT</span>' : ""}</b><span>Level ${levelOf(p.xp || 0)} · ${(p.xp || 0).toLocaleString("de-DE")} XP</span></div><div class="val">›</div></button><button class="umben" data-umben="${esc(p.key)}" aria-label="${esc(p.name)} umbenennen" title="Umbenennen">${svg("stift")}</button></div>`).join("")}
     <button class="bereich klein" id="wNeu"><span class="b-ic">${svg("user")}</span><span class="b-tx"><b>Weiteren Spieler hinzufügen</b><span>Neu anfangen oder Namen aus der Rangliste wählen</span></span></button>
@@ -1790,7 +1775,7 @@ async function statusBerichte() {
 let postfachFilter = "neu";
 VIEWS.postfach = (kat) => {
   const L = window.LB; if (kat && PK_KAT.some(k => k[0] === kat)) pkKategorie = kat;
-  screen.innerHTML = `${backBtn("ich", "Ich")}<h1>Postkasten</h1>
+  screen.innerHTML = `${backBtn("ich", "Schatz")}<h1>Postkasten</h1>
   <p class="muted small" style="margin:0 0 10px">Nur für dich als Verwalter: Feedback der Spieler, Statusberichte und Meldungen aus der Datenbank.</p>
   <nav class="rk-nav pk-nav" aria-label="Postkasten">${PK_KAT.map(([k, n, ic]) => `<button data-pk="${k}" aria-pressed="${k === pkKategorie}"><span class="rk-ic">${svg(ic)}</span><span>${n}<i class="pk-n" data-pkn="${k}"></i></span></button>`).join("")}</nav>
   <div class="card rk-liste" style="margin-top:10px"><div class="rk-kopf"><div><b>${esc(PK_KAT.find(k => k[0] === pkKategorie)[1])}</b><span class="small muted" id="pkAnz"></span></div>
@@ -1832,7 +1817,7 @@ VIEWS.share = () => {
   const basis = location.origin + location.pathname.replace(/index\.html$/, "");
   const url = basis + (S.lbName && S.pid ? "?von=" + encodeURIComponent(S.pid) : "");
   let qr = ""; try { const q = qrcode(0, "M"); q.addData(url); q.make(); qr = q.createSvgTag({ cellSize: 8, margin: 2, scalable: true }); } catch (e) { qr = '<p style="color:#000">QR-Code konnte nicht erzeugt werden.</p>'; }
-  screen.innerHTML = `${backBtn("ich", "Ich")}<h1>Mit Freunden teilen</h1>
+  screen.innerHTML = `${backBtn("ich", "Schatz")}<h1>Mit Freunden teilen</h1>
   <div class="stack">
     <div class="card stack" style="text-align:center">
       <div class="church" style="justify-content:center"><img src="logo.png" alt="" onerror="this.remove()"><span>Freie Baptisten Eichstätt</span></div>
