@@ -850,24 +850,24 @@ body[data-acc="jordan"]{--accent:#5cc8ff;--accent-ink:#00243a}
 body[data-acc="zeder"]{--accent:#9fd36a;--accent-ink:#172a00}
 body[data-acc="smaragd"]{--th:#3fd6a6}body[data-acc="purpur"]{--th:#c09bff}body[data-acc="morgenrot"]{--th:#ff8a5c}body[data-acc="jordan"]{--th:#5cc8ff}body[data-acc="zeder"]{--th:#9fd36a}
 body[data-acc]:not([data-acc="gold"]):not([data-acc=""]){
- --bg:color-mix(in srgb,var(--th) 9%,#0b0e20);--bg2:color-mix(in srgb,var(--th) 11%,#121630);
- --surface:color-mix(in srgb,var(--th) 13%,#171c3c);--surface2:color-mix(in srgb,var(--th) 17%,#20274f);
- --line:color-mix(in srgb,var(--th) 30%,#2c3466);--muted:color-mix(in srgb,var(--th) 25%,#a3abd8);
- background:radial-gradient(130% 55% at 50% -12%,color-mix(in srgb,var(--th) 45%,#1a2050) 0%,color-mix(in srgb,var(--th) 18%,#111633) 32%,transparent 64%) fixed,var(--bg)}
-body[data-acc]:not([data-acc="gold"]):not([data-acc=""]) .tabbar{border-color:color-mix(in srgb,var(--th) 45%,transparent)}
+ --bg:color-mix(in srgb,var(--th) 6%,#0b0e20);--bg2:color-mix(in srgb,var(--th) 8%,#121630);
+ --surface:color-mix(in srgb,var(--th) 9%,#171c3c);--surface2:color-mix(in srgb,var(--th) 12%,#20274f);
+ --line:color-mix(in srgb,var(--th) 22%,#2c3466);--muted:color-mix(in srgb,var(--th) 16%,#a3abd8);
+ background:radial-gradient(130% 55% at 50% -12%,color-mix(in srgb,var(--th) 32%,#1a2050) 0%,color-mix(in srgb,var(--th) 12%,#111633) 32%,transparent 64%) fixed,var(--bg)}
+body[data-acc]:not([data-acc="gold"]):not([data-acc=""]) .tabbar{border-color:color-mix(in srgb,var(--th) 35%,transparent)}
 body[data-acc]:not([data-acc="gold"]):not([data-acc=""])::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
  background-repeat:no-repeat;background-size:100% 100%;-webkit-mask:linear-gradient(#000 55%,transparent 92%);mask:linear-gradient(#000 55%,transparent 92%)}
 /* Smaragd – Regenbogen um den Thron (Offb 4,3) */
-body[data-acc="smaragd"]::after{background:radial-gradient(75% 38% at 50% 34%,transparent 74%,#ff8a8a40 76%,#ffd95c40 79%,#3fd6a680 82%,#5cc8ff40 85%,#c09bff40 88%,transparent 90%),radial-gradient(60% 30% at 50% 30%,#3fd6a630,transparent 70%)}
+body[data-acc="smaragd"]::after{background:radial-gradient(75% 38% at 50% 34%,transparent 74%,#ff8a8a26 76%,#ffd95c26 79%,#3fd6a64d 82%,#5cc8ff26 85%,#c09bff26 88%,transparent 90%),radial-gradient(60% 30% at 50% 30%,#3fd6a61f,transparent 70%)}
 /* Purpur – fallende Stoffbahnen (Lydia) */
-body[data-acc="purpur"]::after{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 700' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23c09bff' stroke-linecap='round'%3E%3Cpath d='M-20 120C90 60 160 220 260 150S380 90 420 140' stroke-width='26' opacity='.16'/%3E%3Cpath d='M-20 260C80 200 170 340 270 280S380 230 420 270' stroke-width='18' opacity='.13'/%3E%3Cpath d='M-20 420C100 360 170 480 280 430S380 380 420 420' stroke-width='12' opacity='.1'/%3E%3C/g%3E%3C/svg%3E")}
+body[data-acc="purpur"]::after{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 700' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23c09bff' stroke-linecap='round'%3E%3Cpath d='M-20 120C90 60 160 220 260 150S380 90 420 140' stroke-width='22' opacity='.1'/%3E%3Cpath d='M-20 260C80 200 170 340 270 280S380 230 420 270' stroke-width='15' opacity='.08'/%3E%3Cpath d='M-20 420C100 360 170 480 280 430S380 380 420 420' stroke-width='10' opacity='.06'/%3E%3C/g%3E%3C/svg%3E")}
 /* Morgenrot – Sonnenaufgang (Klgl 3,22-23) */
-body[data-acc="morgenrot"]::after{background:radial-gradient(30% 16% at 50% 58%,#ffd27a70,#ff8a5c40 55%,transparent 75%),repeating-conic-gradient(from -90deg at 50% 58%,#ff8a5c22 0 4deg,transparent 4deg 13deg),linear-gradient(transparent 57%,#ff8a5c40 58%,transparent 61%)}
+body[data-acc="morgenrot"]::after{background:radial-gradient(26% 13% at 50% 58%,#ffd27a47,#ff8a5c26 55%,transparent 75%),repeating-conic-gradient(from -90deg at 50% 58%,#ff8a5c14 0 4deg,transparent 4deg 13deg),linear-gradient(transparent 57%,#ff8a5c26 58%,transparent 61%)}
 /* Jordan – Flusswellen (Jos 3; Mt 3) */
-body[data-acc="jordan"]::after{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 700' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%235cc8ff' stroke-width='3' stroke-linecap='round' transform='translate(0 230)'%3E%3Cpath d='M-10 330q50-20 100 0t100 0 100 0 100 0' opacity='.55'/%3E%3Cpath d='M-10 365q50-20 100 0t100 0 100 0 100 0' opacity='.38'/%3E%3Cpath d='M-10 400q50-20 100 0t100 0 100 0 100 0' opacity='.22'/%3E%3C/g%3E%3C/svg%3E"),radial-gradient(70% 35% at 50% 0,#5cc8ff40,transparent)}
+body[data-acc="jordan"]::after{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 700' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%235cc8ff' stroke-width='3' stroke-linecap='round' transform='translate(0 230)'%3E%3Cpath d='M-10 330q50-20 100 0t100 0 100 0 100 0' opacity='.34'/%3E%3Cpath d='M-10 365q50-20 100 0t100 0 100 0 100 0' opacity='.22'/%3E%3Cpath d='M-10 400q50-20 100 0t100 0 100 0 100 0' opacity='.12'/%3E%3C/g%3E%3C/svg%3E"),radial-gradient(70% 35% at 50% 0,#5cc8ff26,transparent)}
 body[data-acc="jordan"]::after,body[data-acc="zeder"]::after{-webkit-mask:none;mask:none}
 /* Zeder vom Libanon – Zedern (1 Kön 5–6; Ps 92,13) */
-body[data-acc="zeder"]::after{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 700' preserveAspectRatio='none'%3E%3Cg fill='%239fd36a' transform='translate(0 290)'%3E%3Cg opacity='.3'%3E%3Cpath d='M40 260l-30 30h18l-26 30h20l-24 30h84l-24-30h20l-26-30h18z'/%3E%3Cpath d='M345 240l-34 34h20l-30 34h22l-28 34h100l-28-34h22l-30-34h20z'/%3E%3C/g%3E%3Cg opacity='.16'%3E%3Cpath d='M120 300l-20 22h12l-18 22h14l-16 22h56l-16-22h14l-18-22h12z'/%3E%3Cpath d='M270 310l-18 20h11l-16 20h13l-15 20h50l-15-20h13l-16-20h11z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"),radial-gradient(70% 35% at 50% 0,#9fd36a33,transparent)}
+body[data-acc="zeder"]::after{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 700' preserveAspectRatio='none'%3E%3Cg fill='%239fd36a' transform='translate(0 290)'%3E%3Cg opacity='.2'%3E%3Cpath d='M40 260l-30 30h18l-26 30h20l-24 30h84l-24-30h20l-26-30h18z'/%3E%3Cpath d='M345 240l-34 34h20l-30 34h22l-28 34h100l-28-34h22l-30-34h20z'/%3E%3C/g%3E%3Cg opacity='.1'%3E%3Cpath d='M120 300l-20 22h12l-18 22h14l-16 22h56l-16-22h14l-18-22h12z'/%3E%3Cpath d='M270 310l-18 20h11l-16 20h13l-15 20h50l-15-20h13l-16-20h11z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"),radial-gradient(70% 35% at 50% 0,#9fd36a1f,transparent)}
 
 /* Laden: feste Bühne – Vorschau, Kategorien und Raster bleiben beim Wechsel an derselben Stelle (v6.25) */
 .kb-buehne{height:198px;box-sizing:border-box;align-items:stretch}
@@ -912,14 +912,39 @@ body[data-acc="zeder"]::after{background:url("data:image/svg+xml,%3Csvg xmlns='h
 .toast .tal-n svg,.modal .tal-n svg{width:1.2em;height:1.2em}
 
 /* Gold-Farbwelt „Bundeslade“ (v6.26): warmer Goldton, Lichtschein unten mit Cherub-Flügeln (2. Mose 25,20) */
-body[data-acc="gold"]{--bg:color-mix(in srgb,#f2c14e 8%,#0b0e20);--bg2:color-mix(in srgb,#f2c14e 10%,#121630);
- --surface:color-mix(in srgb,#f2c14e 11%,#171c3c);--surface2:color-mix(in srgb,#f2c14e 15%,#20274f);
- --line:color-mix(in srgb,#f2c14e 28%,#2c3466);--muted:color-mix(in srgb,#f2c14e 22%,#a3abd8);
- background:radial-gradient(130% 55% at 50% -12%,color-mix(in srgb,#f2c14e 40%,#1a2050) 0%,color-mix(in srgb,#f2c14e 15%,#111633) 32%,transparent 64%) fixed,var(--bg)}
-body[data-acc="gold"] .tabbar{border-color:#f2c14e73}
+body[data-acc="gold"]{--bg:color-mix(in srgb,#f2c14e 6%,#0b0e20);--bg2:color-mix(in srgb,#f2c14e 8%,#121630);
+ --surface:color-mix(in srgb,#f2c14e 9%,#171c3c);--surface2:color-mix(in srgb,#f2c14e 12%,#20274f);
+ --line:color-mix(in srgb,#f2c14e 22%,#2c3466);--muted:color-mix(in srgb,#f2c14e 16%,#a3abd8);
+ background:radial-gradient(130% 55% at 50% -12%,color-mix(in srgb,#f2c14e 32%,#1a2050) 0%,color-mix(in srgb,#f2c14e 12%,#111633) 32%,transparent 64%) fixed,var(--bg)}
+body[data-acc="gold"] .tabbar{border-color:#f2c14e59}
 body[data-acc="gold"]::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background-repeat:no-repeat;background-size:100% 100%;
- background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 700' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23f2c14e' stroke-linecap='round'%3E%3Cg opacity='.55' stroke-width='3'%3E%3Cpath d='M188 545C150 410 70 330 -10 315'/%3E%3Cpath d='M202 545C240 410 320 330 400 315'/%3E%3C/g%3E%3Cg opacity='.38' stroke-width='2.6'%3E%3Cpath d='M178 548C140 440 75 385 -10 375'/%3E%3Cpath d='M212 548C250 440 315 385 400 375'/%3E%3C/g%3E%3Cg opacity='.24' stroke-width='2.2'%3E%3Cpath d='M168 552C130 470 85 440 -10 435'/%3E%3Cpath d='M222 552C260 470 305 440 400 435'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"),
- radial-gradient(30% 13% at 50% 79%,#fff3c880,#f2c14e30 55%,transparent 75%),radial-gradient(70% 35% at 50% 0,#f2c14e33,transparent)}
+ background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 700' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23f2c14e' stroke-linecap='round'%3E%3Cg opacity='.28' stroke-width='2.4'%3E%3Cpath d='M188 545C150 410 70 330 -10 315'/%3E%3Cpath d='M202 545C240 410 320 330 400 315'/%3E%3C/g%3E%3Cg opacity='.18' stroke-width='2'%3E%3Cpath d='M178 548C140 440 75 385 -10 375'/%3E%3Cpath d='M212 548C250 440 315 385 400 375'/%3E%3C/g%3E%3Cg opacity='.1' stroke-width='1.8'%3E%3Cpath d='M168 552C130 470 85 440 -10 435'/%3E%3Cpath d='M222 552C260 470 305 440 400 435'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"),
+ radial-gradient(26% 11% at 50% 79%,#fff3c84d,#f2c14e1f 55%,transparent 75%),radial-gradient(70% 35% at 50% 0,#f2c14e33,transparent)}
+
+/* Drei neue Farbwelten (v6.27) – bewusst zurückhaltend: leichterer Farbton, zarte Motive */
+body[data-acc="lilie"]{--th:#f59ac0;--accent:#f59ac0;--accent-ink:#3a0b22}
+body[data-acc="granatapfel"]{--th:#e2566c;--accent:#e2566c;--accent-ink:#fff}
+body[data-acc="perle"]{--th:#e3e9f6;--accent:#e3e9f6;--accent-ink:#1b2a55}
+body[data-acc="lilie"],body[data-acc="granatapfel"],body[data-acc="perle"]{
+ --bg:color-mix(in srgb,var(--th) 6%,#0b0e20);--bg2:color-mix(in srgb,var(--th) 8%,#121630);
+ --surface:color-mix(in srgb,var(--th) 9%,#171c3c);--surface2:color-mix(in srgb,var(--th) 12%,#20274f);
+ --line:color-mix(in srgb,var(--th) 22%,#2c3466);--muted:color-mix(in srgb,var(--th) 16%,#a3abd8);
+ background:radial-gradient(130% 55% at 50% -12%,color-mix(in srgb,var(--th) 32%,#1a2050) 0%,color-mix(in srgb,var(--th) 12%,#111633) 32%,transparent 64%) fixed,var(--bg)}
+body[data-acc="lilie"] .tabbar,body[data-acc="granatapfel"] .tabbar,body[data-acc="perle"] .tabbar{border-color:color-mix(in srgb,var(--th) 35%,transparent)}
+/* Lilien des Feldes – einzelne zarte Blüten (Mt 6,28-29) */
+body[data-acc="lilie"]::after{-webkit-mask:none;mask:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 700' preserveAspectRatio='xMidYMid slice'%3E%3Cdefs%3E%3Cg id='b'%3E%3Cg fill='%23f59ac0'%3E%3Cellipse cx='0' cy='-9' rx='4.5' ry='9'/%3E%3Cellipse cx='0' cy='-9' rx='4.5' ry='9' transform='rotate(72)'/%3E%3Cellipse cx='0' cy='-9' rx='4.5' ry='9' transform='rotate(144)'/%3E%3Cellipse cx='0' cy='-9' rx='4.5' ry='9' transform='rotate(216)'/%3E%3Cellipse cx='0' cy='-9' rx='4.5' ry='9' transform='rotate(288)'/%3E%3C/g%3E%3Ccircle r='3' fill='%23ffe39a'/%3E%3C/g%3E%3C/defs%3E%3Cg opacity='.22'%3E%3Cuse href='%23b' transform='translate(40 120) scale(1.1)'/%3E%3Cuse href='%23b' transform='translate(350 210) scale(.9) rotate(20)'/%3E%3Cuse href='%23b' transform='translate(60 520) scale(1.3) rotate(10)'/%3E%3Cuse href='%23b' transform='translate(330 600) scale(1.2) rotate(35)'/%3E%3C/g%3E%3Cg opacity='.12'%3E%3Cuse href='%23b' transform='translate(200 640) scale(.8)'/%3E%3Cuse href='%23b' transform='translate(250 60) scale(.7) rotate(40)'/%3E%3C/g%3E%3C/svg%3E")}
+/* Granatapfel – Saum mit Granatäpfeln und goldenen Glöckchen (2. Mose 28,33-34) */
+body[data-acc="granatapfel"]::after{-webkit-mask:none;mask:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 700' preserveAspectRatio='xMidYMax meet'%3E%3Cg transform='translate(0 575)'%3E%3Cpath d='M0 6h390' stroke='%23f2c14e' stroke-width='1.2' opacity='.6'/%3E%3Cg opacity='.55'%3E%3Cg fill='%23e2566c'%3E%3Ccircle cx='24' cy='22' r='8'/%3E%3Cpath d='M20 14l4-5 4 5z'/%3E%3Ccircle cx='122' cy='22' r='8'/%3E%3Cpath d='M118 14l4-5 4 5z'/%3E%3Ccircle cx='220' cy='22' r='8'/%3E%3Cpath d='M216 14l4-5 4 5z'/%3E%3Ccircle cx='318' cy='22' r='8'/%3E%3Cpath d='M314 14l4-5 4 5z'/%3E%3C/g%3E%3Cg fill='%23f2c14e'%3E%3Cpath d='M66 10q7 0 7 10v3h-14v-3q0-10 7-10z'/%3E%3Ccircle cx='66' cy='26' r='2'/%3E%3Cpath d='M164 10q7 0 7 10v3h-14v-3q0-10 7-10z'/%3E%3Ccircle cx='164' cy='26' r='2'/%3E%3Cpath d='M262 10q7 0 7 10v3h-14v-3q0-10 7-10z'/%3E%3Ccircle cx='262' cy='26' r='2'/%3E%3Cpath d='M360 10q7 0 7 10v3h-14v-3q0-10 7-10z'/%3E%3Ccircle cx='360' cy='26' r='2'/%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E") no-repeat center bottom/100% 100%,radial-gradient(90% 22% at 50% 100%,#e2566c30,transparent 70%)}
+/* Perle – Perlenschnur oben und sanfter Perlmutt-Schimmer (Mt 13,45-46; Offb 21,21) */
+body[data-acc="perle"]::after{-webkit-mask:none;mask:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 700' preserveAspectRatio='none'%3E%3Cdefs%3E%3CradialGradient id='p' cx='.35' cy='.3'%3E%3Cstop offset='0' stop-color='%23fff'/%3E%3Cstop offset='.6' stop-color='%23dfe6f5'/%3E%3Cstop offset='1' stop-color='%239aa6c6'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cg fill='%23eef2fb' stroke='%23ffffff' stroke-width='1' opacity='.45' transform='translate(0 440)'%3E%3Ccircle cx='-5' cy='70' r='5'/%3E%3Ccircle cx='22' cy='92' r='5.5'/%3E%3Ccircle cx='50' cy='110' r='6'/%3E%3Ccircle cx='80' cy='124' r='6'/%3E%3Ccircle cx='112' cy='134' r='6.5'/%3E%3Ccircle cx='145' cy='140' r='6.5'/%3E%3Ccircle cx='178' cy='143' r='7'/%3E%3Ccircle cx='212' cy='143' r='7'/%3E%3Ccircle cx='245' cy='140' r='6.5'/%3E%3Ccircle cx='278' cy='134' r='6.5'/%3E%3Ccircle cx='310' cy='124' r='6'/%3E%3Ccircle cx='340' cy='110' r='6'/%3E%3Ccircle cx='368' cy='92' r='5.5'/%3E%3Ccircle cx='395' cy='70' r='5'/%3E%3C/g%3E%3C/svg%3E"),radial-gradient(80% 30% at 20% 100%,#f7d6e830,transparent 70%),radial-gradient(80% 30% at 80% 100%,#cfe6ff30,transparent 70%)}
+
+/* Gemeinde: fester Kopf der Rangliste (v6.27) – Titel/Zahl oben, Umschalter immer darunter in voller Breite, gleich große Felder */
+.rk-kopf{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin-bottom:6px}
+.rk-kopf>div:first-child{display:flex;flex-direction:column;min-width:0;height:43px;justify-content:center}
+.rk-kopf>div:first-child>b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:23px}
+#rcount{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:20px;min-height:20px}
+.rk-var{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);width:100%;box-sizing:border-box;height:36px}
+.rk-var button{padding:0 4px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:30px}
 </style>
 </head>
 <body>

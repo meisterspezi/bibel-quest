@@ -156,7 +156,10 @@ const THEMES = [
   { id: "purpur", name: "Purpur", price: 30, c: "#c09bff", bezug: "Lydia war Purpurhändlerin. Sie hörte Paulus zu, kam zum Glauben und öffnete ihm ihr Haus (Apostelgeschichte 16,14-15)." },
   { id: "morgenrot", name: "Morgenrot", price: 50, c: "#ff8a5c", bezug: "Gottes Erbarmen ist jeden Morgen neu und seine Treue ist groß (Klagelieder 3,22-23)." },
   { id: "jordan", name: "Jordan", price: 90, c: "#5cc8ff", bezug: "Am Jordan zog Israel ins verheißene Land (Josua 3), und hier wurde Jesus getauft (Matthäus 3,13-17)." },
-  { id: "zeder", name: "Zeder vom Libanon", price: 140, c: "#9fd36a", bezug: "Mit Zedernholz vom Libanon baute Salomo den Tempel (1. Könige 5–6). Der Gerechte wächst wie eine Zeder (Psalm 92,13)." }
+  { id: "zeder", name: "Zeder vom Libanon", price: 140, c: "#9fd36a", bezug: "Mit Zedernholz vom Libanon baute Salomo den Tempel (1. Könige 5–6). Der Gerechte wächst wie eine Zeder (Psalm 92,13)." },
+  { id: "lilie", name: "Lilien des Feldes", price: 180, c: "#f59ac0", bezug: "„Betrachtet die Lilien des Feldes, wie sie wachsen!“ Nicht einmal Salomo war so schön gekleidet wie eine von ihnen (Matthäus 6,28-29)." },
+  { id: "granatapfel", name: "Granatapfel", price: 230, c: "#e2566c", bezug: "Am Saum des Gewandes des Hohenpriesters hingen abwechselnd Granatäpfel und goldene Glöckchen (2. Mose 28,33-34)." },
+  { id: "perle", name: "Perle", price: 300, c: "#e3e9f6", bezug: "Jesus vergleicht das Himmelreich mit einer kostbaren Perle, für die ein Kaufmann alles hergibt (Matthäus 13,45-46). Die Tore des neuen Jerusalem sind Perlen (Offenbarung 21,21)." }
 ];
 const AVATARE = [
   { id: "initial", name: "Anfangsbuchstabe", price: 0, bezug: "Dein Name – Gott kennt dich mit Namen (Jesaja 43,1)." },
