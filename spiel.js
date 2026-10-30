@@ -487,7 +487,7 @@ function go(name, arg) {
 /* Untere Menüleiste: zu welchem Reiter gehört eine Ansicht? */
 const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Spielen", "bolt"], ["rank", "Gemeinde", "trophy"], ["ich", "Schatz", "shop"]];
 const TAB_VON = { lektion: "lernen", lied: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen",
-  shop: "ich", badges: "ich", profil: "ich", share: "ich", wer: "ich", postfach: "ich" };
+  shop: "ich" };
 function tabbarSetzen(name) {
   const nav = $("tabbar"); if (!nav) return;
   const aktiv = TAB_VON[name] || name;
@@ -1103,12 +1103,11 @@ function badgeGrid(haben, vergleich) {
   }).join("");
 }
 VIEWS.badges = () => {
-  screen.innerHTML = `${backBtn("ich", "Schatz")}<h1>Abzeichen</h1><p class="muted small" style="margin:0 0 4px">${S.badges.length} von ${BADGES.length} gesammelt · jedes bringt Talente.</p>${badgeGrid(S.badges)}`;
+  screen.innerHTML = `${backBtn("home", "Start")}<h1>Abzeichen</h1><p class="muted small" style="margin:0 0 4px">${S.badges.length} von ${BADGES.length} gesammelt · jedes bringt Talente.</p>${badgeGrid(S.badges)}`;
   wireGo();
 };
 
 /* ---------- Talente-Laden ---------- */
-const SHOP_TABS = [["ruestung", "Waffenrüstung"], ["avatar", "Avatare"], ["rahmen", "Rahmen"], ["titel", "Titel"], ["farbe", "Farben"]];
 let shopTab = "ruestung";
 function kaufen(id, preis, el) {
   if (S.tal < preis) { SFX.wrong(); shakeScreen(); toast(`${svg("gem", "var(--muted)")}<div>Dir fehlen noch <b>${preis - S.tal} Talente</b>.</div>`); return false; }
@@ -1116,61 +1115,73 @@ function kaufen(id, preis, el) {
   SFX.coin(); if (el) { const [x, y] = centerOf(el); burst(x, y, 50, { up: 4 }); }
   save(); renderHud(); checkBadges(); lbSync(); return true;
 }
-VIEWS.shop = (tab) => {
-  if (tab) shopTab = tab;
-  let inhalt = "";
-  const karte = (o) => `<div class="item ${o.akt ? "aktiv" : ""}"><div class="ivor">${o.vor}</div><div class="itext"><b>${esc(o.name)}</b>${o.text ? `<span class="small muted">${esc(o.text)}</span>` : ""}${o.bezug ? `<span class="ibezug">${esc(o.bezug)}</span>` : ""}${o.vers ? `<span class="ivers">${esc(o.vers)}</span>` : ""}</div>${o.knopf}</div>`;
-  const knopf = (kat, it, aktiv) => {
-    if (it.price < 0) return S.badges.includes(it.need) ? (aktiv ? `<button class="btn ghost mini" disabled>Aktiv</button>` : `<button class="btn mini" data-eq="${kat}" data-id="${it.id}">Anlegen</button>`) : `<span class="ilock">${svg("lock")} Abzeichen „${esc((BADGES.find(b => b.id === it.need) || {}).name || "")}“</span>`;
-    if (itemFrei(kat === "farbe" ? "" : kat.slice(0, 2) + "-", it)) return aktiv ? `<button class="btn ghost mini" disabled>Aktiv</button>` : `<button class="btn mini" data-eq="${kat}" data-id="${it.id}">Anlegen</button>`;
-    /* Avatare und Rahmen: Schritt für Schritt – erst das günstigere, dann das nächste */
-    if (kat === "av" || kat === "fr") {
-      const liste = (kat === "av" ? AVATARE : RAHMEN).filter(x => x.price > 0);
-      const naechstes = liste.find(x => !S.owned.includes(kat + "-" + x.id));
-      if (naechstes && naechstes.id !== it.id) return `<span class="ilock">${svg("lock")} erst ${esc(naechstes.name)}</span>`;
+/* Schatz-Laden als „Umkleide“: oben Vorschau am eigenen Avatar, darunter Kategorien (ohne seitliches Wischen) und ein 3er-Raster */
+const SHOP_KAT = { ruestung: ["Rüstung", "ar-schild"], avatar: ["Avatare", "av-taube"], rahmen: ["Rahmen", ""], titel: ["Titel", "scroll"], farbe: ["Farben", "gem"] };
+let shopWahl = {};
+VIEWS.shop = (tab, wahl) => {
+  if (tab && SHOP_KAT[tab]) shopTab = tab;
+  if (wahl) shopWahl[shopTab] = wahl;
+  const n = armorCount();
+  const muenze = TAL_MUENZE;
+  /* Zustand eines Gegenstands: aktiv · frei (anlegen) · zu (Abzeichen/Reihenfolge) · kaufbar */
+  const zustand = (kat, it, aktiv) => {
+    if (kat === "ruestung") {
+      const k = RUESTUNG.indexOf(it), hat = S.owned.includes("ar-" + it.id);
+      if (hat) return { art: "aktiv", text: "angelegt" };
+      if (k === n) return { art: "kauf", preis: it.price, buy: "ruestung" };
+      return { art: "zu", text: `erst ${RUESTUNG[n] ? RUESTUNG[n].name.split(" ")[0] : ""}` };
     }
-    return `<button class="btn primary mini" data-buy="${kat}" data-id="${it.id}" data-p="${it.price}">${it.price} ${svg("coin")}</button>`;
+    const pre = { avatar: "av", rahmen: "fr", titel: "ti", farbe: "" }[kat];
+    if (aktiv) return { art: "aktiv", text: "aktiv" };
+    if (it.price < 0) return S.badges.includes(it.need) ? { art: "frei", eq: pre || "farbe" } : { art: "zu", text: "Abzeichen", need: it.need };
+    if (itemFrei(pre ? pre + "-" : "", it)) return { art: "frei", eq: pre || "farbe" };
+    if (kat === "avatar" || kat === "rahmen") {
+      const liste = (kat === "avatar" ? AVATARE : RAHMEN).filter(x => x.price > 0);
+      const naechstes = liste.find(x => !S.owned.includes(pre + "-" + x.id));
+      if (naechstes && naechstes.id !== it.id) return { art: "zu", text: "erst " + naechstes.name.split(" ")[0] };
+    }
+    return { art: "kauf", preis: it.price, buy: pre || "farbe" };
   };
-  if (shopTab === "ruestung") {
-    const n = armorCount();
-    inhalt = `<p class="small muted" style="margin:0">Lege die Waffenrüstung Gottes Stück für Stück an (Epheser 6,10-17). Jedes Teil erscheint neben deinem Namen in der Rangliste. Mit allen sechs wirst du „Gewappnet“.</p>
-    <div class="ruest-figur">${RUESTUNG.map((r, k) => `<span class="${k < n ? "an" : ""}">${svg("ar-" + r.id)}</span>`).join("")}</div>` +
-      RUESTUNG.map((r, k) => {
-        const hat = S.owned.includes("ar-" + r.id), dran = k === n;
-        return karte({ name: r.name, vers: `„${r.vers}“ – ${r.ref}`, vor: `<span class="ruest-ic ${hat ? "an" : ""}">${svg("ar-" + r.id)}</span>`,
-          knopf: hat ? `<span class="iok">${svg("check")} angelegt</span>` : dran ? `<button class="btn primary mini" data-buy="ruestung" data-id="${r.id}" data-p="${r.price}">${r.price} ${svg("coin")}</button>` : `<span class="ilock">${svg("lock")} erst ${esc(RUESTUNG[n] ? RUESTUNG[n].name : "")}</span>` });
-      }).join("");
-  } else if (shopTab === "avatar") {
-    inhalt = AVATARE.map(a => karte({ name: a.name, bezug: a.bezug, akt: S.avatar === a.id, vor: avatarHtml({ avatar: a.id, frame: S.frame, name: S.lbName || "Du" }, 48), knopf: knopf("av", a, S.avatar === a.id) })).join("");
-  } else if (shopTab === "rahmen") {
-    inhalt = RAHMEN.map(r => karte({ name: r.name, bezug: r.bezug, akt: S.frame === r.id, vor: avatarHtml({ avatar: S.avatar, frame: r.id, name: S.lbName || "Du" }, 48), knopf: knopf("fr", r, S.frame === r.id) })).join("");
-  } else if (shopTab === "titel") {
-    inhalt = TITEL.map(t => karte({ name: t.name, bezug: t.bezug, akt: S.title === t.id, vor: `<span class="ruest-ic ${t.id === "none" ? "" : "an"}">${svg(t.id === "none" ? "user" : "scroll")}</span>`, knopf: knopf("ti", t, S.title === t.id) })).join("");
-  } else if (shopTab === "farbe") {
-    inhalt = THEMES.map(t => karte({ name: t.name, bezug: t.bezug, akt: S.theme === t.id, vor: `<span class="swatch" style="background:linear-gradient(135deg,${t.c},#1b2146)"></span>`, knopf: knopf("farbe", t, S.theme === t.id) })).join("");
-
-  }
-  const n = levelOf(S.xp);
-  const chip = (go, ic, t, id = "") => `<button class="schatz-chip" ${id ? `id="${id}"` : `data-go="${go}"`}>${svg(ic)}<span>${t}</span></button>`;
-  screen.innerHTML = `${seitenKopf("Schatz", `${TAL_MUENZE}${S.tal} Talente`)}
-    <button class="card ich-kopf" data-go="profil">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "?" }, 60)}
-      <span class="ik-tx"><b>${esc(S.lbName || "Noch ohne Namen")}</b><span>${esc(rangVon())} · Level ${n}</span>${ruestungHtml(armorCount())}</span><span class="ik-pfeil">›</span></button>
-    <div class="schatz-chips">${chip("badges", "medal", `Abzeichen ${S.badges.length}`)}${chip("share", "share", "Teilen")}${chip("", "people", "Wer spielt?", "ichWer")}${entwickler ? chip("postfach", "post", postfachNeu ? `Post ${postfachNeu}` : "Post") : ""}${deferredInstall ? chip("", "down", "Installieren", "installBtn") : ""}</div>
-    <div class="label schatz-label">${svg("shop")} Laden <span class="sl-info">Talente gibt es fürs Lernen &amp; Spielen</span></div>
-    <div class="tabs" role="tablist">${SHOP_TABS.map(([id, n]) => `<button role="tab" data-tab="${id}" aria-selected="${shopTab === id}">${n}</button>`).join("")}</div>
-    <div class="stack">${inhalt}</div>
-    <button class="feedback-link" id="fbLink">${svg("chat")} Idee oder Fehler? Feedback an den Entwickler</button>`;
+  const liste = { ruestung: RUESTUNG, avatar: AVATARE, rahmen: RAHMEN, titel: TITEL, farbe: THEMES }[shopTab];
+  const istAktiv = it => ({ avatar: S.avatar === it.id, rahmen: S.frame === it.id, titel: S.title === it.id, farbe: S.theme === it.id, ruestung: S.owned.includes("ar-" + it.id) })[shopTab];
+  const standard = shopTab === "ruestung" ? (RUESTUNG[n] || RUESTUNG[RUESTUNG.length - 1]).id : (liste.find(istAktiv) || liste[0]).id;
+  const sel = liste.find(x => x.id === shopWahl[shopTab]) || liste.find(x => x.id === standard);
+  const zs = zustand(shopTab, sel, shopTab !== "ruestung" && istAktiv(sel));
+  /* Vorschau: der eigene Avatar mit dem gewählten Gegenstand */
+  const vAv = shopTab === "avatar" ? sel.id : S.avatar, vFr = shopTab === "rahmen" ? sel.id : S.frame;
+  const buehneBild = shopTab === "ruestung"
+    ? `<span class="kb-ruest">${svg("ar-" + sel.id)}</span>`
+    : `<span class="kb-av" ${shopTab === "farbe" ? `style="--glanz:${sel.c}"` : ""}>${avatarHtml({ avatar: vAv, frame: vFr, name: S.lbName || "?" }, 96)}</span>`;
+  const text = shopTab === "ruestung" ? `„${sel.vers}“ – ${sel.ref}` : (sel.bezug || "");
+  const knopf = zs.art === "kauf" ? `<button class="btn gold kb-kauf" data-buy="${zs.buy}" data-id="${sel.id}" data-p="${zs.preis}">Kaufen · ${zs.preis}${muenze}</button>`
+    : zs.art === "frei" ? `<button class="btn gold kb-kauf" data-eq="${zs.eq}" data-id="${sel.id}">Anlegen</button>`
+    : zs.art === "aktiv" ? `<span class="pz ok kb-status">${svg("check")} ${zs.text}</span>`
+    : `<span class="pz zu kb-status">${svg("lock")} ${zs.need ? `Abzeichen „${esc((BADGES.find(x => x.id === zs.need) || {}).name || "")}“` : esc(zs.text)}</span>`;
+  const katIc = k => k === "rahmen" ? avatarHtml({ avatar: "initial", frame: "gold", name: "M" }, 22) : svg(SHOP_KAT[k][1]);
+  const kachel = it => { const z = zustand(shopTab, it, shopTab !== "ruestung" && istAktiv(it));
+    const bild = shopTab === "ruestung" ? svg("ar-" + it.id) : shopTab === "avatar" ? avatarHtml({ avatar: it.id, frame: "none", name: S.lbName || "?" }, 46)
+      : shopTab === "rahmen" ? avatarHtml({ avatar: S.avatar, frame: it.id, name: S.lbName || "?" }, 40)
+      : shopTab === "farbe" ? `<span class="swatch" style="background:radial-gradient(circle at 35% 30%,#fff8,${it.c} 45%,#1b2146)"></span>`
+      : `<span class="kb-titel-ic">${svg(it.id === "none" ? "user" : "scroll")}</span>`;
+    const marke = z.art === "aktiv" ? `<span class="pz ok">${z.text}</span>` : z.art === "frei" ? `<span class="pz ok">${it.price > 0 ? "gekauft" : "frei"}</span>` : z.art === "zu" ? `<span class="pz zu">${svg("lock")}</span>` : `<span class="pz ${S.tal >= z.preis ? "" : "arm"}">${z.preis}${muenze}</span>`;
+    return `<button class="kb-item ${it.id === sel.id ? "gewaehlt" : ""} ${z.art === "zu" ? "gesperrt" : ""}" data-wahl="${it.id}" aria-label="${esc(it.name)}">${z.art === "aktiv" ? `<span class="an-haken">${svg("check")}</span>` : ""}<span class="vor">${bild}</span><small>${esc(it.name)}</small>${marke}</button>`; };
+  screen.innerHTML = `${seitenKopf("Schatz", `${muenze}${S.tal} Talente`)}
+    <section class="kb-buehne ${shopTab}">
+      <div class="podest">${buehneBild}</div>
+      <div class="kb-info"><span class="kb-tag">${shopTab === "ruestung" ? `Teil ${RUESTUNG.indexOf(sel) + 1} von 6` : zs.art === "aktiv" ? "Trägst du gerade" : "Vorschau"}</span><b>${esc(sel.name)}</b>
+        ${text ? `<div class="kb-text">${esc(text)}</div>` : ""}${knopf}</div>
+    </section>
+    <div class="kb-tabs" role="tablist">${Object.entries(SHOP_KAT).map(([k, [t]]) => `<button role="tab" data-tab="${k}" aria-selected="${shopTab === k}">${katIc(k)}<span>${t}</span></button>`).join("")}</div>
+    <div class="kb-grid">${liste.map(kachel).join("")}</div>`;
   wireGo();
-  $("fbLink").onclick = () => { SFX.tap(); feedbackOeffnen(); };
-  $("ichWer").onclick = () => { SFX.tap(); $("hWer").click(); };
-  const ib = $("installBtn"); if (ib) ib.onclick = async () => { SFX.tap(); deferredInstall.prompt(); try { await deferredInstall.userChoice; } catch (e) {} deferredInstall = null; go("ich"); };
   screen.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { SFX.tap(); VIEWS.shop(b.dataset.tab); });
+  screen.querySelectorAll("[data-wahl]").forEach(b => b.onclick = () => { SFX.tap(); VIEWS.shop(null, b.dataset.wahl); const bh = screen.querySelector(".kb-buehne"); if (bh && bh.getBoundingClientRect().top < 60) bh.scrollIntoView({ behavior: "smooth", block: "center" }); });
   screen.querySelectorAll("[data-buy]").forEach(b => b.onclick = () => {
     const kat = b.dataset.buy, id = b.dataset.id, p = +b.dataset.p;
     const pre = { ruestung: "ar-", av: "av-", fr: "fr-", ti: "ti-", farbe: "" }[kat];
     if (!kaufen(pre + id, p, b)) return;
     if (kat === "av") S.avatar = id; if (kat === "fr") S.frame = id; if (kat === "ti") S.title = id; if (kat === "farbe") { S.theme = id; applyTheme(); }
-    if (kat === "ruestung") { const r = RUESTUNG.find(x => x.id === id); rain(60); modal(`<div class="label">Angelegt</div><div class="ruest-gross">${svg("ar-" + id)}</div><h2>${esc(r.name)}</h2><figure class="vers klein"><blockquote>${esc(r.vers)}</blockquote><figcaption>${esc(r.ref)} · ${VERS_QUELLE}</figcaption></figure><button class="btn primary" data-close>Amen</button>`); }
+    if (kat === "ruestung") { const r = RUESTUNG.find(x => x.id === id); rain(60); delete shopWahl.ruestung; modal(`<div class="label">Angelegt</div><div class="ruest-gross">${svg("ar-" + id)}</div><h2>${esc(r.name)}</h2><figure class="vers klein"><blockquote>${esc(r.vers)}</blockquote><figcaption>${esc(r.ref)} · ${VERS_QUELLE}</figcaption></figure><button class="btn primary" data-close>Amen</button>`); }
     save(); lbSync(); renderHud(); VIEWS.shop();
   });
   screen.querySelectorAll("[data-eq]").forEach(b => b.onclick = () => {
@@ -1179,6 +1190,20 @@ VIEWS.shop = (tab) => {
     save(); lbSync(); renderHud(); VIEWS.shop();
   });
 };
+
+/* ---------- Menü am Avatar oben: Profil, Abzeichen, Teilen, Wer spielt?, Feedback ---------- */
+function ichMenue() {
+  if (!S.lbName) { go("name"); return; }
+  const z = (wert, ic, t, info = "") => `<button class="im-zeile" data-close="${wert}">${svg(ic)}<span><b>${t}</b>${info ? `<small>${info}</small>` : ""}</span><i>›</i></button>`;
+  const m = modal(`<div class="im-kopf">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName }, 56)}<div><b>${esc(S.lbName)}</b><small>${esc(rangVon())} · Level ${levelOf(S.xp)}</small></div></div>
+    <div class="im-liste">${z("profil", "user", "Mein Profil", "Titel, Siegel, Werte")}${z("badges", "medal", "Abzeichen", `${S.badges.length} von ${BADGES.length}`)}${z("share", "share", "Mit Freunden teilen", "QR-Code")}${z("wer", "people", "Wer spielt?", "Spieler wechseln")}${entwickler ? z("postfach", "post", "Postkasten", postfachNeu ? postfachNeu + " neu" : "") : ""}${deferredInstall ? z("install", "down", "App installieren", "+10 Talente") : ""}${z("feedback", "chat", "Feedback an den Entwickler")}</div>
+    <button class="btn ghost" data-close="">Schließen</button>`, r => {
+      if (r === "feedback") feedbackOeffnen();
+      else if (r === "install") { deferredInstall.prompt(); deferredInstall.userChoice.catch(() => {}).then(() => { deferredInstall = null; }); }
+      else if (r) go(r);
+    });
+  m.classList.add("ich-menue"); m.dataset.frei = "1";
+}
 
 /* ---------- Mein Profil ---------- */
 function statsZeilen(p) {
@@ -1197,7 +1222,7 @@ function titelKarte(liste, p, tag) {
 VIEWS.profil = () => {
   const me = lbPayload(), { atP, ntP } = fortschritt();
   const L = window.LB, online = L && L.ok;
-  screen.innerHTML = `${backBtn("ich", "Schatz")}<h1>Mein Profil</h1>
+  screen.innerHTML = `${backBtn("home", "Start")}<h1>Mein Profil</h1>
   <div class="card profil-kopf">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "Du" }, 84)}
     <div><h2 style="margin:0">${esc(S.lbName || "Noch ohne Namen")}</h2>${!S.pid && !S.offlineOnly ? `<div class="small muted">Erscheint in der Rangliste, sobald Internet da ist.</div>` : ""}<div class="muted">${esc(rangVon())}</div>${ruestungHtml(armorCount(), false)}</div></div>
   <div class="row-btns" style="margin:10px 0"><button class="btn" data-go="shop">Aussehen ändern</button><button class="btn ghost" data-go="badges">Meine Abzeichen</button></div>
@@ -1602,7 +1627,7 @@ function spielerUmbenennen(key) {
 VIEWS.wer = () => {
   geraetSpeichern();
   const liste = GERAET.liste.filter(p => p.name);
-  screen.innerHTML = `${backBtn("ich", "Schatz")}<h1>Wer spielt?</h1>
+  screen.innerHTML = `${backBtn("home", "Start")}<h1>Wer spielt?</h1>
   <p class="muted" style="margin:0 0 12px">Spielen mehrere Personen auf diesem Gerät, hat jeder seinen eigenen Fortschritt.</p>
   <div class="stack">${liste.map(p => `<div class="wer-zeile"><button class="rrow wahl ${p.key === GERAET.aktiv ? "me" : ""}" data-key="${esc(p.key)}">${avatarHtml(p, 44)}<div class="who"><b>${esc(p.name)}${p.key === GERAET.aktiv ? '<span class="you">JETZT</span>' : ""}</b><span>Level ${levelOf(p.xp || 0)} · ${(p.xp || 0).toLocaleString("de-DE")} XP</span></div><div class="val">›</div></button><button class="umben" data-umben="${esc(p.key)}" aria-label="${esc(p.name)} umbenennen" title="Umbenennen">${svg("stift")}</button></div>`).join("")}
     <button class="bereich klein" id="wNeu"><span class="b-ic">${svg("user")}</span><span class="b-tx"><b>Weiteren Spieler hinzufügen</b><span>Neu anfangen oder Namen aus der Rangliste wählen</span></span></button>
@@ -1775,7 +1800,7 @@ async function statusBerichte() {
 let postfachFilter = "neu";
 VIEWS.postfach = (kat) => {
   const L = window.LB; if (kat && PK_KAT.some(k => k[0] === kat)) pkKategorie = kat;
-  screen.innerHTML = `${backBtn("ich", "Schatz")}<h1>Postkasten</h1>
+  screen.innerHTML = `${backBtn("home", "Start")}<h1>Postkasten</h1>
   <p class="muted small" style="margin:0 0 10px">Nur für dich als Verwalter: Feedback der Spieler, Statusberichte und Meldungen aus der Datenbank.</p>
   <nav class="rk-nav pk-nav" aria-label="Postkasten">${PK_KAT.map(([k, n, ic]) => `<button data-pk="${k}" aria-pressed="${k === pkKategorie}"><span class="rk-ic">${svg(ic)}</span><span>${n}<i class="pk-n" data-pkn="${k}"></i></span></button>`).join("")}</nav>
   <div class="card rk-liste" style="margin-top:10px"><div class="rk-kopf"><div><b>${esc(PK_KAT.find(k => k[0] === pkKategorie)[1])}</b><span class="small muted" id="pkAnz"></span></div>
@@ -1817,7 +1842,7 @@ VIEWS.share = () => {
   const basis = location.origin + location.pathname.replace(/index\.html$/, "");
   const url = basis + (S.lbName && S.pid ? "?von=" + encodeURIComponent(S.pid) : "");
   let qr = ""; try { const q = qrcode(0, "M"); q.addData(url); q.make(); qr = q.createSvgTag({ cellSize: 8, margin: 2, scalable: true }); } catch (e) { qr = '<p style="color:#000">QR-Code konnte nicht erzeugt werden.</p>'; }
-  screen.innerHTML = `${backBtn("ich", "Schatz")}<h1>Mit Freunden teilen</h1>
+  screen.innerHTML = `${backBtn("home", "Start")}<h1>Mit Freunden teilen</h1>
   <div class="stack">
     <div class="card stack" style="text-align:center">
       <div class="church" style="justify-content:center"><img src="logo.png" alt="" onerror="this.remove()"><span>Freie Baptisten Eichstätt</span></div>
@@ -1850,7 +1875,7 @@ if ("serviceWorker" in navigator && location.protocol === "https:") { addEventLi
 
 /* ---------- Start ---------- */
 try { const von = new URLSearchParams(location.search).get("von"); if (von && /^[\w-]{4,64}$/.test(von)) { if (!S.lbName && !S.eingeladenVon) S.eingeladenVon = von; history.replaceState(null, "", location.pathname); } } catch (e) {}
-$("hWer").onclick = () => { SFX.tap(); go(S.lbName ? "wer" : "name"); };
+$("hWer").onclick = () => { SFX.tap(); ichMenue(); };
 neuerTag(); applyTheme(); renderMute(); renderHud(); checkBadges(); geraetSpeichern(); go("home");
 /* Mehrere Spieler auf dem Gerät? Dann beim Start fragen, wer spielt */
 (() => {
