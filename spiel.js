@@ -451,12 +451,18 @@ function renderHud() {
   $("hTal").textContent = S.tal; const tbP = $("tbTal"); if (tbP) tbP.hidden = !etwasKaufbar();
   const pk = $("pkBtn"); if (pk) { pk.hidden = !entwickler; pk.innerHTML = `${svg("post")}${postfachNeu ? `<span class="pk-zahl">${postfachNeu > 99 ? "99+" : postfachNeu}</span>` : ""}`; pk.setAttribute("aria-label", `Postkasten${postfachNeu ? ", " + postfachNeu + " neu" : ""}`); }
 }
-/* Gibt es im Laden gerade etwas, das man sich leisten kann? (Reihenfolge-Regeln wie im Laden) */
-function etwasKaufbar() {
-  const r = RUESTUNG[armorCount()]; if (r && r.price <= S.tal) return true;
-  for (const [l, p] of [[AVATARE, "av-"], [RAHMEN, "fr-"]]) { const x = l.filter(i => i.price > 0).find(i => !S.owned.includes(p + i.id)); if (x && x.price <= S.tal) return true; }
-  return [[TITEL, "ti-"], [THEMES, ""]].some(([l, p]) => l.some(i => i.price > 0 && i.price <= S.tal && !S.owned.includes(p + i.id)));
+/* Was ist im Laden gerade kaufbar? (je Kategorie, Reihenfolge-Regeln wie im Laden) */
+function kaufbarIn(kat) {
+  if (kat === "ruestung") { const r = RUESTUNG[armorCount()]; return !!r && r.price <= S.tal; }
+  if (kat === "avatar" || kat === "rahmen") {
+    const [l, p] = kat === "avatar" ? [AVATARE, "av-"] : [RAHMEN, "fr-"];
+    const x = l.filter(i => i.price > 0).find(i => !S.owned.includes(p + i.id)); return !!x && x.price <= S.tal;
+  }
+  const [l, p] = kat === "titel" ? [TITEL, "ti-"] : [THEMES, ""];
+  return l.some(i => i.price > 0 && i.price <= S.tal && !S.owned.includes(p + i.id));
 }
+const LADEN_KAT = ["ruestung", "avatar", "rahmen", "titel", "farbe"];
+function etwasKaufbar() { return LADEN_KAT.some(kaufbarIn); }
 /* Talente einheitlich: jeder sichtbare Text „+N Talente“ wird zu „+N“ mit der Licht-Münze */
 function talMarken(root) {
   if (!root || root.nodeType !== 1 && root.nodeType !== 3) return;
@@ -1193,7 +1199,7 @@ VIEWS.shop = (tab, wahl) => {
       <div class="kb-info"><span class="kb-tag">${shopTab === "ruestung" ? `Teil ${RUESTUNG.indexOf(sel) + 1} von 6` : zs.art === "aktiv" ? "Trägst du gerade" : "Vorschau"}</span><b>${esc(sel.name)}</b>
         ${text ? `<div class="kb-text">${esc(text)}</div>` : ""}${knopf}</div>
     </section>
-    <div class="kb-tabs" role="tablist">${Object.entries(SHOP_KAT).map(([k, [t]]) => `<button role="tab" data-tab="${k}" aria-selected="${shopTab === k}">${katIc(k)}<span>${t}</span></button>`).join("")}</div>
+    <div class="kb-tabs" role="tablist">${Object.entries(SHOP_KAT).map(([k, [t]]) => `<button role="tab" data-tab="${k}" aria-selected="${shopTab === k}" aria-label="${t}${kaufbarIn(k) ? ", jetzt kaufbar" : ""}">${katIc(k)}${kaufbarIn(k) ? `<i class="kat-punkt" aria-hidden="true"></i>` : ""}<span>${t}</span></button>`).join("")}</div>
     <div class="kb-grid">${liste.map(kachel).join("")}</div>`;
   wireGo();
   screen.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { SFX.tap(); const y = scrollY; VIEWS.shop(b.dataset.tab); scrollTo(0, y); });
