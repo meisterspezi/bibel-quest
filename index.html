@@ -843,25 +843,99 @@ button.tq-preis{font:inherit;color:inherit;cursor:pointer}
 .im-zeile>svg{width:28px;height:28px;flex:0 0 auto}
 .im-zeile span{flex:1;display:flex;flex-direction:column}.im-zeile small{color:var(--muted);font-size:.76rem;font-weight:700}
 .im-zeile i{font-style:normal;color:var(--muted);font-weight:900}
+
+/* ===== Farbwelten (v6.25): gekaufte Farbe tönt die ganze App + eigenes Himmelsbild je Farbe. Gold = Standard bleibt unverändert. ===== */
+body{--th:#f2c14e;position:relative;z-index:0}
+body[data-acc="jordan"]{--accent:#5cc8ff;--accent-ink:#00243a}
+body[data-acc="zeder"]{--accent:#9fd36a;--accent-ink:#172a00}
+body[data-acc="smaragd"]{--th:#3fd6a6}body[data-acc="purpur"]{--th:#c09bff}body[data-acc="morgenrot"]{--th:#ff8a5c}body[data-acc="jordan"]{--th:#5cc8ff}body[data-acc="zeder"]{--th:#9fd36a}
+body[data-acc]:not([data-acc="gold"]):not([data-acc=""]){
+ --bg:color-mix(in srgb,var(--th) 9%,#0b0e20);--bg2:color-mix(in srgb,var(--th) 11%,#121630);
+ --surface:color-mix(in srgb,var(--th) 13%,#171c3c);--surface2:color-mix(in srgb,var(--th) 17%,#20274f);
+ --line:color-mix(in srgb,var(--th) 30%,#2c3466);--muted:color-mix(in srgb,var(--th) 25%,#a3abd8);
+ background:radial-gradient(130% 55% at 50% -12%,color-mix(in srgb,var(--th) 45%,#1a2050) 0%,color-mix(in srgb,var(--th) 18%,#111633) 32%,transparent 64%) fixed,var(--bg)}
+body[data-acc]:not([data-acc="gold"]):not([data-acc=""]) .tabbar{border-color:color-mix(in srgb,var(--th) 45%,transparent)}
+body[data-acc]:not([data-acc="gold"]):not([data-acc=""])::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+ background-repeat:no-repeat;background-size:100% 100%;-webkit-mask:linear-gradient(#000 55%,transparent 92%);mask:linear-gradient(#000 55%,transparent 92%)}
+/* Smaragd – Regenbogen um den Thron (Offb 4,3) */
+body[data-acc="smaragd"]::after{background:radial-gradient(75% 38% at 50% 34%,transparent 74%,#ff8a8a40 76%,#ffd95c40 79%,#3fd6a680 82%,#5cc8ff40 85%,#c09bff40 88%,transparent 90%),radial-gradient(60% 30% at 50% 30%,#3fd6a630,transparent 70%)}
+/* Purpur – fallende Stoffbahnen (Lydia) */
+body[data-acc="purpur"]::after{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 700' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%23c09bff' stroke-linecap='round'%3E%3Cpath d='M-20 120C90 60 160 220 260 150S380 90 420 140' stroke-width='26' opacity='.16'/%3E%3Cpath d='M-20 260C80 200 170 340 270 280S380 230 420 270' stroke-width='18' opacity='.13'/%3E%3Cpath d='M-20 420C100 360 170 480 280 430S380 380 420 420' stroke-width='12' opacity='.1'/%3E%3C/g%3E%3C/svg%3E")}
+/* Morgenrot – Sonnenaufgang (Klgl 3,22-23) */
+body[data-acc="morgenrot"]::after{background:radial-gradient(30% 16% at 50% 58%,#ffd27a70,#ff8a5c40 55%,transparent 75%),repeating-conic-gradient(from -90deg at 50% 58%,#ff8a5c22 0 4deg,transparent 4deg 13deg),linear-gradient(transparent 57%,#ff8a5c40 58%,transparent 61%)}
+/* Jordan – Flusswellen (Jos 3; Mt 3) */
+body[data-acc="jordan"]::after{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 700' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%235cc8ff' stroke-width='3' stroke-linecap='round' transform='translate(0 230)'%3E%3Cpath d='M-10 330q50-20 100 0t100 0 100 0 100 0' opacity='.55'/%3E%3Cpath d='M-10 365q50-20 100 0t100 0 100 0 100 0' opacity='.38'/%3E%3Cpath d='M-10 400q50-20 100 0t100 0 100 0 100 0' opacity='.22'/%3E%3C/g%3E%3C/svg%3E"),radial-gradient(70% 35% at 50% 0,#5cc8ff40,transparent)}
+body[data-acc="jordan"]::after,body[data-acc="zeder"]::after{-webkit-mask:none;mask:none}
+/* Zeder vom Libanon – Zedern (1 Kön 5–6; Ps 92,13) */
+body[data-acc="zeder"]::after{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 700' preserveAspectRatio='none'%3E%3Cg fill='%239fd36a' transform='translate(0 290)'%3E%3Cg opacity='.3'%3E%3Cpath d='M40 260l-30 30h18l-26 30h20l-24 30h84l-24-30h20l-26-30h18z'/%3E%3Cpath d='M345 240l-34 34h20l-30 34h22l-28 34h100l-28-34h22l-30-34h20z'/%3E%3C/g%3E%3Cg opacity='.16'%3E%3Cpath d='M120 300l-20 22h12l-18 22h14l-16 22h56l-16-22h14l-18-22h12z'/%3E%3Cpath d='M270 310l-18 20h11l-16 20h13l-15 20h50l-15-20h13l-16-20h11z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"),radial-gradient(70% 35% at 50% 0,#9fd36a33,transparent)}
+
+/* Laden: feste Bühne – Vorschau, Kategorien und Raster bleiben beim Wechsel an derselben Stelle (v6.25) */
+.kb-buehne{height:198px;box-sizing:border-box;align-items:stretch}
+.kb-buehne .podest{align-self:center}
+.kb-info{height:100%;justify-content:flex-start}
+.kb-info b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;flex:0 0 auto}
+.kb-text{flex:0 1 auto}
+.kb-kauf,.kb-status{margin-top:auto;flex:0 0 auto}
+.kb-tabs button{height:56px;box-sizing:border-box;display:grid;grid-template-rows:24px 14px;justify-items:center;align-content:center;gap:3px}
+.kb-tabs button>span:last-child{line-height:14px;height:14px}
+.kb-tabs button>:first-child{width:24px;height:24px;flex:0 0 24px;display:grid;place-items:center}
+.kb-tabs button>.av{--s:22px!important}
+.kb-item{min-height:126px;box-sizing:border-box}
+.kb-grid{min-height:528px;align-content:start}
+
+/* Kopfleiste „Avatar-Ring“ (v6.25): XP als Ring um den Avatar, Name in Zierschrift, Rang · XP und Serie darunter, rechts nur Talente + Ton */
+.hud{padding-block:10px 12px}
+.hav{width:58px;height:58px;border-radius:50%;padding:4px;box-sizing:border-box;
+ background:conic-gradient(from 0deg,var(--accent) calc(var(--p,0)*1%),#ffffff1a 0);box-shadow:0 0 16px -4px color-mix(in srgb,var(--accent) 70%,transparent);transition:background .5s}
+.hav-in{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;background:var(--bg)}
+.hav .lvl-mini{right:-6px;bottom:-6px}
+.hud .xptitle{font:800 1.12rem/1.2 var(--display);letter-spacing:.02em}
+.hud .xpnum{font-size:.76rem;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hserie{display:inline-flex!important;align-items:center;gap:3px;margin-top:2px;font:800 .78rem var(--body);color:#ffb070}
+.hserie svg{width:14px;height:14px}
+.hxpz{color:var(--muted);font-weight:700;margin-left:3px;font-variant-numeric:tabular-nums}
+.hserie.null .hxpz{color:var(--muted)}
+.hserie.null{color:var(--muted)}.hserie.null svg{filter:grayscale(1);opacity:.6}
+.pills{align-items:center;gap:6px}
+.hud-tal{font-size:1.05rem;padding:7px 13px;background:linear-gradient(180deg,#f2c14e33,#f2c14e10);border-color:#f2c14e77}
+.hud-tal svg{width:20px;height:20px}
+.hud-ton{background:none;border:0;width:30px;height:30px;opacity:.7}
+/* Laden-Knopf: Leuchtpunkt statt Talente-Zahl, wenn etwas kaufbar ist */
+.tabbar .tb-punkt{position:absolute;top:4px;left:calc(50% + 10px);width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff6c8,#f2c14e 60%);box-shadow:0 0 0 2px #151a3d,0 0 10px #f2c14e}
+.tabbar .tb-punkt[hidden]{display:none}
+@media (prefers-reduced-motion:no-preference){.tabbar .tb-punkt{animation:tbpuls 2.4s ease-in-out infinite}}
+@keyframes tbpuls{50%{box-shadow:0 0 0 2px #151a3d,0 0 2px #f2c14e}}
+
+/* Talente: überall dieselbe Licht-Münze (v6.25) */
+.tal-n{display:inline-flex;align-items:center;gap:2px;white-space:nowrap;vertical-align:-.15em}
+.tal-n svg{width:1.15em;height:1.15em;flex:0 0 auto}
+.toast .tal-n svg,.modal .tal-n svg{width:1.2em;height:1.2em}
 </style>
 </head>
 <body>
 <canvas id="fx"></canvas>
+<!-- Zentrale Symbole (einmal definiert, überall per <use> verwendet): Talent = „Licht-Münze“, Regenbogen = Laden-Kategorie Farben -->
+<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true" focusable="false"><defs>
+  <radialGradient id="talG" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#fffbe6"/><stop offset=".45" stop-color="#f6d77a"/><stop offset="1" stop-color="#c9932a"/></radialGradient>
+  <radialGradient id="talH"><stop offset=".55" stop-color="#ffe9a8" stop-opacity=".55"/><stop offset="1" stop-color="#ffe9a8" stop-opacity="0"/></radialGradient>
+  <radialGradient id="rbH" cy=".75"><stop offset=".3" stop-color="#e6f0ff" stop-opacity=".45"/><stop offset="1" stop-color="#e6f0ff" stop-opacity="0"/></radialGradient>
+  <symbol id="i-tal" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="url(#talH)"/><circle cx="12" cy="12" r="8.6" fill="url(#talG)" stroke="#1b2a55" stroke-width="1.3"/><circle cx="12" cy="12" r="6" fill="none" stroke="#a8781a" stroke-width="1.1"/><path d="M12 8.6v6.8M9.4 10.4h5.2" stroke="#8a5d10" stroke-width="1.5" stroke-linecap="round"/><path d="M7.2 9.2a5.6 5.6 0 0 1 3.2-3" fill="none" stroke="#fff" stroke-width="1.2" stroke-linecap="round" opacity=".9"/></symbol>
+  <symbol id="i-regenbogen" viewBox="0 0 24 24"><ellipse cx="12" cy="15" rx="12" ry="9" fill="url(#rbH)"/><g fill="none" stroke-linecap="round" stroke-width="1.9"><path d="M2.6 18a9.4 9.4 0 0 1 18.8 0" stroke="#ff8a8a"/><path d="M4.6 18a7.4 7.4 0 0 1 14.8 0" stroke="#ffd95c"/><path d="M6.6 18a5.4 5.4 0 0 1 10.8 0" stroke="#5fe0b0"/><path d="M8.6 18a3.4 3.4 0 0 1 6.8 0" stroke="#7fc8ff"/></g><path d="M3.5 18.6c1.2-1.6 3.3-1.6 4.2-.4 1-1.5 3.4-1.3 3.7.6.5 0 .9.3 1 .8H3.2c-.4 0-.2-.6.3-1zM13.4 18.6c.8-1.1 2.5-1.2 3.3-.2.9-1.2 3-1 3.2.6.5 0 .9.3 1 .8h-7.9c-.2-.6 0-1 .4-1.2z" fill="#f4f7ff" stroke="#1b2a55" stroke-width=".8" stroke-linejoin="round"/><path d="M5.2 13.4a7.6 7.6 0 0 1 3.2-3.7" fill="none" stroke="#fff" stroke-width="1" stroke-linecap="round" opacity=".8"/></symbol>
+</defs></svg>
 <div class="app" id="app">
   <div class="hud">
     <button class="hud-wer" id="hWer" aria-label="Wer spielt? Spieler wechseln">
-      <span class="hav"><span id="hAvatar"></span><span class="lvl-mini" id="hLvl" aria-label="Level">1</span></span>
+      <span class="hav" id="hRing"><span class="hav-in" id="hAvatar"></span><span class="lvl-mini" id="hLvl" aria-label="Level">1</span></span>
       <span class="xpbox">
         <span class="xptitle" id="hTitle">Schriftrollen-Lehrling</span>
-        <span class="xpbar"><i id="hBar"></i></span>
         <span class="xpnum" id="hXp">0 / 100 XP</span>
+        <span class="hserie" title="Tage-Serie"><svg viewBox="0 0 24 24"><path fill="#ff9a3c" d="M12 2c1 4 5 5.5 5 11a5 5 0 0 1-10 0c0-2.5 1.2-4 2.5-5 .2 2 1 3 2 3.5C11 9 11 5 12 2z"/></svg><span id="hStreak">0</span><span class="hxpz">· <span id="hXpZ">0 / 100 XP</span></span></span>
       </span>
     </button>
     <div class="pills">
-      <div class="pill" title="Tage-Serie"><svg viewBox="0 0 24 24"><path fill="#ff9a3c" d="M12 2c1 4 5 5.5 5 11a5 5 0 0 1-10 0c0-2.5 1.2-4 2.5-5 .2 2 1 3 2 3.5C11 9 11 5 12 2z"/></svg><span id="hStreak">0</span></div>
-      <div class="pill" title="Talente"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#f2c14e"/><circle cx="12" cy="12" r="6" fill="none" stroke="#a8781a" stroke-width="2"/></svg><span id="hTal">0</span></div>
+      <div class="pill hud-tal" title="Talente"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tal"/></svg><span id="hTal">0</span></div>
       <button class="iconbtn pk-btn" id="pkBtn" hidden aria-label="Postkasten" onclick="go('postfach')"></button>
-      <button class="iconbtn" id="muteBtn" aria-label="Ton an oder aus"></button>
+      <button class="iconbtn hud-ton" id="muteBtn" aria-label="Ton an oder aus"></button>
     </div>
   </div>
   <main id="screen"></main>

@@ -84,6 +84,8 @@ const vibrate = p => { try { navigator.vibrate && navigator.vibrate(p); } catch 
 const hash = str => { let h = 2166136261; for (const c of str) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const streakNow = () => (S.lastDay === today() || S.lastDay === yesterday() ? S.streak : 0);
 const armorCount = (owned = S.owned) => RUESTUNG.filter(r => owned.includes("ar-" + r.id)).length;
+/* Zentrale Symbole aus index.html: Talent-Münze und Regenbogen (Laden-Kategorie Farben) */
+ICONS.tal = '<use href="#i-tal"/>'; ICONS.regenbogen = '<use href="#i-regenbogen"/>';
 const svg = (k, c) => `<svg viewBox="0 0 24 24" aria-hidden="true" style="color:${c || "currentColor"}">${ICONS[k] || ""}</svg>`;
 const STAR = on => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" fill="${on ? "#f2c14e" : "#3a4380"}"/></svg>`;
 const MONATE = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
@@ -399,7 +401,7 @@ function aufgabenSicherstellen() {
   const t = today(); if (S.dq && S.dq.day === t && S.dq.items.every(it => AUFGABEN.some(a => a.id === it.id))) return;
   const alteTruhe = S.dq && S.dq.geschafft && !S.dq.bonus;
   const gew = aufgabenAuslosen(t);
-  if (alteTruhe) setTimeout(() => { addXp(AUFGABE_BONUS_XP); addTal(AUFGABE_BONUS); toast(`${svg("gem", accent())}<div><b>Deine Schatztruhe von gestern</b><div class="small muted">wurde für dich geöffnet: +${AUFGABE_BONUS_XP} XP und +${AUFGABE_BONUS} Talente</div></div>`); }, 1500);
+  if (alteTruhe) setTimeout(() => { addXp(AUFGABE_BONUS_XP); addTal(AUFGABE_BONUS); toast(`${TAL_MUENZE}<div><b>Deine Schatztruhe von gestern</b><div class="small muted">wurde für dich geöffnet: +${AUFGABE_BONUS_XP} XP und +${AUFGABE_BONUS} Talente</div></div>`); }, 1500);
   S.dq = { day: t, items: gew.map(a => ({ id: a.id, prog: 0, done: false })), bonus: false };
 }
 function quest(ev, val = 1) {
@@ -441,11 +443,31 @@ function titelCheck() {
 /* ---------- Kopfleiste ---------- */
 function renderHud() {
   const n = levelOf(S.xp), lo = cum(n), hi = cum(n + 1);
-  $("hLvl").textContent = n; $("hAvatar").innerHTML = avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "?" }, 42); $("hTitle").textContent = (S.lbName ? S.lbName + " · " : "") + (entwickler ? ENTW_RANG : titleOf(n));
-  $("hBar").style.width = ((S.xp - lo) / (hi - lo) * 100) + "%"; $("hXp").textContent = `${S.xp - lo} / ${hi - lo} XP`;
-  $("hStreak").textContent = streakNow(); $("hTal").textContent = S.tal; const tbT = $("tbTal"); if (tbT) tbT.textContent = S.tal;
+  $("hLvl").textContent = n; $("hAvatar").innerHTML = avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "?" }, 44);
+  const rang = entwickler ? ENTW_RANG : titleOf(n);
+  $("hTitle").textContent = S.lbName || rang; $("hXp").textContent = S.lbName ? rang : "Level " + n; $("hXpZ").textContent = `${S.xp - lo} / ${hi - lo} XP`;
+  $("hRing").style.setProperty("--p", Math.max(0, Math.min(100, (S.xp - lo) / (hi - lo) * 100)).toFixed(1));
+  const serie = streakNow(); $("hStreak").textContent = serie === 1 ? "1 Tag" : serie + " Tage"; $("hStreak").parentElement.classList.toggle("null", !serie);
+  $("hTal").textContent = S.tal; const tbP = $("tbTal"); if (tbP) tbP.hidden = !etwasKaufbar();
   const pk = $("pkBtn"); if (pk) { pk.hidden = !entwickler; pk.innerHTML = `${svg("post")}${postfachNeu ? `<span class="pk-zahl">${postfachNeu > 99 ? "99+" : postfachNeu}</span>` : ""}`; pk.setAttribute("aria-label", `Postkasten${postfachNeu ? ", " + postfachNeu + " neu" : ""}`); }
 }
+/* Gibt es im Laden gerade etwas, das man sich leisten kann? (Reihenfolge-Regeln wie im Laden) */
+function etwasKaufbar() {
+  const r = RUESTUNG[armorCount()]; if (r && r.price <= S.tal) return true;
+  for (const [l, p] of [[AVATARE, "av-"], [RAHMEN, "fr-"]]) { const x = l.filter(i => i.price > 0).find(i => !S.owned.includes(p + i.id)); if (x && x.price <= S.tal) return true; }
+  return [[TITEL, "ti-"], [THEMES, ""]].some(([l, p]) => l.some(i => i.price > 0 && i.price <= S.tal && !S.owned.includes(p + i.id)));
+}
+/* Talente einheitlich: jeder sichtbare Text „+N Talente“ wird zu „+N“ mit der Licht-Münze */
+function talMarken(root) {
+  if (!root || root.nodeType !== 1 && root.nodeType !== 3) return;
+  const RE = /\+(\d+) Talente?\b/g, treffer = [];
+  if (root.nodeType === 3) { if (RE.test(root.nodeValue)) treffer.push(root); }
+  else { const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); while (w.nextNode()) { RE.lastIndex = 0; if (RE.test(w.currentNode.nodeValue)) treffer.push(w.currentNode); } }
+  treffer.forEach(n => { if (!n.parentNode || n.parentNode.closest("script,style,textarea")) return;
+    const s = document.createElement("span"); s.innerHTML = esc(n.nodeValue).replace(RE, `<span class="tal-n">+$1${TAL_MUENZE}</span>`);
+    n.replaceWith(...s.childNodes); });
+}
+new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(talMarken))).observe(document.body, { childList: true, subtree: true });
 function applyTheme() { document.body.dataset.acc = S.theme; }
 
 /* ---------- Spieler-Optik (Avatar, Rahmen, Titel, Rüstung) ---------- */
@@ -493,7 +515,7 @@ function tabbarSetzen(name) {
   const aktiv = TAB_VON[name] || name;
   document.body.dataset.tab = name === "name" ? "" : aktiv;
   if (!nav.dataset.fertig) {
-    nav.innerHTML = TABS.map(([k, t, i]) => `<button data-tab="${k}" aria-label="${t}"><span class="tb-ic">${svg(i)}</span><span>${t}</span>${k === "ich" ? `<span class="tb-badge" id="tbTal">${S.tal}</span>` : ""}</button>`).join("");
+    nav.innerHTML = TABS.map(([k, t, i]) => `<button data-tab="${k}" aria-label="${t}"><span class="tb-ic">${svg(i)}</span><span>${t}</span>${k === "ich" ? `<span class="tb-punkt" id="tbTal" ${etwasKaufbar() ? "" : "hidden"} aria-label="Im Laden ist etwas kaufbar"></span>` : ""}</button>`).join("");
     nav.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { SFX.tap(); go(b.dataset.tab); });
     nav.dataset.fertig = "1";
   }
@@ -615,7 +637,7 @@ function naechsteLektion() {
 }
 const ringSvg = (anteil, farbe, text = "", gr = 36) => { const r = gr / 2 - 4, C = 2 * Math.PI * r;
   return `<svg class="mring" viewBox="0 0 ${gr} ${gr}" style="width:${gr}px;height:${gr}px" aria-hidden="true"><circle cx="${gr / 2}" cy="${gr / 2}" r="${r}" fill="none" stroke="#ffffff17" stroke-width="5"/><circle cx="${gr / 2}" cy="${gr / 2}" r="${r}" fill="none" stroke="${farbe}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - Math.min(1, anteil))}" transform="rotate(-90 ${gr / 2} ${gr / 2})"/>${text ? `<text x="${gr / 2}" y="${gr / 2 + 4.2}" text-anchor="middle" font-size="${gr > 40 ? 13 : 11.5}" font-weight="900" fill="currentColor" font-family="Nunito, sans-serif">${text}</text>` : ""}</svg>`; };
-const TAL_MUENZE = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="#f2c14e"/><circle cx="12" cy="12" r="6" fill="none" stroke="#a8781a" stroke-width="2"/></svg>`;
+const TAL_MUENZE = svg("tal"); /* das eine Talente-Symbol (Licht-Münze, definiert in index.html) */
 
 /* Schatztruhe öffnen: Truhe fliegt in die Mitte, wackelt, springt auf – Licht, Münzen, Belohnung */
 function truheOeffnen(von) {
@@ -623,7 +645,7 @@ function truheOeffnen(von) {
   S.dq.geschafft = true; S.dq.bonus = true; save();
   const ov = document.createElement("div"); ov.className = "truhe-fx"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-label", "Schatztruhe");
   const muenzen = Array.from({ length: 22 }, (_, i) => { const w = (i / 22) * Math.PI * 2 + Math.random() * .3, d = 110 + Math.random() * 90;
-    return `<i class="tf-muenze" style="--dx:${Math.cos(w) * d}px;--dy:${Math.sin(w) * d - 60}px;--r:${Math.random() * 720 - 360}deg;--v:${Math.random() * .25}s">${i % 5 ? TAL_MUENZE : svg("gem")}</i>`; }).join("");
+    return `<i class="tf-muenze" style="--dx:${Math.cos(w) * d}px;--dy:${Math.sin(w) * d - 60}px;--r:${Math.random() * 720 - 360}deg;--v:${Math.random() * .25}s">${TAL_MUENZE}</i>`; }).join("");
   const funken = Array.from({ length: 16 }, (_, i) => `<i class="tf-funke" style="--w:${i * 22.5}deg;--v:${Math.random() * .3}s"></i>`).join("");
   ov.innerHTML = `<div class="tf-strahlen"></div><div class="tf-blitz"></div>
     <div class="tf-buehne"><div class="tf-truhe">${truheZu(-1)}${SCHLOSS_X.map((x, i) => `<span class="tf-schloss" style="--x:${x};--v:${i * .22}s">${SCHLOSS(true)}<i class="tf-klick"></i></span><span class="tf-schl" style="--x:${x};--sx:${(i - 1) * 130}px;--v:${i * .22}s">${SCHLUESSEL}</span>`).join("")}</div>${muenzen}${funken}</div>
@@ -1098,7 +1120,7 @@ function badgeGrid(haben, vergleich) {
     return `<div class="label" style="margin:16px 0 8px">${name}</div><div class="badges">${liste.map(b => {
       const got = haben.includes(b.id), cmp = vergleich ? vergleich.includes(b.id) : null;
       return `<div class="badge ${got ? "got" : ""}"><div class="medal">${svg(b.ic, got ? "#2a1d00" : "var(--muted)")}</div><b>${esc(b.name)}</b><span>${esc(b.d)}</span>
-        ${vergleich ? `<span class="cmp"><i class="${got ? "ja" : ""}">${got ? "✓" : "–"}</i><i class="${cmp ? "ja" : ""}">${cmp ? "✓" : "–"}</i></span>` : `<span class="btal">+${b.tal || 5}</span>`}</div>`;
+        ${vergleich ? `<span class="cmp"><i class="${got ? "ja" : ""}">${got ? "✓" : "–"}</i><i class="${cmp ? "ja" : ""}">${cmp ? "✓" : "–"}</i></span>` : `<span class="btal tal-n">+${b.tal || 5}${TAL_MUENZE}</span>`}</div>`;
     }).join("")}</div>`;
   }).join("");
 }
@@ -1110,13 +1132,13 @@ VIEWS.badges = () => {
 /* ---------- Talente-Laden ---------- */
 let shopTab = "ruestung";
 function kaufen(id, preis, el) {
-  if (S.tal < preis) { SFX.wrong(); shakeScreen(); toast(`${svg("gem", "var(--muted)")}<div>Dir fehlen noch <b>${preis - S.tal} Talente</b>.</div>`); return false; }
+  if (S.tal < preis) { SFX.wrong(); shakeScreen(); toast(`${TAL_MUENZE}<div>Dir fehlen noch <b>${preis - S.tal}</b> Talente.</div>`); return false; }
   S.tal -= preis; if (!S.owned.includes(id)) S.owned.push(id);
   SFX.coin(); if (el) { const [x, y] = centerOf(el); burst(x, y, 50, { up: 4 }); }
   save(); renderHud(); checkBadges(); lbSync(); return true;
 }
 /* Schatz-Laden als „Umkleide“: oben Vorschau am eigenen Avatar, darunter Kategorien (ohne seitliches Wischen) und ein 3er-Raster */
-const SHOP_KAT = { ruestung: ["Rüstung", "ar-schild"], avatar: ["Avatare", "av-taube"], rahmen: ["Rahmen", ""], titel: ["Titel", "scroll"], farbe: ["Farben", "gem"] };
+const SHOP_KAT = { ruestung: ["Rüstung", "ar-schild"], avatar: ["Avatare", "av-taube"], rahmen: ["Rahmen", ""], titel: ["Titel", "scroll"], farbe: ["Farben", "regenbogen"] };
 let shopWahl = {};
 VIEWS.shop = (tab, wahl) => {
   if (tab && SHOP_KAT[tab]) shopTab = tab;
@@ -1165,7 +1187,7 @@ VIEWS.shop = (tab, wahl) => {
       : `<span class="kb-titel-ic">${svg(it.id === "none" ? "user" : "scroll")}</span>`;
     const marke = z.art === "aktiv" ? `<span class="pz ok">${z.text}</span>` : z.art === "frei" ? `<span class="pz ok">${it.price > 0 ? "gekauft" : "frei"}</span>` : z.art === "zu" ? `<span class="pz zu">${svg("lock")}</span>` : `<span class="pz ${S.tal >= z.preis ? "" : "arm"}">${z.preis}${muenze}</span>`;
     return `<button class="kb-item ${it.id === sel.id ? "gewaehlt" : ""} ${z.art === "zu" ? "gesperrt" : ""}" data-wahl="${it.id}" aria-label="${esc(it.name)}">${z.art === "aktiv" ? `<span class="an-haken">${svg("check")}</span>` : ""}<span class="vor">${bild}</span><small>${esc(it.name)}</small>${marke}</button>`; };
-  screen.innerHTML = `${seitenKopf("Laden", `${muenze}${S.tal} Talente`)}
+  screen.innerHTML = `${seitenKopf("Laden")}
     <section class="kb-buehne ${shopTab}">
       <div class="podest">${buehneBild}</div>
       <div class="kb-info"><span class="kb-tag">${shopTab === "ruestung" ? `Teil ${RUESTUNG.indexOf(sel) + 1} von 6` : zs.art === "aktiv" ? "Trägst du gerade" : "Vorschau"}</span><b>${esc(sel.name)}</b>
@@ -1174,8 +1196,8 @@ VIEWS.shop = (tab, wahl) => {
     <div class="kb-tabs" role="tablist">${Object.entries(SHOP_KAT).map(([k, [t]]) => `<button role="tab" data-tab="${k}" aria-selected="${shopTab === k}">${katIc(k)}<span>${t}</span></button>`).join("")}</div>
     <div class="kb-grid">${liste.map(kachel).join("")}</div>`;
   wireGo();
-  screen.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { SFX.tap(); VIEWS.shop(b.dataset.tab); });
-  screen.querySelectorAll("[data-wahl]").forEach(b => b.onclick = () => { SFX.tap(); VIEWS.shop(null, b.dataset.wahl); const bh = screen.querySelector(".kb-buehne"); if (bh && bh.getBoundingClientRect().top < 60) bh.scrollIntoView({ behavior: "smooth", block: "center" }); });
+  screen.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { SFX.tap(); const y = scrollY; VIEWS.shop(b.dataset.tab); scrollTo(0, y); });
+  screen.querySelectorAll("[data-wahl]").forEach(b => b.onclick = () => { SFX.tap(); const y = scrollY; VIEWS.shop(null, b.dataset.wahl); scrollTo(0, y); const bh = screen.querySelector(".kb-buehne"); if (bh && bh.getBoundingClientRect().top < 60) bh.scrollIntoView({ behavior: "smooth", block: "center" }); });
   screen.querySelectorAll("[data-buy]").forEach(b => b.onclick = () => {
     const kat = b.dataset.buy, id = b.dataset.id, p = +b.dataset.p;
     const pre = { ruestung: "ar-", av: "av-", fr: "fr-", ti: "ti-", farbe: "" }[kat];
@@ -1445,7 +1467,7 @@ function rankKind() { return rankTab === "kette" ? "kette_" + ketteSub : rankTab
 VIEWS.rank = (tab) => {
   if (tab && RANK_TABS[tab]) rankTab = tab;
   const L = window.LB;
-  let html = `<div class="church rk-head"><img src="logo.png" alt="Logo der Freien Baptisten Eichstätt" onerror="this.remove()"><div><h1>Rangliste</h1><span>Freie Baptisten Eichstätt</span></div></div>`;
+  let html = `<div class="church rk-head"><img src="logo.png" alt="Logo der Freien Baptisten Eichstätt" onerror="this.remove()"><div><h1>Gemeinde</h1><span>Freie Baptisten Eichstätt</span></div></div>`;
   if (!L) { screen.innerHTML = html + `<div class="card"><p class="muted" style="margin:0">Rangliste wird geladen …</p></div>`; wireGo(); return; }
   if (!L.configured) { screen.innerHTML = html + `<div class="card stack"><b>Noch nicht eingerichtet</b><p class="muted small" style="margin:0">Die Rangliste braucht einen gemeinsamen Online-Speicher. Bis dahin kannst du ganz normal spielen – dein Fortschritt wird später übernommen.</p></div>`; wireGo(); return; }
   if (!L.ok) { screen.innerHTML = html + `<div class="card stack"><b>Keine Verbindung</b><p class="muted small" style="margin:0">Für die Rangliste brauchst du Internet. Deine Punkte werden übertragen, sobald du wieder online bist.</p><button class="btn" id="retry">Neu laden</button></div>`; wireGo(); $("retry").onclick = () => location.reload(); return; }
