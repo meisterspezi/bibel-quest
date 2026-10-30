@@ -478,10 +478,28 @@ function clearTimers() { timers.forEach(clearInterval); timers = []; }
 function go(name, arg) {
   clearTimers(); vorlesenStop(); lbUnsub.forEach(u => { try { u(); } catch (e) {} }); lbUnsub = [];
   if (!S.lbName && name !== "name") name = "name";
-  current = name; window.scrollTo(0, 0); (VIEWS[name] || VIEWS.home)(arg);
+  current = name; window.scrollTo(0, 0); document.body.classList.remove("spiel-laeuft");
+  tabbarSetzen(name); (VIEWS[name] || VIEWS.home)(arg);
+}
+/* Untere Menüleiste: zu welchem Reiter gehört eine Ansicht? */
+const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Spielen", "bolt"], ["rank", "Gemeinde", "trophy"], ["ich", "Ich", "user"]];
+const TAB_VON = { lektion: "lernen", lied: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen",
+  shop: "ich", badges: "ich", profil: "ich", share: "ich", wer: "ich", postfach: "ich" };
+function tabbarSetzen(name) {
+  const nav = $("tabbar"); if (!nav) return;
+  const aktiv = TAB_VON[name] || name;
+  document.body.dataset.tab = name === "name" ? "" : aktiv;
+  if (!nav.dataset.fertig) {
+    nav.innerHTML = TABS.map(([k, t, i]) => `<button data-tab="${k}" aria-label="${t}"><span class="tb-ic">${svg(i)}</span><span>${t}</span></button>`).join("");
+    nav.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { SFX.tap(); go(b.dataset.tab); });
+    nav.dataset.fertig = "1";
+  }
+  nav.querySelectorAll("[data-tab]").forEach(b => { const an = b.dataset.tab === aktiv; b.classList.toggle("an", an); if (an) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
 }
 const screen = $("screen");
-const backBtn = (to = "home", txt = "Zurück") => `<button class="back" data-go="${to}">← ${txt}</button>`;
+const backBtn = (to = "home", txt = "Zurück") => `<button class="back" data-go="${to}">${svg("back")}<span>${txt}</span></button>`;
+/* Seitenkopf der Hauptbereiche: Titel links, kleine Info rechts */
+const seitenKopf = (titel, info = "") => `<div class="seitenkopf"><h1>${titel}</h1>${info ? `<span class="pill sk-info">${info}</span>` : ""}</div>`;
 function wireGo() { screen.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { SFX.tap(); go(b.dataset.go, b.dataset.arg); }); }
 
 /* ---------- Antwortmöglichkeiten ---------- */
@@ -554,76 +572,116 @@ function hilfeZeile(buch) {
    ===================================================================== */
 const VIEWS = {};
 
+/* Nächste Lektion für die „Weiter“-Karte: zuerst eine noch nicht geschaffte, dann eine ohne 3 Sterne */
+function naechsteLektion() {
+  let i = GROUPS.findIndex((_, k) => !S.stars[k]);
+  if (i < 0) i = GROUPS.findIndex((_, k) => (S.stars[k] || 0) < 3);
+  return i;
+}
+const ringSvg = (anteil, farbe, text = "", gr = 36) => { const r = gr / 2 - 4, C = 2 * Math.PI * r;
+  return `<svg class="mring" viewBox="0 0 ${gr} ${gr}" style="width:${gr}px;height:${gr}px" aria-hidden="true"><circle cx="${gr / 2}" cy="${gr / 2}" r="${r}" fill="none" stroke="#ffffff17" stroke-width="5"/><circle cx="${gr / 2}" cy="${gr / 2}" r="${r}" fill="none" stroke="${farbe}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - Math.min(1, anteil))}" transform="rotate(-90 ${gr / 2} ${gr / 2})"/>${text ? `<text x="${gr / 2}" y="${gr / 2 + 4.2}" text-anchor="middle" font-size="${gr > 40 ? 13 : 11.5}" font-weight="900" fill="currentColor" font-family="Nunito, sans-serif">${text}</text>` : ""}</svg>`; };
+const TAL_MUENZE = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="#f2c14e"/><circle cx="12" cy="12" r="6" fill="none" stroke="#a8781a" stroke-width="2"/></svg>`;
+
 VIEWS.home = () => {
   neuerTag(); save();
-  const C = 2 * Math.PI * 20;
   const vKey = VERS_DES_TAGES[dayNum(today()) % VERS_DES_TAGES.length];
+  const geschafft = GROUPS.filter((_, k) => S.stars[k]).length;
+  const ni = naechsteLektion();
+  /* Weiter-Karte: nächster Lernschritt – oder, wenn alles mit 3 Sternen geschafft ist, die Kette */
+  const weiter = ni >= 0 ? (() => { const g = GROUPS[ni], st = S.stars[ni] || 0;
+    return `<section class="weiter-karte" data-ar="lernen">
+      <div class="label wk-label">${st ? "Noch mehr Sterne holen" : geschafft ? "Weiter, wo du warst" : "Hier geht's los"}</div>
+      <div class="wk-kopf"><span class="lek-nr">${svg("lek-" + (ni + 1))}</span><div class="wk-tx"><b>${esc(g.name)}</b><span>Lektion ${ni + 1} von ${GROUPS.length} · ${g.books.length} Bücher</span></div>${ringSvg(geschafft / GROUPS.length, "var(--ar-lernen)", `${geschafft}/${GROUPS.length}`, 48)}</div>
+      <div class="wk-schritte">${["Ansehen", "Anhören", "Ordnen"].map(n => `<span>${n}</span>`).join("<i>›</i>")}${st ? `<span class="stars wk-sterne">${STAR(st >= 1)}${STAR(st >= 2)}${STAR(st >= 3)}</span>` : ""}</div>
+      <button class="btn gold breit" data-go="lektion" data-arg="${ni}">${svg("play")} ${st ? "Lektion wiederholen" : geschafft ? "Weiter lernen" : "Erste Lektion starten"}</button>
+    </section>`; })()
+    : `<section class="weiter-karte" data-ar="spielen">
+      <div class="label wk-label">Alle Lektionen mit 3 Sternen!</div>
+      <div class="wk-kopf"><span class="lek-nr">${svg("kette-bibel")}</span><div class="wk-tx"><b>Die ganze Kette</b><span>1. Mose bis Offenbarung ohne Fehler</span></div></div>
+      <button class="btn gold breit" data-go="spielen">${svg("play")} Zur Kette</button></section>`;
   const erledigt = S.dq.items.filter(i => i.done).length;
   const aufg = S.dq.items.map(it => { const a = AUFGABEN.find(x => x.id === it.id); if (!a) return ""; const pr = Math.min(it.prog, a.ziel);
-    return `<li class="${it.done ? "done" : ""}"><span class="qcheck">${it.done ? svg("check") : ""}</span><span class="qtext">${esc(a.text)}</span><span class="qbar"><i style="width:${pr / a.ziel * 100}%"></i></span><span class="qval">${pr}/${a.ziel}</span></li>`; }).join("");
+    return `<li class="${it.done ? "done" : ""}">${ringSvg(pr / a.ziel, it.done ? "var(--good)" : "var(--accent)", it.done ? "✓" : "", 30)}<span>${esc(a.text)}<small>${pr}/${a.ziel}</small></span></li>`; }).join("");
   const sterne = Object.values(S.stars).reduce((a, b) => a + b, 0);
-  screen.innerHTML = `
-  <div class="titel-wappen"><div class="halo"></div><img src="logo.png" alt="Logo der Freien Baptisten Eichstätt" onerror="this.remove()"><h1>Bibelbuch-Quest</h1><div class="linie"><i></i><span>Alle <b>66</b> Bücher – Schritt für Schritt</span><i></i></div></div>
-  <div class="stack" style="margin-top:12px">
-    ${monatsversHtml() || versHtml(vKey, "tag klein")}
-    ${(() => { const f = Object.entries(KETTEN).map(([id, k]) => ({ id, k, t: S.meister[id] || [] })).filter(x => x.t.length && siegelRest(x.t) <= 5).sort((a, b) => siegelRest(a.t) - siegelRest(b.t))[0];
-      return f ? `<button class="erinnerung" data-go="spielen">${siegelHtml(siegelStufe(f.t), siegelFrisch(f.t), true)}<span><b>${siegelFrisch(f.t) ? `Dein Siegel „${esc(f.k.name)}“ verblasst in ${siegelRest(f.t)} Tag(en)` : `Dein Siegel „${esc(f.k.name)}“ ist verblasst`}</b><span class="small muted">Jetzt die Kette wiederholen und auffrischen${siegelFrisch(f.t) ? "" : ` (+${AUFFRISCH_TAL} Talente)`}</span></span></button>` : ""; })()}
-    <button class="bereich" data-go="lernen"><span class="b-ic">${svg("book")}</span><span class="b-tx"><b>Lernen</b><span>Lektionen · Lieder · Spickzettel</span></span><span class="b-info">${sterne}/24 ★</span></button>
-    <button class="bereich" data-go="spielen"><span class="b-ic">${svg("bolt")}</span><span class="b-tx"><b>Spielen</b><span>Blitz-Runde · Die Kette · Lückenquiz</span></span><span class="b-info">${S.bestBlitz ? "Rekord " + S.bestBlitz : ""}</span></button>
-    <button class="bereich" data-go="rank"><span class="b-ic">${svg("trophy")}</span><span class="b-tx"><b>Gemeinschaft</b><span>${S.lbName ? `Rangliste · ${S.weekKey === weekKey() ? S.weekXp : 0} XP diese Woche` : "Rangliste der Gemeinde"}</span></span><span class="b-info"></span></button>
-    <nav class="leiste" aria-label="Weitere Bereiche">
-      <button data-go="shop">${svg("shop")}<span>Laden</span></button>
-      <button data-go="badges">${svg("medal")}<span>Abzeichen</span></button>
-      <button data-go="profil">${svg("user")}<span>Profil</span></button>
-      <button data-go="share">${svg("share")}<span>Teilen</span></button>
-      ${deferredInstall ? `<button id="installBtn">${svg("down")}<span>Installieren</span></button>` : ""}
-    </nav>
-    <div class="card heute ${S.dq.bonus ? "fertig" : ""}">
-      <div class="heute-kopf">
-        <svg class="ring" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--surface2)" stroke-width="6"/><circle cx="24" cy="24" r="20" fill="none" stroke="${S.dq.bonus ? "var(--good)" : "var(--accent)"}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - erledigt / 3)}" transform="rotate(-90 24 24)"/><text x="24" y="29" text-anchor="middle" fill="var(--fg)" font-weight="900" font-size="14" font-family="Nunito, sans-serif">${erledigt}/3</text></svg>
-        <div class="heute-titel"><b>Tagesaufgaben</b><span class="small muted">${S.dq.bonus ? "Geschafft – bis morgen!" : "Bonus für alle 3 →"}</span></div>
-        <div class="preis ${S.dq.bonus ? "erhalten" : ""}" aria-label="Belohnung: ${AUFGABE_BONUS_XP} XP und ${AUFGABE_BONUS} Talente${S.dq.bonus ? ", erhalten" : ""}">
-          <span class="preis-xp">+${AUFGABE_BONUS_XP}<small>XP</small></span>
-          <span class="preis-tal"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="#f2c14e"/><circle cx="12" cy="12" r="6" fill="none" stroke="#a8781a" stroke-width="2"/></svg>+${AUFGABE_BONUS}</span>
-          ${S.dq.bonus ? `<span class="preis-ok">${svg("check")}</span>` : ""}
-        </div>
-      </div>
-      <ul class="quests">${aufg}</ul>
+  const wocheXp = S.weekKey === weekKey() ? S.weekXp : 0;
+  const siegel = (() => { const f = Object.entries(KETTEN).map(([id, k]) => ({ id, k, t: S.meister[id] || [] })).filter(x => x.t.length && siegelRest(x.t) <= 5).sort((a, b) => siegelRest(a.t) - siegelRest(b.t))[0];
+      return f ? `<button class="erinnerung" data-go="spielen">${siegelHtml(siegelStufe(f.t), siegelFrisch(f.t), true)}<span><b>${siegelFrisch(f.t) ? `Dein Siegel „${esc(f.k.name)}“ verblasst in ${siegelRest(f.t)} Tag(en)` : `Dein Siegel „${esc(f.k.name)}“ ist verblasst`}</b><span class="small muted">Jetzt die Kette wiederholen und auffrischen${siegelFrisch(f.t) ? "" : ` (+${AUFFRISCH_TAL} Talente)`}</span></span></button>` : ""; })();
+  screen.innerHTML = `<div class="stack start">
+    <button class="vers-zeile" id="versZeile" aria-expanded="false">${monatsversHtml() || versHtml(vKey, "tag klein")}<span class="vz-mehr">mehr</span></button>
+    ${siegel}
+    ${weiter}
+    <section class="heute2 ${S.dq.bonus ? "fertig" : ""}" aria-label="Tagesaufgaben">
+      <div class="h2-kopf"><b>Heute</b><span class="small muted">${S.dq.bonus ? "Geschafft!" : `${erledigt}/3 · ca. ${AUFGABEN_MAX_MIN} Min.`}</span>
+        <span class="h2-preis ${S.dq.bonus ? "erhalten" : ""}" aria-label="Belohnung für alle drei: ${AUFGABE_BONUS_XP} XP und ${AUFGABE_BONUS} Talente">${S.dq.bonus ? svg("check") : ""}+${AUFGABE_BONUS_XP} XP · +${AUFGABE_BONUS}${TAL_MUENZE}</span></div>
+      <ul class="h2-liste">${aufg}</ul>
+    </section>
+    <div class="duo">
+      <button class="mini-karte" data-go="blitz"><span class="lek-nr">${svg("bolt")}</span><b>Blitz-Runde</b><span>${S.bestBlitz ? "Rekord " + S.bestBlitz : "60 Sekunden"}</span></button>
+      <button class="mini-karte" data-go="rank"><span class="lek-nr">${svg("trophy")}</span><b>Rangliste</b><span>${S.lbName ? `${wocheXp} XP diese Woche` : "der Gemeinde"}</span></button>
     </div>
     ${entwickler && postfachNeu ? `<button class="erinnerung pf-hinweis" data-go="postfach">${svg("chat")}<span><b>${postfachNeu} ${postfachNeu === 1 ? "neue Meldung" : "neue Meldungen"} im Postkasten</b><span class="small muted">Feedback, Status und Datenbank</span></span></button>` : ""}
+  </div>`;
+  wireGo();
+  const vz = $("versZeile"); vz.onclick = () => { const auf = vz.getAttribute("aria-expanded") !== "true"; vz.setAttribute("aria-expanded", auf); };
+  requestAnimationFrame(() => { const bq = vz.querySelector("blockquote"); if (bq && bq.scrollHeight <= bq.clientHeight + 2) vz.classList.add("passt"); });
+  void sterne;
+};
+
+/* ---------- Ich: alles Persönliche an einem Ort ---------- */
+VIEWS.ich = () => {
+  const n = levelOf(S.xp);
+  const kachel = (go, ic, t, info) => `<button class="ich-kachel" data-go="${go}"><span class="lek-nr">${svg(ic)}</span><b>${t}</b><span>${info}</span></button>`;
+  screen.innerHTML = `${seitenKopf("Ich")}
+  <button class="card ich-kopf" data-go="profil">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "?" }, 64)}
+    <span class="ik-tx"><b>${esc(S.lbName || "Noch ohne Namen")}</b><span>${esc(rangVon())} · Level ${n}</span>${ruestungHtml(armorCount())}</span><span class="ik-pfeil">›</span></button>
+  <div class="ich-raster">
+    ${kachel("shop", "shop", "Laden", `${S.tal} Talente`)}
+    ${kachel("badges", "medal", "Abzeichen", `${S.badges.length} von ${BADGES.length}`)}
+    ${kachel("profil", "user", "Profil", "Titel, Siegel, Werte")}
+    ${kachel("share", "share", "Teilen", "QR-Code für Freunde")}
+  </div>
+  <div class="stack ich-weiteres">
+    <button class="bereich klein" id="ichWer"><span class="b-ic">${svg("people")}</span><span class="b-tx"><b>Wer spielt?</b><span>Spieler wechseln oder hinzufügen</span></span><span class="b-info">›</span></button>
+    ${deferredInstall ? `<button class="bereich klein" id="installBtn"><span class="b-ic">${svg("down")}</span><span class="b-tx"><b>App installieren</b><span>Auf den Startbildschirm legen · +10 Talente</span></span><span class="b-info">›</span></button>` : ""}
+    ${entwickler ? `<button class="bereich klein" data-go="postfach"><span class="b-ic">${svg("post")}</span><span class="b-tx"><b>Postkasten</b><span>${postfachNeu ? postfachNeu + " neu" : "Feedback und Meldungen"}</span></span><span class="b-info">›</span></button>` : ""}
     <button class="feedback-link" id="fbLink">${svg("chat")} Idee oder Fehler? Feedback an den Entwickler</button>
   </div>`;
   wireGo();
   $("fbLink").onclick = () => { SFX.tap(); feedbackOeffnen(); };
-  const ib = $("installBtn"); if (ib) ib.onclick = async () => { SFX.tap(); deferredInstall.prompt(); try { await deferredInstall.userChoice; } catch (e) {} deferredInstall = null; go("home"); };
+  $("ichWer").onclick = () => { SFX.tap(); $("hWer").click(); };
+  const ib = $("installBtn"); if (ib) ib.onclick = async () => { SFX.tap(); deferredInstall.prompt(); try { await deferredInstall.userChoice; } catch (e) {} deferredInstall = null; go("ich"); };
 };
 
 /* ---------- Bereich Lernen ---------- */
-VIEWS.lernen = () => {
+let lernTeil = null;
+VIEWS.lernen = (teil) => {
   const { atP, ntP } = fortschritt();
-  const lektion = (g, i) => { const st = S.stars[i] || 0; return `<button class="lek ${st ? "done" : ""}" data-go="lektion" data-arg="${i}"><span class="lek-nr" aria-label="Lektion ${i + 1}">${svg("lek-" + (i + 1))}</span><span class="lek-tx"><b>${g.name}</b><span>${g.books.length} Bücher · ${g.books[0]} – ${g.books[g.books.length - 1]}</span></span><span class="stars">${STAR(st >= 1)}${STAR(st >= 2)}${STAR(st >= 3)}</span></button>`; };
-  screen.innerHTML = `${backBtn()}<h1>Lernen</h1>
-  <p class="muted small" style="margin:0 0 12px">Jede Lektion hat drei Schritte: ansehen, anhören, selbst ordnen.</p>
-  <div class="titelzeile"><span class="tag at">AT</span> <b>${esc(AT_TITEL[titelIndex(AT_TITEL, atP)][1])}</b><span class="tbar"><i style="width:${atP}%"></i></span><span class="small muted">${atP}%</span></div>
-  <div class="stack lek-liste">${GROUPS.slice(0, 5).map((g, i) => lektion(g, i)).join("")}</div>
-  <div class="titelzeile" style="margin-top:16px"><span class="tag nt">NT</span> <b>${esc(NT_TITEL[titelIndex(NT_TITEL, ntP)][1])}</b><span class="tbar"><i style="width:${ntP}%"></i></span><span class="small muted">${ntP}%</span></div>
-  <div class="stack lek-liste">${GROUPS.slice(5).map((g, i) => lektion(g, i + 5)).join("")}</div>
-  <div class="label" style="margin:20px 0 8px">Lied</div>
-  <div class="stack">
-    <button class="bereich klein" data-go="lied"><span class="b-ic">${svg("music")}</span><span class="b-tx"><b>In des Alten Bundes Schriften</b><span>Mitlesen und anhören · ${S.songHeard.length}/8 Strophen</span></span></button>
-  </div>
-  <div class="label" style="margin:20px 0 8px">Nachschlagen</div>
-  <button class="bereich klein" data-go="learn"><span class="b-ic">${svg("eye")}</span><span class="b-tx"><b>Spickzettel</b><span>Alle 66 Bücher auf einen Blick, zum Abdecken</span></span></button>`;
+  const ni = naechsteLektion();
+  if (teil === "at" || teil === "nt") lernTeil = teil;
+  if (!lernTeil) lernTeil = ni >= 5 ? "nt" : "at";
+  const sterne = Object.values(S.stars).reduce((a, b) => a + b, 0);
+  const lektion = (g, i) => { const st = S.stars[i] || 0, jetzt = i === ni; return `<button class="lek ${st ? "done" : ""} ${jetzt ? "jetzt" : ""}" data-go="lektion" data-arg="${i}"><span class="lek-nr" aria-label="Lektion ${i + 1}">${svg("lek-" + (i + 1))}</span><span class="lek-tx"><b>${g.name}</b><span>${g.books.length} Bücher · ${g.books[0]} – ${g.books[g.books.length - 1]}</span></span>${jetzt ? `<span class="jetzt-chip">${st ? "Sterne holen" : "Weiter"} ›</span>` : `<span class="stars">${STAR(st >= 1)}${STAR(st >= 2)}${STAR(st >= 3)}</span>`}</button>`; };
+  const at = lernTeil === "at", P = at ? atP : ntP, T = at ? AT_TITEL : NT_TITEL;
+  screen.innerHTML = `${seitenKopf("Lernen", `${STAR(true)}${sterne} / ${GROUPS.length * 3}`)}
+  <div class="seg" role="tablist" aria-label="Testament"><button role="tab" data-teil="at" aria-selected="${at}">Altes Testament</button><button role="tab" data-teil="nt" aria-selected="${!at}">Neues Testament</button></div>
+  <div class="titelzeile"><span class="tag ${lernTeil}">${lernTeil.toUpperCase()}</span> <b>${esc(T[titelIndex(T, P)][1])}</b><span class="tbar"><i style="width:${P}%"></i></span><span class="small muted">${P}%</span></div>
+  <div class="stack lek-liste">${(at ? GROUPS.slice(0, 5) : GROUPS.slice(5)).map((g, k) => lektion(g, at ? k : k + 5)).join("")}</div>
+  <p class="small muted lern-hinweis">Jede Lektion: ${svg("eye")} ansehen · ${svg("music")} anhören · ${svg("step")} selbst ordnen</p>
+  <div class="duo">
+    <button class="mini-karte" data-go="lied"><span class="lek-nr">${svg("music")}</span><b>Lied</b><span>${S.songHeard.length}/8 Strophen</span></button>
+    <button class="mini-karte" data-go="learn"><span class="lek-nr">${svg("eye")}</span><b>Spickzettel</b><span>Alle 66 Bücher</span></button>
+  </div>`;
   wireGo();
+  screen.querySelectorAll("[data-teil]").forEach(b => b.onclick = () => { SFX.tap(); lernTeil = b.dataset.teil; VIEWS.lernen(); });
 };
 
 /* ---------- Bereich Spielen ---------- */
 VIEWS.spielen = () => {
-  screen.innerHTML = `${backBtn()}<h1>Spielen</h1>
+  screen.innerHTML = `${seitenKopf("Spielen")}
   <div class="stack">
     <button class="bereich" data-go="blitz"><span class="b-ic">${svg("bolt")}</span><span class="b-tx"><b>Blitz-Runde</b><span>60 Sekunden: Was kommt danach?</span></span><span class="b-info">${S.bestBlitz ? "Rekord " + S.bestBlitz : ""}</span></button>
-    <div class="label" style="margin:10px 0 0">Die Kette – ein Fehler beendet sie</div>
-    <p class="small muted" style="margin:0">Wer eine Kette komplett schafft, bekommt ein Siegel. Wiederhole sie in verschiedenen Wochen und Monaten für Silber, Gold und Diamant. Nach ${SIEGEL_FRISCH} Tagen verblasst ein Siegel – dann einfach auffrischen.</p>
+    <details class="erklaer"><summary><span class="label">Die Kette – ein Fehler beendet sie</span><span class="ek-i" aria-label="Erklärung">?</span></summary>
+    <p class="small muted">Wer eine Kette komplett schafft, bekommt ein Siegel. Wiederhole sie in verschiedenen Wochen und Monaten für Silber, Gold und Diamant. Nach ${SIEGEL_FRISCH} Tagen verblasst ein Siegel – dann einfach auffrischen.</p></details>
     ${Object.entries(KETTEN).map(([id, k]) => { const max = k.seq.length, rec = kettenBuecher(k.key), voll = rec >= max, t = S.meister[id] || [], st = siegelStufe(t), fr = siegelFrisch(t);
       return `<button class="kette-karte ${voll ? "voll" : ""}" data-k="${id}"><div class="ic">${st ? siegelHtml(st, fr) : svg("kette-" + id)}</div>
         <div class="kk-text"><b>${k.name}</b><span class="small muted">${st ? `${SIEGEL[st].name}-Siegel · ${fr ? "frisch noch " + siegelRest(t) + " Tage" : "verblasst – auffrischen!"}` : k.info}</span><span class="progress kk"><i style="width:${rec / max * 100}%"></i></span></div>
@@ -764,7 +822,7 @@ VIEWS.gap = (arg) => {
     const idx = alleTexte.indexOf(L.t);
     const nah = shuffle([...new Set([idx - 2, idx - 1, idx + 1, idx + 2, idx + 3].filter(j => j >= 0 && j < alleTexte.length).map(j => alleTexte[j]).filter(t => t !== L.t))]).slice(0, 3);
     while (nah.length < 3) { const r = pick(alleTexte); if (r !== L.t && !nah.includes(r)) nah.push(r); }
-    screen.innerHTML = `${backBtn(alle ? "spielen" : "lied", "Zurück")}<h1>Lückenquiz${alle ? "" : " · Strophe " + (L.vi + 1)}</h1>
+    screen.innerHTML = `${backBtn(alle ? "spielen" : "lied", alle ? "Spielen" : "Lied")}<h1>Lückenquiz${alle ? "" : " · Strophe " + (L.vi + 1)}</h1>
       <div class="stack"><div class="topline"><span>${k + 1} / ${luecken.length}</span><span>Fehler: ${fehler}</span></div>
       <div class="progress"><i style="width:${k / luecken.length * 100}%"></i></div>
       <div class="card"><p class="liedtext gross" id="gapText">${strophe}</p></div>
@@ -828,6 +886,7 @@ VIEWS.blitz = () => {
   screen.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playBlitz(b.dataset.s)); });
 };
 function countdown(cb) {
+  document.body.classList.add("spiel-laeuft");
   let n = 3; screen.innerHTML = `<div class="result" style="padding-top:80px"><div class="big" id="cd">3</div></div>`; SFX.tick();
   const t = setInterval(() => { n--; if (n <= 0) { clearInterval(t); tone(1047, 0, .25, "triangle", .2); cb(); } else { $("cd").textContent = n; $("cd").style.animation = "none"; void $("cd").offsetWidth; $("cd").style.animation = "pop .3s"; SFX.tick(); } }, 700); timers.push(t);
 }
@@ -893,7 +952,7 @@ const KETTEN = {
 const kettenBuecher = (key) => (S[key] ? S[key] + 1 : 0);
 VIEWS.chain = () => { go("spielen"); };
 VIEWS._chainAlt = () => {
-  screen.innerHTML = `${backBtn()}<h1>Die Kette</h1>
+  screen.innerHTML = `${backBtn("spielen", "Spielen")}<h1>Die Kette</h1>
   <p class="muted small" style="margin:0 0 10px">Immer das nächste Buch – ein Fehler beendet die Kette. Die Lied-Hilfe gibt es nur im Lernteil.</p>
   <div class="stack">${Object.entries(KETTEN).map(([id, k]) => { const max = k.seq.length, rec = kettenBuecher(k.key), voll = rec >= max;
     return `<button class="kette-karte ${voll ? "voll" : ""}" data-k="${id}">
@@ -981,7 +1040,7 @@ function badgeGrid(haben, vergleich) {
   }).join("");
 }
 VIEWS.badges = () => {
-  screen.innerHTML = `${backBtn()}<h1>Abzeichen</h1><p class="muted small" style="margin:0 0 4px">${S.badges.length} von ${BADGES.length} gesammelt · jedes bringt Talente.</p>${badgeGrid(S.badges)}`;
+  screen.innerHTML = `${backBtn("ich", "Ich")}<h1>Abzeichen</h1><p class="muted small" style="margin:0 0 4px">${S.badges.length} von ${BADGES.length} gesammelt · jedes bringt Talente.</p>${badgeGrid(S.badges)}`;
   wireGo();
 };
 
@@ -1029,7 +1088,7 @@ VIEWS.shop = (tab) => {
     inhalt = THEMES.map(t => karte({ name: t.name, bezug: t.bezug, akt: S.theme === t.id, vor: `<span class="swatch" style="background:linear-gradient(135deg,${t.c},#1b2146)"></span>`, knopf: knopf("farbe", t, S.theme === t.id) })).join("");
 
   }
-  screen.innerHTML = `${backBtn()}<h1>Talente-Laden</h1>
+  screen.innerHTML = `${backBtn("ich", "Ich")}<h1>Talente-Laden</h1>
     <p class="muted small" style="margin:0 0 10px">Talente verdienst du mit Sternen, Tagesaufgaben, Blitz-Runden, Ketten, Abzeichen und Levelaufstiegen.</p>
     ${vorschau}
     <div class="tabs" role="tablist">${SHOP_TABS.map(([id, n]) => `<button role="tab" data-tab="${id}" aria-selected="${shopTab === id}">${n}</button>`).join("")}</div>
@@ -1068,7 +1127,7 @@ function titelKarte(liste, p, tag) {
 VIEWS.profil = () => {
   const me = lbPayload(), { atP, ntP } = fortschritt();
   const L = window.LB, online = L && L.ok;
-  screen.innerHTML = `${backBtn()}<h1>Mein Profil</h1>
+  screen.innerHTML = `${backBtn("ich", "Ich")}<h1>Mein Profil</h1>
   <div class="card profil-kopf">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "Du" }, 84)}
     <div><h2 style="margin:0">${esc(S.lbName || "Noch ohne Namen")}</h2>${!S.pid && !S.offlineOnly ? `<div class="small muted">Erscheint in der Rangliste, sobald Internet da ist.</div>` : ""}<div class="muted">${esc(rangVon())}</div>${ruestungHtml(armorCount(), false)}</div></div>
   <div class="row-btns" style="margin:10px 0"><button class="btn" data-go="shop">Aussehen ändern</button><button class="btn ghost" data-go="badges">Meine Abzeichen</button></div>
@@ -1291,7 +1350,7 @@ function rankKind() { return rankTab === "kette" ? "kette_" + ketteSub : rankTab
 VIEWS.rank = (tab) => {
   if (tab && RANK_TABS[tab]) rankTab = tab;
   const L = window.LB;
-  let html = `${backBtn()}<div class="church rk-head"><img src="logo.png" alt="Logo der Freien Baptisten Eichstätt" onerror="this.remove()"><div><h1>Rangliste</h1><span>Freie Baptisten Eichstätt</span></div></div>`;
+  let html = `<div class="church rk-head"><img src="logo.png" alt="Logo der Freien Baptisten Eichstätt" onerror="this.remove()"><div><h1>Rangliste</h1><span>Freie Baptisten Eichstätt</span></div></div>`;
   if (!L) { screen.innerHTML = html + `<div class="card"><p class="muted" style="margin:0">Rangliste wird geladen …</p></div>`; wireGo(); return; }
   if (!L.configured) { screen.innerHTML = html + `<div class="card stack"><b>Noch nicht eingerichtet</b><p class="muted small" style="margin:0">Die Rangliste braucht einen gemeinsamen Online-Speicher. Bis dahin kannst du ganz normal spielen – dein Fortschritt wird später übernommen.</p></div>`; wireGo(); return; }
   if (!L.ok) { screen.innerHTML = html + `<div class="card stack"><b>Keine Verbindung</b><p class="muted small" style="margin:0">Für die Rangliste brauchst du Internet. Deine Punkte werden übertragen, sobald du wieder online bist.</p><button class="btn" id="retry">Neu laden</button></div>`; wireGo(); $("retry").onclick = () => location.reload(); return; }
@@ -1473,7 +1532,7 @@ function spielerUmbenennen(key) {
 VIEWS.wer = () => {
   geraetSpeichern();
   const liste = GERAET.liste.filter(p => p.name);
-  screen.innerHTML = `${backBtn()}<h1>Wer spielt?</h1>
+  screen.innerHTML = `${backBtn("ich", "Ich")}<h1>Wer spielt?</h1>
   <p class="muted" style="margin:0 0 12px">Spielen mehrere Personen auf diesem Gerät, hat jeder seinen eigenen Fortschritt.</p>
   <div class="stack">${liste.map(p => `<div class="wer-zeile"><button class="rrow wahl ${p.key === GERAET.aktiv ? "me" : ""}" data-key="${esc(p.key)}">${avatarHtml(p, 44)}<div class="who"><b>${esc(p.name)}${p.key === GERAET.aktiv ? '<span class="you">JETZT</span>' : ""}</b><span>Level ${levelOf(p.xp || 0)} · ${(p.xp || 0).toLocaleString("de-DE")} XP</span></div><div class="val">›</div></button><button class="umben" data-umben="${esc(p.key)}" aria-label="${esc(p.name)} umbenennen" title="Umbenennen">${svg("stift")}</button></div>`).join("")}
     <button class="bereich klein" id="wNeu"><span class="b-ic">${svg("user")}</span><span class="b-tx"><b>Weiteren Spieler hinzufügen</b><span>Neu anfangen oder Namen aus der Rangliste wählen</span></span></button>
@@ -1646,7 +1705,7 @@ async function statusBerichte() {
 let postfachFilter = "neu";
 VIEWS.postfach = (kat) => {
   const L = window.LB; if (kat && PK_KAT.some(k => k[0] === kat)) pkKategorie = kat;
-  screen.innerHTML = `${backBtn()}<h1>Postkasten</h1>
+  screen.innerHTML = `${backBtn("ich", "Ich")}<h1>Postkasten</h1>
   <p class="muted small" style="margin:0 0 10px">Nur für dich als Verwalter: Feedback der Spieler, Statusberichte und Meldungen aus der Datenbank.</p>
   <nav class="rk-nav pk-nav" aria-label="Postkasten">${PK_KAT.map(([k, n, ic]) => `<button data-pk="${k}" aria-pressed="${k === pkKategorie}"><span class="rk-ic">${svg(ic)}</span><span>${n}<i class="pk-n" data-pkn="${k}"></i></span></button>`).join("")}</nav>
   <div class="card rk-liste" style="margin-top:10px"><div class="rk-kopf"><div><b>${esc(PK_KAT.find(k => k[0] === pkKategorie)[1])}</b><span class="small muted" id="pkAnz"></span></div>
@@ -1688,7 +1747,7 @@ VIEWS.share = () => {
   const basis = location.origin + location.pathname.replace(/index\.html$/, "");
   const url = basis + (S.lbName && S.pid ? "?von=" + encodeURIComponent(S.pid) : "");
   let qr = ""; try { const q = qrcode(0, "M"); q.addData(url); q.make(); qr = q.createSvgTag({ cellSize: 8, margin: 2, scalable: true }); } catch (e) { qr = '<p style="color:#000">QR-Code konnte nicht erzeugt werden.</p>'; }
-  screen.innerHTML = `${backBtn()}<h1>Mit Freunden teilen</h1>
+  screen.innerHTML = `${backBtn("ich", "Ich")}<h1>Mit Freunden teilen</h1>
   <div class="stack">
     <div class="card stack" style="text-align:center">
       <div class="church" style="justify-content:center"><img src="logo.png" alt="" onerror="this.remove()"><span>Freie Baptisten Eichstätt</span></div>
@@ -1715,7 +1774,7 @@ VIEWS.share = () => {
 
 /* ---------- PWA ---------- */
 let deferredInstall = null;
-addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredInstall = e; if (current === "home") go("home"); });
+addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredInstall = e; if (current === "ich") go("ich"); });
 addEventListener("appinstalled", () => { deferredInstall = null; S.tal += 10; save(); renderHud(); SFX.badge(); toast(`${svg("down", accent())}<div><b>App installiert!</b><div class="small muted">+10 Talente als Dankeschön</div></div>`); });
 if ("serviceWorker" in navigator && location.protocol === "https:") { addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {})); }
 
