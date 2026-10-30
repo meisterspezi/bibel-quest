@@ -256,6 +256,7 @@ const BADGES = [
   { id: "learn", kat: "lernen", name: "Spickzettel", d: "Alle Bücher einmal verdeckt geprüft", ic: "eye", ok: s => s.peeked },
   { id: "song", kat: "lernen", name: "Mit Psalmen und Liedern", d: "Alle 8 Strophen des Liedes angehört", ic: "music", tal: 10, ok: s => (s.songHeard || []).length >= 8 },
   { id: "lueckenlos", kat: "lernen", name: "Lückenlos", d: "Lied-Lückenquiz über das ganze Lied ohne Fehler", ic: "check", tal: 15, ok: s => s.gapPerfect },
+  { id: "versbewahrt", kat: "lernen", name: "Vers bewahrt", d: "Den Lernvers des Monats am Monatsende noch auswendig gewusst", ic: "siegel", tal: 25, ok: s => Object.values(s.lv || {}).some(x => x && x.b) },
 
   { id: "chain39", kat: "koennen", name: "Bis Maleachi", d: "Ganze-Bibel-Kette bis zum Ende des AT", ic: "scroll", ok: s => s.bestChain >= 38 },
   { id: "chain66", kat: "koennen", name: "Alle 66!", d: "Ganze Bibel als Kette ohne Fehler", ic: "crown", tal: 25, ok: s => s.bestChain >= 65 },

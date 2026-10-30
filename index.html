@@ -502,7 +502,7 @@ textarea.field{resize:vertical;min-height:110px;font:inherit}.fb-name{display:fl
 .pf.pk-status{border-left:3px solid var(--ar-lernen)}.pf.pk-datenbank{border-left:3px solid var(--ar-spielen)}.pf.pk-feedback{border-left:3px solid var(--ar-gemeinde)}
 /* Bereichsfarben – dezente Orientierung: Lernen blau, Spielen bernstein, Gemeinde grün, Belohnungen violett */
 :root{--ar-lernen:#7fc8ff;--ar-spielen:#ffb54a;--ar-gemeinde:#5fe0b0;--ar-lohn:#b38cff;--ar:var(--accent)}
-[data-go="lernen"],[data-go="lied"],[data-go="learn"],[data-go="lektion"],[data-go="path"]{--ar:var(--ar-lernen)}
+[data-go="lernen"],[data-go="lernverse"],[data-go="lied"],[data-go="learn"],[data-go="lektion"],[data-go="path"]{--ar:var(--ar-lernen)}
 [data-go="spielen"],[data-go="blitz"],[data-go="chain"],[data-go="gap"]{--ar:var(--ar-spielen)}
 [data-go="rank"],[data-go="profil"],[data-go="share"],[data-go="postfach"]{--ar:var(--ar-gemeinde)}
 [data-go="shop"],[data-go="badges"]{--ar:var(--ar-lohn)}
@@ -948,6 +948,34 @@ body[data-acc="perle"]::after{-webkit-mask:none;mask:none;background:url("data:i
 #rcount{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:20px;min-height:20px}
 .rk-var{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);width:100%;box-sizing:border-box;height:36px}
 .rk-var button{padding:0 4px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:30px}
+
+/* Lernvers des Monats: Karte mit Einprägen-Stufen (Startseite + Archiv) */
+.lv{position:relative;overflow:hidden;padding:13px 15px 12px;border-radius:20px;border:1px solid #f2c14e38;color:var(--fg);
+  background:radial-gradient(80% 120% at 0% 0%,#f2c14e24,transparent 60%),linear-gradient(180deg,#232a58,#1a2048);box-shadow:inset 0 1px 0 #ffffff22,0 10px 26px #0006}
+.lv:after{content:"\201D";position:absolute;right:8px;top:-30px;font:700 8rem/1 var(--serif);color:#f2c14e12;pointer-events:none}
+.lv-kopf{position:relative;z-index:1;display:flex;align-items:center;gap:8px;margin-bottom:7px;min-width:0}
+.lv-ic{flex:0 0 28px;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:radial-gradient(circle at 40% 30%,#f2c14e40,#f2c14e10);box-shadow:0 0 12px #f2c14e40}
+.lv-ic svg{width:20px;height:20px}
+.lv-lab{font:800 .64rem var(--body);letter-spacing:.13em;text-transform:uppercase;color:#f2c14ecc;white-space:nowrap}
+.lv-ref{position:relative;z-index:1;margin:-6px 0 10px;font:800 .74rem var(--body);color:#f2c14ecc;letter-spacing:.02em}
+.lv-stufe{display:flex;gap:4px;flex:0 0 auto;margin-left:auto}.lv-stufe i{width:8px;height:8px;border-radius:50%;background:#ffffff22}.lv-stufe i.an{background:#f2c14e;box-shadow:0 0 6px #f2c14e}
+.lv-siegel{margin-left:auto;flex:0 0 22px;width:22px;height:22px}.lv-siegel svg{width:22px;height:22px;filter:drop-shadow(0 0 6px #f2c14e88)}
+.lv-text{position:relative;z-index:1;font-family:var(--serif);font-style:italic;font-size:1.2rem;line-height:1.45;color:#f6f0dc;margin:2px 0 10px;text-wrap:pretty}
+.lv-luecke{display:inline-block;width:var(--b);height:.95em;vertical-align:-.12em;padding:0;border:0;border-radius:6px;cursor:pointer;background:linear-gradient(180deg,#f2c14e30,#f2c14e18);box-shadow:inset 0 -2px 0 #f2c14e}
+.lv-auf{color:#ffd970;text-shadow:0 0 10px #f2c14e66}
+.lv-hinweis{position:relative;z-index:1;font:700 .78rem/1.35 var(--body);color:var(--muted);margin:-4px 0 10px}
+.lv-fuss{position:relative;z-index:1;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lv-btn{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;border-radius:12px;border:1px solid #ffffff22;background:#ffffff0c;font:800 .8rem var(--body);color:var(--fg);cursor:pointer}
+.lv-btn svg{width:16px;height:16px}
+.lv-btn.rund{width:36px;padding:0;justify-content:center}
+.lv-btn.gold{background:linear-gradient(180deg,#fff2c0,#f2c14e 55%,#c9902a);color:#2a1d02;border-color:#7a4e0c66;box-shadow:0 4px 12px #f2c14e33}
+.lv-btn[data-go]{margin-left:auto}
+.lv-tal{display:inline-flex;align-items:center;gap:2px;margin-left:2px;padding:1px 6px 1px 7px;border-radius:99px;background:#2a1d0218;font-weight:900}
+.lv-tal svg{width:14px;height:14px}
+.lv.uebt{border-color:#f2c14e70;box-shadow:inset 0 1px 0 #ffffff22,0 0 0 3px #f2c14e1c,0 10px 26px #0006}
+.lv.bewahrt{border-color:#f2c14e66}
+.lv-intro{margin:-4px 2px 12px}
+@media (prefers-reduced-motion:no-preference){.lv-auf{animation:lvAuf .35s ease-out}@keyframes lvAuf{from{opacity:0;transform:translateY(3px)}}}
 </style>
 </head>
 <body>

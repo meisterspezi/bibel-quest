@@ -13,7 +13,7 @@ const DEF = {
   tage: [], treueWochen: [], treueBonus: { week: "", stufen: [] }, meister: { bibel: [], at: [], nt: [], rueck: [] },
   siegelGesehen: { bibel: 0, at: 0, nt: 0, rueck: 0 }, aufgefrischt: false, eingeladenVon: "", eingeladen: false, fischerDabei: false, menschenfischer: false,
   songHeard: [], gapPerfect: false, peeked: false, earlyBird: false,
-  dq: { day: "", items: [], bonus: false }, questBonusCount: 0,
+  dq: { day: "", items: [], bonus: false }, questBonusCount: 0, lv: {},
   mute: false, beat: true, gapSing: false, atTi: 0, ntTi: 0,
   lbName: "", pid: "", ownersSet: false, offlineOnly: false, weekKey: "", weekXp: 0, podium: false, wochensieger: false, wochenziel: false,
   ver: 6
@@ -96,6 +96,92 @@ function monatsversHtml() {
   return v ? `<figure class="vers monat klein"><span class="vers-label">Lernvers im ${MONATE[d.getMonth()]}</span><blockquote>${esc(v[0])}</blockquote><figcaption>${esc(v[1])} · ${VERS_QUELLE}</figcaption></figure>` : "";
 }
 const versHtml = (key, cls = "") => { const v = VERSE[key]; return v ? `<figure class="vers ${cls}"><blockquote>${esc(v[0])}</blockquote><figcaption>${esc(v[1])} · ${VERS_QUELLE}</figcaption></figure>` : ""; };
+/* ---------- Lernvers des Monats: Einprägen in 3 Stufen, Bewahren am Monatsende, Archiv ---------- */
+const LV_TAL = [5, 5, 10];       /* Talente für Stufe 1, 2, 3 – je Vers einmal */
+const LV_BEWAHR_TAL = 15;        /* jeden Monat fürs Bewahren */
+const LV_BEWAHR_TAGE = 7;        /* Bewahren geht in den letzten 7 Tagen des Monats */
+const monatKey = (d = new Date()) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+const monatName = k => MONATE[+k.slice(5) - 1] + (k.slice(0, 4) !== String(new Date().getFullYear()) ? " " + k.slice(0, 4) : "");
+const lvStand = k => (S.lv && S.lv[k]) || { st: 0, b: false };
+const lvLetzterTag = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); };
+const lvBewahrAb = () => lvLetzterTag() - LV_BEWAHR_TAGE + 1;
+const lvBewahrFenster = k => k === monatKey() && new Date().getDate() >= lvBewahrAb();
+/* Welche Wörter sind in Stufe n verdeckt? Feste Reihenfolge je Vers, höhere Stufe verdeckt zusätzlich; das erste Wort bleibt als Anker */
+function lvVerdeckt(text, stufe) {
+  const w = text.split(" "), h = i => { let x = 2166136261; for (const c of text + "#" + i) x = Math.imul(x ^ c.charCodeAt(0), 16777619); return x >>> 0; };
+  /* gleichmäßig verteilt: Stufe 1 jedes dritte Wort, Stufe 2 zwei von drei, Stufe 3 alle */
+  const kand = w.map((_, i) => i).filter(i => i > 0 && /\p{L}/u.test(w[i])), o = h(0) % 3;
+  return new Set(kand.filter((_, n) => stufe >= 3 || (n + o) % 3 < stufe));
+}
+let lvUeben = null; /* { k, stufe, art: lernen|bewahren|wiederholen, offen: Set, alle } */
+function lvKarte(k, ort = "home") {
+  const v = MONATSVERSE[k]; if (!v) return "";
+  const s = lvStand(k), u = lvUeben && lvUeben.k === k ? lvUeben : null, aktuell = k === monatKey();
+  const verd = u ? lvVerdeckt(v[0], u.stufe) : new Set();
+  const text = v[0].split(" ").map((w, i) => {
+    if (!verd.has(i)) return esc(w);
+    if (u.alle || u.offen.has(i)) return `<span class="lv-auf">${esc(w)}</span>`;
+    const m = w.match(/^(.*?)([.,;:!?»«„“"'’)]*)$/u);
+    return `<button class="lv-luecke" data-lw="${i}" style="--b:${Math.max(2.2, m[1].length * .5).toFixed(2)}em" aria-label="Wort aufdecken"></button>${esc(m[2])}`;
+  }).join(" ");
+  const tal = n => `<span class="lv-tal">+${n}${TAL_MUENZE}</span>`;
+  const bewahren = aktuell && s.st >= 3 && !s.b && lvBewahrFenster(k);
+  let fuss, hinweis = "";
+  if (u) {
+    fuss = u.alle
+      ? `<button class="lv-btn gold" data-lv="kann">${svg("check")} Gewusst</button><button class="lv-btn" data-lv="nochmal">Nochmal</button>`
+      : `<button class="lv-btn gold" data-lv="auf">${svg("eye")} Aufdecken</button><button class="lv-btn" data-lv="kann">${svg("check")} Kann ich</button>`;
+    fuss += `<button class="lv-btn rund" data-lv="ende" aria-label="Üben beenden">${svg("back")}</button>`;
+    hinweis = u.art === "bewahren" ? "Bewahren: Sag den ganzen Vers auswendig auf." : u.art === "wiederholen" ? "Wiederholen – sag den Vers im Kopf auf." : `Stufe ${u.stufe} von 3 – sag den Vers im Kopf auf, tippe auf eine Lücke als Hilfe.`;
+  } else {
+    fuss = s.st < 3 ? `<button class="lv-btn gold" data-lv="start">${svg("star")} Einprägen ${tal(LV_TAL[s.st])}</button>`
+      : bewahren ? `<button class="lv-btn gold" data-lv="start">${svg("siegel")} Bewahren ${tal(LV_BEWAHR_TAL)}</button>`
+      : `<button class="lv-btn" data-lv="start">${svg("step")} Wiederholen</button>`;
+    fuss += `<button class="lv-btn rund" data-lv="vorlesen" aria-label="Vorlesen">${svg("sound")}</button>`;
+    if (ort === "home") fuss += `<button class="lv-btn" data-go="lernverse" data-arg="home">${svg("scroll")} Archiv</button>`;
+    if (s.st >= 3 && aktuell && !s.b) hinweis = bewahren ? "Monatsende: Weißt du ihn noch? Bewahre den Vers für das Abzeichen." : `Gemeistert! Ab dem ${lvBewahrAb()}. ${MONATE[new Date().getMonth()]} kannst du ihn bewahren.`;
+    if (s.b) hinweis = "Bewahrt – du kennst diesen Vers auswendig.";
+  }
+  const stand = s.b ? `<span class="lv-siegel" aria-label="Bewahrt">${svg("siegel")}</span>` : `<span class="lv-stufe" aria-label="Stufe ${s.st} von 3">${[1, 2, 3].map(i => `<i class="${i <= s.st ? "an" : ""}"></i>`).join("")}</span>`;
+  return `<section class="lv ${u ? "uebt" : ""} ${s.b ? "bewahrt" : ""}" data-lvk="${k}" aria-label="Lernvers ${esc(monatName(k))}">
+    <div class="lv-kopf"><span class="lv-ic">${svg("scroll")}</span><span class="lv-lab">Lernvers ${esc(monatName(k))}</span>${stand}</div>
+    <div class="lv-text">${text}</div><div class="lv-ref">${esc(v[1])} · ${VERS_QUELLE}</div>
+    ${hinweis ? `<div class="lv-hinweis">${hinweis}</div>` : ""}
+    <div class="lv-fuss">${fuss}</div></section>`;
+}
+function lvNeu(k) { const alt = screen.querySelector(`[data-lvk="${k}"]`); if (!alt) return; alt.outerHTML = lvKarte(k, alt.closest(".lv-archiv") ? "archiv" : "home"); lvVerdrahten(); }
+function lvVerdrahten() {
+  screen.querySelectorAll("[data-lvk]").forEach(karte => {
+    const k = karte.dataset.lvk, v = MONATSVERSE[k];
+    karte.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { SFX.tap(); lvUeben = null; go(b.dataset.go, b.dataset.arg); });
+    karte.querySelectorAll("[data-lw]").forEach(b => b.onclick = () => {
+      const u = lvUeben; if (!u) return; SFX.tap(); u.offen.add(+b.dataset.lw);
+      if ([...lvVerdeckt(v[0], u.stufe)].every(i => u.offen.has(i))) u.alle = true; lvNeu(k);
+    });
+    karte.querySelectorAll("[data-lv]").forEach(b => b.onclick = () => {
+      const a = b.dataset.lv, s = lvStand(k);
+      if (a === "vorlesen") { const beat = S.beat; S.beat = false; vorlesen([{ text: v[0] + " – " + v[1].replace(/(\d+),(\d+)/, "$1, Vers $2") }]); S.beat = beat; return; }
+      SFX.tap();
+      if (a === "start") { vorlesenStop(); lvUeben = { k, stufe: s.st < 3 ? s.st + 1 : 3, art: s.st < 3 ? "lernen" : (k === monatKey() && !s.b && lvBewahrFenster(k) ? "bewahren" : "wiederholen"), offen: new Set(), alle: false }; }
+      else if (a === "auf") lvUeben.alle = true;
+      else if (a === "nochmal") { lvUeben.offen = new Set(); lvUeben.alle = false; }
+      else if (a === "ende") lvUeben = null;
+      else if (a === "kann") {
+        const u = lvUeben; lvUeben = null; if (!S.lv) S.lv = {};
+        const neu = { st: s.st, b: s.b }; const [x, y] = centerOf(b);
+        if (u.art === "lernen" && u.stufe > s.st) {
+          neu.st = u.stufe; S.lv[k] = neu; addTal(LV_TAL[u.stufe - 1]); burst(x, y, 40, { up: 4 });
+          toast(`${svg("star", "#f2c14e")}<div><b>${u.stufe < 3 ? `Stufe ${u.stufe} geschafft!` : "Vers gemeistert!"}</b><div class="small muted">+${LV_TAL[u.stufe - 1]} Talente${u.stufe < 3 ? " · weiter mit Stufe " + (u.stufe + 1) : ""}</div></div>`);
+        } else if (u.art === "bewahren" && !s.b) {
+          neu.b = true; S.lv[k] = neu; addTal(LV_BEWAHR_TAL); burst(x, y, 60, { up: 6 }); rain(40);
+          toast(`${svg("siegel", "#f2c14e")}<div><b>Vers bewahrt!</b><div class="small muted">+${LV_BEWAHR_TAL} Talente</div></div>`);
+        } else SFX.right();
+        save(); checkBadges(); lbSync();
+      }
+      lvNeu(k);
+    });
+  });
+}
 const pick = a => a[Math.floor(Math.random() * a.length)];
 
 /* ---------- Sound (Synthesizer) ---------- */
@@ -507,14 +593,14 @@ function itemFrei(kat, it) {
 let current = "home", timers = [], lbUnsub = [];
 function clearTimers() { timers.forEach(clearInterval); timers = []; }
 function go(name, arg) {
-  clearTimers(); vorlesenStop(); lbUnsub.forEach(u => { try { u(); } catch (e) {} }); lbUnsub = [];
+  lvUeben = null; clearTimers(); vorlesenStop(); lbUnsub.forEach(u => { try { u(); } catch (e) {} }); lbUnsub = [];
   if (!S.lbName && name !== "name") name = "name";
   current = name; window.scrollTo(0, 0); document.body.classList.remove("spiel-laeuft");
   tabbarSetzen(name); (VIEWS[name] || VIEWS.home)(arg);
 }
 /* Untere Menüleiste: zu welchem Reiter gehört eine Ansicht? */
 const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Spielen", "bolt"], ["rank", "Gemeinde", "trophy"], ["ich", "Laden", "shop"]];
-const TAB_VON = { lektion: "lernen", lied: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen",
+const TAB_VON = { lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen",
   shop: "ich" };
 function tabbarSetzen(name) {
   const nav = $("tabbar"); if (!nav) return;
@@ -722,7 +808,7 @@ VIEWS.home = () => {
   const siegel = (() => { const f = Object.entries(KETTEN).map(([id, k]) => ({ id, k, t: S.meister[id] || [] })).filter(x => x.t.length && siegelRest(x.t) <= 5).sort((a, b) => siegelRest(a.t) - siegelRest(b.t))[0];
       return f ? `<button class="erinnerung" data-go="spielen">${siegelHtml(siegelStufe(f.t), siegelFrisch(f.t), true)}<span><b>${siegelFrisch(f.t) ? `Dein Siegel „${esc(f.k.name)}“ verblasst in ${siegelRest(f.t)} Tag(en)` : `Dein Siegel „${esc(f.k.name)}“ ist verblasst`}</b><span class="small muted">Jetzt die Kette wiederholen und auffrischen${siegelFrisch(f.t) ? "" : ` (+${AUFFRISCH_TAL} Talente)`}</span></span></button>` : ""; })();
   screen.innerHTML = `<div class="stack start">
-    <button class="vers-zeile" id="versZeile" aria-expanded="false">${monatsversHtml() || versHtml(vKey, "tag klein")}<span class="vz-mehr">mehr</span></button>
+    ${MONATSVERSE[monatKey()] ? lvKarte(monatKey()) : `<button class="vers-zeile" id="versZeile" aria-expanded="false">${versHtml(vKey, "tag klein")}<span class="vz-mehr">mehr</span></button>`}
     ${siegel}
     ${weiter}
     <section class="heute2 ${S.dq.bonus ? "fertig" : ""}" aria-label="Tagesaufgaben">
@@ -735,8 +821,9 @@ VIEWS.home = () => {
   </div>`;
   wireGo();
   const tb = $("truheBtn"); if (tb) tb.onclick = () => truheOeffnen(tb);
-  const vz = $("versZeile"); vz.onclick = () => { const auf = vz.getAttribute("aria-expanded") !== "true"; vz.setAttribute("aria-expanded", auf); };
-  requestAnimationFrame(() => { const bq = vz.querySelector("blockquote"); if (bq && bq.scrollHeight <= bq.clientHeight + 2) vz.classList.add("passt"); });
+  lvVerdrahten();
+  const vz = $("versZeile"); if (vz) { vz.onclick = () => { const auf = vz.getAttribute("aria-expanded") !== "true"; vz.setAttribute("aria-expanded", auf); };
+    requestAnimationFrame(() => { const bq = vz.querySelector("blockquote"); if (bq && bq.scrollHeight <= bq.clientHeight + 2) vz.classList.add("passt"); }); }
   void sterne;
 };
 
@@ -761,9 +848,20 @@ VIEWS.lernen = (teil) => {
   <div class="duo">
     <button class="mini-karte" data-go="lied"><span class="lek-nr">${svg("music")}</span><b>Lied</b><span>${S.songHeard.length}/8 Strophen</span></button>
     <button class="mini-karte" data-go="learn"><span class="lek-nr">${svg("eye")}</span><b>Spickzettel</b><span>Alle 66 Bücher</span></button>
-  </div>`;
+  </div>
+  <button class="bereich klein lv-zugang" data-go="lernverse"><span class="b-ic">${svg("scroll")}</span><span class="b-tx"><b>Lernverse</b><span>Vers des Monats und frühere Verse</span></span><span class="b-info">${Object.keys(MONATSVERSE).filter(k => k <= monatKey() && lvStand(k).st >= 3).length}/${Object.keys(MONATSVERSE).filter(k => k <= monatKey()).length}</span></button>`;
   wireGo();
   screen.querySelectorAll("[data-teil]").forEach(b => b.onclick = () => { SFX.tap(); lernTeil = b.dataset.teil; VIEWS.lernen(); });
+};
+
+/* Archiv: alle Lernverse bis zum laufenden Monat, neuester zuerst */
+VIEWS.lernverse = (zurueck) => {
+  const jetzt = monatKey(), keys = Object.keys(MONATSVERSE).filter(k => k <= jetzt).sort().reverse();
+  const fertig = keys.filter(k => lvStand(k).st >= 3).length, bew = keys.filter(k => lvStand(k).b).length;
+  screen.innerHTML = `${backBtn(zurueck === "home" ? "home" : "lernen")}${seitenKopf("Lernverse", `${fertig}/${keys.length} gemeistert`)}
+    <p class="small muted lv-intro">Alle Lernverse der Gemeinde. Jeden Monat kommt einer dazu – präge sie dir in drei Stufen ein. ${bew ? `Bewahrt: <b>${bew}</b>` : "Am Monatsende kannst du den aktuellen Vers bewahren."}</p>
+    <div class="stack lv-archiv">${keys.map(k => lvKarte(k, "archiv")).join("")}</div>`;
+  wireGo(); lvVerdrahten();
 };
 
 /* ---------- Bereich Spielen ---------- */
@@ -1335,6 +1433,9 @@ function zusammenfuehren(r) {
   if (r.dq && r.dq.day === today() && S.dq && S.dq.day === today()) {
     S.dq.items.forEach((it, k) => { const o = r.dq.items[k]; if (o && o.id === it.id) { it.prog = Math.max(it.prog, o.prog); it.done = it.done || o.done; } }); S.dq.bonus = S.dq.bonus || r.dq.bonus; S.dq.geschafft = S.dq.geschafft || r.dq.geschafft || r.dq.bonus;
   }
+  /* Lernverse: je Monat höchste Stufe, bewahrt bleibt bewahrt */
+  if (!S.lv) S.lv = {};
+  Object.entries(r.lv || {}).forEach(([k, v]) => { if (!v) return; const a = S.lv[k] || { st: 0, b: false }; S.lv[k] = { st: Math.max(a.st || 0, v.st || 0), b: !!(a.b || v.b) }; });
   ["avatar", "frame", "title", "theme"].forEach(k => { if ((S[k] === DEF[k]) && r[k]) S[k] = r[k]; });
   if (r.lbName && !S.lbName) S.lbName = r.lbName;
 }
