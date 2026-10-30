@@ -1,4 +1,4 @@
-const APP_VERSION = "6.20";
+const APP_VERSION = "6.21";
 /* =====================================================================
    Bibelbuch-Quest – Spieldaten
    Bücher (Schlachter 2000), Lieder, Bibelverse (Schlachter 2000 © Genfer Bibelgesellschaft),
@@ -316,7 +316,7 @@ const AUFGABEN = [
   { id: "blitz2", ev: "blitz", ziel: 2, min: 2, text: "2 Blitz-Runden" },
   { id: "station1", ev: "station", ziel: 1, min: 2, text: "1 Lektion" },
   { id: "kette1", ev: "ketteGespielt", ziel: 1, min: 1, text: "1 Ketten-Versuch" },
-  { id: "lied", ev: "lied", ziel: 2, min: 1, text: "2 Liedstrophen hören" },
+  { id: "lied", ev: "lied", ziel: 2, min: 1, text: "2 Strophen hören" },
   { id: "luecke", ev: "luecke", ziel: 1, min: 2, text: "1 Lückenquiz" }
 ];
 const AUFGABEN_MAX_MIN = 5;

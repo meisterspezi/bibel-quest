@@ -397,7 +397,9 @@ function aufgabenAuslosen(t) {
 }
 function aufgabenSicherstellen() {
   const t = today(); if (S.dq && S.dq.day === t && S.dq.items.every(it => AUFGABEN.some(a => a.id === it.id))) return;
+  const alteTruhe = S.dq && S.dq.geschafft && !S.dq.bonus;
   const gew = aufgabenAuslosen(t);
+  if (alteTruhe) setTimeout(() => { addXp(AUFGABE_BONUS_XP); addTal(AUFGABE_BONUS); toast(`${svg("gem", accent())}<div><b>Deine Schatztruhe von gestern</b><div class="small muted">wurde für dich geöffnet: +${AUFGABE_BONUS_XP} XP und +${AUFGABE_BONUS} Talente</div></div>`); }, 1500);
   S.dq = { day: t, items: gew.map(a => ({ id: a.id, prog: 0, done: false })), bonus: false };
 }
 function quest(ev, val = 1) {
@@ -411,11 +413,12 @@ function quest(ev, val = 1) {
       setTimeout(() => { SFX.coin(); toast(`${svg("check", "var(--good)")}<div><b>Tagesaufgabe erledigt</b><div class="small muted">${esc(a.text)} · +${AUFGABE_TAL} Talente</div></div>`); }, 300);
     }
   });
-  if (geaendert && !S.dq.bonus && S.dq.items.every(i => i.done)) {
-    S.dq.bonus = true; S.tal += AUFGABE_BONUS; S.questBonusCount = (S.questBonusCount || 0) + 1;
+  if (geaendert && !S.dq.geschafft && !S.dq.bonus && S.dq.items.every(i => i.done)) {
+    S.dq.geschafft = true; S.questBonusCount = (S.questBonusCount || 0) + 1;
     if (S.lastGoalDay !== today()) { S.goalStreak = S.lastGoalDay === yesterday() ? S.goalStreak + 1 : 1; S.lastGoalDay = today(); S.bestGoalStreak = Math.max(S.bestGoalStreak, S.goalStreak); }
-    setTimeout(() => { addXp(AUFGABE_BONUS_XP); SFX.win(); rain(90); toast(`${svg("target", accent())}<div><b>Alle Tagesaufgaben geschafft!</b><div class="small muted">Tagesbonus +${AUFGABE_BONUS_XP} XP und +${AUFGABE_BONUS} Talente${S.goalStreak > 1 ? " · " + S.goalStreak + " Tage in Folge" : ""}</div></div>`); if (current === "home") go("home"); }, 900);
+    setTimeout(() => { SFX.badge(); toast(`<span class="toast-truhe">${TRUHE_ZU}</span><div><b>Alle Tagesaufgaben geschafft!</b><div class="small muted">Deine Schatztruhe wartet auf der Startseite – öffne sie!</div></div>`); if (current === "home") go("home"); }, 900);
   }
+
   if (geaendert) { renderHud(); checkBadges(); }
 }
 
@@ -572,6 +575,38 @@ function hilfeZeile(buch) {
    ===================================================================== */
 const VIEWS = {};
 
+/* Schatztruhe für den Tagesbonus: zu, solange Aufgaben offen sind; offen mit Lichtschein, wenn alle drei geschafft sind */
+const TRUHE_DEFS = `<defs><linearGradient id="trHolz" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9783c"/><stop offset=".55" stop-color="#8a5226"/><stop offset="1" stop-color="#5a3214"/></linearGradient>
+  <linearGradient id="trGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff6d0"/><stop offset=".45" stop-color="#f2c14e"/><stop offset="1" stop-color="#a06a14"/></linearGradient>
+  <linearGradient id="trInnen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a1f0c"/><stop offset="1" stop-color="#6b3d1a"/></linearGradient>
+  <radialGradient id="trLicht" cx=".5" cy=".75" r=".6"><stop offset="0" stop-color="#fff7c8"/><stop offset=".45" stop-color="#f2c14e" stop-opacity=".55"/><stop offset="1" stop-color="#f2c14e" stop-opacity="0"/></radialGradient></defs>`;
+const TRUHE_KORPUS = `<rect x="7" y="33" width="50" height="25" rx="4" fill="url(#trHolz)" stroke="#3a1f0c" stroke-width="1.6"/>
+  <path d="M9 41h46M9 49h46" stroke="#3a1f0c" stroke-width="1" opacity=".45"/>
+  <rect x="13" y="33" width="5" height="25" fill="url(#trGold)" stroke="#7a4e0c" stroke-width=".8"/><rect x="46" y="33" width="5" height="25" fill="url(#trGold)" stroke="#7a4e0c" stroke-width=".8"/>
+  <rect x="6" y="31" width="52" height="5" rx="2" fill="url(#trGold)" stroke="#7a4e0c" stroke-width=".8"/>
+  <rect x="7" y="55" width="50" height="3.5" rx="1.5" fill="url(#trGold)" stroke="#7a4e0c" stroke-width=".6"/>`;
+/* Goldener Schlüssel (eine Tagesaufgabe = ein Schlüssel) und Vorhängeschloss */
+const SCHLUESSEL = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 10.6h11v2.8h-1.6v3h-2.2v-3h-1.4v2.2h-2.2v-2.2h-3.6z" fill="#f2c14e" stroke="#7a4e0c" stroke-width=".9" stroke-linejoin="round"/><circle cx="7" cy="12" r="5" fill="#f2c14e" stroke="#7a4e0c" stroke-width=".9"/><circle cx="7" cy="12" r="2" fill="#3a2a08"/><path d="M4 9.6a3.6 3.6 0 0 1 3-1.6M12 11.3h8.6" stroke="#fff8d8" stroke-width=".9" stroke-linecap="round" fill="none" opacity=".9"/></svg>`;
+const SCHLOSS = (bereit) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 11V8a4.5 4.5 0 0 1 9 0v3" fill="none" stroke="${bereit ? "#e8d9a8" : "#9aa1b8"}" stroke-width="2.6"/><rect x="4.5" y="10.5" width="15" height="11" rx="2.6" fill="${bereit ? "#f2c14e" : "#8a90a8"}" stroke="${bereit ? "#7a4e0c" : "#3c4158"}" stroke-width="1"/><path d="M6 12.5h12" stroke="#fff" stroke-opacity=".45" stroke-width="1"/><circle cx="12" cy="15" r="1.7" fill="#2a1d02"/><path d="M12 16v2.6" stroke="#2a1d02" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+const SCHLOSS_X = [16, 32, 48];
+/* Geschlossene Truhe; k = Zahl der Schlüssel (0–3) färbt die Schlösser golden, k < 0 = ohne Schlösser (für die Animation) */
+const truheZu = (k = 0) => `<svg viewBox="0 0 64 64" aria-hidden="true">${TRUHE_DEFS}${TRUHE_KORPUS}
+  <path d="M7 33V25C7 15 17 10 32 10S57 15 57 25V33Z" fill="url(#trHolz)" stroke="#3a1f0c" stroke-width="1.6"/>
+  <path d="M13 31V16.5M18 31V13.6M46 31V13.6M51 31V16.5" stroke="#7a4e0c" stroke-width=".6"/>
+  <path d="M13 32V16Q15.5 14.2 18 13.3V32ZM46 32V13.3Q48.5 14.2 51 16V32Z" fill="url(#trGold)" stroke="#7a4e0c" stroke-width=".7"/>
+  <path d="M12 21C16 15 24 13 32 13" stroke="#fff" stroke-opacity=".35" stroke-width="2" fill="none" stroke-linecap="round"/>
+  ${k < 0 ? "" : SCHLOSS_X.map((x, i) => `<g transform="translate(${x - 6.5} 28) scale(.54)">${SCHLOSS(i < k).replace(/<\/?svg[^>]*>/g, "")}</g>`).join("")}</svg>`;
+const TRUHE_ZU = truheZu(3);
+const TRUHE_AUF = `<svg viewBox="0 0 64 64" aria-hidden="true">${TRUHE_DEFS}
+  <ellipse cx="32" cy="24" rx="30" ry="24" fill="url(#trLicht)"/>
+  <g stroke="#fff3b0" stroke-linecap="round" opacity=".75"><path d="M32 22V3" stroke-width="2.2"/><path d="M22 24L13 8M42 24L51 8" stroke-width="1.6"/><path d="M17 28L4 20M47 28L60 20" stroke-width="1.2"/></g>
+  <path d="M9 32L13 12H51L55 32Z" fill="url(#trInnen)" stroke="#3a1f0c" stroke-width="1.4"/>
+  <path d="M13 12H51L52 15H12Z" fill="url(#trGold)" stroke="#7a4e0c" stroke-width=".6"/>
+  <g stroke="#7a4e0c" stroke-width=".7"><circle cx="22" cy="30" r="4.2" fill="url(#trGold)"/><circle cx="29" cy="28.5" r="4.4" fill="url(#trGold)"/><circle cx="37" cy="29" r="4.2" fill="url(#trGold)"/><circle cx="43" cy="30.5" r="3.8" fill="url(#trGold)"/></g>
+  <path d="M31.5 21.5l3.5 3.5-3.5 4-3.5-4z" fill="#b38cff" stroke="#5b2fb0" stroke-width=".8"/><path d="M29.5 25h5" stroke="#fff" stroke-opacity=".6" stroke-width=".8"/>
+  ${TRUHE_KORPUS}
+  <rect x="26" y="31" width="12" height="9" rx="2" fill="url(#trGold)" stroke="#7a4e0c" stroke-width="1"/></svg>`;
+
 /* Nächste Lektion für die „Weiter“-Karte: zuerst eine noch nicht geschaffte, dann eine ohne 3 Sterne */
 function naechsteLektion() {
   let i = GROUPS.findIndex((_, k) => !S.stars[k]);
@@ -581,6 +616,45 @@ function naechsteLektion() {
 const ringSvg = (anteil, farbe, text = "", gr = 36) => { const r = gr / 2 - 4, C = 2 * Math.PI * r;
   return `<svg class="mring" viewBox="0 0 ${gr} ${gr}" style="width:${gr}px;height:${gr}px" aria-hidden="true"><circle cx="${gr / 2}" cy="${gr / 2}" r="${r}" fill="none" stroke="#ffffff17" stroke-width="5"/><circle cx="${gr / 2}" cy="${gr / 2}" r="${r}" fill="none" stroke="${farbe}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - Math.min(1, anteil))}" transform="rotate(-90 ${gr / 2} ${gr / 2})"/>${text ? `<text x="${gr / 2}" y="${gr / 2 + 4.2}" text-anchor="middle" font-size="${gr > 40 ? 13 : 11.5}" font-weight="900" fill="currentColor" font-family="Nunito, sans-serif">${text}</text>` : ""}</svg>`; };
 const TAL_MUENZE = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="#f2c14e"/><circle cx="12" cy="12" r="6" fill="none" stroke="#a8781a" stroke-width="2"/></svg>`;
+
+/* Schatztruhe öffnen: Truhe fliegt in die Mitte, wackelt, springt auf – Licht, Münzen, Belohnung */
+function truheOeffnen(von) {
+  if (S.dq.bonus || document.querySelector(".truhe-fx")) return;
+  S.dq.geschafft = true; S.dq.bonus = true; save();
+  const ov = document.createElement("div"); ov.className = "truhe-fx"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-label", "Schatztruhe");
+  const muenzen = Array.from({ length: 22 }, (_, i) => { const w = (i / 22) * Math.PI * 2 + Math.random() * .3, d = 110 + Math.random() * 90;
+    return `<i class="tf-muenze" style="--dx:${Math.cos(w) * d}px;--dy:${Math.sin(w) * d - 60}px;--r:${Math.random() * 720 - 360}deg;--v:${Math.random() * .25}s">${i % 5 ? TAL_MUENZE : svg("gem")}</i>`; }).join("");
+  const funken = Array.from({ length: 16 }, (_, i) => `<i class="tf-funke" style="--w:${i * 22.5}deg;--v:${Math.random() * .3}s"></i>`).join("");
+  ov.innerHTML = `<div class="tf-strahlen"></div><div class="tf-blitz"></div>
+    <div class="tf-buehne"><div class="tf-truhe">${truheZu(-1)}${SCHLOSS_X.map((x, i) => `<span class="tf-schloss" style="--x:${x};--v:${i * .22}s">${SCHLOSS(true)}<i class="tf-klick"></i></span><span class="tf-schl" style="--x:${x};--sx:${(i - 1) * 130}px;--v:${i * .22}s">${SCHLUESSEL}</span>`).join("")}</div>${muenzen}${funken}</div>
+    <div class="tf-lohn">
+      <div class="tf-titel">Schatz gefunden!</div>
+      <div class="tf-karte tf-xp"><b>+${AUFGABE_BONUS_XP}</b><span>XP</span></div>
+      <div class="tf-karte tf-tal">${TAL_MUENZE}<b>+${AUFGABE_BONUS}</b><span>Talente</span></div>
+      ${S.goalStreak > 1 ? `<div class="tf-serie">${svg("fire")} ${S.goalStreak} Tage in Folge alle Aufgaben!</div>` : ""}
+      <button class="btn gold tf-ok">Super!</button>
+    </div>`;
+  document.body.appendChild(ov);
+  const truhe = ov.querySelector(".tf-truhe");
+  SFX.tap(); requestAnimationFrame(() => ov.classList.add("an"));
+  const t = (ms, f) => setTimeout(f, ms);
+  const klick = () => { tone(1800, 0, .04, "square", .07); tone(900, .04, .08, "square", .06); };
+  t(450, () => ov.classList.add("schluessel"));                                   // drei Schlüssel fliegen zu den Schlössern
+  [0, 1, 2].forEach(i => t(950 + i * 220, () => SFX.tick()));
+  t(1500, () => ov.classList.add("drehen"));                                      // Schlüssel drehen sich
+  [0, 1, 2].forEach(i => t(1600 + i * 220, () => { klick(); vibrate(15); }));
+  t(2250, () => { ov.classList.add("loesen"); SFX.badge(); });                     // Schlösser springen ab
+  t(2600, () => { ov.classList.add("wackeln"); SFX.tick(); });
+  t(2850, () => SFX.tick());
+  t(3150, () => {
+    ov.classList.remove("wackeln"); ov.classList.add("offen"); truhe.innerHTML = TRUHE_AUF; SFX.win(); vibrate([30, 40, 80]);
+    addXp(AUFGABE_BONUS_XP); addTal(AUFGABE_BONUS);
+  });
+  t(3600, () => { ov.classList.add("lohn"); SFX.coin(); });
+  t(3950, () => SFX.coin());
+  const zu = () => { ov.classList.add("weg"); setTimeout(() => { ov.remove(); if (current === "home") go("home"); }, 350); };
+  ov.querySelector(".tf-ok").onclick = () => { SFX.tap(); zu(); };
+}
 
 VIEWS.home = () => {
   neuerTag(); save();
@@ -600,8 +674,21 @@ VIEWS.home = () => {
       <span class="tor-rek">${S.bestBlitz ? `Rekord<b>${S.bestBlitz}</b>` : ""}</span></button>
   </div>`;
   const erledigt = S.dq.items.filter(i => i.done).length;
+  /* Tagesaufgaben als drei Medaillen mit Fortschrittsring; antippen führt dorthin, wo man sie erledigt */
+  const AUFG_ART = { runde: ["step", "spielen", "spielen"], xp: ["star", "home", "spielen"], right: ["target", "spielen", "blitz"], blitz: ["bolt", "spielen", "blitz"],
+    station: ["book", "lernen", "lernen"], ketteGespielt: ["link", "spielen", "spielen"], lied: ["music", "lernen", "lied"], luecke: ["scroll", "spielen", "gap"] };
   const aufg = S.dq.items.map(it => { const a = AUFGABEN.find(x => x.id === it.id); if (!a) return ""; const pr = Math.min(it.prog, a.ziel);
-    return `<li class="${it.done ? "done" : ""}">${ringSvg(pr / a.ziel, it.done ? "var(--good)" : "var(--accent)", it.done ? "✓" : "", 30)}<span>${esc(a.text)}<small>${pr}/${a.ziel}</small></span></li>`; }).join("");
+    const [ic, ar, ziel] = AUFG_ART[a.ev] || ["target", "spielen", "spielen"], C = 2 * Math.PI * 27;
+    return `<li><button class="tq ${it.done ? "done" : ""}" data-ar="${ar}" data-go="${ziel}"${ziel === "gap" ? ' data-arg="alle"' : ""} aria-label="${esc(a.text)}: ${pr} von ${a.ziel}${it.done ? ", erledigt" : ""}">
+      <span class="tq-med"><svg class="tq-ring" viewBox="0 0 60 60" aria-hidden="true"><circle cx="30" cy="30" r="27" fill="none" stroke="#ffffff14" stroke-width="4"/><circle cx="30" cy="30" r="27" fill="none" stroke="var(--tq)" stroke-width="4" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - pr / a.ziel)}" transform="rotate(-90 30 30)"/></svg>
+        <span class="tq-ic">${svg(ic)}</span>${it.done ? `<span class="tq-key">${SCHLUESSEL}</span>` : ""}</span>
+      <span class="tq-text">${esc(a.text)}</span><span class="tq-zahl">${it.done ? "Schlüssel!" : `${pr} / ${a.ziel}`}</span></button></li>`; }).join("");
+  const bereit = !S.dq.bonus && (S.dq.geschafft || erledigt === 3);
+  const truhe = `<li>${S.dq.bonus
+    ? `<div class="tq-preis erhalten" aria-label="Schatztruhe geöffnet: ${AUFGABE_BONUS_XP} XP und ${AUFGABE_BONUS} Talente erhalten"><span class="tp-ic">${TRUHE_AUF}<span class="tq-ok">${svg("check")}</span></span><span class="tp-xp">+${AUFGABE_BONUS_XP}<small> XP</small></span><span class="tp-tal">+${AUFGABE_BONUS}${TAL_MUENZE}</span></div>`
+    : bereit
+    ? `<button class="tq-preis bereit" id="truheBtn" aria-label="Schatztruhe mit drei Schlüsseln öffnen"><span class="tp-ic">${truheZu(3)}</span><span class="tp-keys">${[0, 1, 2].map(i => `<i class="${i < erledigt ? "an" : ""}">${SCHLUESSEL}</i>`).join("")}</span><span class="tp-auf">Öffnen!</span></button>`
+    : `<div class="tq-preis" aria-label="Schatztruhe mit drei Schlössern – ${erledigt} von 3 Schlüsseln"><span class="tp-ic">${truheZu(erledigt)}</span><span class="tp-keys">${[0, 1, 2].map(i => `<i class="${i < erledigt ? "an" : ""}">${SCHLUESSEL}</i>`).join("")}</span><span class="tp-hinweis">${erledigt}/3</span></div>`}</li>`;
   const sterne = Object.values(S.stars).reduce((a, b) => a + b, 0);
   const wocheXp = S.weekKey === weekKey() ? S.weekXp : 0;
   const siegel = (() => { const f = Object.entries(KETTEN).map(([id, k]) => ({ id, k, t: S.meister[id] || [] })).filter(x => x.t.length && siegelRest(x.t) <= 5).sort((a, b) => siegelRest(a.t) - siegelRest(b.t))[0];
@@ -611,13 +698,15 @@ VIEWS.home = () => {
     ${siegel}
     ${weiter}
     <section class="heute2 ${S.dq.bonus ? "fertig" : ""}" aria-label="Tagesaufgaben">
-      <div class="h2-kopf"><b>Heute</b><span class="small muted">${S.dq.bonus ? "Geschafft!" : `${erledigt}/3 · ca. ${AUFGABEN_MAX_MIN} Min.`}</span>
-        <span class="h2-preis ${S.dq.bonus ? "erhalten" : ""}" aria-label="Belohnung für alle drei: ${AUFGABE_BONUS_XP} XP und ${AUFGABE_BONUS} Talente">${S.dq.bonus ? svg("check") : ""}+${AUFGABE_BONUS_XP} XP · +${AUFGABE_BONUS}${TAL_MUENZE}</span></div>
-      <ul class="h2-liste">${aufg}</ul>
+      <div class="h2-kopf"><span class="h2-sonne">${svg("sun")}</span><b>Tagesaufgaben</b>
+        <span class="h2-stand">${S.dq.bonus ? "Alle geschafft!" : bereit ? "Die Truhe wartet!" : `${erledigt} von 3 · ca. ${AUFGABEN_MAX_MIN} Min.`}</span></div>
+      <div class="h2-pfad"><i style="width:${erledigt / 3 * 100}%"></i></div>
+      <ul class="tq-liste">${aufg}${truhe}</ul>
     </section>
     ${entwickler && postfachNeu ? `<button class="erinnerung pf-hinweis" data-go="postfach">${svg("chat")}<span><b>${postfachNeu} ${postfachNeu === 1 ? "neue Meldung" : "neue Meldungen"} im Postkasten</b><span class="small muted">Feedback, Status und Datenbank</span></span></button>` : ""}
   </div>`;
   wireGo();
+  const tb = $("truheBtn"); if (tb) tb.onclick = () => truheOeffnen(tb);
   const vz = $("versZeile"); vz.onclick = () => { const auf = vz.getAttribute("aria-expanded") !== "true"; vz.setAttribute("aria-expanded", auf); };
   requestAnimationFrame(() => { const bq = vz.querySelector("blockquote"); if (bq && bq.scrollHeight <= bq.clientHeight + 2) vz.classList.add("passt"); });
   void sterne;
@@ -1206,7 +1295,7 @@ function zusammenfuehren(r) {
   if (r.todayDay === S.todayDay) { S.todayXp = Math.max(S.todayXp, r.todayXp || 0); S.todayRight = Math.max(S.todayRight || 0, r.todayRight || 0); }
   if (r.lastGoalDay && dayNum(r.lastGoalDay) > dayNum(S.lastGoalDay)) { S.lastGoalDay = r.lastGoalDay; S.goalStreak = r.goalStreak; }
   if (r.dq && r.dq.day === today() && S.dq && S.dq.day === today()) {
-    S.dq.items.forEach((it, k) => { const o = r.dq.items[k]; if (o && o.id === it.id) { it.prog = Math.max(it.prog, o.prog); it.done = it.done || o.done; } }); S.dq.bonus = S.dq.bonus || r.dq.bonus;
+    S.dq.items.forEach((it, k) => { const o = r.dq.items[k]; if (o && o.id === it.id) { it.prog = Math.max(it.prog, o.prog); it.done = it.done || o.done; } }); S.dq.bonus = S.dq.bonus || r.dq.bonus; S.dq.geschafft = S.dq.geschafft || r.dq.geschafft || r.dq.bonus;
   }
   ["avatar", "frame", "title", "theme"].forEach(k => { if ((S[k] === DEF[k]) && r[k]) S[k] = r[k]; });
   if (r.lbName && !S.lbName) S.lbName = r.lbName;

@@ -587,18 +587,49 @@ body.spiel-laeuft .app,body[data-tab=""] .app{padding-bottom:40px}
 .weiter-karte .btn.gold{margin-top:12px}
 @media (prefers-reduced-motion:no-preference){.weiter-karte .btn.gold::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(110deg,transparent 35%,#ffffff70 50%,transparent 65%);background-size:250% 100%;animation:glanz 4.5s ease-in-out infinite;pointer-events:none}.weiter-karte .btn.gold{position:relative;overflow:hidden}}
 @keyframes glanz{0%,60%{background-position:120% 0}100%{background-position:-120% 0}}
-.heute2{border-radius:18px;padding:11px 14px 12px}
-.heute2.fertig{border-color:color-mix(in srgb,var(--good) 55%,#ffffff18)}
-.h2-kopf{display:flex;align-items:baseline;gap:8px}
-.h2-kopf b{font-size:1rem}
-.h2-preis{margin-left:auto;display:inline-flex;align-items:center;gap:3px;font-weight:900;font-size:.8rem;color:#ffe39a;white-space:nowrap}
-.h2-preis svg{width:15px;height:15px}.h2-preis.erhalten{color:var(--good)}
-.h2-liste{list-style:none;margin:9px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.h2-liste li{display:flex;align-items:center;gap:7px;min-width:0}
-.h2-liste .mring{flex:0 0 auto}
-.h2-liste li>span{font-size:.75rem;font-weight:800;line-height:1.2;min-width:0}
-.h2-liste small{display:block;color:var(--muted);font-weight:800}
-.h2-liste li.done>span{color:var(--muted)}
+.heute2{border-radius:22px;padding:12px 12px 12px;position:relative;overflow:hidden;
+ background:radial-gradient(90% 70% at 100% 0%,#f2c14e1f,transparent 60%),linear-gradient(160deg,#ffffff12,#ffffff04 60%),var(--surface)}
+.heute2.fertig{border-color:color-mix(in srgb,var(--good) 55%,#ffffff18);background:radial-gradient(90% 70% at 100% 0%,color-mix(in srgb,var(--good) 22%,transparent),transparent 60%),linear-gradient(160deg,#ffffff12,#ffffff04 60%),var(--surface)}
+.h2-kopf{display:flex;align-items:center;gap:7px;padding:0 2px}
+.h2-sonne{width:22px;height:22px;display:grid;place-items:center}.h2-sonne svg{width:22px;height:22px;filter:drop-shadow(0 0 6px #f2c14e)}
+.h2-kopf b{font:800 1.02rem var(--display);letter-spacing:.02em}
+.h2-stand{margin-left:auto;font-size:.76rem;font-weight:800;color:var(--muted)}
+.heute2.fertig .h2-stand{color:var(--good)}
+.h2-pfad{height:4px;border-radius:3px;background:#ffffff12;margin:9px 2px 10px;overflow:hidden}
+.h2-pfad i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#f2c14e,#fff1c2);box-shadow:0 0 10px #f2c14e;transition:width .6s}
+.heute2.fertig .h2-pfad i{background:linear-gradient(90deg,var(--good),#bff5dd);box-shadow:0 0 10px var(--good)}
+.tq-liste{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.tq-liste li{display:flex;min-width:0}
+.tq{--ar:var(--ar-spielen);--tq:var(--ar);flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:none;color:inherit;font:inherit;cursor:pointer;padding:2px 0;min-width:0;border-radius:14px}
+.tq[data-ar="lernen"]{--ar:var(--ar-lernen)}.tq[data-ar="home"]{--ar:#f2c14e}
+.tq:active{transform:scale(.96)}
+.tq-med{position:relative;width:60px;height:60px;display:grid;place-items:center}
+.tq-ring{position:absolute;inset:0;width:100%;height:100%}
+.tq-ring circle:nth-child(2){filter:drop-shadow(0 0 4px var(--tq));transition:stroke-dashoffset .6s}
+.tq-ic{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;
+ background:radial-gradient(circle at 50% 32%,color-mix(in srgb,var(--ar) 38%,var(--surface2)),var(--bg2) 80%);border:1px solid color-mix(in srgb,var(--ar) 45%,transparent);box-shadow:inset 0 1px 0 #ffffff40,inset 0 -5px 10px #0006}
+.tq-ic svg{width:30px;height:30px;filter:drop-shadow(0 0 5px color-mix(in srgb,var(--ar) 65%,transparent))}
+.tq-ok{position:absolute;right:-1px;bottom:-1px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(#a6f0cf,#2fae7a);color:#032a18;box-shadow:0 0 0 2px var(--surface),0 0 10px var(--good)}
+.tq-ok svg{width:13px;height:13px}
+.tq.done{--tq:var(--good)}
+.tq.done .tq-ic{filter:saturate(.7)}
+.tq-text{font-size:.72rem;font-weight:800;line-height:1.15;text-align:center;min-height:2.3em;display:flex;align-items:center}
+.tq-zahl{font-size:.68rem;font-weight:900;color:var(--muted);font-variant-numeric:tabular-nums}
+.tq.done .tq-zahl{color:var(--good)}
+.tq-preis{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 2px 6px;border-radius:16px;
+ background:linear-gradient(180deg,#f2c14e1c,#f2c14e08);border:1px solid #f2c14e40}
+.tp-ic{position:relative;width:52px;height:50px;display:grid;place-items:center;margin:0 0 2px}
+.tp-ic>svg{width:52px;height:52px;filter:drop-shadow(0 4px 4px #0007)}
+.tq-preis:not(.bereit):not(.erhalten) .tp-ic>svg{filter:drop-shadow(0 4px 4px #0007) saturate(.8) brightness(.92)}
+.tq-preis.bereit .tp-ic>svg,.tq-preis.erhalten .tp-ic>svg{filter:drop-shadow(0 0 10px #f2c14eaa) drop-shadow(0 4px 4px #0007)}
+.tp-xp{font-weight:900;font-size:.95rem;color:#ffe39a;line-height:1}.tp-xp small{font-size:.62rem}
+.tp-tal{display:flex;align-items:center;gap:2px;font-weight:900;font-size:.8rem;color:#ffe39a}.tp-tal svg{width:13px;height:13px}
+.tp-ic .tq-ok{right:-8px;bottom:auto;top:-2px;width:20px;height:20px}
+.tq-preis.erhalten{border-color:color-mix(in srgb,var(--good) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--good) 18%,transparent),transparent)}
+.tq-preis.erhalten .tp-xp,.tq-preis.erhalten .tp-tal{color:var(--good)}
+@media (prefers-reduced-motion:no-preference){.tq-preis:not(.erhalten):not(.bereit) .tp-ic>svg{animation:wackeln 4s ease-in-out infinite;transform-origin:50% 90%}}
+@keyframes wackeln{0%,80%,100%{transform:rotate(0)}84%{transform:rotate(-5deg)}88%{transform:rotate(5deg)}92%{transform:rotate(-3deg)}96%{transform:rotate(2deg)}}
+@keyframes schweben{50%{transform:translateY(-3px)}}
 .duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .mini-karte,.ich-kachel{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;border-radius:18px;padding:12px 13px;cursor:pointer;color:inherit;font:inherit}
 .mini-karte:active,.ich-kachel:active{transform:translateY(2px)}
@@ -668,6 +699,88 @@ body.spiel-laeuft .tabbar,body[data-tab=""] .tabbar,body:not([data-tab]) .tabbar
 .tabbar [data-tab="home"]{--ar:#f2c14e}.tabbar [data-tab="lernen"]{--ar:var(--ar-lernen)}.tabbar [data-tab="spielen"]{--ar:var(--ar-spielen)}.tabbar [data-tab="rank"]{--ar:var(--ar-gemeinde)}.tabbar [data-tab="ich"]{--ar:var(--ar-lohn)}
 .toast{bottom:calc(92px + env(safe-area-inset-bottom,0px))!important}
 body.spiel-laeuft .toast,body[data-tab=""] .toast{bottom:calc(16px + env(safe-area-inset-bottom,0px))!important}
+
+/* ===== Schatztruhe: Kachel und Öffnen-Animation ===== */
+button.tq-preis{font:inherit;color:inherit;cursor:pointer}
+.tp-geheim{font:900 1rem var(--display);letter-spacing:.12em;color:#ffe39a;text-shadow:0 0 10px #f2c14e88;margin-top:2px}
+.tp-hinweis{font-size:.66rem;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.tp-auf{margin-top:4px;padding:4px 10px;border-radius:999px;font:900 .78rem var(--body);color:#2a1d02;background:linear-gradient(180deg,#fff0bf,#f2c14e 50%,#d4961f);box-shadow:inset 0 1px 0 #fff,0 3px 0 #8a5d10}
+.tq-preis.bereit{border-color:#f2c14e;background:radial-gradient(90% 70% at 50% 30%,#f2c14e40,transparent 70%),linear-gradient(180deg,#f2c14e22,#f2c14e08);box-shadow:0 0 22px -2px #f2c14e88}
+.tq-preis.bereit .tp-ic>svg{filter:drop-shadow(0 0 12px #f2c14e) drop-shadow(0 4px 4px #0007)}
+@media (prefers-reduced-motion:no-preference){
+ .tq-preis.bereit .tp-ic>svg{animation:huepfen 1.4s ease-in-out infinite;transform-origin:50% 90%}
+ .tq-preis.bereit{animation:pulsGold 1.8s ease-in-out infinite}}
+@keyframes huepfen{0%,100%{transform:translateY(0) rotate(0)}20%{transform:translateY(-5px) rotate(-6deg)}40%{transform:translateY(0) rotate(5deg)}60%{transform:translateY(-3px) rotate(-3deg)}80%{transform:translateY(0) rotate(0)}}
+@keyframes pulsGold{50%{box-shadow:0 0 30px 2px #f2c14ecc}}
+.toast-truhe svg{width:34px!important;height:34px!important}
+.truhe-fx{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;overflow:hidden;
+ background:radial-gradient(60% 45% at 50% 42%,#2b2a6a,#070a1c 75%);opacity:0;transition:opacity .3s}
+.truhe-fx.an{opacity:1}.truhe-fx.weg{opacity:0}
+.tf-strahlen{position:absolute;left:50%;top:40%;width:900px;height:900px;margin:-450px 0 0 -450px;opacity:0;transform:scale(.4);
+ background:repeating-conic-gradient(from 0deg,#fff3b033 0deg 7deg,transparent 7deg 22deg);-webkit-mask:radial-gradient(closest-side,#000 15%,transparent 70%);mask:radial-gradient(closest-side,#000 15%,transparent 70%);transition:opacity .5s,transform .8s cubic-bezier(.2,.9,.3,1.2)}
+.truhe-fx.offen .tf-strahlen{opacity:1;transform:scale(1);animation:drehen 14s linear infinite}
+@keyframes drehen{to{rotate:360deg}}
+.tf-blitz{position:absolute;left:50%;top:40%;width:20px;height:20px;margin:-10px;border-radius:50%;background:#fffbe6;opacity:0;pointer-events:none}
+.truhe-fx.offen .tf-blitz{animation:blitz .7s ease-out}
+@keyframes blitz{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(70)}}
+.tf-buehne{position:relative;width:200px;height:200px;display:grid;place-items:center;margin-top:-40px}
+.tf-truhe{width:190px;height:190px;transform:translateY(-120vh) scale(.4);transition:transform .55s cubic-bezier(.3,1.4,.5,1)}
+.tf-truhe svg{width:100%;height:100%;filter:drop-shadow(0 14px 18px #000a)}
+.truhe-fx.an .tf-truhe{transform:none}
+.truhe-fx.wackeln .tf-truhe{animation:truheWackeln .3s ease-in-out infinite}
+.truhe-fx.wackeln .tf-truhe svg{filter:drop-shadow(0 0 calc(10px + 20px * var(--g,0)) #f2c14e) drop-shadow(0 14px 18px #000a);animation:glut 1s ease-in forwards}
+@keyframes glut{from{--g:0;filter:drop-shadow(0 0 4px #f2c14e88) drop-shadow(0 14px 18px #000a)}to{filter:drop-shadow(0 0 30px #f2c14e) drop-shadow(0 14px 18px #000a)}}
+@keyframes truheWackeln{0%,100%{transform:rotate(0) scale(1)}25%{transform:rotate(-7deg) scale(1.04)}75%{transform:rotate(7deg) scale(1.04)}}
+.truhe-fx.offen .tf-truhe{animation:aufspringen .5s cubic-bezier(.3,1.6,.5,1)}
+.truhe-fx.offen .tf-truhe svg{filter:drop-shadow(0 0 34px #f2c14e) drop-shadow(0 14px 18px #000a)}
+@keyframes aufspringen{0%{transform:scale(.85)}60%{transform:scale(1.15) translateY(-8px)}100%{transform:scale(1)}}
+.tf-muenze{position:absolute;left:50%;top:45%;width:26px;height:26px;margin:-13px;opacity:0}
+.tf-muenze svg{width:100%;height:100%;filter:drop-shadow(0 0 6px #f2c14e)}
+.truhe-fx.offen .tf-muenze{animation:muenzeFliegt 1.3s cubic-bezier(.15,.7,.4,1) var(--v) forwards}
+@keyframes muenzeFliegt{0%{opacity:1;transform:translate(0,0) scale(.3) rotate(0)}70%{opacity:1}100%{opacity:0;transform:translate(var(--dx),calc(var(--dy) + 140px)) scale(1) rotate(var(--r))}}
+.tf-funke{position:absolute;left:50%;top:42%;width:4px;height:34px;margin:-17px -2px;border-radius:2px;background:linear-gradient(#fff,#f2c14e00);opacity:0;transform:rotate(var(--w)) translateY(-40px)}
+.truhe-fx.offen .tf-funke{animation:funke .8s ease-out var(--v) forwards}
+@keyframes funke{0%{opacity:1;transform:rotate(var(--w)) translateY(-30px) scaleY(.4)}100%{opacity:0;transform:rotate(var(--w)) translateY(-150px) scaleY(1.2)}}
+.tf-lohn{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;min-height:250px}
+.tf-lohn>*{opacity:0;transform:translateY(30px) scale(.6)}
+.truhe-fx.lohn .tf-lohn>*{animation:lohnRein .55s cubic-bezier(.3,1.6,.5,1) forwards}
+.truhe-fx.lohn .tf-lohn>:nth-child(2){animation-delay:.12s}.truhe-fx.lohn .tf-lohn>:nth-child(3){animation-delay:.42s}.truhe-fx.lohn .tf-lohn>:nth-child(4){animation-delay:.7s}.truhe-fx.lohn .tf-lohn>:nth-child(5){animation-delay:.9s}
+@keyframes lohnRein{to{opacity:1;transform:none}}
+.tf-titel{font:800 1.7rem var(--display);letter-spacing:.03em;background:linear-gradient(180deg,#fff,#f6ebc4 50%,#c99c3e);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 14px #f2c14e88)}
+.tf-karte{display:flex;align-items:baseline;gap:6px;padding:8px 22px;border-radius:18px;background:linear-gradient(160deg,#ffffff1c,#ffffff06);border:1px solid #f2c14e66;box-shadow:0 0 30px -6px #f2c14e,inset 0 1px 0 #ffffff33}
+.tf-karte b{font:900 2.4rem/1 var(--body);color:#ffe39a;text-shadow:0 0 16px #f2c14e}
+.tf-karte span{font-weight:900;color:#f6ebc4;font-size:1rem}
+.tf-tal{align-items:center}.tf-tal svg{width:32px;height:32px;filter:drop-shadow(0 0 8px #f2c14e)}
+.tf-tal b{font-size:2rem}
+.tf-serie{display:flex;align-items:center;gap:6px;font-weight:900;color:#ffb98a}.tf-serie svg{width:20px;height:20px}
+.tf-ok{min-width:180px;margin-top:6px}
+
+/* ===== Schlüssel und Schlösser ===== */
+.tq-key{position:absolute;right:-6px;bottom:-4px;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 50% 35%,#4a3a10,#1d1606);border:1.5px solid #f2c14e;box-shadow:0 0 0 2px var(--surface),0 0 12px #f2c14e}
+.tq-key svg{width:22px;height:22px;transform:rotate(-35deg)}
+.tq.done{--tq:#f2c14e}
+.tq.done .tq-zahl{color:#ffe39a}
+.tp-keys{display:flex;gap:1px;margin:1px 0 1px}
+.tp-keys i{width:20px;height:20px;opacity:.28;filter:grayscale(1)}
+.tp-keys i.an{opacity:1;filter:drop-shadow(0 0 4px #f2c14e)}
+.tp-keys svg{width:100%;height:100%;transform:rotate(-35deg)}
+.tq-preis.bereit .tp-auf{margin-top:2px}
+.tf-truhe{position:relative}
+.tf-schloss{position:absolute;width:38px;height:38px;left:calc(var(--x) / 64 * 100% - 19px);top:calc(28.5 / 64 * 100%);filter:drop-shadow(0 3px 3px #0008)}
+.tf-schloss svg{width:100%;height:100%}
+.tf-klick{position:absolute;left:50%;top:62%;width:8px;height:8px;margin:-4px;border-radius:50%;background:#fff8d8;opacity:0}
+.tf-schl{position:absolute;width:44px;height:44px;left:calc(var(--x) / 64 * 100% - 22px);top:calc(28.5 / 64 * 100% - 22px);opacity:0;
+ transform:translate(var(--sx),340px) rotate(-200deg) scale(1.6);transition:transform .65s cubic-bezier(.3,1.25,.5,1) var(--v),opacity .2s var(--v);filter:drop-shadow(0 0 10px #f2c14e)}
+.tf-schl svg{width:100%;height:100%}
+.truhe-fx.schluessel .tf-schl{opacity:1;transform:rotate(90deg)}
+.truhe-fx.drehen .tf-schl{animation:schlDrehen .35s ease-in-out var(--v) forwards}
+@keyframes schlDrehen{0%{transform:rotate(90deg) scaleY(1)}50%{transform:rotate(90deg) scaleY(-.2)}100%{transform:rotate(90deg) scaleY(-1)}}
+.truhe-fx.drehen .tf-klick{animation:klickBlitz .45s ease-out calc(var(--v) + .2s)}
+@keyframes klickBlitz{0%{opacity:1;transform:scale(1);box-shadow:0 0 12px 6px #f2c14e}100%{opacity:0;transform:scale(9);box-shadow:0 0 30px 10px #f2c14e00}}
+.truhe-fx.loesen .tf-schloss,.truhe-fx.loesen .tf-schl{animation:schlossAb .6s cubic-bezier(.5,-.4,.7,1) var(--v) forwards}
+@keyframes schlossAb{0%{opacity:1;transform:translateY(0) rotate(0)}30%{transform:translateY(-14px) rotate(-12deg)}100%{opacity:0;transform:translateY(120px) rotate(40deg)}}
+.truhe-fx.loesen .tf-schl{animation-name:schlAb}
+@keyframes schlAb{0%{opacity:1;transform:rotate(90deg) scaleY(-1)}100%{opacity:0;transform:translateY(-80px) rotate(180deg) scale(.4)}}
 </style>
 </head>
 <body>
