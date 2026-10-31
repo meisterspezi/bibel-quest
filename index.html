@@ -1111,12 +1111,26 @@ body[data-acc="perle"]::after{-webkit-mask:none;mask:none;background:url("data:i
 .du-blitz .du-buch{text-shadow:0 0 18px #ff8a5c55}
 .du-buecher{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .du-buecher .vl-opt{text-align:center}
-/* Startseite: farbiges Duell-Abzeichen in der Spielen-Kachel */
-.tor-duell{position:relative;margin-top:auto;display:inline-flex;align-items:center;gap:6px;padding:6px 12px 6px 8px;border-radius:999px;font:900 .85rem var(--body);color:#2a0d12;background:linear-gradient(135deg,#ffd38a,#ff8a5c 50%,#ff5f8f);box-shadow:0 0 0 1px #fff3 inset,0 4px 14px #ff6a7a55;cursor:pointer}
-.tor-duell svg{width:20px;height:20px;color:#2a0d12}
-.tor-duell .du-punkt{position:absolute;top:-8px;right:-10px;font-style:normal}
-@media (prefers-reduced-motion:no-preference){.tor-duell{animation:duLeuchten 3.2s ease-in-out infinite}}
-@keyframes duLeuchten{50%{box-shadow:0 0 0 1px #fff3 inset,0 4px 22px #ff6a7a99}}
+/* Startseite kompakt (6.33): alles ohne Scrollen auf ~390×844; Duell als Arena-Medaille zwischen Lernen und Spielen */
+.start{gap:10px}
+.start .lv{padding:10px 13px 10px}.start .lv-kopf{margin-bottom:3px}
+.start .lv-text{font-size:1.02rem;line-height:1.35;margin:0 0 6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.start .lv-ref{margin:0 0 8px;font-size:.7rem}.start .lv-monat,.start .lv-hinweis,.start .lv-fuss [data-go="lernverse"]{display:none}.start .lv-fuss .lv-btn{padding-block:7px}
+.start .heute2{padding:9px 10px 8px}.start .h2-pfad{margin:6px 2px 7px}.start .tq-med,.start .tq-ring{width:46px;height:46px}.start .tq-ic{width:34px;height:34px}.start .tq-ic svg{width:22px;height:22px}
+.start .tq-text{font-size:.66rem;min-height:2.2em}.start .tq-zahl{font-size:.62rem}.start .tp-ic,.start .tp-ic>svg{width:40px;height:40px}.start .tp-keys{transform:scale(.8)}
+.arena{position:relative}
+.arena .start-tore{gap:14px}
+.arena .tor{min-height:0;height:124px;padding:10px 12px;border-radius:18px}.arena .tor-ic{width:48px;height:48px;margin:0 0 2px}.arena .tor-ic svg{width:36px;height:36px}
+.arena .tor-titel{font-size:1.1rem}.arena .tor-info{font-size:.68rem}.arena .tor .mring,.arena .tor-rek{display:none}
+.arena .tor[data-ar="spielen"]{align-items:flex-end;text-align:right}.arena .tor[data-ar="spielen"] .tor-info{align-items:flex-end}
+.arena-medaille{position:absolute;left:50%;top:50%;transform:translate(-50%,-38%);width:96px;height:112px;display:flex;flex-direction:column;align-items:center;z-index:2;border:0;background:none;color:inherit;padding:0;cursor:pointer;font:inherit}
+.arena-medaille:active{transform:translate(-50%,-36%) scale(.96)}
+.am-logo{width:84px;height:84px;border-radius:50%;padding:6px;box-sizing:border-box;display:grid;place-items:center;background:radial-gradient(circle at 40% 30%,#3a2350,#141a3a 70%);border:2px solid #ff8a5c;box-shadow:0 0 0 4px var(--bg),0 0 24px #ff8a5c99}
+.am-logo svg{width:100%;height:100%;filter:drop-shadow(0 0 8px #ff8a5c88)}
+.arena-medaille b{margin-top:-10px;font:900 .8rem var(--body);letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:10px;background:linear-gradient(135deg,#ffd38a,#ff8a5c 55%,#ff5f8f);color:#2a0d12;box-shadow:0 0 0 3px var(--bg)}
+.arena-medaille .du-punkt{position:absolute;top:0;right:4px;font-style:normal}
+@media (prefers-reduced-motion:no-preference){.am-logo{animation:duLeuchten 3.2s ease-in-out infinite}}
+@keyframes duLeuchten{50%{box-shadow:0 0 0 4px var(--bg),0 0 34px #ff8a5ccc}}
 @media (prefers-reduced-motion:reduce){.du-zeit i{animation-timing-function:steps(12)}}
 @media (prefers-reduced-motion:reduce){.vl-urteil{animation:none}.vl-bar i{transition:none}}
 

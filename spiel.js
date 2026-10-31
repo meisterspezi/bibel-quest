@@ -1082,6 +1082,14 @@ function truheOeffnen(von) {
   ov.querySelector(".tf-ok").onclick = () => { SFX.tap(); zu(); };
 }
 
+/* Duell-Logo „Schild des Glaubens“ (Eph 6,16): Saphir-Schild mit goldenem Kreuz vor gekreuzten Schwertern (Stil Himmlisches Licht) */
+const DUELL_LOGO = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="dlG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffbe8"/><stop offset=".5" stop-color="#f2c14e"/><stop offset="1" stop-color="#a06a14"/></linearGradient><linearGradient id="dlS" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9fd8ff"/><stop offset=".55" stop-color="#3b78d8"/><stop offset="1" stop-color="#1b3a88"/></linearGradient><radialGradient id="dlH"><stop offset="0" stop-color="#fff3c0" stop-opacity=".85"/><stop offset="1" stop-color="#ff8a5c" stop-opacity="0"/></radialGradient></defs>
+<circle cx="32" cy="32" r="30" fill="url(#dlH)"/>
+<g stroke="#1b2a55" stroke-width="1.3"><path d="M6 6l40 40-3 3L3 9z" fill="url(#dlG)"/><path d="M58 6L18 46l3 3L61 9z" fill="url(#dlG)"/></g>
+<path d="M32 8l20 6v14c0 13-9 22-20 28C21 50 12 41 12 28V14z" fill="url(#dlS)" stroke="#1b2a55" stroke-width="1.8"/>
+<path d="M32 12l16 5v11c0 11-7 18-16 23-9-5-16-12-16-23V17z" fill="none" stroke="url(#dlG)" stroke-width="2.4"/>
+<path d="M32 20v24M24 28h16" stroke="url(#dlG)" stroke-width="4.5" stroke-linecap="round"/><path d="M32 20v24M24 28h16" stroke="#1b2a55" stroke-width=".8" stroke-linecap="round" fill="none" opacity=".5"/>
+<path d="M19 18c4-2 8-3 12-3" stroke="#fff" stroke-opacity=".7" stroke-width="1.6" stroke-linecap="round"/></svg>`;
 VIEWS.home = () => {
   neuerTag(); save();
   const vKey = VERS_DES_TAGES[dayNum(today()) % VERS_DES_TAGES.length];
@@ -1089,7 +1097,8 @@ VIEWS.home = () => {
   const ni = naechsteLektion();
   /* Zwei große Knöpfe: Lernen (Übersicht, nächste Lektion ist dort hervorgehoben) und Spielen */
   const ziel = ni >= 0 ? `<b>${esc(GROUPS[ni].name)}</b>${S.stars[ni] ? " · mehr Sterne" : ""}` : "Alle Lektionen geschafft!";
-  const weiter = `<div class="start-tore">
+  const duN = duFuerMich().length;
+  const weiter = `<div class="arena"><div class="start-tore">
     <button class="tor" data-ar="lernen" data-go="lernen">
       <span class="tor-ic">${svg("book")}</span><span class="tor-titel">Lernen</span>
       <span class="tor-info">${ni >= 0 ? "Als Nächstes" : ""}<span>${ziel}</span></span>
@@ -1097,9 +1106,9 @@ VIEWS.home = () => {
     <button class="tor" data-ar="spielen" data-go="spielen">
       <span class="tor-ic">${svg("bolt")}</span><span class="tor-titel">Spielen</span>
       <span class="tor-info">Blitz · Kette<span>Lückenquiz</span></span>
-      <span class="tor-duell" id="torDuell" aria-label="Duell">${svg("people")}<b>Duell</b>${duFuerMich().length ? `<i class="du-punkt">${duFuerMich().length}</i>` : ""}</span>
       <span class="tor-rek">${S.bestBlitz ? `Rekord<b>${S.bestBlitz}</b>` : ""}</span></button>
-  </div>`;
+  </div>
+    <button class="arena-medaille" id="torDuell" aria-label="Duell${duN ? ` – ${duN} ${duN === 1 ? "Herausforderung wartet" : "Herausforderungen warten"}` : ""}"><span class="am-logo">${DUELL_LOGO}</span><b>Duell</b>${duN ? `<i class="du-punkt">${duN}</i>` : ""}</button></div>`;
   const erledigt = S.dq.items.filter(i => i.done).length;
   /* Tagesaufgaben als drei Medaillen mit Fortschrittsring; antippen führt dorthin, wo man sie erledigt */
   const AUFG_ART = { runde: ["step", "spielen", "spielen"], xp: ["star", "home", "spielen"], right: ["target", "spielen", "blitz"], blitz: ["bolt", "spielen", "blitz"],
@@ -1123,7 +1132,6 @@ VIEWS.home = () => {
   screen.innerHTML = `<div class="stack start">
     ${MONATSVERSE[monatKey()] ? lvKarte(monatKey()) : `<button class="vers-zeile" id="versZeile" aria-expanded="false">${versHtml(vKey, "tag klein")}<span class="vz-mehr">mehr</span></button>`}
     ${siegel}
-    <div id="duHinweis">${duHinweisHome()}</div>
     ${weiter}
     <section class="heute2 ${S.dq.bonus ? "fertig" : ""}" aria-label="Tagesaufgaben">
       <div class="h2-kopf"><span class="h2-sonne">${svg("sun")}</span><b>Tagesaufgaben</b>
@@ -1135,7 +1143,7 @@ VIEWS.home = () => {
   </div>`;
   wireGo();
   const tb = $("truheBtn"); if (tb) tb.onclick = () => truheOeffnen(tb);
-  const td = $("torDuell"); if (td) td.onclick = e => { e.stopPropagation(); SFX.tap(); go("duelle"); };
+  const td = $("torDuell"); if (td) td.onclick = () => { SFX.tap(); go("duelle"); };
   lvVerdrahten();
   const vz = $("versZeile"); if (vz) { vz.onclick = () => { const auf = vz.getAttribute("aria-expanded") !== "true"; vz.setAttribute("aria-expanded", auf); };
     requestAnimationFrame(() => { const bq = vz.querySelector("blockquote"); if (bq && bq.scrollHeight <= bq.clientHeight + 2) vz.classList.add("passt"); }); }
@@ -1819,8 +1827,7 @@ async function lbStart() {
       lbSync(true); cloudSync();
       /* Duelle im Hintergrund laden: Hinweis auf der Startseite, Zahl im Bereich Spielen */
       duAktualisieren().then(() => {
-        const td = $("torDuell"), n = duFuerMich().length; if (td && current === "home") { const pk = td.querySelector(".du-punkt"); if (pk) pk.remove(); if (n) td.insertAdjacentHTML("beforeend", `<i class="du-punkt">${n}</i>`); }
-        const h = $("duHinweis"); if (h && current === "home") { h.innerHTML = duHinweisHome(); h.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { SFX.tap(); go(b.dataset.go); }); }
+        const td = $("torDuell"), n = duFuerMich().length; if (td && current === "home") { const pk = td.querySelector(".du-punkt"); if (pk) pk.remove(); if (n) { td.insertAdjacentHTML("beforeend", `<i class="du-punkt">${n}</i>`); td.setAttribute("aria-label", `Duell – ${n} ${n === 1 ? "Herausforderung wartet" : "Herausforderungen warten"}`); } }
         if (current === "spielen" && !document.querySelector(".modal")) go("spielen");
       });
     }
@@ -2226,12 +2233,6 @@ function duBelohnen() {
     setTimeout(() => toast(`${svg(p > q ? "crown" : "bolt", p > q ? "#f2c14e" : "var(--ar-spielen)")}<div><b>${esc(duTypText(d))}-Duell gegen ${esc(d.anName)}: ${p > q ? "gewonnen!" : p === q ? "unentschieden" : "verloren"}</b><div class="small muted">${p} : ${q} Punkte${p > q ? ` · +${DU_SIEG_TAL} Talente` : p === q ? ` · +${DU_REMIS_TAL} Talente` : ""}</div></div>`), 600);
   });
   if (tal) S.tal += tal; save(); renderHud();
-}
-function duHinweisHome() {
-  if (!duListe) return "";
-  const an = duFuerMich();
-  if (an.length) return `<button class="erinnerung du-hinweis" data-go="duelle">${svg("bolt", "var(--ar-spielen)")}<span><b>${an.length === 1 ? `${esc(an[0].vonName)} fordert dich zum Duell heraus!` : `${an.length} Duelle warten auf dich`}</b><span class="small muted">${an.length === 1 ? `${esc(duTypText(an[0]))} · ${esc(DU_TYPEN[duTypVon(an[0])].info)}` : an.map(d => esc(duTypText(d))).join(" · ")}</span></span></button>`;
-  return "";
 }
 /* Kleine farbige Marke für die Duell-Art (Liste, Hinweise) */
 const duMarke = d => { const t = duTypVon(d) || "vers"; return `<i class="du-marke t-${DU_TYPEN[t].art}">${esc(DU_TYPEN[t].name)}</i>`; };
