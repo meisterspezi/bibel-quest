@@ -13,7 +13,7 @@ const DEF = {
   tage: [], treueWochen: [], treueBonus: { week: "", stufen: [] }, meister: { bibel: [], at: [], nt: [], rueck: [] },
   siegelGesehen: { bibel: 0, at: 0, nt: 0, rueck: 0 }, aufgefrischt: false, eingeladenVon: "", eingeladen: false, fischerDabei: false, menschenfischer: false,
   songHeard: [], gapPerfect: false, peeked: false, earlyBird: false,
-  dq: { day: "", items: [], bonus: false }, questBonusCount: 0, lv: {}, duGes: [], duSiege: 0, duSpiele: 0, duTyp: "vers",
+  dq: { day: "", items: [], bonus: false }, questBonusCount: 0, lv: {}, duGes: [], duSiege: 0, duSpiele: 0, duTyp: "vers", duGesendet: 0, duAngenommen: 0, duArten: [], duKetteVoll: false,
   mute: false, beat: true, gapSing: false, atTi: 0, ntTi: 0,
   lbName: "", pid: "", ownersSet: false, offlineOnly: false, weekKey: "", weekXp: 0, podium: false, wochensieger: false, wochenziel: false,
   ver: 6
@@ -785,7 +785,7 @@ function modal(html, onClose) {
 /* ---------- Tagesaufgaben ---------- */
 /* Auslosung nach Datum (für alle gleich); gleiche Spielart nicht doppelt, zusammen höchstens AUFGABEN_MAX_MIN Minuten */
 function aufgabenAuslosen(t) {
-  let h = hash("bq" + t); const verfuegbar = AUFGABEN.filter(a => a.ev !== "lernvers" || MONATSVERSE[monatKey()]); const pool = verfuegbar.slice(); const gew = [];
+  let h = hash("bq" + t); const verfuegbar = AUFGABEN.filter(a => (a.ev !== "lernvers" || MONATSVERSE[monatKey()]) && (!a.online || (S.lbName && !S.offlineOnly))); const pool = verfuegbar.slice(); const gew = [];
   for (let versuch = 0; gew.length < 3 && pool.length && versuch < 60; versuch++) {
     h = Math.imul(h ^ (h >>> 15), 2246822519) >>> 0; const idx = h % pool.length, a = pool[idx];
     const minuten = gew.reduce((m, x) => m + x.min, 0) + a.min, rest = 3 - gew.length - 1;
@@ -1090,6 +1090,8 @@ const DUELL_LOGO = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGra
 <path d="M32 12l16 5v11c0 11-7 18-16 23-9-5-16-12-16-23V17z" fill="none" stroke="url(#dlG)" stroke-width="2.4"/>
 <path d="M32 20v24M24 28h16" stroke="url(#dlG)" stroke-width="4.5" stroke-linecap="round"/><path d="M32 20v24M24 28h16" stroke="#1b2a55" stroke-width=".8" stroke-linecap="round" fill="none" opacity=".5"/>
 <path d="M19 18c4-2 8-3 12-3" stroke="#fff" stroke-opacity=".7" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+/* Duell-Logo auch als kleines Symbol (Abzeichen, Tagesaufgabe, Rangliste) */
+ICONS.duell = `<g class="du-ic-g" transform="scale(.375)">${DUELL_LOGO.replace(/<\/?svg[^>]*>/g, "").replace(/id="dl/g, 'id="dk').replace(/url\(#dl/g, "url(#dk")}</g>`;
 VIEWS.home = () => {
   neuerTag(); save();
   const vKey = VERS_DES_TAGES[dayNum(today()) % VERS_DES_TAGES.length];
@@ -1112,7 +1114,7 @@ VIEWS.home = () => {
   const erledigt = S.dq.items.filter(i => i.done).length;
   /* Tagesaufgaben als drei Medaillen mit Fortschrittsring; antippen führt dorthin, wo man sie erledigt */
   const AUFG_ART = { runde: ["step", "spielen", "spielen"], xp: ["star", "home", "spielen"], right: ["target", "spielen", "blitz"], blitz: ["bolt", "spielen", "blitz"],
-    station: ["book", "lernen", "lernen"], ketteGespielt: ["link", "spielen", "spielen"], lied: ["music", "lernen", "lied"], luecke: ["scroll", "spielen", "gap"], lernvers: ["scroll", "lernen", "verslektion"] };
+    station: ["book", "lernen", "lernen"], ketteGespielt: ["link", "spielen", "spielen"], lied: ["music", "lernen", "lied"], luecke: ["scroll", "spielen", "gap"], lernvers: ["scroll", "lernen", "verslektion"], duell: ["duell", "spielen", "duelle"] };
   const aufg = S.dq.items.map(it => { const a = AUFGABEN.find(x => x.id === it.id); if (!a) return ""; const pr = Math.min(it.prog, a.ziel);
     const [ic, ar, ziel] = AUFG_ART[a.ev] || ["target", "spielen", "spielen"], C = 2 * Math.PI * 27;
     return `<li><button class="tq ${it.done ? "done" : ""}" data-ar="${ar}" data-go="${ziel}"${ziel === "gap" ? ' data-arg="alle"' : ""} aria-label="${esc(a.text)}: ${pr} von ${a.ziel}${it.done ? ", erledigt" : ""}">
@@ -1667,7 +1669,7 @@ function statsZeilen(p) {
     ["Level", p.level || 1], ["XP gesamt", p.xp || 0], ["XP diese Woche", p.week === weekKey() ? p.weekXp || 0 : 0],
     ["Titel im AT", AT_TITEL[titelIndex(AT_TITEL, p.atP || 0)][1]], ["Titel im NT", NT_TITEL[titelIndex(NT_TITEL, p.ntP || 0)][1]],
     ["Kette Bibel", (p.bestChain ? p.bestChain + 1 : 0) + "/66"], ["Kette AT", (p.chainAT ? p.chainAT + 1 : 0) + "/39"], ["Kette NT", (p.chainNT ? p.chainNT + 1 : 0) + "/27"],
-    ["Kette rückwärts", (p.chainRueck ? p.chainRueck + 1 : 0) + "/66"], ["Blitz-Rekord", p.blitz || 0], ["Blitz in Folge", p.combo != null ? p.combo : "–"], ["Spieltage (4 Wochen)", Array.isArray(p.tl) ? tage28(p.tl) : "–"], ["Frische Siegel", bewaehrtWert(p)], ["Serie (Tage)", p.streak || 0], ["Abzeichen", p.badges || 0], ["Waffenrüstung", (p.armor || 0) + "/6"]
+    ["Kette rückwärts", (p.chainRueck ? p.chainRueck + 1 : 0) + "/66"], ["Blitz-Rekord", p.blitz || 0], ["Blitz in Folge", p.combo != null ? p.combo : "–"], ["Spieltage (4 Wochen)", Array.isArray(p.tl) ? tage28(p.tl) : "–"], ["Frische Siegel", bewaehrtWert(p)], ["Serie (Tage)", p.streak || 0], ["Abzeichen", p.badges || 0], ["Duelle gewonnen", p.duS != null ? p.duS : "–"], ["Duelle gespielt", p.duG != null ? p.duG : "–"], ["Waffenrüstung", (p.armor || 0) + "/6"]
   ];
 }
 function titelKarte(liste, p, tag) {
@@ -1717,7 +1719,7 @@ function lbPayload() {
     avatar: S.avatar, frame: S.frame, title: S.title, armor: armorCount(),
     atP: fortschritt().atP, ntP: fortschritt().ntP,
     tl: S.tage.filter(n => n > dayNum(today()) - 31).slice(-31), t28: tage28(S.tage),
-    sg: siegelDaten().sg, bew: siegelDaten().bew,
+    sg: siegelDaten().sg, bew: siegelDaten().bew, duS: Math.min(S.duSiege | 0, 100000), duG: Math.min(S.duSpiele | 0, 100000),
     ...(S.eingeladenVon && S.eingeladenVon !== S.pid ? { von: S.eingeladenVon } : {})
   };
 }
@@ -1748,7 +1750,8 @@ function spielstandExport() { const c = JSON.parse(JSON.stringify(S)); delete c.
 function zusammenfuehren(r) {
   if (!r || typeof r !== "object") return;
   const max = k => { S[k] = Math.max(+S[k] || 0, +r[k] || 0); };
-  ["xp", "tal", "right", "bestStreak", "bestChain", "chainAT", "chainNT", "chainRueck", "bestBlitz", "bestCombo", "questBonusCount", "bestGoalStreak", "bestDayRight", "duSiege", "duSpiele"].forEach(max);
+  ["xp", "tal", "right", "bestStreak", "bestChain", "chainAT", "chainNT", "chainRueck", "bestBlitz", "bestCombo", "questBonusCount", "bestGoalStreak", "bestDayRight", "duSiege", "duSpiele", "duGesendet", "duAngenommen"].forEach(max);
+  S.duArten = [...new Set([...(S.duArten || []), ...(Array.isArray(r.duArten) ? r.duArten : [])])]; S.duKetteVoll = !!(S.duKetteVoll || r.duKetteVoll);
   S.duGes = [...new Set([...(S.duGes || []), ...(Array.isArray(r.duGes) ? r.duGes : [])])].slice(-60);
   ["aufgefrischt", "eingeladen", "fischerDabei", "menschenfischer"].forEach(k => { S[k] = !!(S[k] || r[k]); });
   S.tage = [...new Set([...(S.tage || []), ...(r.tage || [])])].sort((a, b) => a - b).slice(-35);
@@ -1887,18 +1890,21 @@ const RANK_TABS = {
   treue: { label: "Treue", val: r => (Array.isArray(r.tl) ? tage28(r.tl) : aktuell(r) ? r.streak || 0 : 0), unit: "Tage", titel: "Spieltage in 4 Wochen" },
   bewaehrt: { label: "Bewährt", val: r => bewaehrtWert(r), unit: "Siegel", titel: "Frische Siegel" },
   abzeichen: { label: "Abzeichen", val: r => r.badges || 0, unit: "", titel: "Abzeichen-Sammler" },
-  blitz: { label: "Blitz", unit: "Richtige", titel: "Blitz-Rekord" }
+  blitz: { label: "Blitz", unit: "Richtige", titel: "Blitz-Rekord" },
+  duSiege: { label: "Siege", val: r => r.duS || 0, unit: "Siege", titel: "Duell-Siege" },
+  duSpiele: { label: "Gespielt", val: r => r.duG || 0, unit: "Duelle", titel: "Gespielte Duelle" }
 };
 /* Vier Kategorien; Unterteilungen erscheinen als kleiner Umschalter im Listenkopf */
 const RANK_KAT = [
   { id: "erfahrung", name: "Erfahrung", icon: "star", tabs: ["woche", "gesamt"] },
   { id: "kette", name: "Kette", icon: "link", tabs: ["kette"] },
   { id: "blitz", name: "Blitz", icon: "bolt", tabs: ["blitz"] },
+  { id: "duell", name: "Duell", icon: "duell", tabs: ["duSiege", "duSpiele"] },
   { id: "ausdauer", name: "Ausdauer", icon: "fire", tabs: ["treue", "bewaehrt", "abzeichen"] }
 ];
 const katVon = tab => RANK_KAT.find(k => k.tabs.includes(tab)) || RANK_KAT[0];
 const letzterTab = {};
-const TAB_LABEL = { woche: "Woche", gesamt: "Gesamt", kette: "Kette", blitz: "Blitz", treue: "Spieltage", bewaehrt: "Bewährt", abzeichen: "Abzeichen" };
+const TAB_LABEL = { woche: "Woche", gesamt: "Gesamt", kette: "Kette", blitz: "Blitz", treue: "Spieltage", bewaehrt: "Bewährt", abzeichen: "Abzeichen", duSiege: "Siege", duSpiele: "Gespielt" };
 const BLITZ_SUB = { richtige: ["Richtige", "blitz", "Richtige", "Blitz-Rekord"], folge: ["In Folge", "combo", "in Folge", "Richtige in Folge (60 Sek.)"] };
 let blitzSub = "richtige";
 const KETTE_SUB = { bibel: ["Bibel", "bestChain", 66], at: ["AT", "chainAT", 39], nt: ["NT", "chainNT", 27], rueck: ["Rückwärts", "chainRueck", 66] };
@@ -2144,7 +2150,7 @@ function profilVergleich(r) {
    – Blitz: 60 Sekunden „Was kommt danach?“, ein Fehler kostet 3 s. Punkte: 100 je Richtige + 20 je Combo-Stufe.
    Datenmodell (firestore-regeln.txt): art = vers | kette | blitz, k = Lernvers-Monat bzw. Kette (bibel/at/nt/rueck) bzw. Bereich (all). */
 const DU_FRAGEN = 8, DU_SEK = 12, DU_KETTE_SEK = 10, DU_BLITZ_SEK = 60, DU_BLITZ_FRAGEN = 160, DU_MAX_OFFEN = 5, DU_TAGE_HALTEN = 30;
-const DU_XP = 10, DU_XP_RICHTIG = 3, DU_XP_MAX_RICHTIG = 20, DU_SIEG_TAL = 10, DU_REMIS_TAL = 5;
+const DU_XP = 10, DU_XP_RICHTIG = 3, DU_XP_MAX_RICHTIG = 20, DU_SIEG_TAL = 10, DU_REMIS_TAL = 5, DU_FAIR_TAL = 5;
 const DU_TYPEN = {
   vers: { art: "vers", name: "Lernvers", ic: "scroll", info: "8 Fragen zum Lernvers des Monats · 12 s je Frage" },
   blitz: { art: "blitz", k: "all", name: "Blitz", ic: "bolt", info: "60 Sekunden: Was kommt danach? Ein Fehler kostet 3 s" },
@@ -2257,7 +2263,7 @@ VIEWS.duelle = () => {
   };
   const gegner = duWahl ? duGegnerHtml() : "";
   screen.innerHTML = kopf + `
-    <p class="small muted du-intro">Wähle Lernvers, Kette oder Blitz. Du spielst zuerst, dein Gegner bekommt dieselben Fragen und hat 7 Tage Zeit. Sieg: +${DU_SIEG_TAL} Talente.</p>
+    <p class="small muted du-intro">Wähle Lernvers, Kette oder Blitz. Du spielst zuerst, dein Gegner bekommt dieselben Fragen und hat 7 Tage Zeit. Annehmen: +${DU_FAIR_TAL} Talente Fairplay, Sieg: +${DU_SIEG_TAL} mehr.</p>
     <button class="btn primary breit du-neu" id="duNeu" ${duWahl ? 'aria-expanded="true"' : ""}>${svg("bolt")} ${duWahl ? "Duell-Art und Gegner wählen" : "Neues Duell"}</button>
     ${gegner}
     ${duFehler ? `<p class="small muted">Duelle konnten nicht geladen werden. <button class="lv-btn" id="duNeuLaden">Nochmal</button></p>` : ""}
@@ -2410,16 +2416,23 @@ async function duEnde() {
   const D = duSpiel, L = window.LB, n = D.art === "blitz" ? Math.max(1, D.r + D.f) : D.fragen.length;
   const erg = { p: D.p, r: D.r, n };
   const xp = DU_XP + DU_XP_RICHTIG * Math.min(D.r, DU_XP_MAX_RICHTIG);
-  if (!D.belohnt) { D.belohnt = true; S.duSpiele = (S.duSpiele || 0) + 1; richtig(D.r); quest("runde", 1); if (D.art === "blitz") quest("blitz", 1); if (D.art === "kette") quest("ketteGespielt", 1); save(); }
+  if (!D.belohnt) { D.belohnt = true; S.duSpiele = (S.duSpiele || 0) + 1; S.duArten = [...new Set([...(S.duArten || []), D.art])];
+    if (D.art === "kette" && D.r === D.fragen.length) S.duKetteVoll = true;
+    richtig(D.r); quest("runde", 1); if (D.art === "blitz") quest("blitz", 1); if (D.art === "kette") quest("ketteGespielt", 1); save(); }
+  /* zählt erst, wenn Herausforderung bzw. Antwort wirklich angekommen ist */
+  const angekommen = () => { if (D.gezaehlt) return; D.gezaehlt = true; if (D.neu) S.duGesendet = (S.duGesendet || 0) + 1; else S.duAngenommen = (S.duAngenommen || 0) + 1; quest("duell", 1); save(); };
   let titel, zeile, tal = 0, sieg = false, fehler = false;
   try {
     if (D.neu) {
       if (!D.gesendet) { D.id = await L.duellAnlegen({ art: D.art, von: S.pid, an: D.an, vonName: S.lbName, anName: D.gegner, k: D.k, seed: D.seed, vonErg: erg }); D.gesendet = true; duListe = null; }
+      angekommen();
       titel = "Herausforderung gesendet!"; zeile = `${esc(D.gegner)} bekommt dieselben Fragen und hat 7 Tage Zeit. Du siehst das Ergebnis hier und auf der Startseite.`;
     } else {
       if (!D.gesendet) { await L.duellErgebnis(D.id, erg, S.pid); D.gesendet = true; duListe = null; }
+      angekommen();
       const q = D.gegnerErg.p; sieg = D.p > q;
-      if (!D.talGegeben) { D.talGegeben = true; tal = sieg ? DU_SIEG_TAL : D.p === q ? DU_REMIS_TAL : 0; if (sieg) S.duSiege = (S.duSiege || 0) + 1; save(); }
+      /* Fairplay: wer eine Herausforderung annimmt, bekommt immer etwas – dazu Sieg/Remis */
+      if (!D.talGegeben) { D.talGegeben = true; tal = DU_FAIR_TAL + (sieg ? DU_SIEG_TAL : D.p === q ? DU_REMIS_TAL : 0); if (sieg) S.duSiege = (S.duSiege || 0) + 1; save(); }
       titel = sieg ? "Gewonnen!" : D.p === q ? "Unentschieden!" : "Knapp vorbei!";
       zeile = sieg ? `Du hast ${esc(D.gegner)} besiegt.` : D.p === q ? "Genau gleich viele Punkte!" : `${esc(D.gegner)} war diesmal besser – fordere eine Revanche!`;
     }
@@ -2432,7 +2445,7 @@ async function duEnde() {
     <h1>${titel}</h1><p class="muted">${zeile}</p>
     <div class="du-art-zeile">${duMarke({ art: D.art, k: D.k })}<span class="small muted">${esc(DU_TYPEN[typ].info)}</span></div>
     <div class="du-vs"><div class="du-vs-sp ${sieg ? "vorn" : ""}"><span>Du</span><b>${D.p}</b><small>${duErgText(D.art, ich)}${extra}</small></div><span class="du-vs-x">:</span>${gegnerSpalte}</div>
-    <div class="vle-werte"><div><b>+${xp}</b><span>XP</span></div>${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>Talente</span></div>` : ""}</div>
+    <div class="vle-werte"><div><b>+${xp}</b><span>XP</span></div>${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>${tal > DU_FAIR_TAL ? "Talente" : "Fairplay"}</span></div>` : ""}</div>
     ${fehler ? `<button class="btn primary breit" id="duNochmal">Nochmal senden</button>` : `<button class="btn primary breit" id="duFertig">Zu den Duellen</button>`}
     ${!D.neu && !fehler ? `<button class="btn ghost breit" id="duRevanche">${svg("bolt")} ${sieg ? "Nochmal duellieren" : "Revanche"}</button>` : ""}</div>`;
   if (!fehler) { SFX.win(); rain(sieg ? 90 : 40); }

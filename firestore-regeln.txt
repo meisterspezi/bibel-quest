@@ -1,5 +1,5 @@
 rules_version = '2';
-// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.32 – Duell-Arten Lernvers, Kette, Blitz)
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.33 – Duell-Ranglisten duS/duG)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -20,7 +20,8 @@ service cloud.firestore {
     // Gültiger Ranglisten-Eintrag (alte App-Versionen senden nur einen Teil der Felder – das ist erlaubt)
     function felder() {
       return ['name','xp','level','bestChain','chainAT','chainNT','chainRueck','stars','badges','badgeIds',
-              'streak','bestStreak','blitz','combo','week','weekXp','avatar','frame','title','armor','atP','ntP','tl','t28','sg','bew','von','owners','code','updated'];
+              'streak','bestStreak','blitz','combo','week','weekXp','avatar','frame','title','armor','atP','ntP','tl','t28','sg','bew','von','owners','code','updated',
+              'duS','duG'];
     }
     function gueltig(d) {
       return d.keys().hasOnly(felder()) && werteOk(d);
@@ -36,7 +37,7 @@ service cloud.firestore {
         && d.week is string && d.week.size() <= 10
         && zahl(d, 'weekXp', 1000000) && zahl(d, 'bestChain', 65) && zahl(d, 'chainAT', 38) && zahl(d, 'chainNT', 26)
         && zahl(d, 'chainRueck', 65) && zahl(d, 'stars', 24) && zahl(d, 'badges', 100) && zahl(d, 'streak', 100000)
-        && zahl(d, 'bestStreak', 100000) && zahl(d, 'blitz', 1000) && zahl(d, 'combo', 1000) && zahl(d, 'armor', 6) && zahl(d, 'atP', 100) && zahl(d, 'ntP', 100) && zahl(d, 't28', 31) && zahl(d, 'bew', 16) && text(d, 'von', 64)
+        && zahl(d, 'bestStreak', 100000) && zahl(d, 'blitz', 1000) && zahl(d, 'combo', 1000) && zahl(d, 'armor', 6) && zahl(d, 'atP', 100) && zahl(d, 'ntP', 100) && zahl(d, 't28', 31) && zahl(d, 'bew', 16) && text(d, 'von', 64) && zahl(d, 'duS', 100000) && zahl(d, 'duG', 100000)
         && text(d, 'avatar', 20) && text(d, 'frame', 20) && text(d, 'title', 30) && text(d, 'code', 12)
         && (!('badgeIds' in d) || (d.badgeIds is list && d.badgeIds.size() <= 80))
         && (!('tl' in d) || (d.tl is list && d.tl.size() <= 31))

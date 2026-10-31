@@ -249,7 +249,7 @@ const NT_TITEL = [
 
 /* ---------- Abzeichen ----------
    kat: Kategorie · tal: Talente-Belohnung · ok(S): Bedingung */
-const BADGE_KAT = { lernen: "Lernen", koennen: "Können", ausdauer: "Ausdauer", wachstum: "Wachstum", gemeinschaft: "Gemeinschaft", schatz: "Schätze" };
+const BADGE_KAT = { lernen: "Lernen", koennen: "Können", ausdauer: "Ausdauer", wachstum: "Wachstum", gemeinschaft: "Gemeinschaft", duell: "Duell", schatz: "Schätze" };
 const BADGES = [
   { id: "first", kat: "lernen", name: "Erster Schritt", d: "Erste Station geschafft", ic: "step", ok: s => Object.keys(s.stars).length >= 1 },
   { id: "at", kat: "lernen", name: "Altes Testament", d: "Alle AT-Stationen bestanden", ic: "scroll", ok: s => [0, 1, 2, 3, 4].every(i => s.stars[i] >= 1) },
@@ -303,6 +303,17 @@ const BADGES = [
   { id: "diamant", kat: "koennen", name: "Diamantsiegel", d: "Ein Jahr lang jeden Monat eine Kette geschafft", ic: "siegel", tal: 60, ok: s => siegelMax(s) >= 4 },
   { id: "aufgefrischt", kat: "ausdauer", name: "Aufgefrischt", d: "Ein verblasstes Siegel wieder zum Leuchten gebracht", ic: "siegel", ok: s => s.aufgefrischt },
 
+  // Duell-Abzeichen (6.33): Einsatz und Mut belohnen, nicht nur Siege
+  { id: "duMutig", kat: "duell", name: "Mutig wie David", d: "Die erste Herausforderung zum Duell gesendet (1. Samuel 17,32)", ic: "duell", ok: s => (s.duGesendet || 0) >= 1 },
+  { id: "duStein", kat: "duell", name: "Der Stein trifft", d: "Das erste Duell gewonnen (1. Samuel 17,49)", ic: "crown", ok: s => (s.duSiege || 0) >= 1 },
+  { id: "duAntwort", kat: "duell", name: "Bereit zur Antwort", d: "5 Herausforderungen angenommen (1. Petrus 3,15)", ic: "duell", tal: 10, ok: s => (s.duAngenommen || 0) >= 5 },
+  { id: "duEisen", kat: "duell", name: "Eisen schärft Eisen", d: "10 Duelle gespielt (Sprüche 27,17)", ic: "duell", tal: 10, ok: s => (s.duSpiele || 0) >= 10 },
+  { id: "duAllen", kat: "duell", name: "Allen alles", d: "Duelle in allen drei Arten gespielt: Lernvers, Kette und Blitz (1. Korinther 9,22)", ic: "target", tal: 10, ok: s => ["vers", "kette", "blitz"].every(a => (s.duArten || []).includes(a)) },
+  { id: "duFest", kat: "duell", name: "Unerschütterlich", d: "Eine ganze Kette im Duell ohne Fehler geschafft (1. Korinther 15,58)", ic: "link", tal: 15, ok: s => !!s.duKetteVoll },
+  { id: "duSteine5", kat: "duell", name: "Fünf glatte Steine", d: "5 Duelle gewonnen (1. Samuel 17,40)", ic: "crown", tal: 15, ok: s => (s.duSiege || 0) >= 5 },
+  { id: "duKampf", kat: "duell", name: "Der gute Kampf", d: "50 Duelle gespielt (2. Timotheus 4,7)", ic: "duell", tal: 30, ok: s => (s.duSpiele || 0) >= 50 },
+  { id: "duHelden", kat: "duell", name: "Davids Helden", d: "25 Duelle gewonnen (2. Samuel 23,8)", ic: "crown", tal: 40, ok: s => (s.duSiege || 0) >= 25 },
+
   { id: "shop", kat: "schatz", name: "Neuer Glanz", d: "Etwas im Talente-Laden gekauft", ic: "gem", ok: s => kaufAnzahl(s) >= 1 },
   { id: "schatz", kat: "schatz", name: "Schatzsucher", d: "5 Dinge im Laden gekauft (Matthäus 13,44)", ic: "gem", tal: 10, ok: s => kaufAnzahl(s) >= 5 },
   { id: "armor", kat: "schatz", name: "Gewappnet", d: "Die ganze Waffenrüstung Gottes angelegt (Epheser 6)", ic: "ar-schild", tal: 50, ok: s => RUESTUNG.every(r => s.owned.includes("ar-" + r.id)) }
@@ -324,7 +335,9 @@ const AUFGABEN = [
   { id: "kette1", ev: "ketteGespielt", ziel: 1, min: 1, text: "1 Ketten-Versuch" },
   { id: "lied", ev: "lied", ziel: 2, min: 1, text: "2 Strophen hören" },
   { id: "luecke", ev: "luecke", ziel: 1, min: 2, text: "1 Lückenquiz" },
-  { id: "lernvers", ev: "lernvers", ziel: 1, min: 2, text: "Lernvers üben" }
+  { id: "lernvers", ev: "lernvers", ziel: 1, min: 2, text: "Lernvers üben" },
+  // nur für Spieler in der Gemeinde-Rangliste; zählt beim Herausfordern UND beim Annehmen (nie „gewinnen“ – der Gegner spielt evtl. erst später)
+  { id: "duell1", ev: "duell", ziel: 1, min: 2, online: true, text: "Duell fordern oder annehmen" }
 ];
 const AUFGABEN_MAX_MIN = 5;
 const AUFGABE_TAL = 5;          // pro Aufgabe

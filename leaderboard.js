@@ -172,7 +172,7 @@ if (!configured) {
     LB.gegnerListe = async () => aktiv((await fs.getDocs(fs.query(spieler, fs.orderBy("xp", "desc"), fs.limit(150)))).docs);
 
     // Live-Listen
-    const FELD = { gesamt: "xp", kette_bibel: "bestChain", kette_at: "chainAT", kette_nt: "chainNT", kette_rueck: "chainRueck", treue: "t28", bewaehrt: "bew", abzeichen: "badges", blitz: "blitz", combo: "combo" };
+    const FELD = { gesamt: "xp", kette_bibel: "bestChain", kette_at: "chainAT", kette_nt: "chainNT", kette_rueck: "chainRueck", treue: "t28", bewaehrt: "bew", abzeichen: "badges", blitz: "blitz", combo: "combo", duSiege: "duS", duSpiele: "duG" };
     LB.watch = (kind, week, cb, onErr) => {
       const q = kind === "woche"
         ? fs.query(spieler, fs.where("week", "==", week), fs.limit(500))
