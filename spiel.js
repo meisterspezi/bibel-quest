@@ -1085,15 +1085,25 @@ function truheOeffnen(von) {
   ov.querySelector(".tf-ok").onclick = () => { SFX.tap(); zu(); };
 }
 
-/* Duell-Logo „Schild des Glaubens“ (Eph 6,16): Saphir-Schild mit goldenem Kreuz vor gekreuzten Schwertern auf rotem Medaillon mit Koralle-Ring – überall gleich (Startseite, Fußleiste, Abzeichen, Rangliste, Aufgaben) */
-const DUELL_LOGO = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="dlG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffbe8"/><stop offset=".5" stop-color="#f2c14e"/><stop offset="1" stop-color="#a06a14"/></linearGradient><linearGradient id="dlS" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9fd8ff"/><stop offset=".55" stop-color="#3b78d8"/><stop offset="1" stop-color="#1b3a88"/></linearGradient><radialGradient id="dlR" cx=".4" cy=".32" r=".75"><stop offset="0" stop-color="#ff8a6e"/><stop offset=".5" stop-color="#c8344f"/><stop offset="1" stop-color="#5a1430"/></radialGradient></defs>
-<circle cx="32" cy="32" r="30" fill="url(#dlR)" stroke="#ff8a5c" stroke-width="3"/><path d="M12 22a22 22 0 0 1 22-14" stroke="#fff" stroke-opacity=".35" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-<g transform="translate(32 33) scale(.74) translate(-32 -32)">
-<g stroke="#1b2a55" stroke-width="1.6"><path d="M6 6l40 40-3 3L3 9z" fill="url(#dlG)"/><path d="M58 6L18 46l3 3L61 9z" fill="url(#dlG)"/></g>
-<path d="M32 8l20 6v14c0 13-9 22-20 28C21 50 12 41 12 28V14z" fill="url(#dlS)" stroke="#1b2a55" stroke-width="2.2"/>
-<path d="M32 12l16 5v11c0 11-7 18-16 23-9-5-16-12-16-23V17z" fill="none" stroke="url(#dlG)" stroke-width="2.6"/>
-<path d="M32 20v24M24 28h16" stroke="url(#dlG)" stroke-width="5" stroke-linecap="round"/>
-<path d="M19 18c4-2 8-3 12-3" stroke="#fff" stroke-opacity=".7" stroke-width="1.8" stroke-linecap="round"/></g></svg>`;
+/* Duell-Logo „Der Treffer“ (1. Samuel 17,49): Davids Saphir-Stein trifft Goliaths Bronzehelm an der Stirn – auf rotem Medaillon mit Koralle-Ring; überall gleich (Startseite, Fußleiste, Abzeichen, Rangliste, Aufgaben) */
+const DUELL_LOGO = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs>
+
+<radialGradient id="dlR" cx=".4" cy=".32" r=".75"><stop offset="0" stop-color="#ff8a6e"/><stop offset=".5" stop-color="#c8344f"/><stop offset="1" stop-color="#5a1430"/></radialGradient>
+<radialGradient id="dlST" cx=".35" cy=".3" r=".7"><stop offset="0" stop-color="#ffffff"/><stop offset=".35" stop-color="#bfe6ff"/><stop offset=".75" stop-color="#3b78d8"/><stop offset="1" stop-color="#1b3a88"/></radialGradient>
+
+
+
+<linearGradient id="dlBZ" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f3d39a"/><stop offset=".45" stop-color="#b9823e"/><stop offset="1" stop-color="#5e3a14"/></linearGradient>
+<linearGradient id="dlTR" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f2c14e" stop-opacity="0"/><stop offset="1" stop-color="#fff3c0" stop-opacity=".95"/></linearGradient></defs><circle cx="32" cy="32" r="30" fill="url(#dlR)" stroke="#ff8a5c" stroke-width="3"/><circle cx="32" cy="32" r="26.5" fill="none" stroke="#ffb3a0" stroke-opacity=".25" stroke-width="1"/><path d="M12 22a22 22 0 0 1 22-14" stroke="#fff" stroke-opacity=".35" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M32 6c4 3 5 6 4.5 9h-9C27 12 28 9 32 6z" fill="#c8344f" stroke="#1b2a55" stroke-width="1.2"/>
+<path d="M14 50V31C14 19 22 13 32 13s18 6 18 18v19c-3 1-6 1-8-1V37h-5v13l-5 4-5-4V37h-5v12c-2 2-5 2-8 1z" fill="url(#dlBZ)" stroke="#1b2a55" stroke-width="2" stroke-linejoin="round"/>
+<path d="M19 33h10l1 4h-11zM45 33H35l-1 4h11z" fill="#2a1406" stroke="#1b2a55" stroke-width="1"/>
+<path d="M30 33h4v15l-2 1.5-2-1.5z" fill="url(#dlBZ)" stroke="#1b2a55" stroke-width="1"/>
+<path d="M14.5 30h35" stroke="#5e3a14" stroke-width="1.4"/><g fill="#5e3a14"><circle cx="18" cy="27" r=".9"/><circle cx="23" cy="25.6" r=".9"/><circle cx="41" cy="25.6" r=".9"/><circle cx="46" cy="27" r=".9"/></g>
+<path d="M19 22c3-4 7-6 11-6.5" stroke="#fff" stroke-opacity=".55" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+<path d="M60 6C52 9 44 13 37 19" stroke="url(#dlTR)" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+<path d="M59 12C53 14 47 17 41 21" stroke="url(#dlTR)" stroke-width="2" stroke-linecap="round" fill="none" opacity=".7"/>
+<path d="M32 15l2.2 3.6 4.2-1.6-1.8 4 4.4 1-4 2 2.6 3.4-4.2-.8-.6 4.2-2.6-3.4-2.6 3.4-.6-4.2-4.2.8 2.6-3.4-4-2 4.4-1-1.8-4 4.2 1.6z" fill="#fff3c0" stroke="#f2c14e" stroke-width=".6"/>
+<circle cx="33.5" cy="21" r="4.8" fill="url(#dlST)" stroke="#1b2a55" stroke-width="1.3"/><path d="M31.2 19.6a2.8 2.8 0 0 1 2.5-1.8" stroke="#fff" stroke-width="1.1" fill="none" stroke-linecap="round"/></svg>`;
 /* Duell-Logo auch als kleines Symbol (Abzeichen, Tagesaufgabe, Rangliste) */
 ICONS.duell = `<g class="du-ic-g" transform="scale(.375)">${DUELL_LOGO.replace(/<\/?svg[^>]*>/g, "").replace(/id="dl/g, 'id="dk').replace(/url\(#dl/g, "url(#dk")}</g>`;
 VIEWS.home = () => {
