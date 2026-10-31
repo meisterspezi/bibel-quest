@@ -1839,7 +1839,9 @@ async function lbStart() {
     if (S.lbName) {
       if (S.ownersSet || S.pid !== L.uid) { const r = await L.loadState(S.pid).catch(() => null); if (r) { zusammenfuehren(r); save(); renderHud(); } }
       /* Höhere Werte aus dem eigenen Ranglisten-Eintrag übernehmen (z. B. nach automatischem Zusammenführen) */
-      if (L.holeSpieler) { const e = await L.holeSpieler(S.pid).catch(() => null); if (e && !e.zu && (e.xp || 0) > S.xp) { zusammenfuehren(ausRangliste(e)); save(); renderHud(); } }
+      if (L.holeSpieler) { const e = await L.holeSpieler(S.pid).catch(() => null); if (e && !e.zu && (e.xp || 0) > S.xp) { zusammenfuehren(ausRangliste(e)); save(); renderHud(); }
+        /* Duell-Zahlen aus der Rangliste nie nach unten überschreiben (z. B. vom Verwalter nachgetragen) */
+        else if (e && !e.zu && ((e.duS | 0) > (S.duSiege | 0) || (e.duG | 0) > (S.duSpiele | 0))) { S.duSiege = Math.max(S.duSiege | 0, e.duS | 0); S.duSpiele = Math.max(S.duSpiele | 0, e.duG | 0); save(); } }
       lbSync(true); cloudSync();
       /* Duelle im Hintergrund laden: Hinweis auf der Startseite, Zahl im Bereich Spielen */
       duAktualisieren().then(() => {
@@ -1852,7 +1854,7 @@ async function lbStart() {
 const uidAnderweitigBelegt = () => { const L = window.LB; return GERAET.liste.some(p => p.key !== GERAET.aktiv && p.pid === L.uid); };
 /* Werte eines Ranglisten-Eintrags als Spielstand (falls kein Online-Spielstand vorhanden ist) */
 function ausRangliste(d) {
-  return { weekKey: d.week, weekXp: d.weekXp || 0, xp: d.xp, bestChain: d.bestChain, chainAT: d.chainAT, chainNT: d.chainNT, chainRueck: d.chainRueck, bestBlitz: d.blitz, bestCombo: d.combo, bestStreak: d.bestStreak, badges: d.badgeIds || [], tage: Array.isArray(d.tl) ? d.tl : [] };
+  return { weekKey: d.week, weekXp: d.weekXp || 0, xp: d.xp, bestChain: d.bestChain, chainAT: d.chainAT, chainNT: d.chainNT, chainRueck: d.chainRueck, bestBlitz: d.blitz, bestCombo: d.combo, bestStreak: d.bestStreak, badges: d.badgeIds || [], tage: Array.isArray(d.tl) ? d.tl : [], duSiege: d.duS || 0, duSpiele: d.duG || 0 };
 }
 /* Gerät hat schon einen Ranglisten-Eintrag, aber kein Name ist gespeichert: nachfragen */
 function wiedererkennen(r) {
@@ -2234,9 +2236,18 @@ async function duAktualisieren() {
       if (alt && (d.status !== "offen" || jetzt > d.ablauf)) { L.duellLoeschen(d.id).catch(() => {}); return false; }
       return true;
     });
-    duFehler = ""; duBelohnen(); tbDuSetzen();
+    duFehler = ""; duBelohnen(); duZaehlen(); tbDuSetzen();
   } catch (e) { duFehler = "laden"; }
   return duListe;
+}
+/* Siege und Spiele aus den Duellen selbst ableiten (Quelle der Wahrheit) – nie verringern, nie doppelt zählen.
+   Ältere Duelle werden nach 30 Tagen gelöscht; deren Zählung bleibt im Spielstand erhalten (Maximum). */
+function duZaehlen() {
+  const fertig = (duListe || []).filter(d => d.status === "fertig" && d.vonErg && d.anErg && (d.von === S.pid || d.an === S.pid));
+  const siege = fertig.filter(d => { const ich = d.von === S.pid, p = ich ? d.vonErg.p : d.anErg.p, q = ich ? d.anErg.p : d.vonErg.p; return p > q; }).length;
+  const vorher = [S.duSiege | 0, S.duSpiele | 0];
+  S.duSiege = Math.max(vorher[0], siege); S.duSpiele = Math.max(vorher[1], fertig.length);
+  if (S.duSiege !== vorher[0] || S.duSpiele !== vorher[1]) { save(); checkBadges(); lbSync(); }
 }
 const duStatus = d => (d.status === "offen" && d.ablauf && Date.now() > d.ablauf ? "abgelaufen" : d.status);
 const duFuerMich = () => (duListe || []).filter(d => d.an === S.pid && duStatus(d) === "offen");
@@ -2248,7 +2259,7 @@ function duBelohnen() {
   neu.forEach(d => {
     S.duGes = [...(S.duGes || []), d.id].slice(-60);
     const p = d.vonErg.p, q = d.anErg.p;
-    if (p > q) { S.duSiege = (S.duSiege || 0) + 1; tal += DU_SIEG_TAL; } else if (p === q) tal += DU_REMIS_TAL;
+    if (p > q) tal += DU_SIEG_TAL; else if (p === q) tal += DU_REMIS_TAL; /* der Sieg selbst wird in duZaehlen() aus den Duellen gezählt */
     setTimeout(() => toast(`${svg(p > q ? "crown" : "bolt", p > q ? "#f2c14e" : "var(--ar-spielen)")}<div><b>${esc(duTypText(d))}-Duell gegen ${esc(d.anName)}: ${p > q ? "gewonnen!" : p === q ? "unentschieden" : "verloren"}</b><div class="small muted">${p} : ${q} Punkte${p > q ? ` · +${DU_SIEG_TAL} Talente` : p === q ? ` · +${DU_REMIS_TAL} Talente` : ""}</div></div>`), 600);
   });
   if (tal) S.tal += tal; save(); renderHud();
