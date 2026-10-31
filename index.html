@@ -686,7 +686,7 @@ body.spiel-laeuft .app,body[data-tab=""] .app{padding-bottom:40px}
 body:not([data-acc="gold"]):not([data-acc=""]) .btn.primary{background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 55%,#fff),var(--accent) 50%,color-mix(in srgb,var(--accent) 75%,#000));color:var(--accent-ink);box-shadow:inset 0 1px 0 #fff8,0 4px 0 color-mix(in srgb,var(--accent) 45%,#000)}
 /* Menüleiste unten */
 .tabbar{position:fixed;z-index:20;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom,0px));width:min(500px,calc(100% - 20px));height:68px;
- display:grid;grid-template-columns:repeat(5,1fr);align-items:center;border-radius:24px;background:linear-gradient(180deg,#232a5ceb,#121738f5);border:1px solid #ffffff21;
+ display:grid;grid-template-columns:repeat(6,1fr);align-items:center;border-radius:24px;background:linear-gradient(180deg,#232a5ceb,#121738f5);border:1px solid #ffffff21;
  box-shadow:0 -6px 30px #0009,inset 0 1px 0 #ffffff26;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 body.spiel-laeuft .tabbar,body[data-tab=""] .tabbar,body:not([data-tab]) .tabbar{display:none}
 .tabbar button{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:none;color:#8d95c4;font:800 .68rem var(--body);cursor:pointer;padding:6px 0;height:100%;border-radius:20px}
@@ -696,7 +696,7 @@ body.spiel-laeuft .tabbar,body[data-tab=""] .tabbar,body:not([data-tab]) .tabbar
 .tabbar button.an .tb-ic{filter:none;transform:translateY(-2px) scale(1.08)}
 .tabbar button.an .tb-ic svg{filter:drop-shadow(0 0 8px var(--ar))}
 .tabbar button.an::before{content:"";position:absolute;top:-1px;width:34px;height:4px;border-radius:0 0 4px 4px;background:var(--ar);box-shadow:0 0 14px 2px var(--ar)}
-.tabbar [data-tab="home"]{--ar:#f2c14e}.tabbar [data-tab="lernen"]{--ar:var(--ar-lernen)}.tabbar [data-tab="spielen"]{--ar:var(--ar-spielen)}.tabbar [data-tab="rank"]{--ar:var(--ar-gemeinde)}.tabbar [data-tab="ich"]{--ar:var(--ar-lohn)}
+.tabbar [data-tab="home"]{--ar:#f2c14e}.tabbar [data-tab="lernen"]{--ar:var(--ar-lernen)}.tabbar [data-tab="spielen"]{--ar:var(--ar-spielen)}.tabbar [data-tab="rank"]{--ar:var(--ar-gemeinde)}.tabbar [data-tab="duelle"]{--ar:#ff8a5c}.tabbar [data-tab="ich"]{--ar:var(--ar-lohn)}
 .toast{bottom:calc(92px + env(safe-area-inset-bottom,0px))!important}
 body.spiel-laeuft .toast,body[data-tab=""] .toast{bottom:calc(16px + env(safe-area-inset-bottom,0px))!important}
 
@@ -1051,11 +1051,11 @@ body[data-acc="perle"]::after{-webkit-mask:none;mask:none;background:url("data:i
 @keyframes vlHoch{from{transform:translateY(16px);opacity:0}}
 
 /* Vers-Duell */
-/* Duell-Zugang im Bereich Spielen: gleiche Medaille wie auf der Startseite (Koralle-Ring, Saphir-Schild) */
-.bereich.du-zugang{--accent:#ff8a5c;border-color:#ff8a5c88;background:radial-gradient(90% 140% at 0% 50%,#ff5f8f40,transparent 65%),linear-gradient(135deg,#3a1630,var(--surface) 75%)}
-.bereich.du-zugang .b-ic.am-logo{width:54px;height:54px;border-radius:50%;padding:4px;background:radial-gradient(circle at 40% 30%,#3a2350,#141a3a 70%);border:2px solid #ff8a5c;box-shadow:0 0 0 3px var(--bg),0 0 18px #ff8a5ccc}
-.bereich.du-zugang .b-ic.am-logo svg{width:100%;height:100%}
-.bereich.du-zugang .b-tx b{background:linear-gradient(90deg,#ffd38a,#ff8a5c,#ff5f8f);-webkit-background-clip:text;background-clip:text;color:transparent}
+/* Fußleiste: Duell-Reiter (rotes Medaillon bleibt auch inaktiv rot, nur leicht gedämpft) */
+.tabbar [data-tab="duelle"] .tb-ic{filter:saturate(.75) brightness(.85)}
+.tabbar [data-tab="duelle"].an .tb-ic{filter:none}
+.tabbar .tb-du{position:absolute;top:2px;left:calc(50% + 6px);min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:9px;background:var(--bad);color:#fff;font:900 .65rem/18px var(--body);text-align:center;box-shadow:0 0 0 2px #151a3d,0 0 8px color-mix(in srgb,var(--bad) 70%,transparent)}
+.tabbar .tb-du[hidden]{display:none}
 .du-punkt{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 6px;border-radius:12px;background:var(--bad);color:#fff;font:900 .8rem var(--body);box-shadow:0 0 10px color-mix(in srgb,var(--bad) 60%,transparent)}
 .du-intro{margin:-4px 2px 10px}
 .du-neu{margin-top:0}
@@ -1130,8 +1130,8 @@ body[data-acc="perle"]::after{-webkit-mask:none;mask:none;background:url("data:i
 .arena .tor[data-ar="spielen"]{align-items:flex-end;text-align:right}.arena .tor[data-ar="spielen"] .tor-info{align-items:flex-end}
 .arena-medaille{position:absolute;left:50%;top:50%;transform:translate(-50%,-38%);width:96px;height:112px;display:flex;flex-direction:column;align-items:center;z-index:2;border:0;background:none;color:inherit;padding:0;cursor:pointer;font:inherit}
 .arena-medaille:active{transform:translate(-50%,-36%) scale(.96)}
-.am-logo{width:84px;height:84px;border-radius:50%;padding:6px;box-sizing:border-box;display:grid;place-items:center;background:radial-gradient(circle at 40% 30%,#3a2350,#141a3a 70%);border:2px solid #ff8a5c;box-shadow:0 0 0 4px var(--bg),0 0 24px #ff8a5c99}
-.am-logo svg{width:100%;height:100%;filter:drop-shadow(0 0 8px #ff8a5c88)}
+.am-logo{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;box-shadow:0 0 0 4px var(--bg),0 0 24px #ff8a5c99}
+.am-logo svg{width:100%;height:100%}
 .arena-medaille b{margin-top:-10px;font:900 .8rem var(--body);letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:10px;background:linear-gradient(135deg,#ffd38a,#ff8a5c 55%,#ff5f8f);color:#2a0d12;box-shadow:0 0 0 3px var(--bg)}
 .arena-medaille .du-punkt{position:absolute;top:0;right:4px;font-style:normal}
 @media (prefers-reduced-motion:no-preference){.am-logo{animation:duLeuchten 3.2s ease-in-out infinite}}

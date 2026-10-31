@@ -911,18 +911,21 @@ function go(name, arg) {
   tabbarSetzen(name); (VIEWS[name] || VIEWS.home)(arg);
 }
 /* Untere Menüleiste: zu welchem Reiter gehört eine Ansicht? */
-const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Spielen", "bolt"], ["rank", "Gemeinde", "trophy"], ["ich", "Laden", "shop"]];
-const TAB_VON = { duelle: "spielen", duell: "spielen", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen",
+const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Spielen", "bolt"], ["duelle", "Duell", "duell"], ["rank", "Gemeinde", "trophy"], ["ich", "Laden", "shop"]];
+const TAB_VON = { duell: "duelle", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen",
   shop: "ich" };
+/* rote Zahl am Duell-Reiter: wartende Herausforderungen */
+function tbDuSetzen() { const t = $("tbDu"); if (!t) return; const n = typeof duFuerMich === "function" ? duFuerMich().length : 0; t.hidden = !n; t.textContent = n; }
 function tabbarSetzen(name) {
   const nav = $("tabbar"); if (!nav) return;
   const aktiv = TAB_VON[name] || name;
   document.body.dataset.tab = name === "name" ? "" : aktiv;
   if (!nav.dataset.fertig) {
-    nav.innerHTML = TABS.map(([k, t, i]) => `<button data-tab="${k}" aria-label="${t}"><span class="tb-ic">${svg(i)}</span><span>${t}</span>${k === "ich" ? `<span class="tb-punkt" id="tbTal" ${etwasKaufbar() ? "" : "hidden"} aria-label="Im Laden ist etwas kaufbar"></span>` : ""}</button>`).join("");
+    nav.innerHTML = TABS.map(([k, t, i]) => `<button data-tab="${k}" aria-label="${t}"><span class="tb-ic">${svg(i)}</span><span>${t}</span>${k === "ich" ? `<span class="tb-punkt" id="tbTal" ${etwasKaufbar() ? "" : "hidden"} aria-label="Im Laden ist etwas kaufbar"></span>` : ""}${k === "duelle" ? `<span class="tb-du" id="tbDu" hidden></span>` : ""}</button>`).join("");
     nav.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { SFX.tap(); go(b.dataset.tab); });
     nav.dataset.fertig = "1";
   }
+  tbDuSetzen();
   nav.querySelectorAll("[data-tab]").forEach(b => { const an = b.dataset.tab === aktiv; b.classList.toggle("an", an); if (an) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
 }
 const screen = $("screen");
@@ -1082,14 +1085,15 @@ function truheOeffnen(von) {
   ov.querySelector(".tf-ok").onclick = () => { SFX.tap(); zu(); };
 }
 
-/* Duell-Logo „Schild des Glaubens“ (Eph 6,16): Saphir-Schild mit goldenem Kreuz vor gekreuzten Schwertern (Stil Himmlisches Licht) */
-const DUELL_LOGO = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="dlG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffbe8"/><stop offset=".5" stop-color="#f2c14e"/><stop offset="1" stop-color="#a06a14"/></linearGradient><linearGradient id="dlS" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9fd8ff"/><stop offset=".55" stop-color="#3b78d8"/><stop offset="1" stop-color="#1b3a88"/></linearGradient><radialGradient id="dlH"><stop offset="0" stop-color="#fff3c0" stop-opacity=".85"/><stop offset="1" stop-color="#ff8a5c" stop-opacity="0"/></radialGradient></defs>
-<circle cx="32" cy="32" r="30" fill="url(#dlH)"/>
-<g stroke="#1b2a55" stroke-width="1.3"><path d="M6 6l40 40-3 3L3 9z" fill="url(#dlG)"/><path d="M58 6L18 46l3 3L61 9z" fill="url(#dlG)"/></g>
-<path d="M32 8l20 6v14c0 13-9 22-20 28C21 50 12 41 12 28V14z" fill="url(#dlS)" stroke="#1b2a55" stroke-width="1.8"/>
-<path d="M32 12l16 5v11c0 11-7 18-16 23-9-5-16-12-16-23V17z" fill="none" stroke="url(#dlG)" stroke-width="2.4"/>
-<path d="M32 20v24M24 28h16" stroke="url(#dlG)" stroke-width="4.5" stroke-linecap="round"/><path d="M32 20v24M24 28h16" stroke="#1b2a55" stroke-width=".8" stroke-linecap="round" fill="none" opacity=".5"/>
-<path d="M19 18c4-2 8-3 12-3" stroke="#fff" stroke-opacity=".7" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+/* Duell-Logo „Schild des Glaubens“ (Eph 6,16): Saphir-Schild mit goldenem Kreuz vor gekreuzten Schwertern auf rotem Medaillon mit Koralle-Ring – überall gleich (Startseite, Fußleiste, Abzeichen, Rangliste, Aufgaben) */
+const DUELL_LOGO = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="dlG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffbe8"/><stop offset=".5" stop-color="#f2c14e"/><stop offset="1" stop-color="#a06a14"/></linearGradient><linearGradient id="dlS" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9fd8ff"/><stop offset=".55" stop-color="#3b78d8"/><stop offset="1" stop-color="#1b3a88"/></linearGradient><radialGradient id="dlR" cx=".4" cy=".32" r=".75"><stop offset="0" stop-color="#ff8a6e"/><stop offset=".5" stop-color="#c8344f"/><stop offset="1" stop-color="#5a1430"/></radialGradient></defs>
+<circle cx="32" cy="32" r="30" fill="url(#dlR)" stroke="#ff8a5c" stroke-width="3"/><path d="M12 22a22 22 0 0 1 22-14" stroke="#fff" stroke-opacity=".35" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+<g transform="translate(32 33) scale(.74) translate(-32 -32)">
+<g stroke="#1b2a55" stroke-width="1.6"><path d="M6 6l40 40-3 3L3 9z" fill="url(#dlG)"/><path d="M58 6L18 46l3 3L61 9z" fill="url(#dlG)"/></g>
+<path d="M32 8l20 6v14c0 13-9 22-20 28C21 50 12 41 12 28V14z" fill="url(#dlS)" stroke="#1b2a55" stroke-width="2.2"/>
+<path d="M32 12l16 5v11c0 11-7 18-16 23-9-5-16-12-16-23V17z" fill="none" stroke="url(#dlG)" stroke-width="2.6"/>
+<path d="M32 20v24M24 28h16" stroke="url(#dlG)" stroke-width="5" stroke-linecap="round"/>
+<path d="M19 18c4-2 8-3 12-3" stroke="#fff" stroke-opacity=".7" stroke-width="1.8" stroke-linecap="round"/></g></svg>`;
 /* Duell-Logo auch als kleines Symbol (Abzeichen, Tagesaufgabe, Rangliste) */
 ICONS.duell = `<g class="du-ic-g" transform="scale(.375)">${DUELL_LOGO.replace(/<\/?svg[^>]*>/g, "").replace(/id="dl/g, 'id="dk').replace(/url\(#dl/g, "url(#dk")}</g>`;
 VIEWS.home = () => {
@@ -1196,7 +1200,6 @@ VIEWS.spielen = () => {
   screen.innerHTML = `${seitenKopf("Spielen", `${svg("siegel")}${siegelZahl}/${Object.keys(KETTEN).length}`)}
   <div class="stack">
     <button class="bereich" data-go="blitz"><span class="b-ic">${svg("bolt")}</span><span class="b-tx"><b>Blitz-Runde</b><span>60 Sekunden: Was kommt danach?</span></span><span class="b-info">${S.bestBlitz ? "Rekord " + S.bestBlitz : ""}</span></button>
-    <button class="bereich du-zugang" data-go="duelle"><span class="b-ic am-logo">${DUELL_LOGO}</span><span class="b-tx"><b>Duell</b><span>Lernvers, Kette oder Blitz – fordere jemanden heraus</span></span><span class="b-info">${duFuerMich().length ? `<span class="du-punkt">${duFuerMich().length}</span>` : S.duSiege ? S.duSiege + (S.duSiege === 1 ? " Sieg" : " Siege") : ""}</span></button>
     <details class="erklaer"><summary><span class="label">Die Kette – ein Fehler beendet sie</span><span class="ek-i" aria-label="Erklärung">?</span></summary>
     <p class="small muted">Wer eine Kette komplett schafft, bekommt ein Siegel. Wiederhole sie in verschiedenen Wochen und Monaten für Silber, Gold und Diamant. Nach ${SIEGEL_FRISCH} Tagen verblasst ein Siegel – dann einfach auffrischen.</p></details>
     ${Object.entries(KETTEN).map(([id, k]) => { const max = k.seq.length, rec = kettenBuecher(k.key), voll = rec >= max, t = S.meister[id] || [], st = siegelStufe(t), fr = siegelFrisch(t);
@@ -1831,7 +1834,7 @@ async function lbStart() {
       /* Duelle im Hintergrund laden: Hinweis auf der Startseite, Zahl im Bereich Spielen */
       duAktualisieren().then(() => {
         const td = $("torDuell"), n = duFuerMich().length; if (td && current === "home") { const pk = td.querySelector(".du-punkt"); if (pk) pk.remove(); if (n) { td.insertAdjacentHTML("beforeend", `<i class="du-punkt">${n}</i>`); td.setAttribute("aria-label", `Duell – ${n} ${n === 1 ? "Herausforderung wartet" : "Herausforderungen warten"}`); } }
-        if (current === "spielen" && !document.querySelector(".modal")) go("spielen");
+        if ((current === "spielen" || current === "duelle") && !document.querySelector(".modal") && !duSpiel) go(current);
       });
     }
   } catch (e) {}
@@ -2221,7 +2224,7 @@ async function duAktualisieren() {
       if (alt && (d.status !== "offen" || jetzt > d.ablauf)) { L.duellLoeschen(d.id).catch(() => {}); return false; }
       return true;
     });
-    duFehler = ""; duBelohnen();
+    duFehler = ""; duBelohnen(); tbDuSetzen();
   } catch (e) { duFehler = "laden"; }
   return duListe;
 }
@@ -2246,7 +2249,7 @@ function duBelohnen() {
 const duMarke = d => { const t = duTypVon(d) || "vers"; return `<i class="du-marke t-${DU_TYPEN[t].art}">${esc(DU_TYPEN[t].name)}</i>`; };
 
 VIEWS.duelle = () => {
-  const kopf = `${backBtn("spielen")}${seitenKopf("Duell", `${svg("crown")}${S.duSiege || 0} ${S.duSiege === 1 ? "Sieg" : "Siege"}`)}`;
+  const kopf = `${seitenKopf("Duell", `${svg("crown")}${S.duSiege || 0} ${S.duSiege === 1 ? "Sieg" : "Siege"}`)}`;
   if (!duOk()) {
     screen.innerHTML = kopf + `<div class="card stack"><b>${window.LB && window.LB.ok ? "Erst in die Gemeinde-Rangliste" : "Keine Verbindung"}</b><p class="small muted" style="margin:0">${window.LB && window.LB.ok ? "Für Duelle brauchst du einen Eintrag in der Gemeinde-Rangliste." : "Für Duelle brauchst du Internet."}</p></div>`;
     wireGo(); return;
