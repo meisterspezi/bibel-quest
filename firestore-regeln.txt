@@ -1,5 +1,5 @@
 rules_version = '2';
-// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.31 – Duelle mit allgemeinem Datenmodell)
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.32 – Duell-Arten Lernvers, Kette, Blitz)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -141,18 +141,20 @@ service cloud.firestore {
         && text(request.resource.data, 'name', 20) && text(request.resource.data, 'pid', 64) && text(request.resource.data, 'geschrieben', 40);
     }
 
-    // ---------- Duelle (Version 6.31: allgemeines Modell für spätere Varianten) ----------
+    // ---------- Duelle (Version 6.31: allgemeines Modell; 6.32: Arten vers, kette, blitz) ----------
     // Ein Duell-Dokument: { v: Schema-Version, art: "vers" | später z. B. "gruppe", modus: "1v1" | später "team",
     //   von: Ersteller-pid, teil: [pid, …] (Ersteller zuerst; Abfrage per array-contains), namen: {pid: Name},
-    //   seiten: {pid: "a"|"b"} (nur Team-Varianten), opt: {kleine Zusatzwerte der Variante}, k: Lernvers-Monat, seed: Startwert,
+    //   seiten: {pid: "a"|"b"} (nur Team-Varianten), opt: {kleine Zusatzwerte der Variante},
+    //   k: Lernvers-Monat (vers) bzw. Kette bibel|at|nt|rueck (kette) bzw. Bereich all (blitz), seed: Startwert,
     //   ergebnisse: {pid: {p, r, n}}, am: pid des letzten Schreibers, status: offen|fertig|abgelehnt, erstellt, ablauf, fertig }
-    // Jede Variante wird unten in artErlaubt() einzeln freigeschaltet – heute nur das Vers-Duell eins gegen eins.
+    // Jede Variante wird unten in artErlaubt() einzeln freigeschaltet – heute Lernvers-, Ketten- und Blitz-Duell eins gegen eins.
     function ergOk(e) {
       return e is map && e.keys().hasOnly(['p', 'r', 'n']) && e.p is int && e.p >= 0 && e.p <= 100000
         && e.r is int && e.r >= 0 && e.r <= 500 && e.n is int && e.n >= 1 && e.n <= 500 && e.r <= e.n;
     }
     function artErlaubt(d) {
-      return d.art == 'vers' && d.modus == '1v1' && d.teil.size() == 2 && !('seiten' in d)
+      return (d.art == 'vers' || (d.art == 'kette' && d.k in ['bibel', 'at', 'nt', 'rueck']) || (d.art == 'blitz' && d.k == 'all'))
+        && d.modus == '1v1' && d.teil.size() == 2 && !('seiten' in d)
         && exists(spielerPfad(d.teil[1]));
     }
     function duellNeu(d) {

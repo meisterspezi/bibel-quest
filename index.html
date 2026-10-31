@@ -1089,6 +1089,34 @@ body[data-acc="perle"]::after{-webkit-mask:none;mask:none;background:url("data:i
 .du-vs-sp.offen b{color:var(--muted)}
 .du-vs-x{align-self:center;font:900 1.4rem var(--body);color:var(--muted)}
 .vle-ic.du{background:radial-gradient(circle at 40% 30%,#fff3dc,#ffb54a 50%,#a8601a)}
+/* Duell-Arten (Version 6.32): Lernvers = Saphir, Kette = Bernstein, Blitz = Koralle */
+.t-vers{--dt:var(--ar-lernen)}.t-kette{--dt:var(--ar-spielen)}.t-blitz{--dt:#ff8a5c}
+.du-schritt{margin:2px 2px 8px}.du-schritt~.du-schritt{margin-top:12px}
+.du-typen{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.du-typ{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px 8px;border-radius:14px;border:1px solid color-mix(in srgb,var(--dt) 30%,transparent);background:linear-gradient(170deg,color-mix(in srgb,var(--dt) 14%,transparent),#ffffff05 70%),var(--surface2);color:var(--fg);font:800 .78rem/1.15 var(--body);cursor:pointer;min-width:0}
+.du-typ .dt-ic{width:34px;height:34px;display:grid;place-items:center}.du-typ .dt-ic svg{width:30px;height:30px}
+.du-typ .dt-name{text-align:center;overflow-wrap:anywhere}
+.du-typ[aria-checked="true"]{border-color:var(--dt);box-shadow:0 0 0 2px color-mix(in srgb,var(--dt) 45%,transparent),0 0 16px color-mix(in srgb,var(--dt) 35%,transparent);background:linear-gradient(170deg,color-mix(in srgb,var(--dt) 30%,transparent),#ffffff08 75%),var(--surface2)}
+.du-typ[aria-checked="true"] .dt-ic svg{filter:drop-shadow(0 0 6px color-mix(in srgb,var(--dt) 70%,transparent))}
+.dt-marke{position:absolute;top:-8px;left:50%;transform:translateX(-50%);white-space:nowrap;font:900 .6rem var(--body);font-style:normal;letter-spacing:.04em;text-transform:uppercase;padding:2px 6px;border-radius:8px;background:var(--dt);color:#10142b}
+.du-typ-info{margin:8px 2px 0;min-height:1.2em}
+.modal .du-typen{margin-top:6px}
+.du-marke{display:inline-block;font:800 .7rem/1 var(--body);font-style:normal;padding:3px 7px;border-radius:8px;color:var(--dt);background:color-mix(in srgb,var(--dt) 16%,transparent);border:1px solid color-mix(in srgb,var(--dt) 40%,transparent);vertical-align:1px;white-space:nowrap}
+.du-rechts{display:flex;align-items:center;gap:8px}
+.du-rev svg{color:var(--ar-spielen)}
+.du-art-zeile{display:flex;flex-direction:column;align-items:center;gap:4px;margin:-4px 0 4px;text-align:center}
+.du-zeit i.global{animation:none;transition:width .1s linear}
+.du-frage-buch{display:flex;flex-direction:column;align-items:center;gap:4px;padding:18px 8px 10px;text-align:center}
+.du-buch{font:800 2rem/1.15 var(--display);color:var(--fg);text-shadow:0 0 18px color-mix(in srgb,var(--ar-spielen) 35%,transparent)}
+.du-blitz .du-buch{text-shadow:0 0 18px #ff8a5c55}
+.du-buecher{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.du-buecher .vl-opt{text-align:center}
+/* Startseite: farbiges Duell-Abzeichen in der Spielen-Kachel */
+.tor-duell{position:relative;margin-top:auto;display:inline-flex;align-items:center;gap:6px;padding:6px 12px 6px 8px;border-radius:999px;font:900 .85rem var(--body);color:#2a0d12;background:linear-gradient(135deg,#ffd38a,#ff8a5c 50%,#ff5f8f);box-shadow:0 0 0 1px #fff3 inset,0 4px 14px #ff6a7a55;cursor:pointer}
+.tor-duell svg{width:20px;height:20px;color:#2a0d12}
+.tor-duell .du-punkt{position:absolute;top:-8px;right:-10px;font-style:normal}
+@media (prefers-reduced-motion:no-preference){.tor-duell{animation:duLeuchten 3.2s ease-in-out infinite}}
+@keyframes duLeuchten{50%{box-shadow:0 0 0 1px #fff3 inset,0 4px 22px #ff6a7a99}}
 @media (prefers-reduced-motion:reduce){.du-zeit i{animation-timing-function:steps(12)}}
 @media (prefers-reduced-motion:reduce){.vl-urteil{animation:none}.vl-bar i{transition:none}}
 

@@ -13,7 +13,7 @@ const DEF = {
   tage: [], treueWochen: [], treueBonus: { week: "", stufen: [] }, meister: { bibel: [], at: [], nt: [], rueck: [] },
   siegelGesehen: { bibel: 0, at: 0, nt: 0, rueck: 0 }, aufgefrischt: false, eingeladenVon: "", eingeladen: false, fischerDabei: false, menschenfischer: false,
   songHeard: [], gapPerfect: false, peeked: false, earlyBird: false,
-  dq: { day: "", items: [], bonus: false }, questBonusCount: 0, lv: {}, duGes: [], duSiege: 0, duSpiele: 0,
+  dq: { day: "", items: [], bonus: false }, questBonusCount: 0, lv: {}, duGes: [], duSiege: 0, duSpiele: 0, duTyp: "vers",
   mute: false, beat: true, gapSing: false, atTi: 0, ntTi: 0,
   lbName: "", pid: "", ownersSet: false, offlineOnly: false, weekKey: "", weekXp: 0, podium: false, wochensieger: false, wochenziel: false,
   ver: 6
@@ -1097,6 +1097,7 @@ VIEWS.home = () => {
     <button class="tor" data-ar="spielen" data-go="spielen">
       <span class="tor-ic">${svg("bolt")}</span><span class="tor-titel">Spielen</span>
       <span class="tor-info">Blitz · Kette<span>Lückenquiz</span></span>
+      <span class="tor-duell" id="torDuell" aria-label="Duell">${svg("people")}<b>Duell</b>${duFuerMich().length ? `<i class="du-punkt">${duFuerMich().length}</i>` : ""}</span>
       <span class="tor-rek">${S.bestBlitz ? `Rekord<b>${S.bestBlitz}</b>` : ""}</span></button>
   </div>`;
   const erledigt = S.dq.items.filter(i => i.done).length;
@@ -1134,6 +1135,7 @@ VIEWS.home = () => {
   </div>`;
   wireGo();
   const tb = $("truheBtn"); if (tb) tb.onclick = () => truheOeffnen(tb);
+  const td = $("torDuell"); if (td) td.onclick = e => { e.stopPropagation(); SFX.tap(); go("duelle"); };
   lvVerdrahten();
   const vz = $("versZeile"); if (vz) { vz.onclick = () => { const auf = vz.getAttribute("aria-expanded") !== "true"; vz.setAttribute("aria-expanded", auf); };
     requestAnimationFrame(() => { const bq = vz.querySelector("blockquote"); if (bq && bq.scrollHeight <= bq.clientHeight + 2) vz.classList.add("passt"); }); }
@@ -1184,7 +1186,7 @@ VIEWS.spielen = () => {
   screen.innerHTML = `${seitenKopf("Spielen", `${svg("siegel")}${siegelZahl}/${Object.keys(KETTEN).length}`)}
   <div class="stack">
     <button class="bereich" data-go="blitz"><span class="b-ic">${svg("bolt")}</span><span class="b-tx"><b>Blitz-Runde</b><span>60 Sekunden: Was kommt danach?</span></span><span class="b-info">${S.bestBlitz ? "Rekord " + S.bestBlitz : ""}</span></button>
-    <button class="bereich du-zugang" data-go="duelle"><span class="b-ic">${svg("people")}</span><span class="b-tx"><b>Vers-Duell</b><span>Fordere jemanden zum Lernvers heraus</span></span><span class="b-info">${duFuerMich().length ? `<span class="du-punkt">${duFuerMich().length}</span>` : S.duSiege ? S.duSiege + (S.duSiege === 1 ? " Sieg" : " Siege") : ""}</span></button>
+    <button class="bereich du-zugang" data-go="duelle"><span class="b-ic">${svg("people")}</span><span class="b-tx"><b>Duell</b><span>Lernvers, Kette oder Blitz – fordere jemanden heraus</span></span><span class="b-info">${duFuerMich().length ? `<span class="du-punkt">${duFuerMich().length}</span>` : S.duSiege ? S.duSiege + (S.duSiege === 1 ? " Sieg" : " Siege") : ""}</span></button>
     <details class="erklaer"><summary><span class="label">Die Kette – ein Fehler beendet sie</span><span class="ek-i" aria-label="Erklärung">?</span></summary>
     <p class="small muted">Wer eine Kette komplett schafft, bekommt ein Siegel. Wiederhole sie in verschiedenen Wochen und Monaten für Silber, Gold und Diamant. Nach ${SIEGEL_FRISCH} Tagen verblasst ein Siegel – dann einfach auffrischen.</p></details>
     ${Object.entries(KETTEN).map(([id, k]) => { const max = k.seq.length, rec = kettenBuecher(k.key), voll = rec >= max, t = S.meister[id] || [], st = siegelStufe(t), fr = siegelFrisch(t);
@@ -1815,8 +1817,9 @@ async function lbStart() {
       /* Höhere Werte aus dem eigenen Ranglisten-Eintrag übernehmen (z. B. nach automatischem Zusammenführen) */
       if (L.holeSpieler) { const e = await L.holeSpieler(S.pid).catch(() => null); if (e && !e.zu && (e.xp || 0) > S.xp) { zusammenfuehren(ausRangliste(e)); save(); renderHud(); } }
       lbSync(true); cloudSync();
-      /* Vers-Duelle im Hintergrund laden: Hinweis auf der Startseite, Zahl im Bereich Spielen */
+      /* Duelle im Hintergrund laden: Hinweis auf der Startseite, Zahl im Bereich Spielen */
       duAktualisieren().then(() => {
+        const td = $("torDuell"), n = duFuerMich().length; if (td && current === "home") { const pk = td.querySelector(".du-punkt"); if (pk) pk.remove(); if (n) td.insertAdjacentHTML("beforeend", `<i class="du-punkt">${n}</i>`); }
         const h = $("duHinweis"); if (h && current === "home") { h.innerHTML = duHinweisHome(); h.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { SFX.tap(); go(b.dataset.go); }); }
         if (current === "spielen" && !document.querySelector(".modal")) go("spielen");
       });
@@ -2121,25 +2124,50 @@ function profilVergleich(r) {
       ${zeilenR.map(([k, v], j) => `<tr><th>${k}</th><td>${esc(v)}</td>${istIch ? "" : `<td>${esc(zeilenI[j][1])}</td>`}</tr>`).join("")}</tbody></table>
     ${Array.isArray(r.sg) ? `<div class="label" style="margin:12px 0 6px">Siegel</div>${siegelReihe(r)}` : ""}
     ${hatIds ? `<div class="small muted" style="margin-top:8px">${istIch ? "" : `Spalten bei den Abzeichen: links ${esc(r.name)}, rechts du.`}</div>${badgeGrid(r.badgeIds, istIch ? null : S.badges)}` : `<p class="small muted">Die Abzeichen sind sichtbar, sobald ${esc(r.name)} die neue App-Version öffnet.</p>`}
-    </div>${!istIch && duOk() ? `<button class="btn du-fordern" data-close="duell">${svg("bolt")} Zum Vers-Duell herausfordern</button>` : ""}<button class="btn primary" data-close>Schließen</button>`,
-    x => { if (x === "duell") { const los = () => duHerausfordern({ id: r.id, name: r.name }); if (duListe) los(); else duAktualisieren().then(los); } });
+    </div>${!istIch && duOk() ? `<button class="btn du-fordern" data-close="duell">${svg("bolt")} Zum Duell herausfordern</button>` : ""}<button class="btn primary" data-close>Schließen</button>`,
+    x => { if (x === "duell") duTypWahl({ id: r.id, name: r.name }, null); });
   m.dataset.frei = "1"; m.classList.add("weit");
 }
 
-/* ---------- Vers-Duell (asynchron) ----------
-   Herausforderer spielt 8 schnelle Fragen zum Lernvers und sendet sein Ergebnis; der Gegner bekommt dieselben Fragen
-   (gleicher Startwert) und hat 7 Tage Zeit. Punkte: 100 je richtige Antwort + bis zu 50 für Schnelligkeit. */
-const DU_ART = "vers"; /* Vers-Duell eins gegen eins – weitere Varianten (z. B. Gruppen) nutzen dasselbe Datenmodell */
-const DU_FRAGEN = 8, DU_SEK = 12, DU_MAX_OFFEN = 5, DU_TAGE_HALTEN = 30;
-const DU_XP = 10, DU_XP_RICHTIG = 3, DU_SIEG_TAL = 10, DU_REMIS_TAL = 5;
+/* ---------- Duelle (asynchron) ----------
+   Drei Arten mit gleichem Ablauf: Der Herausforderer spielt zuerst und sendet sein Ergebnis; der Gegner bekommt genau dieselben
+   Fragen (gleicher Startwert) und hat 7 Tage Zeit.
+   – Lernvers: 8 Fragen zum Lernvers, 12 s je Frage. Punkte: 100 je richtige Antwort + bis zu 50 für Schnelligkeit.
+   – Kette (Ganze Bibel / AT / NT / Rückwärts): Buch für Buch, 10 s je Buch, ein Fehler beendet sie. Punkte wie beim Lernvers.
+   – Blitz: 60 Sekunden „Was kommt danach?“, ein Fehler kostet 3 s. Punkte: 100 je Richtige + 20 je Combo-Stufe.
+   Datenmodell (firestore-regeln.txt): art = vers | kette | blitz, k = Lernvers-Monat bzw. Kette (bibel/at/nt/rueck) bzw. Bereich (all). */
+const DU_FRAGEN = 8, DU_SEK = 12, DU_KETTE_SEK = 10, DU_BLITZ_SEK = 60, DU_BLITZ_FRAGEN = 160, DU_MAX_OFFEN = 5, DU_TAGE_HALTEN = 30;
+const DU_XP = 10, DU_XP_RICHTIG = 3, DU_XP_MAX_RICHTIG = 20, DU_SIEG_TAL = 10, DU_REMIS_TAL = 5;
+const DU_TYPEN = {
+  vers: { art: "vers", name: "Lernvers", ic: "scroll", info: "8 Fragen zum Lernvers des Monats · 12 s je Frage" },
+  blitz: { art: "blitz", k: "all", name: "Blitz", ic: "bolt", info: "60 Sekunden: Was kommt danach? Ein Fehler kostet 3 s" },
+  "kette-bibel": { art: "kette", k: "bibel", name: "Kette Bibel", ic: "kette-bibel", info: "Ganze Bibel Buch für Buch · ein Fehler beendet sie" },
+  "kette-at": { art: "kette", k: "at", name: "Kette AT", ic: "kette-at", info: "1. Mose bis Maleachi · ein Fehler beendet sie" },
+  "kette-nt": { art: "kette", k: "nt", name: "Kette NT", ic: "kette-nt", info: "Matthäus bis Offenbarung · ein Fehler beendet sie" },
+  "kette-rueck": { art: "kette", k: "rueck", name: "Rückwärts", ic: "kette-rueck", info: "Offenbarung bis 1. Mose · für Profis" }
+};
 let duListe = null, duFehler = "", duSpiel = null, duWahl = false, duGegner = null, duSuche = "";
 const duOk = () => { const L = window.LB; return !!(L && L.ok && L.meineDuelle && S.pid && S.lbName && !S.offlineOnly); };
 const duVerseKey = () => { const jetzt = monatKey(); return Object.keys(MONATSVERSE).filter(k => k <= jetzt).sort().pop() || Object.keys(MONATSVERSE).sort()[0]; };
+/* Welcher Duell-Typ steckt in einem Dokument? null = unbekannt (spätere Variante) */
+const duTypVon = d => { const t = (d.art || "vers") === "kette" ? "kette-" + d.k : (d.art || "vers"); return DU_TYPEN[t] ? t : null; };
+const duTypAktuell = () => (DU_TYPEN[S.duTyp] ? S.duTyp : "vers");
+const duTypText = d => { const t = duTypVon(d) || "vers"; return t === "vers" ? `Lernvers ${monatName(d.k)}` : DU_TYPEN[t].name; };
+const duErgText = (art, e) => (art === "blitz" ? `${e.r} richtig` : art === "kette" ? `${e.r}/${e.n} Bücher richtig` : `${e.r}/${e.n} richtig`);
 function rngVon(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-/* Fragen aus Startwert + Lernvers – für beide Spieler genau gleich (Zufall wird dafür kurz ersetzt) */
-function duFragen(seed, k) {
+/* Fragen aus Startwert + Art – für beide Spieler genau gleich (Zufall wird dafür kurz ersetzt) */
+function duFragen(seed, art, k) {
   const alt = Math.random; Math.random = rngVon(seed);
   try {
+    if (art === "kette") {
+      const seq = (KETTEN[k] || KETTEN.bibel).seq;
+      return seq.slice(0, -1).map((_, pos) => ({ buch: ALL[seq[pos]].b, opts: optsSeq(seq, pos), loesung: ALL[seq[pos + 1]].b }));
+    }
+    if (art === "blitz") {
+      const idx = ALL.map((_, i) => i).slice(0, -1); let cur = -1;
+      return Array.from({ length: DU_BLITZ_FRAGEN }, () => { let i; do { i = pick(idx); } while (i === cur); cur = i;
+        return { buch: ALL[i].b, gruppe: GROUPS[ALL[i].gi].name, opts: makeOpts(i), loesung: ALL[i + 1].b }; });
+    }
     const frueher = Object.keys(MONATSVERSE).filter(x => x < k).sort().slice(-6);
     const keys = Array.from({ length: DU_FRAGEN }, (_, i) => (i % 4 === 3 && frueher.length ? pick(frueher) : k));
     const arten = shuffle(["weiter", "stelle", "fehler", "luecke", "weiter", "stelle", "fehler", "luecke"]);
@@ -2175,7 +2203,7 @@ async function duAktualisieren() {
     const L = window.LB, alle = await L.meineDuelle(S.pid), jetzt = Date.now();
     duListe = alle.filter(d => {
       /* nur Varianten anzeigen, die diese App-Version kennt (spätere Duell-Arten bleiben unberührt) */
-      if ((d.art || DU_ART) !== DU_ART || (d.modus || "1v1") !== "1v1" || !d.vonErg || (d.status === "fertig" && !d.anErg)) return false;
+      if (!duTypVon(d) || (d.modus || "1v1") !== "1v1" || !d.vonErg || (d.status === "fertig" && !d.anErg)) return false;
       const alt = jetzt - d.erstellt > DU_TAGE_HALTEN * 864e5;
       if (alt && (d.status !== "offen" || jetzt > d.ablauf)) { L.duellLoeschen(d.id).catch(() => {}); return false; }
       return true;
@@ -2195,19 +2223,21 @@ function duBelohnen() {
     S.duGes = [...(S.duGes || []), d.id].slice(-60);
     const p = d.vonErg.p, q = d.anErg.p;
     if (p > q) { S.duSiege = (S.duSiege || 0) + 1; tal += DU_SIEG_TAL; } else if (p === q) tal += DU_REMIS_TAL;
-    setTimeout(() => toast(`${svg(p > q ? "crown" : "bolt", p > q ? "#f2c14e" : "var(--ar-spielen)")}<div><b>Duell gegen ${esc(d.anName)}: ${p > q ? "gewonnen!" : p === q ? "unentschieden" : "verloren"}</b><div class="small muted">${p} : ${q} Punkte${p > q ? ` · +${DU_SIEG_TAL} Talente` : p === q ? ` · +${DU_REMIS_TAL} Talente` : ""}</div></div>`), 600);
+    setTimeout(() => toast(`${svg(p > q ? "crown" : "bolt", p > q ? "#f2c14e" : "var(--ar-spielen)")}<div><b>${esc(duTypText(d))}-Duell gegen ${esc(d.anName)}: ${p > q ? "gewonnen!" : p === q ? "unentschieden" : "verloren"}</b><div class="small muted">${p} : ${q} Punkte${p > q ? ` · +${DU_SIEG_TAL} Talente` : p === q ? ` · +${DU_REMIS_TAL} Talente` : ""}</div></div>`), 600);
   });
   if (tal) S.tal += tal; save(); renderHud();
 }
 function duHinweisHome() {
   if (!duListe) return "";
-  const an = duFuerMich(), erg = duNeueErgebnisse().length;
-  if (an.length) return `<button class="erinnerung du-hinweis" data-go="duelle">${svg("bolt", "var(--ar-spielen)")}<span><b>${an.length === 1 ? `${esc(an[0].vonName)} fordert dich zum Vers-Duell heraus!` : `${an.length} Vers-Duelle warten auf dich`}</b><span class="small muted">Zeig, wie gut du den Lernvers kennst</span></span></button>`;
+  const an = duFuerMich();
+  if (an.length) return `<button class="erinnerung du-hinweis" data-go="duelle">${svg("bolt", "var(--ar-spielen)")}<span><b>${an.length === 1 ? `${esc(an[0].vonName)} fordert dich zum Duell heraus!` : `${an.length} Duelle warten auf dich`}</b><span class="small muted">${an.length === 1 ? `${esc(duTypText(an[0]))} · ${esc(DU_TYPEN[duTypVon(an[0])].info)}` : an.map(d => esc(duTypText(d))).join(" · ")}</span></span></button>`;
   return "";
 }
+/* Kleine farbige Marke für die Duell-Art (Liste, Hinweise) */
+const duMarke = d => { const t = duTypVon(d) || "vers"; return `<i class="du-marke t-${DU_TYPEN[t].art}">${esc(DU_TYPEN[t].name)}</i>`; };
 
 VIEWS.duelle = () => {
-  const kopf = `${backBtn("spielen")}${seitenKopf("Vers-Duell", `${svg("crown")}${S.duSiege || 0} ${S.duSiege === 1 ? "Sieg" : "Siege"}`)}`;
+  const kopf = `${backBtn("spielen")}${seitenKopf("Duell", `${svg("crown")}${S.duSiege || 0} ${S.duSiege === 1 ? "Sieg" : "Siege"}`)}`;
   if (!duOk()) {
     screen.innerHTML = kopf + `<div class="card stack"><b>${window.LB && window.LB.ok ? "Erst in die Gemeinde-Rangliste" : "Keine Verbindung"}</b><p class="small muted" style="margin:0">${window.LB && window.LB.ok ? "Für Duelle brauchst du einen Eintrag in der Gemeinde-Rangliste." : "Für Duelle brauchst du Internet."}</p></div>`;
     wireGo(); return;
@@ -2220,33 +2250,39 @@ VIEWS.duelle = () => {
     const ich = d.von === S.pid, gegner = ich ? d.anName : d.vonName, st = duStatus(d);
     if (st === "fertig") {
       const p = ich ? d.vonErg.p : d.anErg.p, q = ich ? d.anErg.p : d.vonErg.p, erg = p > q ? "sieg" : p === q ? "remis" : "nieder";
-      return `<li class="du-zeile ${erg}"><span class="du-ic">${svg(erg === "sieg" ? "crown" : erg === "remis" ? "bolt" : "step")}</span><span class="du-tx"><b>${esc(gegner)}</b><span>${erg === "sieg" ? "Gewonnen" : erg === "remis" ? "Unentschieden" : "Verloren"} · Lernvers ${esc(monatName(d.k))}</span></span><span class="du-stand"><b>${p}</b> : ${q}</span></li>`;
+      return `<li class="du-zeile ${erg}"><span class="du-ic">${svg(erg === "sieg" ? "crown" : erg === "remis" ? "bolt" : "step")}</span><span class="du-tx"><b>${esc(gegner)}</b><span>${erg === "sieg" ? "Gewonnen" : erg === "remis" ? "Unentschieden" : "Verloren"} · ${duMarke(d)}</span></span><span class="du-rechts"><span class="du-stand"><b>${p}</b> : ${q}</span><button class="lv-btn rund du-rev" data-rev="${d.id}" aria-label="Revanche gegen ${esc(gegner)}">${svg("bolt")}</button></span></li>`;
     }
-    return `<li class="du-zeile grau"><span class="du-ic">${svg("lock")}</span><span class="du-tx"><b>${esc(gegner)}</b><span>${st === "abgelehnt" ? "abgelehnt" : "abgelaufen"}</span></span><button class="lv-btn rund" data-weg="${d.id}" aria-label="Entfernen">${svg("nein")}</button></li>`;
+    return `<li class="du-zeile grau"><span class="du-ic">${svg("lock")}</span><span class="du-tx"><b>${esc(gegner)}</b><span>${st === "abgelehnt" ? "abgelehnt" : "abgelaufen"} · ${duMarke(d)}</span></span><button class="lv-btn rund" data-weg="${d.id}" aria-label="Entfernen">${svg("nein")}</button></li>`;
   };
   const gegner = duWahl ? duGegnerHtml() : "";
   screen.innerHTML = kopf + `
-    <p class="small muted du-intro">8 schnelle Fragen zum Lernvers. Du spielst zuerst, dein Gegner bekommt dieselben Fragen und hat 7 Tage Zeit. Sieg: +${DU_SIEG_TAL} Talente.</p>
-    <button class="btn primary breit du-neu" id="duNeu" ${duWahl ? 'aria-expanded="true"' : ""}>${svg("bolt")} ${duWahl ? "Gegner wählen" : "Neues Duell"}</button>
+    <p class="small muted du-intro">Wähle Lernvers, Kette oder Blitz. Du spielst zuerst, dein Gegner bekommt dieselben Fragen und hat 7 Tage Zeit. Sieg: +${DU_SIEG_TAL} Talente.</p>
+    <button class="btn primary breit du-neu" id="duNeu" ${duWahl ? 'aria-expanded="true"' : ""}>${svg("bolt")} ${duWahl ? "Duell-Art und Gegner wählen" : "Neues Duell"}</button>
     ${gegner}
     ${duFehler ? `<p class="small muted">Duelle konnten nicht geladen werden. <button class="lv-btn" id="duNeuLaden">Nochmal</button></p>` : ""}
     ${duListe === null && !duFehler ? `<p class="small muted">Lade Duelle …</p>` : ""}
-    ${fuerMich.length ? `<div class="label du-label">Du bist dran</div><ul class="du-liste">${fuerMich.map(d => `<li class="du-zeile dran"><span class="du-ic">${svg("bolt")}</span><span class="du-tx"><b>${esc(d.vonName)}</b><span>${d.vonErg.p} Punkte vorgelegt · noch ${tage(d.ablauf)} ${tage(d.ablauf) === 1 ? "Tag" : "Tage"}</span></span><span class="du-knoepfe"><button class="lv-btn gold" data-an="${d.id}">Annehmen</button><button class="lv-btn rund" data-ab="${d.id}" aria-label="Ablehnen">${svg("nein")}</button></span></li>`).join("")}</ul>` : ""}
-    ${warte.length ? `<div class="label du-label">Warten auf deinen Gegner</div><ul class="du-liste">${warte.map(d => `<li class="du-zeile"><span class="du-ic">${svg("sun")}</span><span class="du-tx"><b>${esc(d.anName)}</b><span>Deine Punkte: ${d.vonErg.p} · noch ${tage(d.ablauf)} ${tage(d.ablauf) === 1 ? "Tag" : "Tage"}</span></span></li>`).join("")}</ul>` : ""}
+    ${fuerMich.length ? `<div class="label du-label">Du bist dran</div><ul class="du-liste">${fuerMich.map(d => `<li class="du-zeile dran"><span class="du-ic">${svg(DU_TYPEN[duTypVon(d)].ic)}</span><span class="du-tx"><b>${esc(d.vonName)}</b><span>${duMarke(d)} ${d.vonErg.p} Punkte vorgelegt · noch ${tage(d.ablauf)} ${tage(d.ablauf) === 1 ? "Tag" : "Tage"}</span></span><span class="du-knoepfe"><button class="lv-btn gold" data-an="${d.id}">Annehmen</button><button class="lv-btn rund" data-ab="${d.id}" aria-label="Ablehnen">${svg("nein")}</button></span></li>`).join("")}</ul>` : ""}
+    ${warte.length ? `<div class="label du-label">Warten auf deinen Gegner</div><ul class="du-liste">${warte.map(d => `<li class="du-zeile"><span class="du-ic">${svg("sun")}</span><span class="du-tx"><b>${esc(d.anName)}</b><span>${duMarke(d)} Deine Punkte: ${d.vonErg.p} · noch ${tage(d.ablauf)} ${tage(d.ablauf) === 1 ? "Tag" : "Tage"}</span></span></li>`).join("")}</ul>` : ""}
     ${fertig.length ? `<div class="label du-label">Ergebnisse</div><ul class="du-liste">${fertig.map(zeile).join("")}</ul>` : ""}
     ${duListe && !liste.length ? `<p class="small muted">Noch keine Duelle – fordere jemanden heraus!</p>` : ""}`;
   wireGo(); duGegnerVerdrahten();
   $("duNeu").onclick = () => { SFX.tap(); duWahl = !duWahl; VIEWS.duelle(); if (duWahl) { duGegnerLaden(); const f = $("duSuche"); if (f && !matchMedia("(pointer: coarse)").matches) f.focus(); } };
   if ($("duNeuLaden")) $("duNeuLaden").onclick = () => { duAktualisieren().then(() => current === "duelle" && VIEWS.duelle()); };
-  screen.querySelectorAll("[data-an]").forEach(b => b.onclick = () => { SFX.tap(); const d = liste.find(x => x.id === b.dataset.an); if (d) duSpielStarten({ id: d.id, seed: d.seed, k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von }); });
+  const annehmen = d => duSpielStarten({ id: d.id, seed: d.seed, art: d.art || "vers", k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von });
+  screen.querySelectorAll("[data-an]").forEach(b => b.onclick = () => { SFX.tap(); const d = liste.find(x => x.id === b.dataset.an); if (d) annehmen(d); });
   screen.querySelectorAll("[data-ab]").forEach(b => b.onclick = () => {
     SFX.tap(); const d = liste.find(x => x.id === b.dataset.ab);
     modal(`<div class="label">Duell ablehnen?</div><h2>${esc(d.vonName)}</h2><p class="muted">${esc(d.vonName)} sieht dann, dass du abgelehnt hast.</p><button class="btn primary" data-close="nein">Doch spielen</button><button class="btn ghost" data-close="ab">Ablehnen</button>`,
-      r => { if (r === "ab") L.duellAblehnen(d.id, S.pid).then(() => { d.status = "abgelehnt"; VIEWS.duelle(); }).catch(() => toast(`${svg("nein", "var(--bad)")}<div>Das hat nicht geklappt – bist du online?</div>`)); else if (r === "nein") duSpielStarten({ id: d.id, seed: d.seed, k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von }); });
+      r => { if (r === "ab") L.duellAblehnen(d.id, S.pid).then(() => { d.status = "abgelehnt"; VIEWS.duelle(); }).catch(() => toast(`${svg("nein", "var(--bad)")}<div>Das hat nicht geklappt – bist du online?</div>`)); else if (r === "nein") annehmen(d); });
   });
+  screen.querySelectorAll("[data-rev]").forEach(b => b.onclick = () => { SFX.tap(); const d = liste.find(x => x.id === b.dataset.rev); if (!d) return; const ich = d.von === S.pid;
+    duTypWahl({ id: ich ? d.an : d.von, name: ich ? d.anName : d.vonName }, duTypVon(d), true); });
   screen.querySelectorAll("[data-weg]").forEach(b => b.onclick = () => { SFX.tap(); const id = b.dataset.weg; L.duellLoeschen(id).catch(() => {}); duListe = (duListe || []).filter(d => d.id !== id); VIEWS.duelle(); });
   if (duListe === null) duAktualisieren().then(() => { if (current === "duelle" && !duSpiel) VIEWS.duelle(); });
 };
+/* Auswahl der Duell-Art als Kacheln (eine Ebene, direkt über der Gegnerliste) */
+const duTypKacheln = (aktiv, attr = "data-typ", marken = {}) => `<div class="du-typen" role="radiogroup" aria-label="Duell-Art">${Object.entries(DU_TYPEN).map(([id, t]) =>
+  `<button class="du-typ t-${t.art}" role="radio" aria-checked="${id === aktiv}" ${attr}="${id}"><span class="dt-ic">${svg(t.ic)}</span><span class="dt-name">${esc(t.name)}</span>${marken[id] ? `<i class="dt-marke">${marken[id]}</i>` : ""}</button>`).join("")}</div>`;
 /* Gegnerwahl direkt auf der Duell-Seite (keine weitere Menüebene) */
 async function duGegnerLaden() {
   if (duGegner) return;
@@ -2255,77 +2291,129 @@ async function duGegnerLaden() {
 }
 function duGegnerHtml() {
   const offen = (duListe || []).filter(d => d.von === S.pid && duStatus(d) === "offen");
-  const voll = offen.length >= DU_MAX_OFFEN, q = nameSchluessel(duSuche);
+  const voll = offen.length >= DU_MAX_OFFEN, q = nameSchluessel(duSuche), typ = duTypAktuell();
   const liste = (duGegner || []).filter(r => !q || nameSchluessel(r.name).includes(q)).slice(0, 40);
   return `<div class="card du-gegner" id="duGegner">
     ${voll ? `<p class="small muted" style="margin:0">Du hast schon ${DU_MAX_OFFEN} offene Duelle – warte, bis jemand antwortet.</p>` : `
+    <div class="label du-schritt">1 · Duell-Art</div>
+    ${duTypKacheln(typ)}
+    <p class="small muted du-typ-info">${esc(DU_TYPEN[typ].info)}</p>
+    <div class="label du-schritt">2 · Gegner</div>
     <input class="du-suche" id="duSuche" type="search" placeholder="Name suchen …" value="${esc(duSuche)}" autocomplete="off" aria-label="Gegner suchen">
     ${duGegner === null ? `<p class="small muted">Lade Gemeinde …</p>` : `<ul class="du-wahl">${liste.map(r => { const laeuft = offen.some(d => d.an === r.id);
       return `<li><button class="du-person" data-gegner="${esc(r.id)}" ${laeuft ? "disabled" : ""}>${avatarLv(r, 34)}<span class="du-tx"><b>${esc(r.name)}</b><span>${laeuft ? "Duell läuft schon" : "Level " + (r.level || 1)}</span></span>${laeuft ? "" : `<span class="du-los">${svg("bolt")}</span>`}</button></li>`; }).join("") || `<li class="small muted">Niemand gefunden.</li>`}</ul>`}`}
   </div>`;
 }
 function duGegnerVerdrahten() {
-  const f = $("duSuche"); if (f) f.oninput = () => { duSuche = f.value; const pos = f.selectionStart; const box = $("duGegner"); box.outerHTML = duGegnerHtml(); duGegnerVerdrahten(); const g = $("duSuche"); g.focus(); try { g.setSelectionRange(pos, pos); } catch (e) {} };
-  screen.querySelectorAll("[data-gegner]").forEach(b => b.onclick = () => { SFX.tap(); const r = (duGegner || []).find(x => x.id === b.dataset.gegner); if (r) duHerausfordern(r); });
+  const neuZeichnen = () => { const box = $("duGegner"); if (box) { box.outerHTML = duGegnerHtml(); duGegnerVerdrahten(); } };
+  const f = $("duSuche"); if (f) f.oninput = () => { duSuche = f.value; const pos = f.selectionStart; neuZeichnen(); const g = $("duSuche"); g.focus(); try { g.setSelectionRange(pos, pos); } catch (e) {} };
+  screen.querySelectorAll("[data-typ]").forEach(b => b.onclick = () => { SFX.tap(); S.duTyp = b.dataset.typ; save(); neuZeichnen(); });
+  screen.querySelectorAll("[data-gegner]").forEach(b => b.onclick = () => { SFX.tap(); const r = (duGegner || []).find(x => x.id === b.dataset.gegner); if (r) duHerausfordern(r, duTypAktuell()); });
 }
-function duHerausfordern(r) {
+/* Duell-Art wählen und herausfordern (Revanche, Profil): die bisherige Art ist markiert, eine andere wird vorgeschlagen */
+function duTypWahl(r, bisher, revanche = false) {
+  const andere = Object.keys(DU_TYPEN).filter(t => t !== bisher);
+  const vorschlag = bisher ? (DU_TYPEN[bisher].art === "vers" ? "blitz" : DU_TYPEN[bisher].art === "blitz" ? "kette-at" : "vers") : null;
+  let wahl = vorschlag || duTypAktuell();
+  const marken = {}; if (bisher) marken[bisher] = "wie eben"; if (vorschlag && andere.includes(vorschlag)) marken[vorschlag] = "Vorschlag";
+  const m = modal(`<div class="label">${revanche ? "Revanche" : "Duell"} gegen</div><h2 style="margin:0">${esc(r.name)}</h2>
+    <p class="small muted" style="margin:0">${bisher ? "Noch einmal dasselbe – oder diesmal eine andere Duell-Art?" : "Welche Duell-Art?"}</p>
+    ${duTypKacheln(wahl, "data-mtyp", marken)}<p class="small muted du-typ-info" id="duMInfo">${esc(DU_TYPEN[wahl].info)}</p>
+    <button class="btn primary du-fordern" data-close="los" id="duMLos">${svg("bolt")} ${esc(DU_TYPEN[wahl].name)}-Duell starten</button><button class="btn ghost" data-close>Abbrechen</button>`,
+    x => { if (x !== "los") return; S.duTyp = wahl; save(); const los = () => duHerausfordern(r, wahl); if (duListe) los(); else duAktualisieren().then(los); });
+  m.dataset.frei = "1";
+  m.querySelectorAll("[data-mtyp]").forEach(b => b.onclick = () => { SFX.tap(); wahl = b.dataset.mtyp;
+    m.querySelectorAll("[data-mtyp]").forEach(x => x.setAttribute("aria-checked", x === b)); $("duMInfo").textContent = DU_TYPEN[wahl].info;
+    $("duMLos").innerHTML = `${svg("bolt")} ${esc(DU_TYPEN[wahl].name)}-Duell starten`; });
+}
+function duHerausfordern(r, typ = duTypAktuell()) {
   if (!duOk()) { go("duelle"); return; }
   const offen = (duListe || []).filter(d => d.von === S.pid && duStatus(d) === "offen");
   if (offen.length >= DU_MAX_OFFEN) { toast(`${svg("bolt", "var(--muted)")}<div>Du hast schon ${DU_MAX_OFFEN} offene Duelle.</div>`); return; }
   if (offen.some(d => d.an === r.id)) { toast(`${svg("bolt", "var(--muted)")}<div>Gegen ${esc(r.name)} läuft schon ein Duell.</div>`); return; }
+  const T = DU_TYPEN[typ] || DU_TYPEN.vers;
   const seed = crypto.getRandomValues(new Uint32Array(1))[0] % 2147483647;
-  duSpielStarten({ neu: true, an: r.id, gegner: r.name, seed, k: duVerseKey() });
+  duSpielStarten({ neu: true, an: r.id, gegner: r.name, seed, art: T.art, k: T.art === "vers" ? duVerseKey() : T.k });
 }
 
 /* ----- Das Duell selbst: eine Frage pro Bildschirm, Zeitbalken, sofortige Rückmeldung ----- */
 function duSpielStarten(opt) {
   duWahl = false;
   go("duell");
-  duSpiel = Object.assign({ fragen: duFragen(opt.seed, opt.k), i: 0, p: 0, r: 0, gesendet: false }, opt);
+  const art = DU_TYPEN[opt.art === "kette" ? "kette-" + opt.k : opt.art] ? opt.art : "vers";
+  duSpiel = Object.assign({ i: 0, p: 0, r: 0, f: 0, combo: 0, maxCombo: 0, rest: DU_BLITZ_SEK, gesendet: false }, opt, { art });
+  duSpiel.fragen = duFragen(opt.seed, art, opt.k);
   document.body.classList.add("spiel-laeuft");
-  countdown(() => duZeige());
+  countdown(() => { if (art === "blitz") duBlitzUhr(); duZeige(); });
 }
+/* Blitz: eine gemeinsame Uhr über alle Fragen */
+function duBlitzUhr() {
+  const D = duSpiel, t = setInterval(() => {
+    if (duSpiel !== D || D.abgeschlossen) { clearInterval(t); return; }
+    D.rest = Math.max(0, D.rest - 0.1);
+    const z = $("duZeit"); if (z) z.style.width = D.rest / DU_BLITZ_SEK * 100 + "%";
+    const s = $("duSek"); if (s) s.textContent = Math.ceil(D.rest) + " s";
+    if (D.rest <= 10 && Math.abs(D.rest - Math.round(D.rest)) < 0.05) SFX.tick();
+    if (D.rest <= 0) { clearInterval(t); duAbschluss(); }
+  }, 100);
+  timers.push(t);
+}
+function duAbschluss() { const D = duSpiel; if (!D || D.abgeschlossen) return; D.abgeschlossen = true; duEnde(); }
 VIEWS.duell = () => { screen.innerHTML = ""; };
 function duZeige() {
-  const D = duSpiel; if (!D || current !== "duell") return;
-  if (D.i >= D.fragen.length) return duEnde();
-  const f = D.fragen[D.i];
-  screen.innerHTML = `<div class="vl du-spiel">
+  const D = duSpiel; if (!D || current !== "duell" || D.abgeschlossen) return;
+  if (D.i >= D.fragen.length || D.aus) return duAbschluss();
+  const f = D.fragen[D.i], blitz = D.art === "blitz", kette = D.art === "kette", sek = kette ? DU_KETTE_SEK : DU_SEK;
+  const fortschritt = blitz ? (DU_BLITZ_SEK - D.rest) / DU_BLITZ_SEK : D.i / D.fragen.length;
+  const mult = () => Math.min(1 + Math.floor(D.combo / 5), 5);
+  const titel = blitz ? `Blitz · <span id="duSek">${Math.ceil(D.rest)} s</span>${D.combo >= 2 ? ` · Combo ${D.combo} · x${mult()}` : ""}`
+    : kette ? `${esc(DU_TYPEN["kette-" + D.k].name)} · Buch ${D.i + 1}/${D.fragen.length}` : `Frage ${D.i + 1}/${D.fragen.length}${f.k !== D.k ? ` · Lernvers ${esc(monatName(f.k))}` : ""}`;
+  screen.innerHTML = `<div class="vl du-spiel du-${D.art}">
     <div class="vl-kopf"><button class="vl-x" id="duX" aria-label="Duell abbrechen">${svg("back")}</button>
-      <div class="vl-bar du-bar"><i style="width:${D.i / D.fragen.length * 100}%"></i></div><span class="du-punkte">${D.p}</span></div>
-    <span class="vl-titel du-titel">${svg("bolt")} Duell gegen ${esc(D.gegner)} · Frage ${D.i + 1}/${D.fragen.length}${f.k !== D.k ? ` · Lernvers ${esc(monatName(f.k))}` : ""}</span>
-    <div class="du-zeit"><i id="duZeit" style="animation-duration:${DU_SEK}s"></i></div>
-    <h2 class="vl-frage">${f.frage}</h2>
-    <div class="vl-vers">${f.vers}</div>
-    <div class="vl-wahl ${f.lang ? "" : "du-kurz"}">${f.opts.map((o, j) => `<button class="vl-opt" data-o="${j}">${esc(o)}</button>`).join("")}</div>
+      <div class="vl-bar du-bar"><i style="width:${fortschritt * 100}%"></i></div><span class="du-punkte">${D.p}</span></div>
+    <span class="vl-titel du-titel">${svg(blitz ? "bolt" : kette ? "link" : "bolt")} ${esc(D.gegner)} · ${titel}</span>
+    <div class="du-zeit">${blitz ? `<i id="duZeit" class="global" style="width:${D.rest / DU_BLITZ_SEK * 100}%"></i>` : `<i id="duZeit" style="animation-duration:${sek}s"></i>`}</div>
+    ${f.buch ? `<div class="du-frage-buch"><span class="qsub">Was kommt nach</span><b class="du-buch">${esc(f.buch)}</b>${f.gruppe ? `<span class="qsub">${esc(f.gruppe)}</span>` : ""}</div>`
+      : `<h2 class="vl-frage">${f.frage}</h2><div class="vl-vers">${f.vers}</div>`}
+    <div class="vl-wahl ${f.lang ? "" : "du-kurz"} ${f.buch ? "du-buecher" : ""}">${f.opts.map((o, j) => `<button class="vl-opt" data-o="${j}">${esc(o)}</button>`).join("")}</div>
   </div>`;
   const start = performance.now(); let fertig = false;
   const antworten = (j, el) => {
-    if (fertig) return; fertig = true;
-    const ok = j != null && f.opts[j] === f.loesung, rest = Math.max(0, DU_SEK - (performance.now() - start) / 1000);
-    const zeitEl = $("duZeit"); if (zeitEl) zeitEl.style.animationPlayState = "paused";
+    if (fertig || D.abgeschlossen) return; fertig = true;
+    const ok = j != null && f.opts[j] === f.loesung, rest = Math.max(0, sek - (performance.now() - start) / 1000);
+    const zeitEl = $("duZeit"); if (zeitEl && !blitz) zeitEl.style.animationPlayState = "paused";
     screen.querySelectorAll(".vl-opt").forEach(b => { b.disabled = true; const o = f.opts[+b.dataset.o]; if (o === f.loesung) b.classList.add("richtig"); else if (b === el) b.classList.add("falsch"); });
-    if (ok) { const pkt = 100 + Math.round(50 * rest / DU_SEK); D.p += pkt; D.r++; SFX.right(D.r); vibrate(12); if (el) { const [x, y] = centerOf(el); floatText("+" + pkt, x, y); burst(x, y, 12, { speed: 4 }); } }
-    else { SFX.wrong(); vibrate([40, 30, 40]); if (j == null) toast(`${svg("sun", "var(--muted)")}<div>Zeit ist um!</div>`); }
+    if (ok) {
+      D.combo++; D.maxCombo = Math.max(D.maxCombo, D.combo);
+      const pkt = blitz ? 100 + 20 * (mult() - 1) : 100 + Math.round(50 * rest / sek); D.p += pkt; D.r++;
+      SFX.right(blitz ? D.combo : D.r); vibrate(12); if (el) { const [x, y] = centerOf(el); floatText("+" + pkt, x, y); burst(x, y, 12, { speed: 4 }); }
+      if (blitz && D.combo % 5 === 0) { tone(1568, 0, .15, "sine", .12); shakeScreen(); }
+    } else {
+      D.f++; D.combo = 0; SFX.wrong(); vibrate([40, 30, 40]);
+      if (blitz) { D.rest = Math.max(0, D.rest - 3); shakeScreen(); }
+      else if (j == null) toast(`${svg("sun", "var(--muted)")}<div>Zeit ist um!</div>`);
+      if (kette) D.aus = true;
+    }
     const pk = screen.querySelector(".du-punkte"); if (pk) pk.textContent = D.p;
-    timers.push(setTimeout(() => { D.i++; duZeige(); }, ok ? 750 : 1500));
+    timers.push(setTimeout(() => { D.i++; duZeige(); }, blitz ? (ok ? 320 : 700) : kette ? (ok ? 450 : 1600) : ok ? 750 : 1500));
   };
   screen.querySelectorAll(".vl-opt").forEach(b => b.onclick = () => antworten(+b.dataset.o, b));
-  timers.push(setTimeout(() => antworten(null, null), DU_SEK * 1000));
+  if (!blitz) timers.push(setTimeout(() => antworten(null, null), sek * 1000));
   $("duX").onclick = () => {
     SFX.tap();
     modal(`<div class="label">Duell abbrechen?</div><h2>Gegen ${esc(D.gegner)}</h2><p class="muted">${D.neu ? "Die Herausforderung wird dann nicht gesendet." : "Du kannst später noch einmal neu anfangen."}</p><button class="btn primary" data-close="weiter">Weiterspielen</button><button class="btn ghost" data-close="ende">Abbrechen</button>`,
-      r => { if (r === "ende") { duSpiel = null; go("duelle"); } });
+      r => { if (r === "ende") { D.abgeschlossen = true; duSpiel = null; go("duelle"); } });
   };
 }
 async function duEnde() {
-  const D = duSpiel, erg = { p: D.p, r: D.r, n: D.fragen.length }, L = window.LB;
-  const xp = DU_XP + DU_XP_RICHTIG * D.r;
-  if (!D.belohnt) { D.belohnt = true; S.duSpiele = (S.duSpiele || 0) + 1; richtig(D.r); quest("runde", 1); save(); }
+  const D = duSpiel, L = window.LB, n = D.art === "blitz" ? Math.max(1, D.r + D.f) : D.fragen.length;
+  const erg = { p: D.p, r: D.r, n };
+  const xp = DU_XP + DU_XP_RICHTIG * Math.min(D.r, DU_XP_MAX_RICHTIG);
+  if (!D.belohnt) { D.belohnt = true; S.duSpiele = (S.duSpiele || 0) + 1; richtig(D.r); quest("runde", 1); if (D.art === "blitz") quest("blitz", 1); if (D.art === "kette") quest("ketteGespielt", 1); save(); }
   let titel, zeile, tal = 0, sieg = false, fehler = false;
   try {
     if (D.neu) {
-      if (!D.gesendet) { D.id = await L.duellAnlegen({ von: S.pid, an: D.an, vonName: S.lbName, anName: D.gegner, k: D.k, seed: D.seed, vonErg: erg }); D.gesendet = true; duListe = null; }
+      if (!D.gesendet) { D.id = await L.duellAnlegen({ art: D.art, von: S.pid, an: D.an, vonName: S.lbName, anName: D.gegner, k: D.k, seed: D.seed, vonErg: erg }); D.gesendet = true; duListe = null; }
       titel = "Herausforderung gesendet!"; zeile = `${esc(D.gegner)} bekommt dieselben Fragen und hat 7 Tage Zeit. Du siehst das Ergebnis hier und auf der Startseite.`;
     } else {
       if (!D.gesendet) { await L.duellErgebnis(D.id, erg, S.pid); D.gesendet = true; duListe = null; }
@@ -2335,19 +2423,22 @@ async function duEnde() {
       zeile = sieg ? `Du hast ${esc(D.gegner)} besiegt.` : D.p === q ? "Genau gleich viele Punkte!" : `${esc(D.gegner)} war diesmal besser – fordere eine Revanche!`;
     }
   } catch (e) { fehler = true; titel = "Nicht gesendet"; zeile = "Die Verbindung hat nicht geklappt. Prüfe dein Internet und versuche es nochmal."; }
-  const gegnerSpalte = !D.neu ? `<div class="du-vs-sp ${!sieg && D.p !== D.gegnerErg.p ? "vorn" : ""}"><span>${esc(D.gegner)}</span><b>${D.gegnerErg.p}</b><small>${D.gegnerErg.r}/${D.gegnerErg.n} richtig</small></div>` : `<div class="du-vs-sp offen"><span>${esc(D.gegner)}</span><b>?</b><small>ist dran</small></div>`;
+  const typ = D.art === "kette" ? "kette-" + D.k : D.art, ich = { r: D.r, n };
+  const extra = D.art === "blitz" && D.maxCombo >= 2 ? ` · beste Combo ${D.maxCombo}` : D.art === "kette" && D.r === D.fragen.length ? " · ganze Kette!" : "";
+  const gegnerSpalte = !D.neu ? `<div class="du-vs-sp ${!sieg && D.p !== D.gegnerErg.p ? "vorn" : ""}"><span>${esc(D.gegner)}</span><b>${D.gegnerErg.p}</b><small>${duErgText(D.art, D.gegnerErg)}</small></div>` : `<div class="du-vs-sp offen"><span>${esc(D.gegner)}</span><b>?</b><small>ist dran</small></div>`;
   screen.innerHTML = `<div class="vl vl-ende du-ende">
     <div class="vle-ic ${sieg ? "" : "du"}">${svg(sieg ? "crown" : "bolt")}</div>
     <h1>${titel}</h1><p class="muted">${zeile}</p>
-    <div class="du-vs"><div class="du-vs-sp ${sieg ? "vorn" : ""}"><span>Du</span><b>${D.p}</b><small>${D.r}/${D.fragen.length} richtig</small></div><span class="du-vs-x">:</span>${gegnerSpalte}</div>
+    <div class="du-art-zeile">${duMarke({ art: D.art, k: D.k })}<span class="small muted">${esc(DU_TYPEN[typ].info)}</span></div>
+    <div class="du-vs"><div class="du-vs-sp ${sieg ? "vorn" : ""}"><span>Du</span><b>${D.p}</b><small>${duErgText(D.art, ich)}${extra}</small></div><span class="du-vs-x">:</span>${gegnerSpalte}</div>
     <div class="vle-werte"><div><b>+${xp}</b><span>XP</span></div>${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>Talente</span></div>` : ""}</div>
     ${fehler ? `<button class="btn primary breit" id="duNochmal">Nochmal senden</button>` : `<button class="btn primary breit" id="duFertig">Zu den Duellen</button>`}
-    ${!D.neu && !fehler && !sieg ? `<button class="btn ghost breit" id="duRevanche">${svg("bolt")} Revanche</button>` : ""}</div>`;
+    ${!D.neu && !fehler ? `<button class="btn ghost breit" id="duRevanche">${svg("bolt")} ${sieg ? "Nochmal duellieren" : "Revanche"}</button>` : ""}</div>`;
   if (!fehler) { SFX.win(); rain(sieg ? 90 : 40); }
   const weiter = () => { duSpiel = null; go("duelle"); };
   if ($("duFertig")) $("duFertig").onclick = () => { SFX.tap(); weiter(); };
   if ($("duNochmal")) $("duNochmal").onclick = () => { SFX.tap(); duEnde(); };
-  if ($("duRevanche")) $("duRevanche").onclick = () => { SFX.tap(); duSpiel = null; duAktualisieren().then(() => duHerausfordern({ id: D.vonPid, name: D.gegner })); };
+  if ($("duRevanche")) $("duRevanche").onclick = () => { SFX.tap(); duSpiel = null; go("duelle"); duTypWahl({ id: D.vonPid, name: D.gegner }, typ, !sieg); };
   if (!D.xpGegeben) { D.xpGegeben = true; setTimeout(() => { addXp(xp); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350); }
 }
 
