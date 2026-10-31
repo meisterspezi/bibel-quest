@@ -2239,6 +2239,8 @@ function duBelohnen() {
     setTimeout(() => toast(`${svg(p > q ? "crown" : "bolt", p > q ? "#f2c14e" : "var(--ar-spielen)")}<div><b>${esc(duTypText(d))}-Duell gegen ${esc(d.anName)}: ${p > q ? "gewonnen!" : p === q ? "unentschieden" : "verloren"}</b><div class="small muted">${p} : ${q} Punkte${p > q ? ` · +${DU_SIEG_TAL} Talente` : p === q ? ` · +${DU_REMIS_TAL} Talente` : ""}</div></div>`), 600);
   });
   if (tal) S.tal += tal; save(); renderHud();
+  /* Sieg sofort in die Rangliste und Abzeichen prüfen (sonst erst beim nächsten Spiel) */
+  checkBadges(); lbSync();
 }
 /* Kleine farbige Marke für die Duell-Art (Liste, Hinweise) */
 const duMarke = d => { const t = duTypVon(d) || "vers"; return `<i class="du-marke t-${DU_TYPEN[t].art}">${esc(DU_TYPEN[t].name)}</i>`; };
