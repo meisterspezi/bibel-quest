@@ -2129,6 +2129,7 @@ function profilVergleich(r) {
 /* ---------- Vers-Duell (asynchron) ----------
    Herausforderer spielt 8 schnelle Fragen zum Lernvers und sendet sein Ergebnis; der Gegner bekommt dieselben Fragen
    (gleicher Startwert) und hat 7 Tage Zeit. Punkte: 100 je richtige Antwort + bis zu 50 für Schnelligkeit. */
+const DU_ART = "vers"; /* Vers-Duell eins gegen eins – weitere Varianten (z. B. Gruppen) nutzen dasselbe Datenmodell */
 const DU_FRAGEN = 8, DU_SEK = 12, DU_MAX_OFFEN = 5, DU_TAGE_HALTEN = 30;
 const DU_XP = 10, DU_XP_RICHTIG = 3, DU_SIEG_TAL = 10, DU_REMIS_TAL = 5;
 let duListe = null, duFehler = "", duSpiel = null, duWahl = false, duGegner = null, duSuche = "";
@@ -2173,6 +2174,8 @@ async function duAktualisieren() {
   try {
     const L = window.LB, alle = await L.meineDuelle(S.pid), jetzt = Date.now();
     duListe = alle.filter(d => {
+      /* nur Varianten anzeigen, die diese App-Version kennt (spätere Duell-Arten bleiben unberührt) */
+      if ((d.art || DU_ART) !== DU_ART || (d.modus || "1v1") !== "1v1" || !d.vonErg || (d.status === "fertig" && !d.anErg)) return false;
       const alt = jetzt - d.erstellt > DU_TAGE_HALTEN * 864e5;
       if (alt && (d.status !== "offen" || jetzt > d.ablauf)) { L.duellLoeschen(d.id).catch(() => {}); return false; }
       return true;
@@ -2239,7 +2242,7 @@ VIEWS.duelle = () => {
   screen.querySelectorAll("[data-ab]").forEach(b => b.onclick = () => {
     SFX.tap(); const d = liste.find(x => x.id === b.dataset.ab);
     modal(`<div class="label">Duell ablehnen?</div><h2>${esc(d.vonName)}</h2><p class="muted">${esc(d.vonName)} sieht dann, dass du abgelehnt hast.</p><button class="btn primary" data-close="nein">Doch spielen</button><button class="btn ghost" data-close="ab">Ablehnen</button>`,
-      r => { if (r === "ab") L.duellAblehnen(d.id).then(() => { d.status = "abgelehnt"; VIEWS.duelle(); }).catch(() => toast(`${svg("nein", "var(--bad)")}<div>Das hat nicht geklappt – bist du online?</div>`)); else if (r === "nein") duSpielStarten({ id: d.id, seed: d.seed, k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von }); });
+      r => { if (r === "ab") L.duellAblehnen(d.id, S.pid).then(() => { d.status = "abgelehnt"; VIEWS.duelle(); }).catch(() => toast(`${svg("nein", "var(--bad)")}<div>Das hat nicht geklappt – bist du online?</div>`)); else if (r === "nein") duSpielStarten({ id: d.id, seed: d.seed, k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von }); });
   });
   screen.querySelectorAll("[data-weg]").forEach(b => b.onclick = () => { SFX.tap(); const id = b.dataset.weg; L.duellLoeschen(id).catch(() => {}); duListe = (duListe || []).filter(d => d.id !== id); VIEWS.duelle(); });
   if (duListe === null) duAktualisieren().then(() => { if (current === "duelle" && !duSpiel) VIEWS.duelle(); });
@@ -2325,7 +2328,7 @@ async function duEnde() {
       if (!D.gesendet) { D.id = await L.duellAnlegen({ von: S.pid, an: D.an, vonName: S.lbName, anName: D.gegner, k: D.k, seed: D.seed, vonErg: erg }); D.gesendet = true; duListe = null; }
       titel = "Herausforderung gesendet!"; zeile = `${esc(D.gegner)} bekommt dieselben Fragen und hat 7 Tage Zeit. Du siehst das Ergebnis hier und auf der Startseite.`;
     } else {
-      if (!D.gesendet) { await L.duellErgebnis(D.id, erg); D.gesendet = true; duListe = null; }
+      if (!D.gesendet) { await L.duellErgebnis(D.id, erg, S.pid); D.gesendet = true; duListe = null; }
       const q = D.gegnerErg.p; sieg = D.p > q;
       if (!D.talGegeben) { D.talGegeben = true; tal = sieg ? DU_SIEG_TAL : D.p === q ? DU_REMIS_TAL : 0; if (sieg) S.duSiege = (S.duSiege || 0) + 1; save(); }
       titel = sieg ? "Gewonnen!" : D.p === q ? "Unentschieden!" : "Knapp vorbei!";

@@ -1,5 +1,5 @@
 rules_version = '2';
-// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.30 – Vers-Duell)
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.31 – Duelle mit allgemeinem Datenmodell)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -141,29 +141,51 @@ service cloud.firestore {
         && text(request.resource.data, 'name', 20) && text(request.resource.data, 'pid', 64) && text(request.resource.data, 'geschrieben', 40);
     }
 
-    // Vers-Duell: Herausforderer (von) legt mit seinem Ergebnis an, Gegner (an) trägt einmal sein Ergebnis ein oder lehnt ab.
-    // Lesen darf jedes angemeldete Gerät (nur Namen und Punkte – wie die Rangliste). Löschen dürfen beide Beteiligten.
+    // ---------- Duelle (Version 6.31: allgemeines Modell für spätere Varianten) ----------
+    // Ein Duell-Dokument: { v: Schema-Version, art: "vers" | später z. B. "gruppe", modus: "1v1" | später "team",
+    //   von: Ersteller-pid, teil: [pid, …] (Ersteller zuerst; Abfrage per array-contains), namen: {pid: Name},
+    //   seiten: {pid: "a"|"b"} (nur Team-Varianten), opt: {kleine Zusatzwerte der Variante}, k: Lernvers-Monat, seed: Startwert,
+    //   ergebnisse: {pid: {p, r, n}}, am: pid des letzten Schreibers, status: offen|fertig|abgelehnt, erstellt, ablauf, fertig }
+    // Jede Variante wird unten in artErlaubt() einzeln freigeschaltet – heute nur das Vers-Duell eins gegen eins.
     function ergOk(e) {
-      return e is map && e.keys().hasOnly(['p', 'r', 'n']) && e.p is int && e.p >= 0 && e.p <= 2000
-        && e.r is int && e.r >= 0 && e.r <= 20 && e.n is int && e.n >= 1 && e.n <= 20 && e.r <= e.n;
+      return e is map && e.keys().hasOnly(['p', 'r', 'n']) && e.p is int && e.p >= 0 && e.p <= 100000
+        && e.r is int && e.r >= 0 && e.r <= 500 && e.n is int && e.n >= 1 && e.n <= 500 && e.r <= e.n;
     }
+    function artErlaubt(d) {
+      return d.art == 'vers' && d.modus == '1v1' && d.teil.size() == 2 && !('seiten' in d)
+        && exists(spielerPfad(d.teil[1]));
+    }
+    function duellNeu(d) {
+      return d.keys().hasOnly(['v', 'art', 'modus', 'von', 'teil', 'namen', 'seiten', 'opt', 'k', 'seed', 'ergebnisse', 'status', 'erstellt', 'ablauf'])
+        && d.v is int && d.v >= 1 && d.v <= 99 && d.art is string && d.art.size() <= 20 && d.modus is string && d.modus.size() <= 20
+        && d.von is string && d.teil is list && d.teil.size() >= 2 && d.teil.size() <= 20 && d.teil[0] == d.von && d.teil[1] != d.von
+        && d.namen is map && d.namen.size() <= 20
+        && (!('seiten' in d) || (d.seiten is map && d.seiten.size() <= 20))
+        && (!('opt' in d) || (d.opt is map && d.opt.size() <= 10))
+        && d.k is string && d.k.size() <= 20 && d.seed is int && d.seed >= 0 && d.seed < 2147483648
+        && d.ergebnisse is map && d.ergebnisse.keys().hasOnly([d.von]) && ergOk(d.ergebnisse[d.von])
+        && d.status == 'offen' && d.erstellt == request.time
+        && d.ablauf is timestamp && d.ablauf <= request.time + duration.value(8, 'd')
+        && artErlaubt(d) && besitzer(d.von);
+    }
+    function neu() { return request.resource.data; }
     match /duelle/{id} {
       allow read: if angemeldet();
-      allow create: if angemeldet()
-        && request.resource.data.keys().hasOnly(['von', 'an', 'vonName', 'anName', 'k', 'seed', 'vonErg', 'status', 'erstellt', 'ablauf'])
-        && request.resource.data.von is string && request.resource.data.an is string && request.resource.data.von != request.resource.data.an
-        && text(request.resource.data, 'vonName', 20) && text(request.resource.data, 'anName', 20)
-        && request.resource.data.k is string && request.resource.data.k.size() == 7
-        && request.resource.data.seed is int && request.resource.data.seed >= 0 && request.resource.data.seed < 2147483648
-        && ergOk(request.resource.data.vonErg) && request.resource.data.status == 'offen'
-        && request.resource.data.erstellt == request.time
-        && request.resource.data.ablauf is timestamp && request.resource.data.ablauf <= request.time + duration.value(8, 'd')
-        && besitzer(request.resource.data.von) && exists(spielerPfad(request.resource.data.an));
-      allow update: if angemeldet() && resource.data.status == 'offen' && besitzer(resource.data.an) && (
-          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['anErg', 'status', 'fertig'])
-            && ergOk(request.resource.data.anErg) && request.resource.data.status == 'fertig' && request.resource.data.fertig == request.time)
-          || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) && request.resource.data.status == 'abgelehnt'));
-      allow delete: if angemeldet() && (besitzer(resource.data.von) || besitzer(resource.data.an));
+      allow create: if angemeldet() && duellNeu(request.resource.data);
+      allow update: if angemeldet() && resource.data.status == 'offen' && neu().am is string && neu().am in resource.data.teil && (
+          // Ein Teilnehmer trägt EINMAL sein eigenes Ergebnis ein; sind alle fertig, wird das Duell abgeschlossen
+          (neu().diff(resource.data).affectedKeys().hasOnly(['ergebnisse', 'am', 'status', 'fertig'])
+            && !(neu().am in resource.data.ergebnisse)
+            && neu().ergebnisse.diff(resource.data.ergebnisse).affectedKeys().hasOnly([neu().am])
+            && ergOk(neu().ergebnisse[neu().am])
+            && ((neu().ergebnisse.keys().hasAll(resource.data.teil) && neu().status == 'fertig' && neu().fertig == request.time)
+              || (!neu().ergebnisse.keys().hasAll(resource.data.teil) && neu().status == 'offen' && !('fertig' in neu()))))
+          // Ablehnen kann nur, wer noch nicht gespielt hat
+          || (neu().diff(resource.data).affectedKeys().hasOnly(['am', 'status']) && neu().status == 'abgelehnt'
+            && !(neu().am in resource.data.ergebnisse))
+        ) && besitzer(neu().am);
+      // Löschen: Ersteller oder (beim Duell eins gegen eins) der Gegner
+      allow delete: if angemeldet() && (besitzer(resource.data.von) || besitzer(resource.data.teil[1]));
     }
 
     // Zusammenführungen legt nur der Verwalter in der Konsole an; jedes Gerät darf nur seine eigene lesen

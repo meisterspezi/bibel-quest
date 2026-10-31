@@ -140,22 +140,34 @@ if (!configured) {
       await b.commit();
     };
 
-    // Vers-Duell (asynchron): Herausforderer spielt zuerst, Gegner spielt dieselben Fragen (gleicher Startwert)
+    // Duelle – allgemeines Modell (siehe firestore-regeln.txt): teil = Teilnehmer, ergebnisse = {pid: {p, r, n}}.
+    // Für die App wird jedes Dokument zusätzlich in die einfache Eins-gegen-eins-Form gebracht (an, vonName, anName, vonErg, anErg).
     const duelle = fs.collection(db, "duelle");
     const zeitMs = t => (t && t.toMillis ? t.toMillis() : 0);
-    const duDaten = d => { const x = d.data(); return { id: d.id, ...x, erstellt: zeitMs(x.erstellt) || Date.now(), ablauf: zeitMs(x.ablauf), fertig: zeitMs(x.fertig) }; };
+    const duDaten = d => {
+      const x = d.data(), teil = x.teil || [], an = teil.find(p => p !== x.von) || "", namen = x.namen || {}, erg = x.ergebnisse || {};
+      return { ...x, id: d.id, an, vonName: namen[x.von] || "", anName: namen[an] || "", vonErg: erg[x.von] || null, anErg: erg[an] || null,
+        erstellt: zeitMs(x.erstellt) || Date.now(), ablauf: zeitMs(x.ablauf), fertig: zeitMs(x.fertig) };
+    };
     LB.duellAnlegen = async (d) => {
       await LB.signIn();
-      const r = await fs.addDoc(duelle, { von: d.von, an: d.an, vonName: d.vonName, anName: d.anName, k: d.k, seed: d.seed, vonErg: d.vonErg,
+      const r = await fs.addDoc(duelle, { v: 1, art: d.art || "vers", modus: d.modus || "1v1", von: d.von, teil: [d.von, d.an],
+        namen: { [d.von]: d.vonName, [d.an]: d.anName }, k: d.k, seed: d.seed, ergebnisse: { [d.von]: d.vonErg },
         status: "offen", erstellt: fs.serverTimestamp(), ablauf: fs.Timestamp.fromMillis(Date.now() + 7 * 864e5) });
       return r.id;
     };
-    LB.duellErgebnis = async (id, erg) => { await LB.signIn(); await fs.updateDoc(ref("duelle", id), { anErg: erg, status: "fertig", fertig: fs.serverTimestamp() }); };
-    LB.duellAblehnen = async (id) => { await LB.signIn(); await fs.updateDoc(ref("duelle", id), { status: "abgelehnt" }); };
+    /* eigenes Ergebnis eintragen; fertig = alle Teilnehmer haben gespielt (beim Eins-gegen-eins immer) */
+    LB.duellErgebnis = async (id, erg, pid, fertig = true) => {
+      await LB.signIn();
+      const felder = [new fs.FieldPath("ergebnisse", pid), erg, "am", pid, "status", fertig ? "fertig" : "offen"];
+      if (fertig) felder.push("fertig", fs.serverTimestamp());
+      await fs.updateDoc(ref("duelle", id), ...felder);
+    };
+    LB.duellAblehnen = async (id, pid) => { await LB.signIn(); await fs.updateDoc(ref("duelle", id), { status: "abgelehnt", am: pid }); };
     LB.duellLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("duelle", id)); };
     LB.meineDuelle = async (pid) => {
-      const [a, b] = await Promise.all([fs.getDocs(fs.query(duelle, fs.where("an", "==", pid), fs.limit(40))), fs.getDocs(fs.query(duelle, fs.where("von", "==", pid), fs.limit(40)))]);
-      return [...a.docs, ...b.docs].map(duDaten).sort((x, y) => y.erstellt - x.erstellt);
+      const s = await fs.getDocs(fs.query(duelle, fs.where("teil", "array-contains", pid), fs.limit(60)));
+      return s.docs.map(duDaten).sort((x, y) => y.erstellt - x.erstellt);
     };
     LB.gegnerListe = async () => aktiv((await fs.getDocs(fs.query(spieler, fs.orderBy("xp", "desc"), fs.limit(150)))).docs);
 
