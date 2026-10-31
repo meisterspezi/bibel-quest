@@ -1,4 +1,4 @@
-const APP_VERSION = "6.29";
+const APP_VERSION = "6.30";
 /* =====================================================================
    Bibelbuch-Quest – Spieldaten
    Bücher (Schlachter 2000), Lieder, Bibelverse (Schlachter 2000 © Genfer Bibelgesellschaft),
@@ -105,6 +105,8 @@ const ICONS = {
   bolt: '<path d="M13 2L4 14h7l-1 8 9-12h-7z" fill="currentColor"/>',
   fire: '<path d="M12 2c1 4 5 5.5 5 11a5 5 0 0 1-10 0c0-2.5 1.2-4 2.5-5 .2 2 1 3 2 3.5C11 9 11 5 12 2z" fill="currentColor"/>',
   crown: '<path d="M3 8l4 4 5-7 5 7 4-4-2 11H5z" fill="currentColor"/>',
+  nein: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>',
+  mikro: '<rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>',
   gem: '<path d="M6 4h12l3 5-9 11L3 9z" fill="currentColor"/>',
   eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="12" cy="12" r="3" fill="currentColor"/>',
@@ -321,7 +323,8 @@ const AUFGABEN = [
   { id: "station1", ev: "station", ziel: 1, min: 2, text: "1 Lektion" },
   { id: "kette1", ev: "ketteGespielt", ziel: 1, min: 1, text: "1 Ketten-Versuch" },
   { id: "lied", ev: "lied", ziel: 2, min: 1, text: "2 Strophen hören" },
-  { id: "luecke", ev: "luecke", ziel: 1, min: 2, text: "1 Lückenquiz" }
+  { id: "luecke", ev: "luecke", ziel: 1, min: 2, text: "1 Lückenquiz" },
+  { id: "lernvers", ev: "lernvers", ziel: 1, min: 2, text: "Lernvers üben" }
 ];
 const AUFGABEN_MAX_MIN = 5;
 const AUFGABE_TAL = 5;          // pro Aufgabe

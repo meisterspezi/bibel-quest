@@ -1,5 +1,5 @@
 /* =====================================================================
-   Bibelbuch-Quest – Spiel-Logik (Version 6.5)
+   Bibelbuch-Quest – Spiel-Logik (Version 6.30)
    Braucht: daten.js (vorher geladen). Rangliste: leaderboard.js stellt window.LB bereit.
    ===================================================================== */
 
@@ -13,7 +13,7 @@ const DEF = {
   tage: [], treueWochen: [], treueBonus: { week: "", stufen: [] }, meister: { bibel: [], at: [], nt: [], rueck: [] },
   siegelGesehen: { bibel: 0, at: 0, nt: 0, rueck: 0 }, aufgefrischt: false, eingeladenVon: "", eingeladen: false, fischerDabei: false, menschenfischer: false,
   songHeard: [], gapPerfect: false, peeked: false, earlyBird: false,
-  dq: { day: "", items: [], bonus: false }, questBonusCount: 0, lv: {},
+  dq: { day: "", items: [], bonus: false }, questBonusCount: 0, lv: {}, duGes: [], duSiege: 0, duSpiele: 0,
   mute: false, beat: true, gapSing: false, atTi: 0, ntTi: 0,
   lbName: "", pid: "", ownersSet: false, offlineOnly: false, weekKey: "", weekXp: 0, podium: false, wochensieger: false, wochenziel: false,
   ver: 6
@@ -96,89 +96,401 @@ function monatsversHtml() {
   return v ? `<figure class="vers monat klein"><span class="vers-label">Lernvers im ${MONATE[d.getMonth()]}</span><blockquote>${esc(v[0])}</blockquote><figcaption>${esc(v[1])} · ${VERS_QUELLE}</figcaption></figure>` : "";
 }
 const versHtml = (key, cls = "") => { const v = VERSE[key]; return v ? `<figure class="vers ${cls}"><blockquote>${esc(v[0])}</blockquote><figcaption>${esc(v[1])} · ${VERS_QUELLE}</figcaption></figure>` : ""; };
-/* ---------- Lernvers des Monats: Einprägen in 3 Stufen, Bewahren am Monatsende, Archiv ---------- */
-const LV_TAL = [5, 5, 10];       /* Talente für Stufe 1, 2, 3 – je Vers einmal */
-const LV_BEWAHR_TAL = 15;        /* jeden Monat fürs Bewahren */
-const LV_BEWAHR_TAGE = 7;        /* Bewahren geht in den letzten 7 Tagen des Monats */
+/* ---------- Lernvers des Monats: Vers-Lektion nach Duolingo-Art ----------
+   Ausblende-Methode in 5 Stufen (jede Stufe verdeckt mehr, schwache Wörter bleiben länger verdeckt)
+   + Monatsgerüst: Wochenziel, höchstens eine neue Stufe pro Tag, Übungstage, Monatsprüfung (= Bewahren) am Monatsende,
+   frühere Lernverse tauchen in den Lektionen zur Wiederholung auf. */
+const LV_MAX = 5;
+const LV_STUFEN = ["Kennenlernen", "Ordnen", "Ergänzen", "Anfangsbuchstaben", "Auswendig"];
+const LV_TAL = [5, 5, 5, 5, 10];   /* Talente beim ersten Erreichen von Stufe 1 … 5 – je Vers einmal */
+const LV_BEWAHR_TAL = 15;          /* Monatsprüfung bestanden („Vers bewahrt“) */
+const LV_BEWAHR_TAGE = 7;          /* Monatsprüfung geht in den letzten 7 Tagen des Monats */
+const LV_XP = 10, LV_XP_RICHTIG = 2; /* XP je Lektion + je Aufgabe, die beim ersten Versuch sitzt */
+const LV_STUFEN_PRO_TAG = 1;       /* neue Stufen pro Tag – danach wird „gefestigt“ (XP, Übungstag) */
+const LV_TURBO_QUOTE = 90;         /* Turbo: wer eine Lektion mit so viel % beim ersten Versuch schafft … */
+const LV_STUFEN_TURBO = 3;         /* … darf am selben Tag bis zu so viele Stufen gehen und bekommt Bonus-Aufgaben */
+const LV_PRUEF_QUOTE = 0.9;        /* Monatsprüfung: so viel vom Vers muss stimmen */
+const LV_FREI_QUOTE = 0.85;        /* freies Aufsagen in den Lektionen */
+const LV_WOCHENZIEL = [2, 3, 4, 5]; /* Ziel-Stufe in Woche 1 … 4 des Monats */
 const monatKey = (d = new Date()) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
 const monatName = k => MONATE[+k.slice(5) - 1] + (k.slice(0, 4) !== String(new Date().getFullYear()) ? " " + k.slice(0, 4) : "");
-const lvStand = k => (S.lv && S.lv[k]) || { st: 0, b: false };
+/* Umzug: bis Version 6.29 gab es 3 Stufen (Wörter im Kopf aufsagen) → auf die neuen 5 Stufen umrechnen */
+function lvMig(v) { if (!v || v.v === 2) return v; const alt = [0, 2, 3, 5][Math.min(3, v.st || 0)]; return Object.assign({}, v, { st: alt, v: 2 }); }
+if (S.lv) Object.keys(S.lv).forEach(k => { S.lv[k] = lvMig(S.lv[k]); });
+const lvStand = k => { const s = (S.lv && S.lv[k]) || {}; return { st: s.st || 0, b: !!s.b, tage: s.tage || [], sw: s.sw || {}, auf: s.auf || "", an: s.an || 0, q: s.q || 0, qd: s.qd || "" }; };
+function lvSetzen(k, neu) { if (!S.lv) S.lv = {}; S.lv[k] = Object.assign({ v: 2 }, S.lv[k] || {}, neu, { v: 2 }); }
 const lvLetzterTag = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); };
 const lvBewahrAb = () => lvLetzterTag() - LV_BEWAHR_TAGE + 1;
 const lvBewahrFenster = k => k === monatKey() && new Date().getDate() >= lvBewahrAb();
-/* Welche Wörter sind in Stufe n verdeckt? Feste Reihenfolge je Vers, höhere Stufe verdeckt zusätzlich; das erste Wort bleibt als Anker */
-function lvVerdeckt(text, stufe) {
-  const w = text.split(" "), h = i => { let x = 2166136261; for (const c of text + "#" + i) x = Math.imul(x ^ c.charCodeAt(0), 16777619); return x >>> 0; };
-  /* gleichmäßig verteilt: Stufe 1 jedes dritte Wort, Stufe 2 zwei von drei, Stufe 3 alle */
-  const kand = w.map((_, i) => i).filter(i => i > 0 && /\p{L}/u.test(w[i])), o = h(0) % 3;
-  return new Set(kand.filter((_, n) => stufe >= 3 || (n + o) % 3 < stufe));
+const lvWoche = () => Math.min(4, Math.ceil(new Date().getDate() / 7));
+const lvZiel = () => LV_WOCHENZIEL[lvWoche() - 1];
+const lvHeuteNeu = k => { const s = lvStand(k); return s.auf === today() ? s.an : 0; };
+const lvTurbo = k => { const s = lvStand(k); return s.qd === today() && s.q >= LV_TURBO_QUOTE; };
+const lvStufeFrei = k => lvStand(k).st < LV_MAX && (lvHeuteNeu(k) < LV_STUFEN_PRO_TAG || (lvTurbo(k) && lvHeuteNeu(k) < LV_STUFEN_TURBO));
+const lvMonatsTage = k => { const s = lvStand(k), [y, m] = k.split("-").map(Number); return s.tage.filter(n => { const d = datumVon(n); return d.getFullYear() === y && d.getMonth() + 1 === m; }).length; };
+
+/* ----- Wörter & Vergleich (tolerant: Groß/klein, Satzzeichen, Umlaute, ein Tippfehler bei langen Wörtern) ----- */
+const lvKern = w => w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
+const lvNorm = w => lvKern(String(w)).toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss");
+const lvIstWort = w => /[\p{L}\p{N}]/u.test(w);
+function lvAbstand(a, b) {
+  if (Math.abs(a.length - b.length) > 1) return 2;
+  let p = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) { const q = [i]; for (let j = 1; j <= b.length; j++) q[j] = Math.min(p[j] + 1, q[j - 1] + 1, p[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); p = q; }
+  return p[b.length];
 }
-let lvUeben = null; /* { k, stufe, art: lernen|bewahren|wiederholen, offen: Set, alle } */
+function lvGleich(a, b) { const x = lvNorm(a), y = lvNorm(b); return x === y || (y.length >= 5 && lvAbstand(x, y) <= 1); }
+/* Wie viel vom Vers stimmt? Längste gemeinsame Wortfolge → Anteil + welche Zielwörter getroffen wurden */
+function lvVergleich(eingabe, ziel) {
+  const a = eingabe.split(/\s+/).filter(lvIstWort), z = ziel.split(" ").map((w, i) => ({ w, i })).filter(x => lvIstWort(x.w));
+  const L = Array.from({ length: a.length + 1 }, () => new Array(z.length + 1).fill(0));
+  for (let i = a.length - 1; i >= 0; i--) for (let j = z.length - 1; j >= 0; j--) L[i][j] = lvGleich(a[i], z[j].w) ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const treffer = new Set(); let i = 0, j = 0;
+  while (i < a.length && j < z.length) { if (lvGleich(a[i], z[j].w)) { treffer.add(z[j].i); i++; j++; } else if (L[i + 1][j] >= L[i][j + 1]) i++; else j++; }
+  const extra = Math.max(0, a.length - treffer.size);
+  return { anteil: z.length ? Math.max(0, (treffer.size - extra * 0.5) / z.length) : 0, treffer };
+}
+/* Welche Wörter werden verdeckt? Schwache Wörter zuerst, sonst gleichmäßig verteilt (feste Reihenfolge je Vers) */
+function lvVerdeckt(text, anteil, sw = {}) {
+  const w = text.split(" "), kand = w.map((_, i) => i).filter(i => (anteil >= 1 || i > 0) && lvIstWort(w[i]));
+  if (anteil >= 1) return new Set(kand);
+  const n = Math.max(1, Math.round(kand.length * anteil)), o = hash(text) % 4, prio = [1, 3, 0, 2];
+  return new Set(kand.map((i, m) => ({ i, r: prio.indexOf((m + o) % 4) * 1000 + m, s: -(sw[i] || 0) }))
+    .sort((a, b) => a.s - b.s || a.r - b.r).slice(0, n).map(x => x.i));
+}
+const LV_ANTEIL = [0, 0.25, 0.25, 0.5, 0.75, 1];
+const lvAlleVerse = () => [...Object.values(MONATSVERSE), ...Object.values(VERSE)];
+function lvFremdWoerter(text) {
+  const eigene = new Set(text.split(" ").map(lvNorm)), raus = new Set();
+  lvAlleVerse().forEach(v => v[0].split(" ").forEach(w => { const k = lvKern(w); if (k.length >= 3 && !eigene.has(lvNorm(k))) raus.add(k); }));
+  return [...raus];
+}
+/* Ein ähnliches Ersatzwort: gleiche Groß-/Kleinschreibung, ähnliche Länge */
+function lvErsatz(wort, text) {
+  const gross = /^\p{Lu}/u.test(wort), pool = lvFremdWoerter(text).filter(w => /^\p{Lu}/u.test(w) === gross);
+  const nah = pool.filter(w => Math.abs(w.length - wort.length) <= 2);
+  return pick(nah.length >= 3 ? nah : pool.length ? pool : ["Licht"]);
+}
+/* Vers an einem Satzzeichen nahe der Mitte teilen */
+function lvTeilung(text) {
+  const w = text.split(" "), mitte = w.length / 2; let best = -1, d = 99;
+  w.forEach((x, i) => { if (i > 0 && i < w.length - 2 && /[,;:.!?—–]$/.test(x) && Math.abs(i + 1 - mitte) < d) { best = i + 1; d = Math.abs(i + 1 - mitte); } });
+  if (best < 2 || d > w.length / 4) best = Math.round(mitte);
+  if (w[best] && !lvIstWort(w[best])) best++;
+  return [w.slice(0, best).join(" "), w.slice(best).join(" ")];
+}
+/* Stellenangabe ändern: gleiche Schrift, andere Zahlen (für schwere Stufen) */
+function lvStelleAehnlich(ref) {
+  const m = /^(.*?)(\d+),(\d+)$/.exec(ref); if (!m) return [];
+  const k = +m[2], v = +m[3], tausch = String(v).length === 2 ? +String(v).split("").reverse().join("") : v + 2;
+  return [...new Set([`${m[1]}${k},${tausch}`, `${m[1]}${k + 1},${v}`, `${m[1]}${Math.max(1, k - 1)},${v}`, `${m[1]}${k},${v + 1}`])].filter(r => r !== ref);
+}
+
+/* ----- Aufgaben einer Lektion ----- */
+function lvAufgaben(k, stufe, modus, bonus) {
+  const [text, ref] = MONATSVERSE[k], s = lvStand(k), sw = s.sw;
+  const a = [], A = (typ, x = {}) => a.push(Object.assign({ typ, k, stufe }, x));
+  if (modus === "pruefung") { A("frei", { hilfe: false, quote: LV_PRUEF_QUOTE }); A("stelle", { schwer: true }); return a; }
+  const anteil = LV_ANTEIL[stufe];
+  if (stufe === 1) { A("lesen"); A("fortsetzung"); A("stelle"); A("luecke", { anteil: 0.25 }); A("kacheln", { teil: 0 }); A("fehler"); A("kacheln", { teil: 1 }); }
+  else if (stufe === 2) { A("kacheln", { teil: 0 }); A("luecke", { anteil }); A("kacheln", { teil: 1 }); A("fehler"); A("stelle"); A("kacheln", { stoer: 0 }); }
+  else if (stufe === 3) { A("luecke", { anteil }); A("kacheln", { stoer: 2 }); A("fortsetzung", { schwer: true }); A("fehler"); A("luecke", { anteil, sw }); A("stelle"); }
+  else if (stufe === 4) { A("tippen", { anteil, buchstabe: true }); A("kacheln", { stoer: 3 }); A("luecke", { anteil, sw }); A("stelle", { schwer: true }); A("tippen", { anteil, buchstabe: true, sw }); }
+  else { A("tippen", { anteil: 0.75, sw }); A("frei", { hilfe: true, quote: LV_FREI_QUOTE }); A("stelle", { schwer: true }); A("kacheln", { stoer: 3 }); A("tippen", { anteil: 1, buchstabe: true }); }
+  /* Wiederholung: ein früherer Lernvers, der schon geübt wurde */
+  const frueher = Object.keys(MONATSVERSE).filter(x => x < k && lvStand(x).st >= 2);
+  if (frueher.length) { const f = pick(frueher), fs = lvStand(f).st; a.splice(Math.min(a.length, 3), 0, { typ: pick(fs >= 4 ? ["stelle", "luecke", "fortsetzung"] : ["stelle", "fortsetzung"]), k: f, stufe: fs, anteil: 0.5, schwer: fs >= 4, wdh: true }); }
+  /* Turbo: zwei Bonus-Aufgaben aus der nächsten (bzw. schwersten) Stufe */
+  if (bonus) {
+    const extra = { 1: [["kacheln", { stoer: 0 }], ["luecke", { anteil: 0.25 }]], 2: [["luecke", { anteil: 0.5 }], ["kacheln", { stoer: 2 }]], 3: [["tippen", { anteil: 0.75, buchstabe: true }], ["kacheln", { stoer: 3 }]],
+      4: [["tippen", { anteil: 1, buchstabe: true }], ["frei", { hilfe: true, quote: LV_FREI_QUOTE }]], 5: [["tippen", { anteil: 1 }], ["frei", { hilfe: false, quote: LV_FREI_QUOTE }]] }[stufe];
+    extra.forEach(([typ, x]) => a.push(Object.assign({ typ, k, stufe: Math.min(LV_MAX, stufe + 1), bonus: true, sw }, x)));
+  }
+  void ref; return a;
+}
+
+/* ----- Lektion (eigene Ansicht, eine Aufgabe pro Bildschirm) ----- */
+let VL = null;
+const LV_SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+function vlStart(arg) {
+  const [k0, art] = String(arg || "").split("|"), k = MONATSVERSE[k0] ? k0 : monatKey();
+  if (!MONATSVERSE[k]) { go("lernverse"); return; }
+  const s = lvStand(k), pruefung = art === "pruefung" && k === monatKey() && s.st >= LV_MAX && !s.b && lvBewahrFenster(k);
+  const neu = !pruefung && lvStufeFrei(k), stufe = pruefung ? LV_MAX : neu ? s.st + 1 : Math.max(1, s.st);
+  const bonus = !pruefung && lvTurbo(k);
+  VL = { k, stufe, bonus, modus: pruefung ? "pruefung" : neu ? "lernen" : "festigen", liste: lvAufgaben(k, stufe, pruefung ? "pruefung" : "lernen", bonus), i: 0, gesamt: 0, ersteRichtig: 0, fehlerWoerter: {}, wiederholt: new Set(), serie: 0, durchfall: false };
+  VL.gesamt = VL.liste.length;
+  document.body.classList.add("spiel-laeuft");
+  vlZeige();
+}
+function vlKopf() {
+  const fertig = Math.min(VL.i, VL.gesamt) / VL.gesamt;
+  return `<div class="vl-kopf"><button class="vl-x" id="vlX" aria-label="Lektion beenden">${svg("back")}</button>
+    <div class="vl-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(fertig * 100)}"><i style="width:${fertig * 100}%"></i></div>
+    <span class="vl-serie ${VL.serie >= 3 ? "an" : ""}" aria-label="${VL.serie} richtig in Folge">${svg("fire")}${VL.serie}</span></div>`;
+}
+function vlTitel(a) {
+  if (a.wdh) return `<span class="vl-titel wdh">${svg("step")} Wiederholung · Lernvers ${esc(monatName(a.k))}</span>`;
+  if (VL.modus === "pruefung") return `<span class="vl-titel pruef">${svg("siegel")} Monatsprüfung</span>`;
+  if (a.bonus) return `<span class="vl-titel bonus">${svg("bolt")} Bonus · Turbo · Stufe ${a.stufe}</span>`;
+  return `<span class="vl-titel">Stufe ${VL.stufe} · ${LV_STUFEN[VL.stufe - 1]}${VL.modus === "festigen" ? " · festigen" : ""}</span>`;
+}
+function vlZeige() {
+  if (!VL) return;
+  if (VL.i >= VL.liste.length) return vlEnde();
+  const a = VL.liste[VL.i], [text, ref] = MONATSVERSE[a.k];
+  let frage = "", inhalt = "", fuss = `<button class="btn primary breit" id="vlPruefen" disabled>Prüfen</button>`;
+  const verdeckt = a.anteil != null ? lvVerdeckt(text, a.anteil, a.sw || {}) : null;
+  if (a.typ === "lesen") {
+    frage = "Lies den Lernvers – oder hör ihn dir an";
+    inhalt = `<blockquote class="vl-vers">${esc(text)}</blockquote><div class="vl-ref">${esc(ref)} · ${VERS_QUELLE}</div>
+      <button class="lv-btn vl-hoer" id="vlHoer">${svg("sound")} Vorlesen</button>`;
+    fuss = `<button class="btn primary breit" id="vlWeiter">Los geht's</button>`;
+  } else if (a.typ === "fortsetzung") {
+    const [vorn, hinten] = lvTeilung(text);
+    if (!a.opts) {
+      let falsch;
+      if (a.schwer) {
+        const w = hinten.split(" "), idx = w.map((x, i) => i).filter(i => lvKern(w[i]).length >= 3);
+        const f1 = w.slice(); const i1 = pick(idx); f1[i1] = w[i1].replace(lvKern(w[i1]), lvErsatz(lvKern(w[i1]), text));
+        const f2 = w.slice(); const i2 = pick(idx.filter(i => i !== i1)) ?? i1; f2[i2] = w[i2].replace(lvKern(w[i2]), lvErsatz(lvKern(w[i2]), text));
+        falsch = [f1.join(" "), f2.join(" ")];
+      } else falsch = shuffle(lvAlleVerse().filter(v => v[0] !== text).map(v => lvTeilung(v[0])[1])).slice(0, 2);
+      a.opts = shuffle([hinten, ...falsch.filter(x => x !== hinten)]); a.loesung = hinten;
+    }
+    frage = "Wie geht der Vers weiter?";
+    inhalt = `<blockquote class="vl-vers">${esc(vorn)} <span class="vl-pkt">…</span></blockquote>
+      <div class="vl-wahl">${a.opts.map((o, j) => `<button class="vl-opt" data-o="${j}">… ${esc(o)}</button>`).join("")}</div>`;
+  } else if (a.typ === "stelle") {
+    if (!a.opts) {
+      const andere = a.schwer ? lvStelleAehnlich(ref) : [...new Set(lvAlleVerse().map(v => v[1]).filter(r => r !== ref))];
+      a.opts = shuffle([ref, ...shuffle(andere).slice(0, 2)]); a.loesung = ref;
+    }
+    frage = "Wo steht dieser Vers?";
+    inhalt = `<blockquote class="vl-vers">${esc(text)}</blockquote>
+      <div class="vl-wahl">${a.opts.map((o, j) => `<button class="vl-opt" data-o="${j}">${esc(o)}</button>`).join("")}</div>`;
+  } else if (a.typ === "fehler") {
+    if (a.tausch == null) {
+      const w = text.split(" "), kand = w.map((_, i) => i).filter(i => i > 0 && lvKern(w[i]).length >= 3);
+      a.tausch = pick(kand); a.falsch = lvErsatz(lvKern(w[a.tausch]), text);
+    }
+    frage = "Ein Wort ist falsch – tippe es an";
+    inhalt = `<div class="vl-vers vl-fehler">${text.split(" ").map((w, i) => { const zeige = i === a.tausch ? w.replace(lvKern(w), a.falsch) : w; return lvIstWort(w) ? `<button class="vl-wort" data-w="${i}">${esc(zeige)}</button>` : esc(w); }).join(" ")}</div>`;
+    fuss = `<button class="btn primary breit" id="vlPruefen" disabled>Prüfen</button>`;
+  } else if (a.typ === "luecke") {
+    a.offen = a.offen || [...verdeckt].sort((x, y) => x - y); a.pos = a.pos || 0; a.fehler = a.fehler || 0;
+    const w = text.split(" "), aktiv = a.offen[a.pos];
+    if (a.opts == null || a.optsFuer !== aktiv) {
+      const richtigesWort = lvKern(w[aktiv]);
+      const eigene = shuffle([...verdeckt].map(i => lvKern(w[i])).filter(x => lvNorm(x) !== lvNorm(richtigesWort)));
+      const frem = shuffle(lvFremdWoerter(text));
+      a.opts = shuffle([richtigesWort, ...[...new Set([...eigene, ...frem])].slice(0, 2)]); a.optsFuer = aktiv;
+    }
+    frage = "Fülle die Lücken";
+    inhalt = `<div class="vl-vers vl-lueckentext">${w.map((x, i) => {
+      if (!verdeckt.has(i)) return esc(x);
+      const m = x.match(/^(.*?)([.,;:!?»«„“"'’)]*)$/u);
+      if (a.offen.indexOf(i) < a.pos) return `<span class="vl-gefuellt">${esc(m[1])}</span>${esc(m[2])}`;
+      return `<span class="vl-loch ${i === aktiv ? "jetzt" : ""}"></span>${esc(m[2])}`;
+    }).join(" ")}</div>
+      <div class="vl-chips">${a.opts.map((o, j) => `<button class="chip" data-o="${j}">${esc(o)}</button>`).join("")}</div>`;
+    fuss = "";
+  } else if (a.typ === "kacheln") {
+    const w = text.split(" ");
+    let von = 0, bis = w.length, vorher = "", nachher = "";
+    if (a.teil != null) { const [v1] = lvTeilung(text), n1 = v1.split(" ").length; if (a.teil === 0) { bis = n1; nachher = w.slice(n1).join(" "); } else { von = n1; vorher = w.slice(0, n1).join(" "); } }
+    if (!a.ziel) {
+      a.ziel = w.slice(von, bis).filter(lvIstWort).map(lvKern);
+      const stoer = shuffle(lvFremdWoerter(text)).slice(0, a.stoer || 0);
+      a.kacheln = shuffle([...a.ziel, ...stoer].map((t, j) => ({ t, j }))); a.gelegt = [];
+    }
+    frage = a.teil != null ? "Setze den Teil des Verses zusammen" : a.stoer ? "Setze den Vers zusammen – Vorsicht, falsche Wörter dabei!" : "Setze den Vers zusammen";
+    inhalt = `${vorher ? `<div class="vl-kontext">${esc(vorher)} …</div>` : ""}
+      <div class="vl-antwort" id="vlAntwort">${a.gelegt.map(j => `<button class="chip gelegt" data-z="${j}">${esc(a.kacheln.find(x => x.j === j).t)}</button>`).join("") || `<span class="vl-leer">Tippe die Wörter in der richtigen Reihenfolge an</span>`}</div>
+      ${nachher ? `<div class="vl-kontext">… ${esc(nachher)}</div>` : ""}
+      <div class="vl-chips">${a.kacheln.map(x => `<button class="chip ${a.gelegt.includes(x.j) ? "weg" : ""}" data-k="${x.j}" ${a.gelegt.includes(x.j) ? "disabled" : ""}>${esc(x.t)}</button>`).join("")}</div>`;
+  } else if (a.typ === "tippen") {
+    const w = text.split(" ");
+    frage = a.buchstabe ? "Ergänze die fehlenden Wörter – der erste Buchstabe hilft" : "Ergänze die fehlenden Wörter";
+    inhalt = `<div class="vl-vers vl-tipptext">${w.map((x, i) => {
+      if (!verdeckt.has(i)) return esc(x);
+      const m = x.match(/^(.*?)([.,;:!?»«„“"'’)]*)$/u);
+      return `<input class="vl-feld" data-i="${i}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="next" aria-label="Wort ${i + 1}" placeholder="${a.buchstabe ? esc(m[1][0]) + "…" : ""}">${esc(m[2])}`;
+    }).join(" ")}</div>`;
+  } else if (a.typ === "frei") {
+    frage = VL.modus === "pruefung" ? "Schreib den ganzen Vers auswendig auf" : "Sag den Vers auswendig auf – tippen oder sprechen";
+    const hilfe = a.hilfe ? text.split(" ").map(x => lvIstWort(x) ? lvKern(x)[0] + x.slice(lvKern(x).length + x.indexOf(lvKern(x))) : x).join(" ") : "";
+    inhalt = `<div class="vl-ref gross">${esc(ref)}</div>
+      <textarea class="vl-frei" id="vlFrei" rows="4" autocomplete="off" autocapitalize="sentences" spellcheck="false" placeholder="Den Vers hier eintippen …"></textarea>
+      <div class="vl-hilfen">${LV_SR ? `<button class="lv-btn" id="vlMik">${svg("mikro")} Sprechen</button>` : ""}${a.hilfe ? `<button class="lv-btn" id="vlTipp">${svg("eye")} Anfangsbuchstaben</button>` : ""}</div>
+      ${a.hilfe ? `<div class="vl-anfang" id="vlAnfang" hidden>${esc(hilfe)}</div>` : ""}`;
+  }
+  screen.innerHTML = `<div class="vl">${vlKopf()}${vlTitel(a)}<h2 class="vl-frage">${frage}</h2><div class="vl-inhalt">${inhalt}</div><div class="vl-fuss">${fuss}</div></div>`;
+  vlVerdrahten(a, verdeckt);
+}
+function vlVerdrahten(a, verdeckt) {
+  const [text, ref] = MONATSVERSE[a.k], P = $("vlPruefen");
+  $("vlX").onclick = () => {
+    SFX.tap();
+    if (VL.i === 0) { VL = null; go("home"); return; }
+    modal(`<div class="label">Lektion beenden?</div><h2>Fast geschafft!</h2><p class="muted">Wenn du jetzt aufhörst, zählt diese Lektion noch nicht.</p>
+      <button class="btn primary" data-close="weiter">Weiterlernen</button><button class="btn ghost" data-close="ende">Beenden</button>`, r => { if (r === "ende") { VL = null; go("home"); } });
+  };
+  if ($("vlWeiter")) $("vlWeiter").onclick = () => { SFX.tap(); vorlesenStop(); VL.i++; vlZeige(); };
+  if ($("vlHoer")) $("vlHoer").onclick = () => { const beat = S.beat; S.beat = false; vorlesen([{ text: text + " – " + ref.replace(/(\d+),(\d+)/, "$1, Vers $2") }]); S.beat = beat; };
+  let wahl = null;
+  screen.querySelectorAll(".vl-opt").forEach(b => b.onclick = () => { SFX.tap(); wahl = +b.dataset.o; screen.querySelectorAll(".vl-opt").forEach(x => x.classList.toggle("gewaehlt", x === b)); P.disabled = false; });
+  screen.querySelectorAll(".vl-wort").forEach(b => b.onclick = () => { SFX.tap(); wahl = +b.dataset.w; screen.querySelectorAll(".vl-wort").forEach(x => x.classList.toggle("gewaehlt", x === b)); P.disabled = false; });
+  if (a.typ === "luecke") screen.querySelectorAll(".vl-chips .chip").forEach(b => b.onclick = () => {
+    const w = text.split(" "), aktiv = a.offen[a.pos], ok = lvGleich(a.opts[+b.dataset.o], w[aktiv]);
+    if (ok) { SFX.right(a.pos); vibrate(10); a.pos++; a.opts = null; if (a.pos >= a.offen.length) vlUrteil(a, a.fehler === 0, null); else vlZeige(); }
+    else { a.fehler++; vlFehlerWort(a.k, aktiv); SFX.wrong(); vibrate([40, 30, 40]); b.classList.remove("no"); void b.offsetWidth; b.classList.add("no"); b.disabled = true; }
+  });
+  if (a.typ === "kacheln") {
+    const neu = () => { vlZeige(); };
+    screen.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { SFX.tap(); a.gelegt.push(+b.dataset.k); neu(); });
+    screen.querySelectorAll("[data-z]").forEach(b => b.onclick = () => { SFX.tap(); a.gelegt = a.gelegt.filter(j => j !== +b.dataset.z); neu(); });
+    if (P) P.disabled = !a.gelegt.length;
+  }
+  if (a.typ === "tippen") {
+    const felder = [...screen.querySelectorAll(".vl-feld")];
+    const pruef = () => { P.disabled = !felder.some(f => f.value.trim()); };
+    felder.forEach((f, j) => { f.oninput = pruef; f.onkeydown = e => { if (e.key === "Enter" || (e.key === " " && f.value.trim())) { e.preventDefault(); if (felder[j + 1]) felder[j + 1].focus(); else if (!P.disabled) P.click(); } }; });
+    if (felder[0] && !matchMedia("(pointer: coarse)").matches) felder[0].focus();
+  }
+  if (a.typ === "frei") {
+    const t = $("vlFrei"); t.oninput = () => { P.disabled = !t.value.trim(); };
+    if ($("vlTipp")) $("vlTipp").onclick = () => { SFX.tap(); a.tippGenutzt = true; $("vlAnfang").hidden = !$("vlAnfang").hidden; };
+    if ($("vlMik")) $("vlMik").onclick = () => {
+      const b = $("vlMik"); if (b.classList.contains("hoert")) { try { VL.sr && VL.sr.stop(); } catch (e) {} return; }
+      try {
+        const sr = new LV_SR(); VL.sr = sr; sr.lang = "de-DE"; sr.interimResults = true; sr.continuous = true; const basis = t.value ? t.value.trim() + " " : "";
+        sr.onresult = e => { let x = ""; for (let r = 0; r < e.results.length; r++) x += e.results[r][0].transcript; t.value = basis + x.trim(); P.disabled = !t.value.trim(); };
+        sr.onend = () => { b.classList.remove("hoert"); b.innerHTML = `${svg("mikro")} Sprechen`; };
+        sr.onerror = ev => { if (ev.error === "not-allowed") toast(`${svg("music", "var(--muted)")}<div>Mikrofon nicht erlaubt – du kannst den Vers auch eintippen.</div>`); };
+        sr.start(); b.classList.add("hoert"); b.innerHTML = `${svg("stop")} Fertig`;
+      } catch (e) { toast(`${svg("music", "var(--muted)")}<div>Spracherkennung geht hier nicht – bitte eintippen.</div>`); }
+    };
+  }
+  if (!P) return;
+  P.onclick = () => {
+    if (P.disabled) return;
+    if (a.typ === "fortsetzung" || a.typ === "stelle") return vlUrteil(a, a.opts[wahl] === a.loesung, a.loesung);
+    if (a.typ === "fehler") { const w = text.split(" "); return vlUrteil(a, wahl === a.tausch, `„${lvKern(w[a.tausch])}“ statt „${a.falsch}“`); }
+    if (a.typ === "kacheln") {
+      const gelegt = a.gelegt.map(j => a.kacheln.find(x => x.j === j).t), ok = gelegt.length === a.ziel.length && gelegt.every((t, j) => lvNorm(t) === lvNorm(a.ziel[j]));
+      if (!ok) { const j = a.ziel.findIndex((t, j) => !gelegt[j] || lvNorm(gelegt[j]) !== lvNorm(t)); if (j > -1) vlFehlerWortText(a.k, a.ziel[j]); } /* nur die erste falsche Stelle merken */
+      return vlUrteil(a, ok, a.ziel.join(" "));
+    }
+    if (a.typ === "tippen") {
+      const w = text.split(" "); let ok = true;
+      screen.querySelectorAll(".vl-feld").forEach(f => { const i = +f.dataset.i, gut = lvGleich(f.value.trim(), w[i]); f.classList.add(gut ? "gut" : "falsch"); f.readOnly = true; if (!gut) { ok = false; vlFehlerWort(a.k, i); f.value = lvKern(w[i]); } });
+      return vlUrteil(a, ok, ok ? null : "Die richtigen Wörter stehen jetzt in den Lücken.");
+    }
+    if (a.typ === "frei") {
+      try { VL.sr && VL.sr.stop(); } catch (e) {}
+      const r = lvVergleich($("vlFrei").value, text), ok = r.anteil >= a.quote;
+      text.split(" ").forEach((w, i) => { if (lvIstWort(w) && !r.treffer.has(i)) vlFehlerWort(a.k, i); });
+      const markiert = text.split(" ").map((w, i) => !lvIstWort(w) ? esc(w) : `<span class="${r.treffer.has(i) ? "t-ja" : "t-nein"}">${esc(w)}</span>`).join(" ");
+      return vlUrteil(a, ok, `<span class="vl-prozent">${Math.round(Math.min(1, r.anteil) * 100)} % richtig</span><span class="vl-markiert">${markiert}</span>`, true);
+    }
+  };
+}
+/* Schwache Wörter merken (für die Ausblende-Reihenfolge) */
+function vlFehlerWort(k, i) { const s = lvStand(k), sw = Object.assign({}, s.sw); sw[i] = Math.min(9, (sw[i] || 0) + 1); lvSetzen(k, { sw }); }
+function vlFehlerWortText(k, t) { const i = MONATSVERSE[k][0].split(" ").findIndex(w => lvNorm(w) === lvNorm(t)); if (i > -1) vlFehlerWort(k, i); }
+/* Urteil wie bei Duolingo: Leiste unten, grün oder rot, mit Lösung; Fehler kommen am Ende nochmal */
+function vlUrteil(a, ok, loesung, html) {
+  const erster = !a.versuch; a.versuch = (a.versuch || 0) + 1;
+  if (ok) { if (erster) { VL.ersteRichtig++; VL.serie++; } SFX.right(Math.min(VL.serie, 12)); vibrate(12); }
+  else {
+    VL.serie = 0; if (VL.modus === "pruefung") VL.durchfall = true; SFX.wrong(); vibrate([40, 30, 40]); shakeScreen();
+    /* Fehler-Wiederholung: Aufgabe kommt (höchstens zweimal) am Ende der Lektion nochmal – neu gemischt */
+    if (VL.modus !== "pruefung" && a.versuch < 3) { const kopie = Object.assign({}, a); ["opts", "loesung", "tausch", "falsch", "ziel", "kacheln", "gelegt", "offen", "pos", "fehler", "optsFuer", "tippGenutzt"].forEach(x => delete kopie[x]); VL.liste.push(kopie); }
+  }
+  screen.querySelectorAll(".vl-opt, .vl-wort, .vl-chips .chip, [data-z], textarea, .vl-feld").forEach(x => { if (x.tagName === "TEXTAREA" || x.classList.contains("vl-feld")) x.readOnly = true; else x.disabled = true; });
+  if (a.typ === "fortsetzung" || a.typ === "stelle") screen.querySelectorAll(".vl-opt").forEach(b => { const o = a.opts[+b.dataset.o]; if (o === a.loesung) b.classList.add("richtig"); else if (b.classList.contains("gewaehlt")) b.classList.add("falsch"); });
+  if (a.typ === "fehler") screen.querySelectorAll(".vl-wort").forEach(b => { if (+b.dataset.w === a.tausch) b.classList.add("richtig"); else if (b.classList.contains("gewaehlt")) b.classList.add("falsch"); });
+  const lob = ["Richtig!", "Sehr gut!", "Super!", "Genau!", "Stark!"], fuss = screen.querySelector(".vl-fuss");
+  const nochmal = !ok && VL.modus !== "pruefung" && a.versuch < 3;
+  fuss.innerHTML = `<div class="vl-urteil ${ok ? "ok" : "nein"}" role="status">
+    <div class="vu-kopf">${svg(ok ? "check" : "nein")}<b>${ok ? (VL.serie >= 3 ? `${VL.serie} in Folge!` : pick(lob)) : a.typ === "frei" && VL.modus === "pruefung" ? "Noch nicht ganz" : "Nicht ganz"}</b></div>
+    ${loesung ? `<div class="vu-loesung">${ok ? "" : html ? "" : "Richtig wäre: "}${html ? loesung : esc(loesung)}</div>` : ""}
+    ${nochmal ? `<div class="vu-info">Kommt am Ende der Lektion nochmal.</div>` : ""}
+    <button class="btn ${ok ? "primary" : "rot"} breit" id="vlNaechste">Weiter</button></div>`;
+  const n = $("vlNaechste"); n.focus({ preventScroll: true });
+  n.onclick = () => { SFX.tap(); VL.i++; vlZeige(); };
+  fuss.scrollIntoView({ block: "nearest", behavior: reduced ? "auto" : "smooth" });
+}
+function vlEnde() {
+  const { k, stufe, modus } = VL, s = lvStand(k), ohneLesen = VL.liste.filter((a, i) => i < VL.gesamt && a.typ !== "lesen").length;
+  const quote = ohneLesen ? Math.round(Math.min(VL.ersteRichtig, ohneLesen) / ohneLesen * 100) : 100;
+  const tage = s.tage.includes(dayNum(today())) ? s.tage : [...s.tage, dayNum(today())].slice(-40);
+  let titel = "Lektion geschafft!", zeile = "", tal = 0, siegel = false;
+  if (modus === "pruefung") {
+    if (!VL.durchfall) { lvSetzen(k, { b: true, tage }); tal = LV_BEWAHR_TAL; siegel = true; titel = "Vers bewahrt!"; zeile = "Du kennst den Lernvers auswendig – das Abzeichen gehört dir."; }
+    else { lvSetzen(k, { tage }); titel = "Fast geschafft!"; zeile = `Übe noch ein wenig – bis zum ${lvLetzterTag()}. ${MONATE[new Date().getMonth()]} kannst du die Prüfung jederzeit wiederholen.`; }
+  } else if (modus === "lernen" && stufe > s.st) {
+    lvSetzen(k, { st: stufe, tage, auf: today(), an: lvHeuteNeu(k) + 1, q: quote, qd: today() }); tal = LV_TAL[stufe - 1];
+    titel = stufe < LV_MAX ? `Stufe ${stufe} geschafft!` : "Vers gemeistert!";
+    zeile = stufe < LV_MAX ? `Als Nächstes: Stufe ${stufe + 1} – ${LV_STUFEN[stufe]}.` : (k === monatKey() ? `In den letzten ${LV_BEWAHR_TAGE} Tagen des Monats kommt die Monatsprüfung.` : "Du kannst ihn jederzeit wiederholen.");
+  } else { lvSetzen(k, { tage, q: quote, qd: today() }); titel = "Gut gefestigt!"; zeile = s.st < LV_MAX ? `Als Nächstes: Stufe ${s.st + 1} – ${LV_STUFEN[s.st]}.` : "Täglich wiederholen hält den Vers frisch."; }
+  const turboWeiter = modus !== "pruefung" && lvStufeFrei(k) && lvHeuteNeu(k) >= LV_STUFEN_PRO_TAG;
+  const morgen = modus !== "pruefung" && !lvStufeFrei(k) && lvStand(k).st < LV_MAX;
+  if (turboWeiter) zeile += ` <b class="vle-turbo">${svg("bolt")} Turbo! Mit ${quote} % geht es heute gleich weiter.</b>`;
+  else if (morgen) zeile += lvHeuteNeu(k) >= LV_STUFEN_TURBO ? " Für heute ist das Maximum erreicht – morgen geht es weiter." : ` Morgen geht es weiter – oder schaffe beim Festigen ${LV_TURBO_QUOTE} % für den Turbo.`;
+  const xp = LV_XP + LV_XP_RICHTIG * VL.ersteRichtig;
+  const monatTage = lvMonatsTage(k), aktuell = k === monatKey(), neuSt = lvStand(k).st;
+  VL = null;
+  richtig(Math.max(1, Math.round(ohneLesen * quote / 100))); quest("lernvers", 1); quest("runde", 1);
+  SFX.win(); vibrate([20, 30, 20, 30, 60]); rain(siegel ? 90 : 50);
+  screen.innerHTML = `<div class="vl vl-ende">
+    <div class="vle-ic ${siegel ? "siegel" : ""}">${svg(siegel ? "siegel" : "star")}</div>
+    <h1>${titel}</h1><p class="muted">${zeile}</p>
+    <div class="vle-werte">
+      <div><b>${quote} %</b><span>beim ersten Versuch</span></div>
+      <div><b>+${xp}</b><span>XP</span></div>
+      ${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>Talente</span></div>` : ""}
+    </div>
+    ${aktuell ? `<div class="vle-monat">${svg("fire")}<span>An <b>${monatTage}</b> ${monatTage === 1 ? "Tag" : "Tagen"} im ${MONATE[new Date().getMonth()]} geübt · Woche ${lvWoche()}/4 · Ziel Stufe ${lvZiel()} ${neuSt >= lvZiel() ? svg("check", "var(--good)") : ""}</span></div>` : ""}
+    <div class="lv-stufe gross" aria-label="Stufe ${neuSt} von ${LV_MAX}">${Array.from({ length: LV_MAX }, (_, i) => `<i class="${i < neuSt ? "an" : ""}"></i>`).join("")}</div>
+    ${turboWeiter ? `<button class="btn primary breit" id="vlTurbo">${svg("bolt")} Weiter mit Stufe ${neuSt + 1}</button><button class="btn ghost breit" id="vlFertig">Für heute fertig</button>` : `<button class="btn primary breit" id="vlFertig">Weiter</button>`}</div>`;
+  $("vlFertig").onclick = () => { SFX.tap(); go("home"); };
+  if ($("vlTurbo")) $("vlTurbo").onclick = () => { SFX.tap(); go("verslektion", k); };
+  setTimeout(() => { addXp(xp, $("vlFertig")); if (tal) addTal(tal); save(); checkBadges(); lbSync(); }, 350);
+}
+
+/* ----- Karte auf der Startseite und im Archiv ----- */
 function lvKarte(k, ort = "home") {
   const v = MONATSVERSE[k]; if (!v) return "";
-  const s = lvStand(k), u = lvUeben && lvUeben.k === k ? lvUeben : null, aktuell = k === monatKey();
-  const verd = u ? lvVerdeckt(v[0], u.stufe) : new Set();
-  const text = v[0].split(" ").map((w, i) => {
-    if (!verd.has(i)) return esc(w);
-    if (u.alle || u.offen.has(i)) return `<span class="lv-auf">${esc(w)}</span>`;
-    const m = w.match(/^(.*?)([.,;:!?»«„“"'’)]*)$/u);
-    return `<button class="lv-luecke" data-lw="${i}" style="--b:${Math.max(2.2, m[1].length * .5).toFixed(2)}em" aria-label="Wort aufdecken"></button>${esc(m[2])}`;
-  }).join(" ");
+  const s = lvStand(k), aktuell = k === monatKey();
   const tal = n => `<span class="lv-tal">+${n}${TAL_MUENZE}</span>`;
-  const bewahren = aktuell && s.st >= 3 && !s.b && lvBewahrFenster(k);
-  let fuss, hinweis = "";
-  if (u) {
-    fuss = u.alle
-      ? `<button class="lv-btn gold" data-lv="kann">${svg("check")} Gewusst</button><button class="lv-btn" data-lv="nochmal">Nochmal</button>`
-      : `<button class="lv-btn gold" data-lv="auf">${svg("eye")} Aufdecken</button><button class="lv-btn" data-lv="kann">${svg("check")} Kann ich</button>`;
-    fuss += `<button class="lv-btn rund" data-lv="ende" aria-label="Üben beenden">${svg("back")}</button>`;
-    hinweis = u.art === "bewahren" ? "Bewahren: Sag den ganzen Vers auswendig auf." : u.art === "wiederholen" ? "Wiederholen – sag den Vers im Kopf auf." : `Stufe ${u.stufe} von 3 – sag den Vers im Kopf auf, tippe auf eine Lücke als Hilfe.`;
-  } else {
-    fuss = s.st < 3 ? `<button class="lv-btn gold" data-lv="start">${svg("star")} Einprägen ${tal(LV_TAL[s.st])}</button>`
-      : bewahren ? `<button class="lv-btn gold" data-lv="start">${svg("siegel")} Bewahren ${tal(LV_BEWAHR_TAL)}</button>`
-      : `<button class="lv-btn" data-lv="start">${svg("step")} Wiederholen</button>`;
-    fuss += `<button class="lv-btn rund" data-lv="vorlesen" aria-label="Vorlesen">${svg("sound")}</button>`;
-    if (ort === "home") fuss += `<button class="lv-btn" data-go="lernverse" data-arg="home">${svg("scroll")} Archiv</button>`;
-    if (s.st >= 3 && aktuell && !s.b) hinweis = bewahren ? "Monatsende: Weißt du ihn noch? Bewahre den Vers für das Abzeichen." : `Gemeistert! Ab dem ${lvBewahrAb()}. ${MONATE[new Date().getMonth()]} kannst du ihn bewahren.`;
-    if (s.b) hinweis = "Bewahrt – du kennst diesen Vers auswendig.";
-  }
-  const stand = s.b ? `<span class="lv-siegel" aria-label="Bewahrt">${svg("siegel")}</span>` : `<span class="lv-stufe" aria-label="Stufe ${s.st} von 3">${[1, 2, 3].map(i => `<i class="${i <= s.st ? "an" : ""}"></i>`).join("")}</span>`;
-  return `<section class="lv ${u ? "uebt" : ""} ${s.b ? "bewahrt" : ""}" data-lvk="${k}" aria-label="Lernvers ${esc(monatName(k))}">
+  const pruefung = aktuell && s.st >= LV_MAX && !s.b && lvBewahrFenster(k), frei = lvStufeFrei(k);
+  let knopf, hinweis = "";
+  if (pruefung) { knopf = `<button class="lv-btn gold" data-lv="pruefung">${svg("siegel")} Monatsprüfung ${tal(LV_BEWAHR_TAL)}</button>`; hinweis = "Monatsende: Weißt du ihn noch auswendig? Bewahre den Vers für das Abzeichen."; }
+  else if (frei) { knopf = `<button class="lv-btn gold" data-lv="start">${svg(lvTurbo(k) ? "bolt" : "star")} Stufe ${s.st + 1}: ${LV_STUFEN[s.st]} ${tal(LV_TAL[s.st])}</button>`;
+    if (lvTurbo(k) && lvHeuteNeu(k)) hinweis = `Turbo: Du lernst sicher – heute geht noch ${LV_STUFEN_TURBO - lvHeuteNeu(k) === 1 ? "eine Stufe" : "bis zu " + (LV_STUFEN_TURBO - lvHeuteNeu(k)) + " Stufen"}, mit Bonus-Aufgaben.`; }
+  else { knopf = `<button class="lv-btn ${s.st < LV_MAX && aktuell ? "gold" : ""}" data-lv="start">${svg("step")} ${s.st < LV_MAX ? "Festigen" : "Wiederholen"}</button>`;
+    hinweis = s.b ? "Bewahrt – du kennst diesen Vers auswendig." : s.st < LV_MAX ? (lvHeuteNeu(k) >= LV_STUFEN_TURBO ? `Stark – ${LV_STUFEN_TURBO} Stufen heute! Stufe ${s.st + 1} gibt es morgen.` : `Heute geschafft! Stufe ${s.st + 1} gibt es morgen – oder festige mit ${LV_TURBO_QUOTE} % für den Turbo.`) : aktuell ? `Gemeistert! Ab dem ${lvBewahrAb()}. ${MONATE[new Date().getMonth()]} kommt die Monatsprüfung.` : ""; }
+  let fuss = knopf + `<button class="lv-btn rund" data-lv="vorlesen" aria-label="Vorlesen">${svg("sound")}</button>`;
+  if (ort === "home") fuss += `<button class="lv-btn" data-go="lernverse" data-arg="home">${svg("scroll")} Archiv</button>`;
+  const stand = s.b ? `<span class="lv-siegel" aria-label="Bewahrt">${svg("siegel")}</span>` : `<span class="lv-stufe" aria-label="Stufe ${s.st} von ${LV_MAX}">${Array.from({ length: LV_MAX }, (_, i) => `<i class="${i < s.st ? "an" : ""}"></i>`).join("")}</span>`;
+  const mt = aktuell ? lvMonatsTage(k) : 0, ziel = lvZiel();
+  const monat = aktuell && !s.b ? `<div class="lv-monat"><span class="lvm-woche">Woche ${lvWoche()}/4 · Ziel Stufe ${ziel}${s.st >= ziel ? ` ${svg("check")}` : ""}</span><span class="lvm-tage ${mt ? "an" : ""}">${svg("fire")}${mt} ${mt === 1 ? "Tag" : "Tage"}</span></div>` : "";
+  return `<section class="lv ${s.b ? "bewahrt" : ""}" data-lvk="${k}" aria-label="Lernvers ${esc(monatName(k))}">
     <div class="lv-kopf"><span class="lv-ic">${svg("scroll")}</span><span class="lv-lab">Lernvers ${esc(monatName(k))}</span>${stand}</div>
-    <div class="lv-text">${text}</div><div class="lv-ref">${esc(v[1])} · ${VERS_QUELLE}</div>
-    ${hinweis ? `<div class="lv-hinweis">${hinweis}</div>` : ""}
+    <div class="lv-text">${esc(v[0])}</div><div class="lv-ref">${esc(v[1])} · ${VERS_QUELLE}</div>
+    ${monat}${hinweis ? `<div class="lv-hinweis">${hinweis}</div>` : ""}
     <div class="lv-fuss">${fuss}</div></section>`;
 }
-function lvNeu(k) { const alt = screen.querySelector(`[data-lvk="${k}"]`); if (!alt) return; alt.outerHTML = lvKarte(k, alt.closest(".lv-archiv") ? "archiv" : "home"); lvVerdrahten(); }
 function lvVerdrahten() {
   screen.querySelectorAll("[data-lvk]").forEach(karte => {
     const k = karte.dataset.lvk, v = MONATSVERSE[k];
-    karte.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { SFX.tap(); lvUeben = null; go(b.dataset.go, b.dataset.arg); });
-    karte.querySelectorAll("[data-lw]").forEach(b => b.onclick = () => {
-      const u = lvUeben; if (!u) return; SFX.tap(); u.offen.add(+b.dataset.lw);
-      if ([...lvVerdeckt(v[0], u.stufe)].every(i => u.offen.has(i))) u.alle = true; lvNeu(k);
-    });
+    karte.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { SFX.tap(); go(b.dataset.go, b.dataset.arg); });
     karte.querySelectorAll("[data-lv]").forEach(b => b.onclick = () => {
-      const a = b.dataset.lv, s = lvStand(k);
+      const a = b.dataset.lv;
       if (a === "vorlesen") { const beat = S.beat; S.beat = false; vorlesen([{ text: v[0] + " – " + v[1].replace(/(\d+),(\d+)/, "$1, Vers $2") }]); S.beat = beat; return; }
-      SFX.tap();
-      if (a === "start") { vorlesenStop(); lvUeben = { k, stufe: s.st < 3 ? s.st + 1 : 3, art: s.st < 3 ? "lernen" : (k === monatKey() && !s.b && lvBewahrFenster(k) ? "bewahren" : "wiederholen"), offen: new Set(), alle: false }; }
-      else if (a === "auf") lvUeben.alle = true;
-      else if (a === "nochmal") { lvUeben.offen = new Set(); lvUeben.alle = false; }
-      else if (a === "ende") lvUeben = null;
-      else if (a === "kann") {
-        const u = lvUeben; lvUeben = null; if (!S.lv) S.lv = {};
-        const neu = { st: s.st, b: s.b }; const [x, y] = centerOf(b);
-        if (u.art === "lernen" && u.stufe > s.st) {
-          neu.st = u.stufe; S.lv[k] = neu; addTal(LV_TAL[u.stufe - 1]); burst(x, y, 40, { up: 4 });
-          toast(`${svg("star", "#f2c14e")}<div><b>${u.stufe < 3 ? `Stufe ${u.stufe} geschafft!` : "Vers gemeistert!"}</b><div class="small muted">+${LV_TAL[u.stufe - 1]} Talente${u.stufe < 3 ? " · weiter mit Stufe " + (u.stufe + 1) : ""}</div></div>`);
-        } else if (u.art === "bewahren" && !s.b) {
-          neu.b = true; S.lv[k] = neu; addTal(LV_BEWAHR_TAL); burst(x, y, 60, { up: 6 }); rain(40);
-          toast(`${svg("siegel", "#f2c14e")}<div><b>Vers bewahrt!</b><div class="small muted">+${LV_BEWAHR_TAL} Talente</div></div>`);
-        } else SFX.right();
-        save(); checkBadges(); lbSync();
-      }
-      lvNeu(k);
+      SFX.tap(); go("verslektion", k + (a === "pruefung" ? "|pruefung" : ""));
     });
   });
 }
@@ -473,14 +785,14 @@ function modal(html, onClose) {
 /* ---------- Tagesaufgaben ---------- */
 /* Auslosung nach Datum (für alle gleich); gleiche Spielart nicht doppelt, zusammen höchstens AUFGABEN_MAX_MIN Minuten */
 function aufgabenAuslosen(t) {
-  let h = hash("bq" + t); const pool = AUFGABEN.slice(); const gew = [];
+  let h = hash("bq" + t); const verfuegbar = AUFGABEN.filter(a => a.ev !== "lernvers" || MONATSVERSE[monatKey()]); const pool = verfuegbar.slice(); const gew = [];
   for (let versuch = 0; gew.length < 3 && pool.length && versuch < 60; versuch++) {
     h = Math.imul(h ^ (h >>> 15), 2246822519) >>> 0; const idx = h % pool.length, a = pool[idx];
     const minuten = gew.reduce((m, x) => m + x.min, 0) + a.min, rest = 3 - gew.length - 1;
     if (gew.some(x => x.ev === a.ev) || minuten + rest > AUFGABEN_MAX_MIN) continue;
     gew.push(pool.splice(idx, 1)[0]);
   }
-  for (const a of AUFGABEN) if (gew.length < 3 && !gew.includes(a) && !gew.some(x => x.ev === a.ev)) gew.push(a);
+  for (const a of verfuegbar) if (gew.length < 3 && !gew.includes(a) && !gew.some(x => x.ev === a.ev)) gew.push(a);
   return gew;
 }
 function aufgabenSicherstellen() {
@@ -593,14 +905,14 @@ function itemFrei(kat, it) {
 let current = "home", timers = [], lbUnsub = [];
 function clearTimers() { timers.forEach(clearInterval); timers = []; }
 function go(name, arg) {
-  lvUeben = null; applyTheme(); clearTimers(); vorlesenStop(); lbUnsub.forEach(u => { try { u(); } catch (e) {} }); lbUnsub = [];
+  VL = null; applyTheme(); clearTimers(); vorlesenStop(); lbUnsub.forEach(u => { try { u(); } catch (e) {} }); lbUnsub = [];
   if (!S.lbName && name !== "name") name = "name";
   current = name; window.scrollTo(0, 0); document.body.classList.remove("spiel-laeuft");
   tabbarSetzen(name); (VIEWS[name] || VIEWS.home)(arg);
 }
 /* Untere Menüleiste: zu welchem Reiter gehört eine Ansicht? */
 const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Spielen", "bolt"], ["rank", "Gemeinde", "trophy"], ["ich", "Laden", "shop"]];
-const TAB_VON = { lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen",
+const TAB_VON = { duelle: "spielen", duell: "spielen", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen",
   shop: "ich" };
 function tabbarSetzen(name) {
   const nav = $("tabbar"); if (!nav) return;
@@ -790,7 +1102,7 @@ VIEWS.home = () => {
   const erledigt = S.dq.items.filter(i => i.done).length;
   /* Tagesaufgaben als drei Medaillen mit Fortschrittsring; antippen führt dorthin, wo man sie erledigt */
   const AUFG_ART = { runde: ["step", "spielen", "spielen"], xp: ["star", "home", "spielen"], right: ["target", "spielen", "blitz"], blitz: ["bolt", "spielen", "blitz"],
-    station: ["book", "lernen", "lernen"], ketteGespielt: ["link", "spielen", "spielen"], lied: ["music", "lernen", "lied"], luecke: ["scroll", "spielen", "gap"] };
+    station: ["book", "lernen", "lernen"], ketteGespielt: ["link", "spielen", "spielen"], lied: ["music", "lernen", "lied"], luecke: ["scroll", "spielen", "gap"], lernvers: ["scroll", "lernen", "verslektion"] };
   const aufg = S.dq.items.map(it => { const a = AUFGABEN.find(x => x.id === it.id); if (!a) return ""; const pr = Math.min(it.prog, a.ziel);
     const [ic, ar, ziel] = AUFG_ART[a.ev] || ["target", "spielen", "spielen"], C = 2 * Math.PI * 27;
     return `<li><button class="tq ${it.done ? "done" : ""}" data-ar="${ar}" data-go="${ziel}"${ziel === "gap" ? ' data-arg="alle"' : ""} aria-label="${esc(a.text)}: ${pr} von ${a.ziel}${it.done ? ", erledigt" : ""}">
@@ -810,6 +1122,7 @@ VIEWS.home = () => {
   screen.innerHTML = `<div class="stack start">
     ${MONATSVERSE[monatKey()] ? lvKarte(monatKey()) : `<button class="vers-zeile" id="versZeile" aria-expanded="false">${versHtml(vKey, "tag klein")}<span class="vz-mehr">mehr</span></button>`}
     ${siegel}
+    <div id="duHinweis">${duHinweisHome()}</div>
     ${weiter}
     <section class="heute2 ${S.dq.bonus ? "fertig" : ""}" aria-label="Tagesaufgaben">
       <div class="h2-kopf"><span class="h2-sonne">${svg("sun")}</span><b>Tagesaufgaben</b>
@@ -849,17 +1162,18 @@ VIEWS.lernen = (teil) => {
     <button class="mini-karte" data-go="lied"><span class="lek-nr">${svg("music")}</span><b>Lied</b><span>${S.songHeard.length}/8 Strophen</span></button>
     <button class="mini-karte" data-go="learn"><span class="lek-nr">${svg("eye")}</span><b>Spickzettel</b><span>Alle 66 Bücher</span></button>
   </div>
-  <button class="bereich klein lv-zugang" data-go="lernverse"><span class="b-ic">${svg("scroll")}</span><span class="b-tx"><b>Lernverse</b><span>Vers des Monats und frühere Verse</span></span><span class="b-info">${Object.keys(MONATSVERSE).filter(k => k <= monatKey() && lvStand(k).st >= 3).length}/${Object.keys(MONATSVERSE).filter(k => k <= monatKey()).length}</span></button>`;
+  <button class="bereich klein lv-zugang" data-go="lernverse"><span class="b-ic">${svg("scroll")}</span><span class="b-tx"><b>Lernverse</b><span>Vers des Monats und frühere Verse</span></span><span class="b-info">${Object.keys(MONATSVERSE).filter(k => k <= monatKey() && lvStand(k).st >= LV_MAX).length}/${Object.keys(MONATSVERSE).filter(k => k <= monatKey()).length}</span></button>`;
   wireGo();
   screen.querySelectorAll("[data-teil]").forEach(b => b.onclick = () => { SFX.tap(); lernTeil = b.dataset.teil; VIEWS.lernen(); });
 };
 
+VIEWS.verslektion = vlStart; /* Vers-Lektion (Code oben beim Lernvers) */
 /* Archiv: alle Lernverse bis zum laufenden Monat, neuester zuerst */
 VIEWS.lernverse = (zurueck) => {
   const jetzt = monatKey(), keys = Object.keys(MONATSVERSE).filter(k => k <= jetzt).sort().reverse();
-  const fertig = keys.filter(k => lvStand(k).st >= 3).length, bew = keys.filter(k => lvStand(k).b).length;
+  const fertig = keys.filter(k => lvStand(k).st >= LV_MAX).length, bew = keys.filter(k => lvStand(k).b).length;
   screen.innerHTML = `${backBtn(zurueck === "home" ? "home" : "lernen")}${seitenKopf("Lernverse", `${fertig}/${keys.length} gemeistert`)}
-    <p class="small muted lv-intro">Alle Lernverse der Gemeinde. Jeden Monat kommt einer dazu – präge sie dir in drei Stufen ein. ${bew ? `Bewahrt: <b>${bew}</b>` : "Am Monatsende kannst du den aktuellen Vers bewahren."}</p>
+    <p class="small muted lv-intro">Alle Lernverse der Gemeinde. Jeden Monat kommt einer dazu – präge ihn dir in fünf Stufen ein, eine pro Tag – wer sicher ist (Turbo ab 90 %), schafft bis zu drei. Frühere Verse tauchen in den Lektionen zur Wiederholung auf. ${bew ? `Bewahrt: <b>${bew}</b>` : "Am Monatsende wartet die Monatsprüfung – dann ist der Vers bewahrt."}</p>
     <div class="stack lv-archiv">${keys.map(k => lvKarte(k, "archiv")).join("")}</div>`;
   wireGo(); lvVerdrahten();
 };
@@ -870,6 +1184,7 @@ VIEWS.spielen = () => {
   screen.innerHTML = `${seitenKopf("Spielen", `${svg("siegel")}${siegelZahl}/${Object.keys(KETTEN).length}`)}
   <div class="stack">
     <button class="bereich" data-go="blitz"><span class="b-ic">${svg("bolt")}</span><span class="b-tx"><b>Blitz-Runde</b><span>60 Sekunden: Was kommt danach?</span></span><span class="b-info">${S.bestBlitz ? "Rekord " + S.bestBlitz : ""}</span></button>
+    <button class="bereich du-zugang" data-go="duelle"><span class="b-ic">${svg("people")}</span><span class="b-tx"><b>Vers-Duell</b><span>Fordere jemanden zum Lernvers heraus</span></span><span class="b-info">${duFuerMich().length ? `<span class="du-punkt">${duFuerMich().length}</span>` : S.duSiege ? S.duSiege + (S.duSiege === 1 ? " Sieg" : " Siege") : ""}</span></button>
     <details class="erklaer"><summary><span class="label">Die Kette – ein Fehler beendet sie</span><span class="ek-i" aria-label="Erklärung">?</span></summary>
     <p class="small muted">Wer eine Kette komplett schafft, bekommt ein Siegel. Wiederhole sie in verschiedenen Wochen und Monaten für Silber, Gold und Diamant. Nach ${SIEGEL_FRISCH} Tagen verblasst ein Siegel – dann einfach auffrischen.</p></details>
     ${Object.entries(KETTEN).map(([id, k]) => { const max = k.seq.length, rec = kettenBuecher(k.key), voll = rec >= max, t = S.meister[id] || [], st = siegelStufe(t), fr = siegelFrisch(t);
@@ -1423,7 +1738,8 @@ function spielstandExport() { const c = JSON.parse(JSON.stringify(S)); delete c.
 function zusammenfuehren(r) {
   if (!r || typeof r !== "object") return;
   const max = k => { S[k] = Math.max(+S[k] || 0, +r[k] || 0); };
-  ["xp", "tal", "right", "bestStreak", "bestChain", "chainAT", "chainNT", "chainRueck", "bestBlitz", "bestCombo", "questBonusCount", "bestGoalStreak", "bestDayRight"].forEach(max);
+  ["xp", "tal", "right", "bestStreak", "bestChain", "chainAT", "chainNT", "chainRueck", "bestBlitz", "bestCombo", "questBonusCount", "bestGoalStreak", "bestDayRight", "duSiege", "duSpiele"].forEach(max);
+  S.duGes = [...new Set([...(S.duGes || []), ...(Array.isArray(r.duGes) ? r.duGes : [])])].slice(-60);
   ["aufgefrischt", "eingeladen", "fischerDabei", "menschenfischer"].forEach(k => { S[k] = !!(S[k] || r[k]); });
   S.tage = [...new Set([...(S.tage || []), ...(r.tage || [])])].sort((a, b) => a - b).slice(-35);
   S.treueWochen = [...new Set([...(S.treueWochen || []), ...(r.treueWochen || [])])];
@@ -1440,7 +1756,10 @@ function zusammenfuehren(r) {
   }
   /* Lernverse: je Monat höchste Stufe, bewahrt bleibt bewahrt */
   if (!S.lv) S.lv = {};
-  Object.entries(r.lv || {}).forEach(([k, v]) => { if (!v) return; const a = S.lv[k] || { st: 0, b: false }; S.lv[k] = { st: Math.max(a.st || 0, v.st || 0), b: !!(a.b || v.b) }; });
+  Object.entries(r.lv || {}).forEach(([k, v0]) => { const v = lvMig(v0); if (!v) return; const a = lvMig(S.lv[k]) || { st: 0, b: false };
+    const sw = Object.assign({}, v.sw || {}); Object.entries(a.sw || {}).forEach(([i, n]) => { sw[i] = Math.max(sw[i] || 0, n); });
+    const neuer = (a.auf || "") >= (v.auf || "") ? a : v;
+    S.lv[k] = { v: 2, st: Math.max(a.st || 0, v.st || 0), b: !!(a.b || v.b), tage: [...new Set([...(a.tage || []), ...(v.tage || [])])].sort((x, y) => x - y).slice(-40), sw, auf: neuer.auf || "", an: neuer.an || 0, q: (a.qd || "") >= (v.qd || "") ? a.q || 0 : v.q || 0, qd: [a.qd || "", v.qd || ""].sort().pop() }; });
   ["avatar", "frame", "title", "theme"].forEach(k => { if ((S[k] === DEF[k]) && r[k]) S[k] = r[k]; });
   if (r.lbName && !S.lbName) S.lbName = r.lbName;
 }
@@ -1496,6 +1815,11 @@ async function lbStart() {
       /* Höhere Werte aus dem eigenen Ranglisten-Eintrag übernehmen (z. B. nach automatischem Zusammenführen) */
       if (L.holeSpieler) { const e = await L.holeSpieler(S.pid).catch(() => null); if (e && !e.zu && (e.xp || 0) > S.xp) { zusammenfuehren(ausRangliste(e)); save(); renderHud(); } }
       lbSync(true); cloudSync();
+      /* Vers-Duelle im Hintergrund laden: Hinweis auf der Startseite, Zahl im Bereich Spielen */
+      duAktualisieren().then(() => {
+        const h = $("duHinweis"); if (h && current === "home") { h.innerHTML = duHinweisHome(); h.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { SFX.tap(); go(b.dataset.go); }); }
+        if (current === "spielen" && !document.querySelector(".modal")) go("spielen");
+      });
     }
   } catch (e) {}
 }
@@ -1797,8 +2121,231 @@ function profilVergleich(r) {
       ${zeilenR.map(([k, v], j) => `<tr><th>${k}</th><td>${esc(v)}</td>${istIch ? "" : `<td>${esc(zeilenI[j][1])}</td>`}</tr>`).join("")}</tbody></table>
     ${Array.isArray(r.sg) ? `<div class="label" style="margin:12px 0 6px">Siegel</div>${siegelReihe(r)}` : ""}
     ${hatIds ? `<div class="small muted" style="margin-top:8px">${istIch ? "" : `Spalten bei den Abzeichen: links ${esc(r.name)}, rechts du.`}</div>${badgeGrid(r.badgeIds, istIch ? null : S.badges)}` : `<p class="small muted">Die Abzeichen sind sichtbar, sobald ${esc(r.name)} die neue App-Version öffnet.</p>`}
-    </div><button class="btn primary" data-close>Schließen</button>`);
+    </div>${!istIch && duOk() ? `<button class="btn du-fordern" data-close="duell">${svg("bolt")} Zum Vers-Duell herausfordern</button>` : ""}<button class="btn primary" data-close>Schließen</button>`,
+    x => { if (x === "duell") { const los = () => duHerausfordern({ id: r.id, name: r.name }); if (duListe) los(); else duAktualisieren().then(los); } });
   m.dataset.frei = "1"; m.classList.add("weit");
+}
+
+/* ---------- Vers-Duell (asynchron) ----------
+   Herausforderer spielt 8 schnelle Fragen zum Lernvers und sendet sein Ergebnis; der Gegner bekommt dieselben Fragen
+   (gleicher Startwert) und hat 7 Tage Zeit. Punkte: 100 je richtige Antwort + bis zu 50 für Schnelligkeit. */
+const DU_FRAGEN = 8, DU_SEK = 12, DU_MAX_OFFEN = 5, DU_TAGE_HALTEN = 30;
+const DU_XP = 10, DU_XP_RICHTIG = 3, DU_SIEG_TAL = 10, DU_REMIS_TAL = 5;
+let duListe = null, duFehler = "", duSpiel = null, duWahl = false, duGegner = null, duSuche = "";
+const duOk = () => { const L = window.LB; return !!(L && L.ok && L.meineDuelle && S.pid && S.lbName && !S.offlineOnly); };
+const duVerseKey = () => { const jetzt = monatKey(); return Object.keys(MONATSVERSE).filter(k => k <= jetzt).sort().pop() || Object.keys(MONATSVERSE).sort()[0]; };
+function rngVon(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+/* Fragen aus Startwert + Lernvers – für beide Spieler genau gleich (Zufall wird dafür kurz ersetzt) */
+function duFragen(seed, k) {
+  const alt = Math.random; Math.random = rngVon(seed);
+  try {
+    const frueher = Object.keys(MONATSVERSE).filter(x => x < k).sort().slice(-6);
+    const keys = Array.from({ length: DU_FRAGEN }, (_, i) => (i % 4 === 3 && frueher.length ? pick(frueher) : k));
+    const arten = shuffle(["weiter", "stelle", "fehler", "luecke", "weiter", "stelle", "fehler", "luecke"]);
+    return keys.map((vk, i) => duFrage(arten[i], vk));
+  } finally { Math.random = alt; }
+}
+function duFrage(art, k) {
+  const [text, ref] = MONATSVERSE[k], w = text.split(" "), kand = w.map((_, i) => i).filter(i => i > 0 && lvKern(w[i]).length >= 3);
+  if (art === "weiter") {
+    const [vorn, hinten] = lvTeilung(text), hw = hinten.split(" "), idx = hw.map((_, i) => i).filter(i => lvKern(hw[i]).length >= 3);
+    const falsch = shuffle(idx).slice(0, 2).map(i => { const f = hw.slice(); f[i] = hw[i].replace(lvKern(hw[i]), lvErsatz(lvKern(hw[i]), text)); return f.join(" "); });
+    return { k, frage: "Wie geht der Vers weiter?", vers: esc(vorn) + ' <span class="vl-pkt">…</span>', opts: shuffle([hinten, ...falsch]).map(o => "… " + o), loesung: "… " + hinten, lang: true };
+  }
+  if (art === "stelle") {
+    const andere = lvStelleAehnlich(ref), weit = lvAlleVerse().map(v => v[1]).filter(r => r !== ref);
+    return { k, frage: "Wo steht dieser Vers?", vers: esc(text), opts: shuffle([ref, pick(andere), pick(weit.filter(r => !andere.includes(r)))]), loesung: ref };
+  }
+  if (art === "fehler") {
+    const i = pick(kand), falsch = lvErsatz(lvKern(w[i]), text);
+    const andere = shuffle(kand.filter(j => j !== i && lvNorm(w[j]) !== lvNorm(falsch))).slice(0, 2).map(j => lvKern(w[j]));
+    return { k, frage: "Welches Wort ist falsch?", vers: esc(w.map((x, j) => (j === i ? x.replace(lvKern(x), falsch) : x)).join(" ")), opts: shuffle([falsch, ...andere]), loesung: falsch };
+  }
+  const i = pick(kand), richtigW = lvKern(w[i]);
+  const eigene = kand.filter(j => j !== i).map(j => lvKern(w[j])).filter(x => lvNorm(x) !== lvNorm(richtigW));
+  const opts = shuffle([richtigW, ...shuffle([...new Set([pick(eigene) || "Herr", lvErsatz(richtigW, text)])]).slice(0, 2)]);
+  return { k, frage: "Welches Wort fehlt?", vers: w.map((x, j) => (j === i ? `<span class="vl-loch jetzt"></span>${esc(x.slice(x.indexOf(richtigW) + richtigW.length))}` : esc(x))).join(" "), opts, loesung: richtigW };
+}
+
+/* Duelle laden; alte (über 30 Tage) und abgelaufene still aufräumen */
+async function duAktualisieren() {
+  if (!duOk()) return duListe;
+  try {
+    const L = window.LB, alle = await L.meineDuelle(S.pid), jetzt = Date.now();
+    duListe = alle.filter(d => {
+      const alt = jetzt - d.erstellt > DU_TAGE_HALTEN * 864e5;
+      if (alt && (d.status !== "offen" || jetzt > d.ablauf)) { L.duellLoeschen(d.id).catch(() => {}); return false; }
+      return true;
+    });
+    duFehler = ""; duBelohnen();
+  } catch (e) { duFehler = "laden"; }
+  return duListe;
+}
+const duStatus = d => (d.status === "offen" && d.ablauf && Date.now() > d.ablauf ? "abgelaufen" : d.status);
+const duFuerMich = () => (duListe || []).filter(d => d.an === S.pid && duStatus(d) === "offen");
+const duNeueErgebnisse = () => (duListe || []).filter(d => d.von === S.pid && d.status === "fertig" && !(S.duGes || []).includes(d.id));
+/* Herausforderer bekommt seinen Sieg, sobald er das Ergebnis zum ersten Mal sieht */
+function duBelohnen() {
+  const neu = duNeueErgebnisse(); if (!neu.length) return;
+  let tal = 0;
+  neu.forEach(d => {
+    S.duGes = [...(S.duGes || []), d.id].slice(-60);
+    const p = d.vonErg.p, q = d.anErg.p;
+    if (p > q) { S.duSiege = (S.duSiege || 0) + 1; tal += DU_SIEG_TAL; } else if (p === q) tal += DU_REMIS_TAL;
+    setTimeout(() => toast(`${svg(p > q ? "crown" : "bolt", p > q ? "#f2c14e" : "var(--ar-spielen)")}<div><b>Duell gegen ${esc(d.anName)}: ${p > q ? "gewonnen!" : p === q ? "unentschieden" : "verloren"}</b><div class="small muted">${p} : ${q} Punkte${p > q ? ` · +${DU_SIEG_TAL} Talente` : p === q ? ` · +${DU_REMIS_TAL} Talente` : ""}</div></div>`), 600);
+  });
+  if (tal) S.tal += tal; save(); renderHud();
+}
+function duHinweisHome() {
+  if (!duListe) return "";
+  const an = duFuerMich(), erg = duNeueErgebnisse().length;
+  if (an.length) return `<button class="erinnerung du-hinweis" data-go="duelle">${svg("bolt", "var(--ar-spielen)")}<span><b>${an.length === 1 ? `${esc(an[0].vonName)} fordert dich zum Vers-Duell heraus!` : `${an.length} Vers-Duelle warten auf dich`}</b><span class="small muted">Zeig, wie gut du den Lernvers kennst</span></span></button>`;
+  return "";
+}
+
+VIEWS.duelle = () => {
+  const kopf = `${backBtn("spielen")}${seitenKopf("Vers-Duell", `${svg("crown")}${S.duSiege || 0} ${S.duSiege === 1 ? "Sieg" : "Siege"}`)}`;
+  if (!duOk()) {
+    screen.innerHTML = kopf + `<div class="card stack"><b>${window.LB && window.LB.ok ? "Erst in die Gemeinde-Rangliste" : "Keine Verbindung"}</b><p class="small muted" style="margin:0">${window.LB && window.LB.ok ? "Für Duelle brauchst du einen Eintrag in der Gemeinde-Rangliste." : "Für Duelle brauchst du Internet."}</p></div>`;
+    wireGo(); return;
+  }
+  const L = window.LB, jetzt = Date.now(), tage = ms => Math.max(0, Math.ceil((ms - jetzt) / 864e5));
+  const liste = duListe || [];
+  const fuerMich = duFuerMich(), warte = liste.filter(d => d.von === S.pid && duStatus(d) === "offen");
+  const fertig = liste.filter(d => !(d.an === S.pid && duStatus(d) === "offen") && !(d.von === S.pid && duStatus(d) === "offen")).slice(0, 12);
+  const zeile = d => {
+    const ich = d.von === S.pid, gegner = ich ? d.anName : d.vonName, st = duStatus(d);
+    if (st === "fertig") {
+      const p = ich ? d.vonErg.p : d.anErg.p, q = ich ? d.anErg.p : d.vonErg.p, erg = p > q ? "sieg" : p === q ? "remis" : "nieder";
+      return `<li class="du-zeile ${erg}"><span class="du-ic">${svg(erg === "sieg" ? "crown" : erg === "remis" ? "bolt" : "step")}</span><span class="du-tx"><b>${esc(gegner)}</b><span>${erg === "sieg" ? "Gewonnen" : erg === "remis" ? "Unentschieden" : "Verloren"} · Lernvers ${esc(monatName(d.k))}</span></span><span class="du-stand"><b>${p}</b> : ${q}</span></li>`;
+    }
+    return `<li class="du-zeile grau"><span class="du-ic">${svg("lock")}</span><span class="du-tx"><b>${esc(gegner)}</b><span>${st === "abgelehnt" ? "abgelehnt" : "abgelaufen"}</span></span><button class="lv-btn rund" data-weg="${d.id}" aria-label="Entfernen">${svg("nein")}</button></li>`;
+  };
+  const gegner = duWahl ? duGegnerHtml() : "";
+  screen.innerHTML = kopf + `
+    <p class="small muted du-intro">8 schnelle Fragen zum Lernvers. Du spielst zuerst, dein Gegner bekommt dieselben Fragen und hat 7 Tage Zeit. Sieg: +${DU_SIEG_TAL} Talente.</p>
+    <button class="btn primary breit du-neu" id="duNeu" ${duWahl ? 'aria-expanded="true"' : ""}>${svg("bolt")} ${duWahl ? "Gegner wählen" : "Neues Duell"}</button>
+    ${gegner}
+    ${duFehler ? `<p class="small muted">Duelle konnten nicht geladen werden. <button class="lv-btn" id="duNeuLaden">Nochmal</button></p>` : ""}
+    ${duListe === null && !duFehler ? `<p class="small muted">Lade Duelle …</p>` : ""}
+    ${fuerMich.length ? `<div class="label du-label">Du bist dran</div><ul class="du-liste">${fuerMich.map(d => `<li class="du-zeile dran"><span class="du-ic">${svg("bolt")}</span><span class="du-tx"><b>${esc(d.vonName)}</b><span>${d.vonErg.p} Punkte vorgelegt · noch ${tage(d.ablauf)} ${tage(d.ablauf) === 1 ? "Tag" : "Tage"}</span></span><span class="du-knoepfe"><button class="lv-btn gold" data-an="${d.id}">Annehmen</button><button class="lv-btn rund" data-ab="${d.id}" aria-label="Ablehnen">${svg("nein")}</button></span></li>`).join("")}</ul>` : ""}
+    ${warte.length ? `<div class="label du-label">Warten auf deinen Gegner</div><ul class="du-liste">${warte.map(d => `<li class="du-zeile"><span class="du-ic">${svg("sun")}</span><span class="du-tx"><b>${esc(d.anName)}</b><span>Deine Punkte: ${d.vonErg.p} · noch ${tage(d.ablauf)} ${tage(d.ablauf) === 1 ? "Tag" : "Tage"}</span></span></li>`).join("")}</ul>` : ""}
+    ${fertig.length ? `<div class="label du-label">Ergebnisse</div><ul class="du-liste">${fertig.map(zeile).join("")}</ul>` : ""}
+    ${duListe && !liste.length ? `<p class="small muted">Noch keine Duelle – fordere jemanden heraus!</p>` : ""}`;
+  wireGo(); duGegnerVerdrahten();
+  $("duNeu").onclick = () => { SFX.tap(); duWahl = !duWahl; VIEWS.duelle(); if (duWahl) { duGegnerLaden(); const f = $("duSuche"); if (f && !matchMedia("(pointer: coarse)").matches) f.focus(); } };
+  if ($("duNeuLaden")) $("duNeuLaden").onclick = () => { duAktualisieren().then(() => current === "duelle" && VIEWS.duelle()); };
+  screen.querySelectorAll("[data-an]").forEach(b => b.onclick = () => { SFX.tap(); const d = liste.find(x => x.id === b.dataset.an); if (d) duSpielStarten({ id: d.id, seed: d.seed, k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von }); });
+  screen.querySelectorAll("[data-ab]").forEach(b => b.onclick = () => {
+    SFX.tap(); const d = liste.find(x => x.id === b.dataset.ab);
+    modal(`<div class="label">Duell ablehnen?</div><h2>${esc(d.vonName)}</h2><p class="muted">${esc(d.vonName)} sieht dann, dass du abgelehnt hast.</p><button class="btn primary" data-close="nein">Doch spielen</button><button class="btn ghost" data-close="ab">Ablehnen</button>`,
+      r => { if (r === "ab") L.duellAblehnen(d.id).then(() => { d.status = "abgelehnt"; VIEWS.duelle(); }).catch(() => toast(`${svg("nein", "var(--bad)")}<div>Das hat nicht geklappt – bist du online?</div>`)); else if (r === "nein") duSpielStarten({ id: d.id, seed: d.seed, k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von }); });
+  });
+  screen.querySelectorAll("[data-weg]").forEach(b => b.onclick = () => { SFX.tap(); const id = b.dataset.weg; L.duellLoeschen(id).catch(() => {}); duListe = (duListe || []).filter(d => d.id !== id); VIEWS.duelle(); });
+  if (duListe === null) duAktualisieren().then(() => { if (current === "duelle" && !duSpiel) VIEWS.duelle(); });
+};
+/* Gegnerwahl direkt auf der Duell-Seite (keine weitere Menüebene) */
+async function duGegnerLaden() {
+  if (duGegner) return;
+  try { duGegner = (await window.LB.gegnerListe()).filter(r => r.id !== S.pid && r.name); } catch (e) { duGegner = []; }
+  if (current === "duelle" && duWahl) { const box = $("duGegner"); if (box) { box.outerHTML = duGegnerHtml(); duGegnerVerdrahten(); } }
+}
+function duGegnerHtml() {
+  const offen = (duListe || []).filter(d => d.von === S.pid && duStatus(d) === "offen");
+  const voll = offen.length >= DU_MAX_OFFEN, q = nameSchluessel(duSuche);
+  const liste = (duGegner || []).filter(r => !q || nameSchluessel(r.name).includes(q)).slice(0, 40);
+  return `<div class="card du-gegner" id="duGegner">
+    ${voll ? `<p class="small muted" style="margin:0">Du hast schon ${DU_MAX_OFFEN} offene Duelle – warte, bis jemand antwortet.</p>` : `
+    <input class="du-suche" id="duSuche" type="search" placeholder="Name suchen …" value="${esc(duSuche)}" autocomplete="off" aria-label="Gegner suchen">
+    ${duGegner === null ? `<p class="small muted">Lade Gemeinde …</p>` : `<ul class="du-wahl">${liste.map(r => { const laeuft = offen.some(d => d.an === r.id);
+      return `<li><button class="du-person" data-gegner="${esc(r.id)}" ${laeuft ? "disabled" : ""}>${avatarLv(r, 34)}<span class="du-tx"><b>${esc(r.name)}</b><span>${laeuft ? "Duell läuft schon" : "Level " + (r.level || 1)}</span></span>${laeuft ? "" : `<span class="du-los">${svg("bolt")}</span>`}</button></li>`; }).join("") || `<li class="small muted">Niemand gefunden.</li>`}</ul>`}`}
+  </div>`;
+}
+function duGegnerVerdrahten() {
+  const f = $("duSuche"); if (f) f.oninput = () => { duSuche = f.value; const pos = f.selectionStart; const box = $("duGegner"); box.outerHTML = duGegnerHtml(); duGegnerVerdrahten(); const g = $("duSuche"); g.focus(); try { g.setSelectionRange(pos, pos); } catch (e) {} };
+  screen.querySelectorAll("[data-gegner]").forEach(b => b.onclick = () => { SFX.tap(); const r = (duGegner || []).find(x => x.id === b.dataset.gegner); if (r) duHerausfordern(r); });
+}
+function duHerausfordern(r) {
+  if (!duOk()) { go("duelle"); return; }
+  const offen = (duListe || []).filter(d => d.von === S.pid && duStatus(d) === "offen");
+  if (offen.length >= DU_MAX_OFFEN) { toast(`${svg("bolt", "var(--muted)")}<div>Du hast schon ${DU_MAX_OFFEN} offene Duelle.</div>`); return; }
+  if (offen.some(d => d.an === r.id)) { toast(`${svg("bolt", "var(--muted)")}<div>Gegen ${esc(r.name)} läuft schon ein Duell.</div>`); return; }
+  const seed = crypto.getRandomValues(new Uint32Array(1))[0] % 2147483647;
+  duSpielStarten({ neu: true, an: r.id, gegner: r.name, seed, k: duVerseKey() });
+}
+
+/* ----- Das Duell selbst: eine Frage pro Bildschirm, Zeitbalken, sofortige Rückmeldung ----- */
+function duSpielStarten(opt) {
+  duWahl = false;
+  go("duell");
+  duSpiel = Object.assign({ fragen: duFragen(opt.seed, opt.k), i: 0, p: 0, r: 0, gesendet: false }, opt);
+  document.body.classList.add("spiel-laeuft");
+  countdown(() => duZeige());
+}
+VIEWS.duell = () => { screen.innerHTML = ""; };
+function duZeige() {
+  const D = duSpiel; if (!D || current !== "duell") return;
+  if (D.i >= D.fragen.length) return duEnde();
+  const f = D.fragen[D.i];
+  screen.innerHTML = `<div class="vl du-spiel">
+    <div class="vl-kopf"><button class="vl-x" id="duX" aria-label="Duell abbrechen">${svg("back")}</button>
+      <div class="vl-bar du-bar"><i style="width:${D.i / D.fragen.length * 100}%"></i></div><span class="du-punkte">${D.p}</span></div>
+    <span class="vl-titel du-titel">${svg("bolt")} Duell gegen ${esc(D.gegner)} · Frage ${D.i + 1}/${D.fragen.length}${f.k !== D.k ? ` · Lernvers ${esc(monatName(f.k))}` : ""}</span>
+    <div class="du-zeit"><i id="duZeit" style="animation-duration:${DU_SEK}s"></i></div>
+    <h2 class="vl-frage">${f.frage}</h2>
+    <div class="vl-vers">${f.vers}</div>
+    <div class="vl-wahl ${f.lang ? "" : "du-kurz"}">${f.opts.map((o, j) => `<button class="vl-opt" data-o="${j}">${esc(o)}</button>`).join("")}</div>
+  </div>`;
+  const start = performance.now(); let fertig = false;
+  const antworten = (j, el) => {
+    if (fertig) return; fertig = true;
+    const ok = j != null && f.opts[j] === f.loesung, rest = Math.max(0, DU_SEK - (performance.now() - start) / 1000);
+    const zeitEl = $("duZeit"); if (zeitEl) zeitEl.style.animationPlayState = "paused";
+    screen.querySelectorAll(".vl-opt").forEach(b => { b.disabled = true; const o = f.opts[+b.dataset.o]; if (o === f.loesung) b.classList.add("richtig"); else if (b === el) b.classList.add("falsch"); });
+    if (ok) { const pkt = 100 + Math.round(50 * rest / DU_SEK); D.p += pkt; D.r++; SFX.right(D.r); vibrate(12); if (el) { const [x, y] = centerOf(el); floatText("+" + pkt, x, y); burst(x, y, 12, { speed: 4 }); } }
+    else { SFX.wrong(); vibrate([40, 30, 40]); if (j == null) toast(`${svg("sun", "var(--muted)")}<div>Zeit ist um!</div>`); }
+    const pk = screen.querySelector(".du-punkte"); if (pk) pk.textContent = D.p;
+    timers.push(setTimeout(() => { D.i++; duZeige(); }, ok ? 750 : 1500));
+  };
+  screen.querySelectorAll(".vl-opt").forEach(b => b.onclick = () => antworten(+b.dataset.o, b));
+  timers.push(setTimeout(() => antworten(null, null), DU_SEK * 1000));
+  $("duX").onclick = () => {
+    SFX.tap();
+    modal(`<div class="label">Duell abbrechen?</div><h2>Gegen ${esc(D.gegner)}</h2><p class="muted">${D.neu ? "Die Herausforderung wird dann nicht gesendet." : "Du kannst später noch einmal neu anfangen."}</p><button class="btn primary" data-close="weiter">Weiterspielen</button><button class="btn ghost" data-close="ende">Abbrechen</button>`,
+      r => { if (r === "ende") { duSpiel = null; go("duelle"); } });
+  };
+}
+async function duEnde() {
+  const D = duSpiel, erg = { p: D.p, r: D.r, n: D.fragen.length }, L = window.LB;
+  const xp = DU_XP + DU_XP_RICHTIG * D.r;
+  if (!D.belohnt) { D.belohnt = true; S.duSpiele = (S.duSpiele || 0) + 1; richtig(D.r); quest("runde", 1); save(); }
+  let titel, zeile, tal = 0, sieg = false, fehler = false;
+  try {
+    if (D.neu) {
+      if (!D.gesendet) { D.id = await L.duellAnlegen({ von: S.pid, an: D.an, vonName: S.lbName, anName: D.gegner, k: D.k, seed: D.seed, vonErg: erg }); D.gesendet = true; duListe = null; }
+      titel = "Herausforderung gesendet!"; zeile = `${esc(D.gegner)} bekommt dieselben Fragen und hat 7 Tage Zeit. Du siehst das Ergebnis hier und auf der Startseite.`;
+    } else {
+      if (!D.gesendet) { await L.duellErgebnis(D.id, erg); D.gesendet = true; duListe = null; }
+      const q = D.gegnerErg.p; sieg = D.p > q;
+      if (!D.talGegeben) { D.talGegeben = true; tal = sieg ? DU_SIEG_TAL : D.p === q ? DU_REMIS_TAL : 0; if (sieg) S.duSiege = (S.duSiege || 0) + 1; save(); }
+      titel = sieg ? "Gewonnen!" : D.p === q ? "Unentschieden!" : "Knapp vorbei!";
+      zeile = sieg ? `Du hast ${esc(D.gegner)} besiegt.` : D.p === q ? "Genau gleich viele Punkte!" : `${esc(D.gegner)} war diesmal besser – fordere eine Revanche!`;
+    }
+  } catch (e) { fehler = true; titel = "Nicht gesendet"; zeile = "Die Verbindung hat nicht geklappt. Prüfe dein Internet und versuche es nochmal."; }
+  const gegnerSpalte = !D.neu ? `<div class="du-vs-sp ${!sieg && D.p !== D.gegnerErg.p ? "vorn" : ""}"><span>${esc(D.gegner)}</span><b>${D.gegnerErg.p}</b><small>${D.gegnerErg.r}/${D.gegnerErg.n} richtig</small></div>` : `<div class="du-vs-sp offen"><span>${esc(D.gegner)}</span><b>?</b><small>ist dran</small></div>`;
+  screen.innerHTML = `<div class="vl vl-ende du-ende">
+    <div class="vle-ic ${sieg ? "" : "du"}">${svg(sieg ? "crown" : "bolt")}</div>
+    <h1>${titel}</h1><p class="muted">${zeile}</p>
+    <div class="du-vs"><div class="du-vs-sp ${sieg ? "vorn" : ""}"><span>Du</span><b>${D.p}</b><small>${D.r}/${D.fragen.length} richtig</small></div><span class="du-vs-x">:</span>${gegnerSpalte}</div>
+    <div class="vle-werte"><div><b>+${xp}</b><span>XP</span></div>${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>Talente</span></div>` : ""}</div>
+    ${fehler ? `<button class="btn primary breit" id="duNochmal">Nochmal senden</button>` : `<button class="btn primary breit" id="duFertig">Zu den Duellen</button>`}
+    ${!D.neu && !fehler && !sieg ? `<button class="btn ghost breit" id="duRevanche">${svg("bolt")} Revanche</button>` : ""}</div>`;
+  if (!fehler) { SFX.win(); rain(sieg ? 90 : 40); }
+  const weiter = () => { duSpiel = null; go("duelle"); };
+  if ($("duFertig")) $("duFertig").onclick = () => { SFX.tap(); weiter(); };
+  if ($("duNochmal")) $("duNochmal").onclick = () => { SFX.tap(); duEnde(); };
+  if ($("duRevanche")) $("duRevanche").onclick = () => { SFX.tap(); duSpiel = null; duAktualisieren().then(() => duHerausfordern({ id: D.vonPid, name: D.gegner })); };
+  if (!D.xpGegeben) { D.xpGegeben = true; setTimeout(() => { addXp(xp); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350); }
 }
 
 /* ---------- Feedback an den Entwickler ---------- */

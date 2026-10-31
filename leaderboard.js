@@ -140,6 +140,25 @@ if (!configured) {
       await b.commit();
     };
 
+    // Vers-Duell (asynchron): Herausforderer spielt zuerst, Gegner spielt dieselben Fragen (gleicher Startwert)
+    const duelle = fs.collection(db, "duelle");
+    const zeitMs = t => (t && t.toMillis ? t.toMillis() : 0);
+    const duDaten = d => { const x = d.data(); return { id: d.id, ...x, erstellt: zeitMs(x.erstellt) || Date.now(), ablauf: zeitMs(x.ablauf), fertig: zeitMs(x.fertig) }; };
+    LB.duellAnlegen = async (d) => {
+      await LB.signIn();
+      const r = await fs.addDoc(duelle, { von: d.von, an: d.an, vonName: d.vonName, anName: d.anName, k: d.k, seed: d.seed, vonErg: d.vonErg,
+        status: "offen", erstellt: fs.serverTimestamp(), ablauf: fs.Timestamp.fromMillis(Date.now() + 7 * 864e5) });
+      return r.id;
+    };
+    LB.duellErgebnis = async (id, erg) => { await LB.signIn(); await fs.updateDoc(ref("duelle", id), { anErg: erg, status: "fertig", fertig: fs.serverTimestamp() }); };
+    LB.duellAblehnen = async (id) => { await LB.signIn(); await fs.updateDoc(ref("duelle", id), { status: "abgelehnt" }); };
+    LB.duellLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("duelle", id)); };
+    LB.meineDuelle = async (pid) => {
+      const [a, b] = await Promise.all([fs.getDocs(fs.query(duelle, fs.where("an", "==", pid), fs.limit(40))), fs.getDocs(fs.query(duelle, fs.where("von", "==", pid), fs.limit(40)))]);
+      return [...a.docs, ...b.docs].map(duDaten).sort((x, y) => y.erstellt - x.erstellt);
+    };
+    LB.gegnerListe = async () => aktiv((await fs.getDocs(fs.query(spieler, fs.orderBy("xp", "desc"), fs.limit(150)))).docs);
+
     // Live-Listen
     const FELD = { gesamt: "xp", kette_bibel: "bestChain", kette_at: "chainAT", kette_nt: "chainNT", kette_rueck: "chainRueck", treue: "t28", bewaehrt: "bew", abzeichen: "badges", blitz: "blitz", combo: "combo" };
     LB.watch = (kind, week, cb, onErr) => {

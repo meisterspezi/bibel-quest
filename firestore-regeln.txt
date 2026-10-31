@@ -1,5 +1,5 @@
 rules_version = '2';
-// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.14 – automatisches Zusammenführen doppelter Namen)
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.30 – Vers-Duell)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -139,6 +139,31 @@ service cloud.firestore {
         && request.resource.data.zeit == request.time
         && text(request.resource.data, 'ver', 20) && text(request.resource.data, 'geraet', 80)
         && text(request.resource.data, 'name', 20) && text(request.resource.data, 'pid', 64) && text(request.resource.data, 'geschrieben', 40);
+    }
+
+    // Vers-Duell: Herausforderer (von) legt mit seinem Ergebnis an, Gegner (an) trägt einmal sein Ergebnis ein oder lehnt ab.
+    // Lesen darf jedes angemeldete Gerät (nur Namen und Punkte – wie die Rangliste). Löschen dürfen beide Beteiligten.
+    function ergOk(e) {
+      return e is map && e.keys().hasOnly(['p', 'r', 'n']) && e.p is int && e.p >= 0 && e.p <= 2000
+        && e.r is int && e.r >= 0 && e.r <= 20 && e.n is int && e.n >= 1 && e.n <= 20 && e.r <= e.n;
+    }
+    match /duelle/{id} {
+      allow read: if angemeldet();
+      allow create: if angemeldet()
+        && request.resource.data.keys().hasOnly(['von', 'an', 'vonName', 'anName', 'k', 'seed', 'vonErg', 'status', 'erstellt', 'ablauf'])
+        && request.resource.data.von is string && request.resource.data.an is string && request.resource.data.von != request.resource.data.an
+        && text(request.resource.data, 'vonName', 20) && text(request.resource.data, 'anName', 20)
+        && request.resource.data.k is string && request.resource.data.k.size() == 7
+        && request.resource.data.seed is int && request.resource.data.seed >= 0 && request.resource.data.seed < 2147483648
+        && ergOk(request.resource.data.vonErg) && request.resource.data.status == 'offen'
+        && request.resource.data.erstellt == request.time
+        && request.resource.data.ablauf is timestamp && request.resource.data.ablauf <= request.time + duration.value(8, 'd')
+        && besitzer(request.resource.data.von) && exists(spielerPfad(request.resource.data.an));
+      allow update: if angemeldet() && resource.data.status == 'offen' && besitzer(resource.data.an) && (
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['anErg', 'status', 'fertig'])
+            && ergOk(request.resource.data.anErg) && request.resource.data.status == 'fertig' && request.resource.data.fertig == request.time)
+          || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) && request.resource.data.status == 'abgelehnt'));
+      allow delete: if angemeldet() && (besitzer(resource.data.von) || besitzer(resource.data.an));
     }
 
     // Zusammenführungen legt nur der Verwalter in der Konsole an; jedes Gerät darf nur seine eigene lesen

@@ -976,6 +976,121 @@ body[data-acc="perle"]::after{-webkit-mask:none;mask:none;background:url("data:i
 .lv.bewahrt{border-color:#f2c14e66}
 .lv-intro{margin:-4px 2px 12px}
 @media (prefers-reduced-motion:no-preference){.lv-auf{animation:lvAuf .35s ease-out}@keyframes lvAuf{from{opacity:0;transform:translateY(3px)}}}
+.lv-stufe.gross{justify-content:center;margin:4px auto 0}.lv-stufe.gross i{width:12px;height:12px}
+.lv-monat{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:8px;margin:-2px 0 10px;font:800 .74rem var(--body);color:var(--muted)}
+.lvm-woche{display:inline-flex;align-items:center;gap:4px;color:var(--ar-lernen)}.lvm-woche svg{width:14px;height:14px;color:var(--good)}
+.lvm-tage{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}.lvm-tage svg{width:14px;height:14px}.lvm-tage.an{color:#ffb54a}
+
+/* Vers-Lektion (eine Aufgabe pro Bildschirm, Urteil unten) */
+.vl{display:flex;flex-direction:column;gap:12px;min-height:calc(100dvh - 120px);padding-bottom:8px}
+.vl-kopf{display:flex;align-items:center;gap:10px}
+.vl-x{flex:0 0 36px;width:36px;height:36px;border-radius:12px;border:0;background:transparent;color:var(--muted);display:grid;place-items:center;cursor:pointer}.vl-x svg{width:22px;height:22px}
+.vl-bar{flex:1;height:14px;border-radius:7px;background:#ffffff14;overflow:hidden;box-shadow:inset 0 1px 2px #0006}
+.vl-bar i{display:block;height:100%;border-radius:7px;background:linear-gradient(180deg,#d6efff,var(--ar-lernen) 55%,#3d8fd0);box-shadow:inset 0 2px 0 #ffffff88;transition:width .4s cubic-bezier(.2,.9,.3,1.2)}
+.vl-serie{display:inline-flex;align-items:center;gap:2px;font:900 .9rem var(--body);color:var(--muted);min-width:34px}.vl-serie svg{width:18px;height:18px}.vl-serie.an{color:#ffb54a}.vl-serie.an svg{filter:drop-shadow(0 0 6px #ffb54a)}
+.vl-titel{display:inline-flex;align-items:center;gap:6px;font:800 .7rem var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--ar-lernen)}.vl-titel svg{width:15px;height:15px}
+.vl-titel.wdh{color:#b38cff}.vl-titel.bonus{color:#ffb54a}
+.vle-turbo{display:block;margin-top:6px;color:#ffb54a}.vle-turbo svg{width:16px;height:16px;vertical-align:-3px}
+.vl-ende .btn.ghost.breit{margin-top:0}.vl-titel.pruef{color:#f2c14e}
+.vl-frage{margin:0;font-size:1.3rem;line-height:1.25}
+.vl-inhalt{display:flex;flex-direction:column;gap:12px}
+.vl-vers{margin:0;padding:14px 16px;border-radius:16px;border:1px solid #f2c14e38;background:radial-gradient(80% 120% at 0% 0%,#f2c14e1c,transparent 60%),#ffffff08;font-family:var(--serif);font-style:italic;font-size:1.2rem;line-height:1.6;color:#f6f0dc;text-wrap:pretty}
+.vl-ref{font:800 .78rem var(--body);color:#f2c14ecc;margin-top:-4px}.vl-ref.gross{font-size:1rem;margin:0}
+.vl-pkt{color:#f2c14e}
+.vl-hoer{align-self:flex-start}
+.vl-wahl{display:flex;flex-direction:column;gap:10px}
+.vl-opt{text-align:left;border:1px solid #ffffff1c;border-radius:14px;padding:13px 14px;background:var(--surface2);border-bottom:4px solid #0008;font:700 1rem/1.4 var(--body);color:var(--fg);cursor:pointer}
+.vl-opt.gewaehlt,.vl-wort.gewaehlt{outline:2px solid var(--ar-lernen);background:color-mix(in srgb,var(--ar-lernen) 18%,var(--surface2))}
+.vl-opt.richtig,.vl-wort.richtig{outline:2px solid var(--good);background:color-mix(in srgb,var(--good) 25%,var(--surface2));color:#eafff5}
+.vl-opt.falsch,.vl-wort.falsch{outline:2px solid var(--bad);background:color-mix(in srgb,var(--bad) 25%,var(--surface2));animation:shake .35s}
+.vl-fehler{font-style:normal;font-family:var(--body);font-size:1.05rem;line-height:2.1}
+.vl-wort{border:1px solid #ffffff22;border-radius:9px;padding:2px 6px;background:#ffffff0c;color:var(--fg);font:700 1rem var(--body);cursor:pointer}
+.vl-loch{display:inline-block;width:4.6em;height:1.05em;vertical-align:-.15em;border-radius:6px;background:#ffffff10;box-shadow:inset 0 -2px 0 #ffffff40}
+.vl-loch.jetzt{background:color-mix(in srgb,var(--ar-lernen) 22%,transparent);box-shadow:inset 0 -2px 0 var(--ar-lernen),0 0 10px color-mix(in srgb,var(--ar-lernen) 50%,transparent)}
+.vl-gefuellt{color:#ffd970;text-shadow:0 0 10px #f2c14e66}
+.vl-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.vl-chips .chip{font-size:1rem;padding:9px 12px}
+.chip.weg{visibility:hidden}
+.vl-antwort{display:flex;flex-wrap:wrap;gap:8px;align-content:flex-start;min-height:104px;padding:10px 4px;border-top:2px solid #ffffff1a;border-bottom:2px solid #ffffff1a}
+.vl-antwort .chip{background:color-mix(in srgb,var(--ar-lernen) 16%,var(--surface2))}
+.vl-leer{color:var(--muted);font:700 .85rem var(--body);align-self:center;margin:auto}
+.vl-kontext{font-family:var(--serif);font-style:italic;color:var(--muted);font-size:1.05rem}
+.vl-tipptext{line-height:2.3}
+.vl-feld{width:5.4em;max-width:100%;font:700 1rem var(--body);color:#ffd970;background:#ffffff10;border:0;border-bottom:2px solid var(--ar-lernen);border-radius:6px 6px 0 0;padding:2px 4px;text-align:center}
+.vl-feld:focus{outline:none;background:color-mix(in srgb,var(--ar-lernen) 18%,transparent)}
+.vl-feld::placeholder{color:#ffffff55}
+.vl-feld.gut{border-color:var(--good);color:var(--good)}.vl-feld.falsch{border-color:var(--bad);color:#ffb3b3;background:color-mix(in srgb,var(--bad) 15%,transparent)}
+.vl-frei{width:100%;box-sizing:border-box;font:600 1.05rem/1.5 var(--body);color:var(--fg);background:#ffffff0c;border:1px solid #ffffff26;border-radius:14px;padding:12px;resize:vertical}
+.vl-frei:focus{outline:2px solid var(--ar-lernen)}
+.vl-hilfen{display:flex;gap:8px;flex-wrap:wrap}
+.lv-btn.hoert{background:color-mix(in srgb,var(--bad) 25%,transparent);border-color:var(--bad)}
+.vl-anfang{font:700 1rem/1.5 var(--body);letter-spacing:.06em;color:var(--muted);padding:8px 12px;border-radius:12px;background:#ffffff08}
+.vl-fuss{margin-top:auto;position:sticky;bottom:calc(8px + env(safe-area-inset-bottom,0px))}
+.vl-fuss>.btn.breit{margin-top:0}
+.btn:disabled{opacity:.45;cursor:default;filter:grayscale(.6)}
+.vl-urteil{border-radius:18px;padding:14px 14px 12px;box-shadow:0 -6px 26px #0008;animation:vlHoch .25s ease-out}
+.vl-urteil.ok{background:linear-gradient(180deg,#1c4a3b,#153a2f);border:1px solid color-mix(in srgb,var(--good) 55%,transparent)}
+.vl-urteil.nein{background:linear-gradient(180deg,#4a1f2a,#3a1822);border:1px solid color-mix(in srgb,var(--bad) 55%,transparent)}
+.vu-kopf{display:flex;align-items:center;gap:8px;font-size:1.15rem}.vu-kopf svg{width:24px;height:24px}
+.vl-urteil.ok .vu-kopf{color:var(--good)}.vl-urteil.nein .vu-kopf{color:#ff9a9a}
+.vu-loesung{margin-top:6px;font:700 .95rem/1.45 var(--body);color:var(--fg)}
+.vu-info{margin-top:4px;font:700 .78rem var(--body);color:var(--muted)}
+.vl-urteil .btn.breit{margin-top:10px}
+.btn.rot{background:linear-gradient(180deg,#ffb3b3,#ff6b6b 55%,#c94444);color:#2b0000}
+.vl-prozent{display:block;font-weight:900;margin-bottom:4px}
+.vl-markiert{font-family:var(--serif);font-style:italic;font-size:1.05rem}.vl-markiert .t-ja{color:#9ff0c9}.vl-markiert .t-nein{color:#ff9a9a;text-decoration:underline wavy}
+.vl-ende{align-items:center;text-align:center;justify-content:center;gap:14px}
+.vl-ende h1{margin:0}.vl-ende p{margin:0;max-width:30ch}
+.vle-ic{width:92px;height:92px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 40% 30%,#fff6c8,#f2c14e 50%,#a8781a);color:#2a1d02;box-shadow:0 0 40px #f2c14e88}
+.vle-ic svg{width:52px;height:52px}.vle-ic.siegel{background:radial-gradient(circle at 40% 30%,#fff,#d6efff 40%,#3d8fd0)}
+.vle-werte{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;width:100%}
+.vle-werte div{flex:1;min-width:88px;max-width:130px;padding:10px 6px;border-radius:14px;border:1px solid #ffffff1c;background:#ffffff0a;display:flex;flex-direction:column;align-items:center}
+.vle-werte b{font-size:1.3rem;display:inline-flex;align-items:center;gap:2px}.vle-werte b svg{width:18px;height:18px}.vle-werte span{font:700 .72rem var(--body);color:var(--muted)}
+.vle-monat{display:flex;align-items:center;gap:6px;font:700 .82rem var(--body);color:var(--muted);text-align:left}.vle-monat>svg{flex:0 0 20px;width:20px;height:20px;color:#ffb54a}.vle-monat span svg{width:14px;height:14px;vertical-align:-2px}
+.vl-ende .btn.breit{max-width:360px}
+@keyframes vlHoch{from{transform:translateY(16px);opacity:0}}
+
+/* Vers-Duell */
+.du-zugang .b-ic{background:linear-gradient(180deg,#ffd38a,#ffb54a 55%,#c9802a);color:#2a1700}
+.du-punkt{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 6px;border-radius:12px;background:var(--bad);color:#fff;font:900 .8rem var(--body);box-shadow:0 0 10px color-mix(in srgb,var(--bad) 60%,transparent)}
+.du-intro{margin:-4px 2px 10px}
+.du-neu{margin-top:0}
+.du-label{margin:18px 2px 8px}
+.du-liste{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.du-zeile{display:grid;grid-template-columns:36px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-radius:16px;border:1px solid #ffffff1c;background:linear-gradient(160deg,#ffffff10,#ffffff04 60%),var(--surface)}
+.du-ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:#ffffff10;color:var(--ar-spielen)}.du-ic svg{width:20px;height:20px}
+.du-tx{display:flex;flex-direction:column;min-width:0}.du-tx b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.du-tx span{font-size:.8rem;color:var(--muted)}
+.du-zeile.dran{border-color:color-mix(in srgb,var(--ar-spielen) 60%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--ar-spielen) 14%,transparent)}
+.du-zeile.sieg .du-ic{color:#f2c14e;background:#f2c14e22}.du-zeile.nieder .du-ic{color:var(--muted)}
+.du-zeile.grau{opacity:.6}.du-zeile.grau .du-ic{color:var(--muted)}
+.du-knoepfe{display:flex;gap:6px}
+.du-stand{font:800 .95rem var(--body);color:var(--muted);white-space:nowrap}.du-stand b{color:var(--fg)}.du-zeile.sieg .du-stand b{color:#f2c14e}
+.du-gegner{margin-top:10px;padding:12px}
+.du-suche{width:100%;box-sizing:border-box;font:600 1rem var(--body);color:var(--fg);background:#ffffff0c;border:1px solid #ffffff26;border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.du-wahl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:330px;overflow:auto}
+.du-person{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;width:100%;text-align:left;padding:6px 8px;border-radius:12px;border:0;background:#ffffff08;color:inherit;font:inherit;cursor:pointer}
+.du-person:disabled{opacity:.5;cursor:default}
+.du-los{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--ar-spielen) 25%,transparent);color:var(--ar-spielen)}.du-los svg{width:18px;height:18px}
+.erinnerung.du-hinweis>svg{flex:0 0 34px;width:34px;height:34px;color:var(--ar-spielen);filter:drop-shadow(0 0 8px #ffb54a88)}
+.du-zeile .du-tx span{white-space:normal}
+.du-fordern{background:linear-gradient(180deg,#ffd38a,#ffb54a 55%,#c9802a);color:#2a1700}
+.du-titel{color:var(--ar-spielen)}
+.du-bar i{background:linear-gradient(180deg,#ffe2b0,var(--ar-spielen) 55%,#c9802a)}
+.du-punkte{min-width:40px;text-align:right;font:900 1rem var(--body);color:var(--ar-spielen)}
+.du-zeit{height:6px;border-radius:3px;background:#ffffff12;overflow:hidden}
+.du-zeit i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--bad),#ffb54a 40%,var(--good));transform-origin:left;animation:duZeit linear forwards}
+@keyframes duZeit{to{transform:scaleX(0)}}
+.du-kurz{display:grid;grid-template-columns:1fr;gap:10px}
+.du-vs{display:flex;align-items:stretch;justify-content:center;gap:10px;width:100%}
+.du-vs-sp{flex:1;max-width:150px;display:flex;flex-direction:column;align-items:center;padding:12px 8px;border-radius:16px;border:1px solid #ffffff1c;background:#ffffff0a}
+.du-vs-sp span{font:800 .8rem var(--body);color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.du-vs-sp b{font-size:1.8rem}.du-vs-sp small{color:var(--muted);font-weight:700}
+.du-vs-sp.vorn{border-color:#f2c14e88;box-shadow:0 0 18px #f2c14e33}.du-vs-sp.vorn b{color:#f2c14e}
+.du-vs-sp.offen b{color:var(--muted)}
+.du-vs-x{align-self:center;font:900 1.4rem var(--body);color:var(--muted)}
+.vle-ic.du{background:radial-gradient(circle at 40% 30%,#fff3dc,#ffb54a 50%,#a8601a)}
+@media (prefers-reduced-motion:reduce){.du-zeit i{animation-timing-function:steps(12)}}
+@media (prefers-reduced-motion:reduce){.vl-urteil{animation:none}.vl-bar i{transition:none}}
 
 /* ---------- Einheitliche Hauptbereiche (Lernen, Spielen, Gemeinde, Laden) ----------
    1) Seitenkopf: Titel links, eine Info-Plakette rechts  2) Kategorie-Leiste: .kb-tabs  3) Varianten: kleiner Umschalter
