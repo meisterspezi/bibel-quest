@@ -3134,7 +3134,7 @@ VIEWS.bib = () => {
       ${fertig.length ? `<ul class="ar-liste">${fertig.map(ergZeile).join("")}</ul>` : ""}
       ${andere > 0 ? `<button class="ar-mehr" data-go="duelle">${andere} ${andere === 1 ? "weiteres Duell wartet" : "weitere Duelle warten"} in der Arena</button>` : ""}`;
   screen.innerHTML = `
-    <header class="bq-kopf"><span class="bq-logo">${svg("biblionaer")}</span><div><h1>Wer wird Biblionär?</h1><span>15 Bibelfragen bis zur Million</span></div></header>
+    <header class="bq-kopf bq-mitlogo"><img class="bq-bild" src="icons/biblionaer-logo.webp" width="480" height="455" alt="Wer wird Biblionär?"><h1 class="nur-sr">Wer wird Biblionär?</h1><span>15 Bibelfragen bis zur Million</span></header>
     <button class="bq-solo" id="bqSolo"><span class="bq-solo-tx"><b>Solo spielen</b><small>Zufällige Fragen · so oft du willst</small></span><span class="bq-rek">${S.bibRekord ? `Rekord<b>${pkt(S.bibRekord)}</b>` : `<b>Neu</b>`}</span>${svg("play")}</button>
     ${woche}
     <div class="ar-label bq-label">${svg("duell")}<span>Duell</span>${dran.length ? `<i>${dran.length}</i>` : ""}</div>
