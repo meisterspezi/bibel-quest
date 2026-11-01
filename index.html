@@ -1383,6 +1383,62 @@ body[data-acc="saphir"]::after{-webkit-mask:linear-gradient(transparent 38%,#000
 /* Biblionär-Logo (6.43, von Michael gestaltet) als Seitenkopf */
 .bq-kopf.bq-mitlogo{flex-direction:column;gap:2px;margin:0 0 10px;text-align:center}
 .bq-bild{width:min(44vw,172px);height:auto;display:block;filter:drop-shadow(0 0 18px #4aa8ff55)}
+/* Biblionär-Reiter kompakt (6.45): Kopf mit Rekord-Leiter, zwei Kacheln, Duell-Kasten, Joker mit Erklärung */
+.bq2-kopf{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;align-items:center;margin:2px 0 10px;padding:10px 12px;border-radius:22px;border:1px solid #66e0d044;background:radial-gradient(ellipse at 20% 0%,#4aa8ff3a,transparent 65%),linear-gradient(180deg,#1d2a5e,#161b3c);position:relative;overflow:hidden}
+.bq2-kopf:before{content:"";position:absolute;left:-10%;top:-60%;width:70%;height:180px;background:conic-gradient(from 180deg at 50% 0%,transparent 40%,#ffffff12 47%,transparent 50%,#ffffff0e 53%,transparent 60%);pointer-events:none}
+.bq2-logo{width:96px;height:auto;display:block;filter:drop-shadow(0 0 14px #4aa8ff77);position:relative}
+.bq2-kt{display:flex;flex-direction:column;min-width:0;position:relative}
+.bq2-titel{font:700 .76rem var(--body);color:var(--muted)}
+.bq2-rek{display:flex;align-items:baseline;gap:8px;margin-top:2px;font:800 .64rem var(--body);color:#bfeee7;text-transform:uppercase;letter-spacing:.06em}
+.bq2-rek b{font:800 1.45rem var(--display);color:#ffe9a8;letter-spacing:0;text-transform:none}
+.bq2-leiter{display:grid;grid-template-columns:repeat(15,minmax(0,1fr));gap:3px;list-style:none;margin:5px 0 4px;padding:0}
+.bq2-leiter li{height:7px;border-radius:4px;background:#ffffff1c}
+.bq2-leiter li.ok{background:linear-gradient(90deg,#66e0d0,#9ff5e8)}
+.bq2-leiter li.sicher{box-shadow:0 0 0 1.5px #f2c14e}.bq2-leiter li.sicher.ok{background:linear-gradient(90deg,#ffe9a8,#f2c14e)}
+.bq2-stand{font:700 .7rem var(--body);color:var(--muted)}
+.bq2-zwei{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.bq2-kachel{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-height:84px;padding:10px 12px;border-radius:18px;border:1px solid #66e0d077;border-bottom:4px solid #0007;color:inherit;font:inherit;text-align:left;cursor:pointer;min-width:0}
+.bq2-kachel:active{transform:scale(.98)}
+.bq2-kachel b{font:800 1.05rem var(--display)}.bq2-kachel small{font:700 .72rem var(--body);color:var(--muted)}
+.bq2-kachel>svg{position:absolute;right:10px;top:10px;width:32px;height:32px}
+.bq2-unten{margin-top:auto}
+.bq2-wert{margin-top:auto;font:800 1.05rem var(--display);color:#ffe9a8}
+.bq2-solo{background:radial-gradient(circle at 90% 12%,#66e0d045,transparent 60%),linear-gradient(160deg,#1f3a6e,#1b2146)}
+.bq2-solo>svg{padding:7px;box-sizing:border-box;border-radius:50%;background:radial-gradient(circle at 40% 30%,#e9fffb,#66e0d0 55%,#1f7f74);color:#062c28}
+.bq2-woche{border-color:#f2c14e66;background:radial-gradient(circle at 90% 12%,#f2c14e33,transparent 60%),var(--surface)}
+.bq2-woche .bw-neu{position:absolute;right:10px;bottom:10px}
+.bq2-woche.aus{opacity:.6;cursor:default}.bq2-woche.aus>svg{filter:grayscale(1)}.bq2-woche.aus small{padding-right:6px}
+.bq2-duell{margin-top:10px;padding:10px 12px;border-radius:18px;border:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;gap:6px}
+.bq2-dk{display:flex;align-items:center;gap:6px;font:800 .74rem var(--body);letter-spacing:.08em;text-transform:uppercase;color:#bfeee7}
+.bq2-dk>svg{width:20px;height:20px}.bq2-dk i{font-style:normal;background:var(--bad);color:#fff;border-radius:99px;padding:0 6px;font-size:.7rem;letter-spacing:0}
+.bq2-neu{margin-left:auto;display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:99px;border:0;font:800 .78rem var(--body);letter-spacing:0;text-transform:none;color:#062c28;background:linear-gradient(135deg,#9ff5e8,#3fc4b4 55%,#2b8fc0);box-shadow:0 3px 0 #1d5f6e;cursor:pointer}
+.bq2-neu svg{width:15px;height:15px}.bq2-neu:active{box-shadow:0 1px 0 #1d5f6e;transform:translateY(2px)}
+.bq2-liste{list-style:none;margin:0;padding:0}
+.bq2-z{display:grid;grid-template-columns:30px minmax(0,1fr) auto auto;align-items:center;gap:8px;padding:5px 0}
+.bq2-av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:none;font:800 .8rem var(--body);background:radial-gradient(circle at 40% 30%,#fff,#bfeee7);color:#1b2a55}
+.bq2-av.klein{width:24px;height:24px;font-size:.66rem}
+.bq2-tx{display:flex;flex-direction:column;min-width:0}.bq2-tx b{font-size:.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bq2-tx small{color:var(--muted);font:700 .7rem/1.2 var(--body)}
+.bq2-p{display:flex;flex-direction:column;align-items:flex-end;font:800 .9rem var(--display);color:#ffe9a8;white-space:nowrap}.bq2-p small{color:var(--muted);font:700 .68rem var(--body)}
+.bq2-kn{display:flex;gap:6px;align-items:center}
+.bq2-an{display:inline-flex;align-items:center;gap:4px;padding:7px 10px;border-radius:12px;border:0;font:800 .78rem var(--body);color:#3a2500;background:linear-gradient(180deg,#ffe08a,#f2b13a);box-shadow:0 3px 0 #a26a12;cursor:pointer}
+.bq2-an svg{width:14px;height:14px}
+.bq2-x{width:28px;height:28px;padding:0;border-radius:50%;border:1px solid var(--line);background:none;color:var(--muted);display:grid;place-items:center;cursor:pointer}.bq2-x svg{width:12px;height:12px}
+.bq2-warte{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font:700 .74rem var(--body);color:var(--muted)}.bq2-warte>svg{width:16px;height:16px}
+.bq2-warte .du-chip{color:var(--fg)}.bq2-warte .du-chip svg{width:12px;height:12px}
+.bq2-erg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.bq2-e{display:flex;align-items:center;gap:6px;min-width:0;padding:6px 8px;border-radius:12px;border:1px solid #ffffff10;background:#ffffff08;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.bq2-e>svg{width:18px;height:18px;flex:none}.bq2-e>svg:last-child{width:14px;height:14px;opacity:.7}
+.bq2-e .bq2-tx b{font-size:.82rem}.bq2-e em{font:800 .7rem var(--body);font-style:normal}
+.bq2-e.sieg em{color:#f2c14e}.bq2-e.nieder em{color:#ff8a8a}.bq2-e.remis em{color:var(--muted)}.bq2-e.nieder .bq2-p{color:#cfd6ff}
+.bq2-e .bq2-p{font-size:.8rem}
+.bq2-leer{margin:0}.bq2-mehr{margin:0}.bq2-duell .du-gegner{margin:0}
+.bq2-joker{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:10px}
+.bq2-joker>span{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:14px;border:1px solid #b38cff55;background:linear-gradient(180deg,#b38cff22,#b38cff08);text-align:center;min-width:0}
+.bq2-joker>span>svg{width:30px;height:30px}
+.bq2-j5{display:grid;place-items:center;height:30px;font:900 1.05rem var(--body);color:#fff;text-shadow:0 0 10px #b38cffaa}
+.bq2-joker span span{display:flex;flex-direction:column}.bq2-joker span span b{font:800 .8rem var(--body);color:#fff}.bq2-joker small{font:700 .66rem/1.2 var(--body);color:#d9caff}
+.bq2-fuss{width:100%;display:flex;align-items:center;gap:8px;margin-top:8px;padding:6px 6px;border:0;background:none;color:var(--muted);font:700 .74rem var(--body);cursor:pointer;text-align:left}
+.bq2-fuss svg{width:20px;height:20px;flex:none}.bq2-fuss span{flex:1;min-width:0}.bq2-fuss b{color:var(--ar-gemeinde);white-space:nowrap}
 .nur-sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 /* Telefonjoker Pastor Willi und Pastor Aaron */
 .tel-wahl{display:flex;flex-direction:column;gap:8px}
