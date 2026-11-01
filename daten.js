@@ -1,4 +1,4 @@
-const APP_VERSION = "6.37";
+const APP_VERSION = "6.38";
 /* =====================================================================
    Bibelbuch-Quest – Spieldaten
    Bücher (Schlachter 2000), Lieder, Bibelverse (Schlachter 2000 © Genfer Bibelgesellschaft),
@@ -249,7 +249,7 @@ const NT_TITEL = [
 
 /* ---------- Abzeichen ----------
    kat: Kategorie · tal: Talente-Belohnung · ok(S): Bedingung */
-const BADGE_KAT = { lernen: "Lernen", koennen: "Können", ausdauer: "Ausdauer", wachstum: "Wachstum", gemeinschaft: "Gemeinschaft", duell: "Duell", schatz: "Schätze" };
+const BADGE_KAT = { lernen: "Lernen", koennen: "Können", ausdauer: "Ausdauer", wachstum: "Wachstum", gemeinschaft: "Gemeinschaft", duell: "Arena", schatz: "Schätze" };
 const BADGES = [
   { id: "first", kat: "lernen", name: "Erster Schritt", d: "Erste Station geschafft", ic: "step", ok: s => Object.keys(s.stars).length >= 1 },
   { id: "at", kat: "lernen", name: "Altes Testament", d: "Alle AT-Stationen bestanden", ic: "scroll", ok: s => [0, 1, 2, 3, 4].every(i => s.stars[i] >= 1) },
@@ -337,7 +337,7 @@ const AUFGABEN = [
   { id: "luecke", ev: "luecke", ziel: 1, min: 2, text: "1 Lückenquiz" },
   { id: "lernvers", ev: "lernvers", ziel: 1, min: 2, text: "Lernvers üben" },
   // nur für Spieler in der Gemeinde-Rangliste; zählt beim Herausfordern UND beim Annehmen (nie „gewinnen“ – der Gegner spielt evtl. erst später)
-  { id: "duell1", ev: "duell", ziel: 1, min: 2, online: true, text: "Duell fordern oder annehmen" }
+  { id: "duell1", ev: "duell", ziel: 1, min: 2, online: true, text: "In der Arena fordern oder antreten" }
 ];
 const AUFGABEN_MAX_MIN = 5;
 const AUFGABE_TAL = 5;          // pro Aufgabe

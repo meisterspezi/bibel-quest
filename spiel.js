@@ -911,7 +911,7 @@ function go(name, arg) {
   tabbarSetzen(name); (VIEWS[name] || VIEWS.home)(arg);
 }
 /* Untere Menüleiste: zu welchem Reiter gehört eine Ansicht? */
-const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Spielen", "bolt"], ["duelle", "Duell", "duell"], ["rank", "Gemeinde", "trophy"], ["ich", "Laden", "shop"]];
+const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Spielen", "bolt"], ["duelle", "Arena", "duell"], ["rank", "Gemeinde", "trophy"], ["ich", "Laden", "shop"]];
 const TAB_VON = { duell: "duelle", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen",
   shop: "ich" };
 /* rote Zahl am Duell-Reiter: wartende Herausforderungen */
@@ -1085,25 +1085,8 @@ function truheOeffnen(von) {
   ov.querySelector(".tf-ok").onclick = () => { SFX.tap(); zu(); };
 }
 
-/* Duell-Logo „Der Treffer“ (1. Samuel 17,49): Davids Saphir-Stein trifft Goliaths Bronzehelm an der Stirn – auf rotem Medaillon mit Koralle-Ring; überall gleich (Startseite, Fußleiste, Abzeichen, Rangliste, Aufgaben) */
-const DUELL_LOGO = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs>
-
-<radialGradient id="dlR" cx=".4" cy=".32" r=".75"><stop offset="0" stop-color="#ff8a6e"/><stop offset=".5" stop-color="#c8344f"/><stop offset="1" stop-color="#5a1430"/></radialGradient>
-<radialGradient id="dlST" cx=".35" cy=".3" r=".7"><stop offset="0" stop-color="#ffffff"/><stop offset=".35" stop-color="#bfe6ff"/><stop offset=".75" stop-color="#3b78d8"/><stop offset="1" stop-color="#1b3a88"/></radialGradient>
-
-
-
-<linearGradient id="dlBZ" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f3d39a"/><stop offset=".45" stop-color="#b9823e"/><stop offset="1" stop-color="#5e3a14"/></linearGradient>
-<linearGradient id="dlTR" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f2c14e" stop-opacity="0"/><stop offset="1" stop-color="#fff3c0" stop-opacity=".95"/></linearGradient></defs><circle cx="32" cy="32" r="30" fill="url(#dlR)" stroke="#ff8a5c" stroke-width="3"/><circle cx="32" cy="32" r="26.5" fill="none" stroke="#ffb3a0" stroke-opacity=".25" stroke-width="1"/><path d="M12 22a22 22 0 0 1 22-14" stroke="#fff" stroke-opacity=".35" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M32 6c4 3 5 6 4.5 9h-9C27 12 28 9 32 6z" fill="#c8344f" stroke="#1b2a55" stroke-width="1.2"/>
-<path d="M14 50V31C14 19 22 13 32 13s18 6 18 18v19c-3 1-6 1-8-1V37h-5v13l-5 4-5-4V37h-5v12c-2 2-5 2-8 1z" fill="url(#dlBZ)" stroke="#1b2a55" stroke-width="2" stroke-linejoin="round"/>
-<path d="M19 33h10l1 4h-11zM45 33H35l-1 4h11z" fill="#2a1406" stroke="#1b2a55" stroke-width="1"/>
-<path d="M30 33h4v15l-2 1.5-2-1.5z" fill="url(#dlBZ)" stroke="#1b2a55" stroke-width="1"/>
-<path d="M14.5 30h35" stroke="#5e3a14" stroke-width="1.4"/><g fill="#5e3a14"><circle cx="18" cy="27" r=".9"/><circle cx="23" cy="25.6" r=".9"/><circle cx="41" cy="25.6" r=".9"/><circle cx="46" cy="27" r=".9"/></g>
-<path d="M19 22c3-4 7-6 11-6.5" stroke="#fff" stroke-opacity=".55" stroke-width="1.8" stroke-linecap="round" fill="none"/>
-<path d="M60 6C52 9 44 13 37 19" stroke="url(#dlTR)" stroke-width="4.5" stroke-linecap="round" fill="none"/>
-<path d="M59 12C53 14 47 17 41 21" stroke="url(#dlTR)" stroke-width="2" stroke-linecap="round" fill="none" opacity=".7"/>
-<path d="M32 15l2.2 3.6 4.2-1.6-1.8 4 4.4 1-4 2 2.6 3.4-4.2-.8-.6 4.2-2.6-3.4-2.6 3.4-.6-4.2-4.2.8 2.6-3.4-4-2 4.4-1-1.8-4 4.2 1.6z" fill="#fff3c0" stroke="#f2c14e" stroke-width=".6"/>
-<circle cx="33.5" cy="21" r="4.8" fill="url(#dlST)" stroke="#1b2a55" stroke-width="1.3"/><path d="M31.2 19.6a2.8 2.8 0 0 1 2.5-1.8" stroke="#fff" stroke-width="1.1" fill="none" stroke-linecap="round"/></svg>`;
+/* Arena-Logo „Kolosseum“: Weißgold-Kolosseum mit Lorbeer auf rotem Medaillon mit Koralle-Ring; überall gleich (Startseite, Fußleiste, Abzeichen, Rangliste, Aufgaben) */
+const DUELL_LOGO = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><radialGradient id="dlR" cx=".4" cy=".32" r=".75"><stop offset="0" stop-color="#ff8a6e"/><stop offset=".5" stop-color="#c8344f"/><stop offset="1" stop-color="#5a1430"/></radialGradient><linearGradient id="dlG" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".35" stop-color="#fff0bf"/><stop offset=".7" stop-color="#f2c14e"/><stop offset="1" stop-color="#b9821f"/></linearGradient><linearGradient id="dlL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff7d6"/><stop offset=".5" stop-color="#f2c14e"/><stop offset="1" stop-color="#a8741a"/></linearGradient></defs><circle cx="32" cy="32" r="30" fill="url(#dlR)" stroke="#ff8a5c" stroke-width="3"/><circle cx="32" cy="32" r="26.5" fill="none" stroke="#ffb3a0" stroke-opacity=".25" stroke-width="1"/><path d="M12 22a22 22 0 0 1 22-14" stroke="#fff" stroke-opacity=".35" stroke-width="2.5" fill="none" stroke-linecap="round"/><g fill="url(#dlL)" stroke="#5a3a0c" stroke-width=".45"><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(21.6 54.3) rotate(173) translate(0 0) translate(2.4 0)" /><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(21.6 54.3) rotate(237) translate(0 0) translate(2.4 0)" /><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(17.9 52.2) rotate(183) translate(0 0) translate(2.4 0)" /><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(17.9 52.2) rotate(247) translate(0 0) translate(2.4 0)" /><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(14.6 49.4) rotate(193) translate(0 0) translate(2.4 0)" /><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(14.6 49.4) rotate(257) translate(0 0) translate(2.4 0)" /><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(11.8 46.1) rotate(203) translate(0 0) translate(2.4 0)" /><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(11.8 46.1) rotate(267) translate(0 0) translate(2.4 0)" /><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(9.7 42.4) rotate(213) translate(0 0) translate(2.4 0)" /><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(9.7 42.4) rotate(277) translate(0 0) translate(2.4 0)" /><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(8.2 38.4) rotate(223) translate(0 0) translate(2.4 0)" /><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(8.2 38.4) rotate(287) translate(0 0) translate(2.4 0)" /><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(42.4 54.3) rotate(123) translate(0 0) translate(2.4 0)" /><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(42.4 54.3) rotate(187) translate(0 0) translate(2.4 0)" /><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(46.1 52.2) rotate(113) translate(0 0) translate(2.4 0)" /><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(46.1 52.2) rotate(177) translate(0 0) translate(2.4 0)" /><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(49.4 49.4) rotate(103) translate(0 0) translate(2.4 0)" /><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(49.4 49.4) rotate(167) translate(0 0) translate(2.4 0)" /><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(52.2 46.1) rotate(93) translate(0 0) translate(2.4 0)" /><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(52.2 46.1) rotate(157) translate(0 0) translate(2.4 0)" /><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(54.3 42.4) rotate(83) translate(0 0) translate(2.4 0)" /><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(54.3 42.4) rotate(147) translate(0 0) translate(2.4 0)" /><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(55.8 38.4) rotate(73) translate(0 0) translate(2.4 0)" /><ellipse cx="0" cy="0" rx="3.3" ry="1.35" transform="translate(55.8 38.4) rotate(137) translate(0 0) translate(2.4 0)" /></g><ellipse cx="32" cy="49.6" rx="19" ry="1.8" fill="#2a0a18" opacity=".45"/><path d="M12.6 47.5V23.6Q32 14.4 51.4 22.4v6.1l-2.6 1.1v4.6l2.6 1V47.5z" fill="url(#dlG)" stroke="#1b2a55" stroke-width="1.6" stroke-linejoin="round"/><path d="M12.8 31.4h38.4M12.8 38.7h38.4" stroke="#a8741a" stroke-width=".9"/><g fill="#1b2a55" opacity=".88"><path d="M15.3 30V26.4a1.6 1.6 0 0 1 3.2 0V30z"/><path d="M21.2 30V26.4a1.6 1.6 0 0 1 3.2 0V30z"/><path d="M27.1 30V26.4a1.6 1.6 0 0 1 3.2 0V30z"/><path d="M33.0 30V26.4a1.6 1.6 0 0 1 3.2 0V30z"/><path d="M38.9 30V26.4a1.6 1.6 0 0 1 3.2 0V30z"/><path d="M15.3 37.3V33.9a1.6 1.6 0 0 1 3.2 0V37.3z"/><path d="M21.2 37.3V33.9a1.6 1.6 0 0 1 3.2 0V37.3z"/><path d="M27.1 37.3V33.9a1.6 1.6 0 0 1 3.2 0V37.3z"/><path d="M33.0 37.3V33.9a1.6 1.6 0 0 1 3.2 0V37.3z"/><path d="M38.9 37.3V33.9a1.6 1.6 0 0 1 3.2 0V37.3z"/><path d="M44.8 37.3V33.9a1.6 1.6 0 0 1 3.2 0V37.3z"/><path d="M15.3 45.2V41.2a1.6 1.6 0 0 1 3.2 0V45.2z"/><path d="M21.2 45.2V41.2a1.6 1.6 0 0 1 3.2 0V45.2z"/><path d="M27.1 45.2V41.2a1.6 1.6 0 0 1 3.2 0V45.2z"/><path d="M33.0 45.2V41.2a1.6 1.6 0 0 1 3.2 0V45.2z"/><path d="M38.9 45.2V41.2a1.6 1.6 0 0 1 3.2 0V45.2z"/><path d="M44.8 45.2V41.2a1.6 1.6 0 0 1 3.2 0V45.2z"/></g><rect x="10.8" y="45.4" width="42.4" height="3.6" rx="1" fill="url(#dlG)" stroke="#1b2a55" stroke-width="1.1"/><path d="M15.2 23.2Q32 16.4 48.4 22" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".85"/><path d="M50 6.5l1.1 2.9 2.9 1.1-2.9 1.1-1.1 2.9-1.1-2.9-2.9-1.1 2.9-1.1z" fill="#fff3c0"/></svg>`;
 /* Duell-Logo auch als kleines Symbol (Abzeichen, Tagesaufgabe, Rangliste) */
 ICONS.duell = `<g class="du-ic-g" transform="scale(.375)">${DUELL_LOGO.replace(/<\/?svg[^>]*>/g, "").replace(/id="dl/g, 'id="dk').replace(/url\(#dl/g, "url(#dk")}</g>`;
 VIEWS.home = () => {
@@ -1124,7 +1107,7 @@ VIEWS.home = () => {
       <span class="tor-info">Blitz · Kette<span>Lückenquiz</span></span>
       <span class="tor-rek">${S.bestBlitz ? `Rekord<b>${S.bestBlitz}</b>` : ""}</span></button>
   </div>
-    <button class="arena-medaille" id="torDuell" aria-label="Duell${duN ? ` – ${duN} ${duN === 1 ? "Herausforderung wartet" : "Herausforderungen warten"}` : ""}"><span class="am-logo">${DUELL_LOGO}</span><b>Duell</b>${duN ? `<i class="du-punkt">${duN}</i>` : ""}</button></div>`;
+    <button class="arena-medaille" id="torDuell" aria-label="Arena${duN ? ` – ${duN} ${duN === 1 ? "Herausforderung wartet" : "Herausforderungen warten"}` : ""}"><span class="am-logo">${DUELL_LOGO}</span><b>Arena</b>${duN ? `<i class="du-punkt">${duN}</i>` : ""}</button></div>`;
   const erledigt = S.dq.items.filter(i => i.done).length;
   /* Tagesaufgaben als drei Medaillen mit Fortschrittsring; antippen führt dorthin, wo man sie erledigt */
   const AUFG_ART = { runde: ["step", "spielen", "spielen"], xp: ["star", "home", "spielen"], right: ["target", "spielen", "blitz"], blitz: ["bolt", "spielen", "blitz"],
@@ -1682,7 +1665,7 @@ function statsZeilen(p) {
     ["Level", p.level || 1], ["XP gesamt", p.xp || 0], ["XP diese Woche", p.week === weekKey() ? p.weekXp || 0 : 0],
     ["Titel im AT", AT_TITEL[titelIndex(AT_TITEL, p.atP || 0)][1]], ["Titel im NT", NT_TITEL[titelIndex(NT_TITEL, p.ntP || 0)][1]],
     ["Kette Bibel", (p.bestChain ? p.bestChain + 1 : 0) + "/66"], ["Kette AT", (p.chainAT ? p.chainAT + 1 : 0) + "/39"], ["Kette NT", (p.chainNT ? p.chainNT + 1 : 0) + "/27"],
-    ["Kette rückwärts", (p.chainRueck ? p.chainRueck + 1 : 0) + "/66"], ["Blitz-Rekord", p.blitz || 0], ["Blitz in Folge", p.combo != null ? p.combo : "–"], ["Spieltage (4 Wochen)", Array.isArray(p.tl) ? tage28(p.tl) : "–"], ["Frische Siegel", bewaehrtWert(p)], ["Serie (Tage)", p.streak || 0], ["Abzeichen", p.badges || 0], ["Duelle gewonnen", p.duS != null ? p.duS : "–"], ["Duelle gespielt", p.duG != null ? p.duG : "–"], ["Waffenrüstung", (p.armor || 0) + "/6"]
+    ["Kette rückwärts", (p.chainRueck ? p.chainRueck + 1 : 0) + "/66"], ["Blitz-Rekord", p.blitz || 0], ["Blitz in Folge", p.combo != null ? p.combo : "–"], ["Spieltage (4 Wochen)", Array.isArray(p.tl) ? tage28(p.tl) : "–"], ["Frische Siegel", bewaehrtWert(p)], ["Serie (Tage)", p.streak || 0], ["Abzeichen", p.badges || 0], ["Arena-Siege", p.duS != null ? p.duS : "–"], ["Arena-Duelle", p.duG != null ? p.duG : "–"], ["Waffenrüstung", (p.armor || 0) + "/6"]
   ];
 }
 function titelKarte(liste, p, tag) {
@@ -1845,7 +1828,7 @@ async function lbStart() {
       lbSync(true); cloudSync();
       /* Duelle im Hintergrund laden: Hinweis auf der Startseite, Zahl im Bereich Spielen */
       duAktualisieren().then(() => {
-        const td = $("torDuell"), n = duFuerMich().length; if (td && current === "home") { const pk = td.querySelector(".du-punkt"); if (pk) pk.remove(); if (n) { td.insertAdjacentHTML("beforeend", `<i class="du-punkt">${n}</i>`); td.setAttribute("aria-label", `Duell – ${n} ${n === 1 ? "Herausforderung wartet" : "Herausforderungen warten"}`); } }
+        const td = $("torDuell"), n = duFuerMich().length; if (td && current === "home") { const pk = td.querySelector(".du-punkt"); if (pk) pk.remove(); if (n) { td.insertAdjacentHTML("beforeend", `<i class="du-punkt">${n}</i>`); td.setAttribute("aria-label", `Arena – ${n} ${n === 1 ? "Herausforderung wartet" : "Herausforderungen warten"}`); } }
         if ((current === "spielen" || current === "duelle") && !document.querySelector(".modal") && !duSpiel) go(current);
       });
     }
@@ -1906,15 +1889,15 @@ const RANK_TABS = {
   bewaehrt: { label: "Bewährt", val: r => bewaehrtWert(r), unit: "Siegel", titel: "Frische Siegel" },
   abzeichen: { label: "Abzeichen", val: r => r.badges || 0, unit: "", titel: "Abzeichen-Sammler" },
   blitz: { label: "Blitz", unit: "Richtige", titel: "Blitz-Rekord" },
-  duSiege: { label: "Siege", val: r => r.duS || 0, unit: "Siege", titel: "Duell-Siege" },
-  duSpiele: { label: "Gespielt", val: r => r.duG || 0, unit: "Duelle", titel: "Gespielte Duelle" }
+  duSiege: { label: "Siege", val: r => r.duS || 0, unit: "Siege", titel: "Siege in der Arena" },
+  duSpiele: { label: "Gespielt", val: r => r.duG || 0, unit: "Duelle", titel: "Duelle in der Arena" }
 };
 /* Vier Kategorien; Unterteilungen erscheinen als kleiner Umschalter im Listenkopf */
 const RANK_KAT = [
   { id: "erfahrung", name: "Erfahrung", icon: "star", tabs: ["woche", "gesamt"] },
   { id: "kette", name: "Kette", icon: "link", tabs: ["kette"] },
   { id: "blitz", name: "Blitz", icon: "bolt", tabs: ["blitz"] },
-  { id: "duell", name: "Duell", icon: "duell", tabs: ["duSiege", "duSpiele"] },
+  { id: "duell", name: "Arena", icon: "duell", tabs: ["duSiege", "duSpiele"] },
   { id: "ausdauer", name: "Ausdauer", icon: "fire", tabs: ["treue", "bewaehrt", "abzeichen"] }
 ];
 const katVon = tab => RANK_KAT.find(k => k.tabs.includes(tab)) || RANK_KAT[0];
@@ -2152,7 +2135,7 @@ function profilVergleich(r) {
       ${zeilenR.map(([k, v], j) => `<tr><th>${k}</th><td>${esc(v)}</td>${istIch ? "" : `<td>${esc(zeilenI[j][1])}</td>`}</tr>`).join("")}</tbody></table>
     ${Array.isArray(r.sg) ? `<div class="label" style="margin:12px 0 6px">Siegel</div>${siegelReihe(r)}` : ""}
     ${hatIds ? `<div class="small muted" style="margin-top:8px">${istIch ? "" : `Spalten bei den Abzeichen: links ${esc(r.name)}, rechts du.`}</div>${badgeGrid(r.badgeIds, istIch ? null : S.badges)}` : `<p class="small muted">Die Abzeichen sind sichtbar, sobald ${esc(r.name)} die neue App-Version öffnet.</p>`}
-    </div>${!istIch && duOk() ? `<button class="btn du-fordern" data-close="duell">${svg("bolt")} Zum Duell herausfordern</button>` : ""}<button class="btn primary" data-close>Schließen</button>`,
+    </div>${!istIch && duOk() ? `<button class="btn du-fordern" data-close="duell">${svg("bolt")} In die Arena fordern</button>` : ""}<button class="btn primary" data-close>Schließen</button>`,
     x => { if (x === "duell") duTypWahl({ id: r.id, name: r.name }, null); });
   m.dataset.frei = "1"; m.classList.add("weit");
 }
@@ -2174,7 +2157,8 @@ const DU_TYPEN = {
   "kette-nt": { art: "kette", k: "nt", name: "Kette NT", ic: "kette-nt", info: "Matthäus bis Offenbarung · ein Fehler beendet sie" },
   "kette-rueck": { art: "kette", k: "rueck", name: "Rückwärts", ic: "kette-rueck", info: "Offenbarung bis 1. Mose · für Profis" }
 };
-let duListe = null, duFehler = "", duSpiel = null, duWahl = false, duGegner = null, duSuche = "";
+let duListe = null, duFehler = "", duSpiel = null, duWahl = false, duGegner = null, duSuche = "", duAlle = false;
+const DU_ERG_KURZ = 4;
 const duOk = () => { const L = window.LB; return !!(L && L.ok && L.meineDuelle && S.pid && S.lbName && !S.offlineOnly); };
 const duVerseKey = () => { const jetzt = monatKey(); return Object.keys(MONATSVERSE).filter(k => k <= jetzt).sort().pop() || Object.keys(MONATSVERSE).sort()[0]; };
 /* Welcher Duell-Typ steckt in einem Dokument? null = unbekannt (spätere Variante) */
@@ -2269,35 +2253,80 @@ function duBelohnen() {
 /* Kleine farbige Marke für die Duell-Art (Liste, Hinweise) */
 const duMarke = d => { const t = duTypVon(d) || "vers"; return `<i class="du-marke t-${DU_TYPEN[t].art}">${esc(DU_TYPEN[t].name)}</i>`; };
 
+/* Anzeige-Helfer der Duellseite: Initialen, Siegesserie, nächstes Abzeichen, Arena-Banner */
+const duInitialen = n => (String(n || "?").trim().split(/\s+/).map(w => w[0]).join("").slice(0, 2) || "?").toUpperCase();
+const DU_ZIELE = [["duMutig", "duGesendet", 1, "gesendet", "gesendet"], ["duStein", "duSiege", 1, "Sieg", "Siege"], ["duAntwort", "duAngenommen", 5, "angenommen", "angenommen"],
+  ["duEisen", "duSpiele", 10, "Duell", "Duelle"], ["duSteine5", "duSiege", 5, "Sieg", "Siege"], ["duKampf", "duSpiele", 50, "Duell", "Duelle"], ["duHelden", "duSiege", 25, "Sieg", "Siege"]];
+function duNaechstesZiel() {
+  const offen = DU_ZIELE.filter(([id]) => !(S.badges || []).includes(id)).map(([id, feld, ziel, e1, eN]) => ({ b: BADGES.find(x => x.id === id), ist: Math.min(ziel, S[feld] || 0), ziel, einheit: ziel === 1 ? e1 : eN }))
+    .filter(z => z.b && z.ist < z.ziel);
+  return offen.sort((a, b) => b.ist / b.ziel - a.ist / a.ziel)[0] || null;
+}
+function duSerie() {
+  const fertig = (duListe || []).filter(d => d.status === "fertig" && d.vonErg && d.anErg).sort((a, b) => (b.fertig || b.erstellt) - (a.fertig || a.erstellt));
+  let n = 0; for (const d of fertig) { const ich = d.von === S.pid, p = ich ? d.vonErg.p : d.anErg.p, q = ich ? d.anErg.p : d.vonErg.p; if (p > q) n++; else break; }
+  return n;
+}
+/* Kompakter Arena-Kopf: Logo, Titel mit Zuruf, Siege als römische Zahl; darunter Werte-Tafel und nächstes Abzeichen */
+function duArenaHtml(fuerMich) {
+  const siege = S.duSiege || 0, spiele = S.duSpiele || 0, quote = spiele ? Math.round(siege / spiele * 100) : 0, serie = duSerie(), ziel = duNaechstesZiel();
+  const ruf = fuerMich.length ? `${fuerMich.length === 1 ? esc(fuerMich[0].vonName) + " wartet" : fuerMich.length + " Gegner warten"} auf dich!`
+    : serie >= 2 ? `${serie} Siege in Folge – bleib dran!` : spiele ? "Wen forderst du heute heraus?" : "Dein erstes Duell wartet!";
+  return `<header class="ar-kopf">
+      <span class="ar-logo">${DUELL_LOGO}</span>
+      <div class="ar-titel"><h1>Arena</h1><span>${ruf}</span></div>
+      <div class="ar-siege" aria-label="${siege} ${siege === 1 ? "Sieg" : "Siege"}"><b>${siege}</b><small>${siege === 1 ? "Sieg" : "Siege"}</small></div>
+    </header>
+    <div class="ar-tafel">
+      <span><b>${spiele}</b> Duelle</span><span><b>${quote}%</b> Quote</span><span class="${serie >= 2 ? "heiss" : ""}"><b>${serie}</b> in Folge</span>
+      ${ziel ? `<span class="ar-ziel" title="${esc(ziel.b.d)}">${svg(ziel.b.ic)}<em>${esc(ziel.b.name)}</em><i class="ar-fort"><i style="width:${Math.max(6, Math.round(ziel.ist / ziel.ziel * 100))}%"></i></i><small>${ziel.ist}/${ziel.ziel}</small></span>` : ""}
+    </div>`;
+}
+
 VIEWS.duelle = () => {
-  const kopf = `${seitenKopf("Duell", `${svg("crown")}${S.duSiege || 0} ${S.duSiege === 1 ? "Sieg" : "Siege"}`)}`;
+  const kopf = seitenKopf("Arena", `${svg("crown")}${S.duSiege || 0} ${S.duSiege === 1 ? "Sieg" : "Siege"}`);
   if (!duOk()) {
-    screen.innerHTML = kopf + `<div class="card stack"><b>${window.LB && window.LB.ok ? "Erst in die Gemeinde-Rangliste" : "Keine Verbindung"}</b><p class="small muted" style="margin:0">${window.LB && window.LB.ok ? "Für Duelle brauchst du einen Eintrag in der Gemeinde-Rangliste." : "Für Duelle brauchst du Internet."}</p></div>`;
+    screen.innerHTML = kopf + `<div class="card stack"><b>${window.LB && window.LB.ok ? "Erst in die Gemeinde-Rangliste" : "Keine Verbindung"}</b><p class="small muted" style="margin:0">${window.LB && window.LB.ok ? "Für die Arena brauchst du einen Eintrag in der Gemeinde-Rangliste." : "Für die Arena brauchst du Internet."}</p></div>`;
     wireGo(); return;
   }
   const L = window.LB, jetzt = Date.now(), tage = ms => Math.max(0, Math.ceil((ms - jetzt) / 864e5));
   const liste = duListe || [];
   const fuerMich = duFuerMich(), warte = liste.filter(d => d.von === S.pid && duStatus(d) === "offen");
-  const fertig = liste.filter(d => !(d.an === S.pid && duStatus(d) === "offen") && !(d.von === S.pid && duStatus(d) === "offen")).slice(0, 12);
+  const fertigAlle = liste.filter(d => !(d.an === S.pid && duStatus(d) === "offen") && !(d.von === S.pid && duStatus(d) === "offen")).slice(0, 12);
+  const fertig = duAlle ? fertigAlle : fertigAlle.slice(0, DU_ERG_KURZ);
+  const art = d => DU_TYPEN[duTypVon(d)].art;
   const zeile = d => {
     const ich = d.von === S.pid, gegner = ich ? d.anName : d.vonName, st = duStatus(d);
     if (st === "fertig") {
       const p = ich ? d.vonErg.p : d.anErg.p, q = ich ? d.anErg.p : d.vonErg.p, erg = p > q ? "sieg" : p === q ? "remis" : "nieder";
-      return `<li class="du-zeile ${erg}"><span class="du-ic">${svg(erg === "sieg" ? "crown" : erg === "remis" ? "bolt" : "step")}</span><span class="du-tx"><b>${esc(gegner)}</b><span>${erg === "sieg" ? "Gewonnen" : erg === "remis" ? "Unentschieden" : "Verloren"} · ${duMarke(d)}</span></span><span class="du-rechts"><span class="du-stand"><b>${p}</b> : ${q}</span><button class="lv-btn rund du-rev" data-rev="${d.id}" aria-label="Revanche gegen ${esc(gegner)}">${svg("bolt")}</button></span></li>`;
+      const knapp = erg === "nieder" && q > 0 && (q - p) / q < 0.15, anteil = p + q ? Math.round(p / (p + q) * 100) : 50;
+      const text = erg === "sieg" ? "Gewonnen" : erg === "remis" ? "Remis" : knapp ? "Knapp verloren" : "Verloren";
+      return `<li class="ar-zeile ${erg}"><span class="du-medaille t-${art(d)}">${erg === "sieg" ? svg("crown") : esc(duInitialen(gegner))}</span><span class="ar-tx"><b>${esc(gegner)}</b><span><em>${text}</em> ${duMarke(d)}</span><i class="du-balken" role="img" aria-label="${p} zu ${q} Punkte"><i style="width:${anteil}%"></i></i></span><span class="du-stand"><b>${p}</b><small>${q}</small></span><button class="ar-rev" data-rev="${d.id}" aria-label="${erg === "sieg" ? "Nochmal" : "Revanche"} gegen ${esc(gegner)}">${svg("bolt")}</button></li>`;
     }
-    return `<li class="du-zeile grau"><span class="du-ic">${svg("lock")}</span><span class="du-tx"><b>${esc(gegner)}</b><span>${st === "abgelehnt" ? "abgelehnt" : "abgelaufen"} · ${duMarke(d)}</span></span><button class="lv-btn rund" data-weg="${d.id}" aria-label="Entfernen">${svg("nein")}</button></li>`;
+    return `<li class="ar-zeile grau"><span class="du-medaille">${svg("lock")}</span><span class="ar-tx"><b>${esc(gegner)}</b><span>${st === "abgelehnt" ? "abgelehnt" : "abgelaufen"} ${duMarke(d)}</span></span><span></span><button class="ar-rev" data-weg="${d.id}" aria-label="Entfernen">${svg("nein")}</button></li>`;
   };
-  const gegner = duWahl ? duGegnerHtml() : "";
-  screen.innerHTML = kopf + `
-    <p class="small muted du-intro">Wähle Lernvers, Kette oder Blitz. Du spielst zuerst, dein Gegner bekommt dieselben Fragen und hat 7 Tage Zeit. Annehmen: +${DU_FAIR_TAL} Talente Fairplay, Sieg: +${DU_SIEG_TAL} mehr.</p>
-    <button class="btn primary breit du-neu" id="duNeu" ${duWahl ? 'aria-expanded="true"' : ""}>${svg("bolt")} ${duWahl ? "Duell-Art und Gegner wählen" : "Neues Duell"}</button>
-    ${gegner}
-    ${duFehler ? `<p class="small muted">Duelle konnten nicht geladen werden. <button class="lv-btn" id="duNeuLaden">Nochmal</button></p>` : ""}
-    ${duListe === null && !duFehler ? `<p class="small muted">Lade Duelle …</p>` : ""}
-    ${fuerMich.length ? `<div class="label du-label">Du bist dran</div><ul class="du-liste">${fuerMich.map(d => `<li class="du-zeile dran"><span class="du-ic">${svg(DU_TYPEN[duTypVon(d)].ic)}</span><span class="du-tx"><b>${esc(d.vonName)}</b><span>${duMarke(d)} ${d.vonErg.p} Punkte vorgelegt · noch ${tage(d.ablauf)} ${tage(d.ablauf) === 1 ? "Tag" : "Tage"}</span></span><span class="du-knoepfe"><button class="lv-btn gold" data-an="${d.id}">Annehmen</button><button class="lv-btn rund" data-ab="${d.id}" aria-label="Ablehnen">${svg("nein")}</button></span></li>`).join("")}</ul>` : ""}
-    ${warte.length ? `<div class="label du-label">Warten auf deinen Gegner</div><ul class="du-liste">${warte.map(d => `<li class="du-zeile"><span class="du-ic">${svg("sun")}</span><span class="du-tx"><b>${esc(d.anName)}</b><span>${duMarke(d)} Deine Punkte: ${d.vonErg.p} · noch ${tage(d.ablauf)} ${tage(d.ablauf) === 1 ? "Tag" : "Tage"}</span></span></li>`).join("")}</ul>` : ""}
-    ${fertig.length ? `<div class="label du-label">Ergebnisse</div><ul class="du-liste">${fertig.map(zeile).join("")}</ul>` : ""}
-    ${duListe && !liste.length ? `<p class="small muted">Noch keine Duelle – fordere jemanden heraus!</p>` : ""}`;
+  const tageText = n => `${n} ${n === 1 ? "Tag" : "Tage"}`;
+  const dranKarte = d => { const n = tage(d.ablauf);
+    return `<li class="ar-karte t-${art(d)}${n <= 1 ? " eilig" : ""}">
+      <span class="du-medaille t-${art(d)}">${esc(duInitialen(d.vonName))}</span>
+      <span class="ar-tx"><b>${esc(d.vonName)}</b><span>${duMarke(d)}</span></span>
+      <span class="ar-vor"><b>${d.vonErg.p}</b><small class="ar-zeit">noch ${tageText(n)}</small></span>
+      <span class="ar-knoepfe"><button class="ar-antreten" data-an="${d.id}">${svg("bolt")}Antreten</button><button class="ar-rev" data-ab="${d.id}" aria-label="Ablehnen">${svg("nein")}</button></span></li>`; };
+  const warteZeile = d => { const n = tage(d.ablauf), weg = Math.min(100, Math.max(4, Math.round((1 - (d.ablauf - jetzt) / (7 * 864e5)) * 100)));
+    return `<li class="ar-zeile warte"><span class="du-medaille t-${art(d)}">${esc(duInitialen(d.anName))}</span><span class="ar-tx"><b>${esc(d.anName)}</b><span>${duMarke(d)} deine <b class="du-gold">${d.vonErg.p}</b></span><i class="du-uhr" aria-label="noch ${tageText(n)}"><i style="width:${weg}%"></i></i></span><span class="du-tage">${n}<small>${n === 1 ? "Tag" : "Tage"}</small></span><span></span></li>`; };
+  const titel = (ic, t, n) => `<div class="ar-label">${svg(ic)}<span>${t}</span>${n ? `<i>${n}</i>` : ""}</div>`;
+  screen.innerHTML = `
+    ${duArenaHtml(fuerMich)}
+    <button class="ar-start" id="duNeu" ${duWahl ? 'aria-expanded="true"' : ""}>${svg("duell")}<b>${duWahl ? "Gegner wählen" : "In die Arena"}</b>${svg(duWahl ? "nein" : "bolt")}</button>
+    ${duWahl ? duGegnerHtml() : ""}
+    ${duFehler ? `<p class="small muted">Die Arena konnte nicht geladen werden. <button class="lv-btn" id="duNeuLaden">Nochmal</button></p>` : ""}
+    ${duListe === null && !duFehler ? `<p class="small muted du-laden">${svg("duell")} Lade Arena …</p>` : ""}
+    ${fuerMich.length ? titel("bolt", "Du bist dran", fuerMich.length) + `<ul class="ar-liste">${fuerMich.map(dranKarte).join("")}</ul>` : ""}
+    ${warte.length ? titel("sun", "Wartet auf Gegner", warte.length) + `<ul class="ar-liste">${warte.map(warteZeile).join("")}</ul>` : ""}
+    ${fertig.length ? titel("crown", "Ergebnisse", "") + `<ul class="ar-liste">${fertig.map(zeile).join("")}</ul>${fertigAlle.length > DU_ERG_KURZ ? `<button class="ar-mehr" id="duAlle">${duAlle ? "Weniger zeigen" : `Alle ${fertigAlle.length} Ergebnisse`}</button>` : ""}` : ""}
+    ${duListe && !liste.length ? `<div class="du-leer"><span class="du-leer-ic">${DUELL_LOGO}</span><b>Die Arena ist bereit</b><p class="small muted">Fordere jemanden aus der Gemeinde heraus – schon das Absenden bringt „Mutig wie David“.</p></div>` : ""}
+    <p class="ar-regel">Annehmen +${DU_FAIR_TAL} · Sieg +${DU_SIEG_TAL} · Remis +${DU_REMIS_TAL} Talente · beide bekommen dieselben Fragen · 7 Tage Zeit</p>`;
+  if ($("duAlle")) $("duAlle").onclick = () => { SFX.tap(); duAlle = !duAlle; VIEWS.duelle(); };
   wireGo(); duGegnerVerdrahten();
   $("duNeu").onclick = () => { SFX.tap(); duWahl = !duWahl; VIEWS.duelle(); if (duWahl) { duGegnerLaden(); const f = $("duSuche"); if (f && !matchMedia("(pointer: coarse)").matches) f.focus(); } };
   if ($("duNeuLaden")) $("duNeuLaden").onclick = () => { duAktualisieren().then(() => current === "duelle" && VIEWS.duelle()); };
@@ -2472,7 +2501,7 @@ async function duEnde() {
     <div class="du-art-zeile">${duMarke({ art: D.art, k: D.k })}<span class="small muted">${esc(DU_TYPEN[typ].info)}</span></div>
     <div class="du-vs"><div class="du-vs-sp ${sieg ? "vorn" : ""}"><span>Du</span><b>${D.p}</b><small>${duErgText(D.art, ich)}${extra}</small></div><span class="du-vs-x">:</span>${gegnerSpalte}</div>
     <div class="vle-werte"><div><b>+${xp}</b><span>XP</span></div>${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>${tal > DU_FAIR_TAL ? "Talente" : "Fairplay"}</span></div>` : ""}</div>
-    ${fehler ? `<button class="btn primary breit" id="duNochmal">Nochmal senden</button>` : `<button class="btn primary breit" id="duFertig">Zu den Duellen</button>`}
+    ${fehler ? `<button class="btn primary breit" id="duNochmal">Nochmal senden</button>` : `<button class="btn primary breit" id="duFertig">Zurück zur Arena</button>`}
     ${!D.neu && !fehler ? `<button class="btn ghost breit" id="duRevanche">${svg("bolt")} ${sieg ? "Nochmal duellieren" : "Revanche"}</button>` : ""}</div>`;
   if (!fehler) { SFX.win(); rain(sieg ? 90 : 40); }
   const weiter = () => { duSpiel = null; go("duelle"); };
