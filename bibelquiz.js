@@ -2,7 +2,8 @@
    Aufbau je Frage: { f: Frage, a: [richtig, falsch, falsch, falsch], ref: Bibelstelle, st: Schwierigkeit 1–3 }
    Die richtige Antwort steht immer zuerst; die App mischt die Reihenfolge (im Duell und in der Wochenrunde mit gemeinsamem Startwert).
    Achtung: Wer Fragen ändert, ändert die Fragen laufender Duelle und der laufenden Wochenrunde – neue Fragen darum am besten montags ergänzen.
-   Neue Fragen einfach im passenden Thema ergänzen. */
+   Neue Fragen einfach im passenden Thema ergänzen – mit ab: "<Kalenderwoche>" (z. B. "2026-W45"): Sie kommen erst ab dieser Woche ins Spiel,
+   ältere Duelle und die laufende Wochenrunde behalten so ihre Fragen (seit 6.46). */
 const QUIZ_THEMEN = [
   { id: "anfang", name: "Schöpfung & Urgeschichte", ic: "sun", fragen: [
     { f: "Wie hieß der erste Mensch?", a: ["Adam", "Noah", "Abel", "Henoch"], ref: "1. Mose 2,19-20", st: 1 },
@@ -42,7 +43,9 @@ const QUIZ_THEMEN = [
     { f: "Wie hießen die beiden Söhne Josefs?", a: ["Manasse und Ephraim", "Perez und Serach", "Ruben und Simeon", "Kain und Abel"], ref: "1. Mose 41,51-52", st: 3 },
     { f: "Was schenkte Jakob seinem Sohn Josef?", a: ["Einen bunten Leibrock", "Einen goldenen Ring", "Ein Schwert", "Eine Harfe"], ref: "1. Mose 37,3", st: 1 },
     { f: "Welcher Bruder wollte Josef retten und riet, ihn nur in die Grube zu werfen?", a: ["Ruben", "Juda", "Simeon", "Levi"], ref: "1. Mose 37,21-22", st: 3 },
-    { f: "In wessen Haus diente Josef zuerst in Ägypten?", a: ["Im Haus Potiphars", "Im Haus des Pharao", "Im Haus Labans", "Im Haus Abimelechs"], ref: "1. Mose 39,1", st: 2 }
+    { f: "In wessen Haus diente Josef zuerst in Ägypten?", a: ["Im Haus Potiphars", "Im Haus des Pharao", "Im Haus Labans", "Im Haus Abimelechs"], ref: "1. Mose 39,1", st: 2 },
+    { f: "Wovon träumte Jakob in Bethel?", a: ["Von einer Leiter bis zum Himmel", "Von sieben fetten Kühen", "Von Garben auf dem Feld", "Von einem brennenden Dornbusch"], ref: "1. Mose 28,12", st: 1, ab: "2026-W45" },
+    { f: "Wovon träumte der oberste Bäcker, der mit Josef im Gefängnis saß?", a: ["Von drei Brotkörben auf seinem Kopf", "Von einem Weinstock mit drei Reben", "Von sieben dürren Ähren", "Von Sonne, Mond und elf Sternen"], ref: "1. Mose 40,16-17", st: 2, ab: "2026-W45" }
   ]},
   { id: "mose", name: "Mose & Wüstenzeit", ic: "scroll", fragen: [
     { f: "Wo wurde der kleine Mose in einem Kästchen versteckt?", a: ["Im Schilf am Nil", "In einer Höhle", "Im Tempel", "In einem Brunnen"], ref: "2. Mose 2,3", st: 1 },
@@ -66,7 +69,9 @@ const QUIZ_THEMEN = [
     { f: "Wessen Eselin begann zu reden?", a: ["Die Eselin Bileams", "Die Eselin Abrahams", "Die Eselin Sauls", "Die Eselin Balaks"], ref: "4. Mose 22,28", st: 2 },
     { f: "Von welchem Berg aus sah Mose das verheißene Land, bevor er starb?", a: ["Vom Berg Nebo", "Vom Berg Sinai", "Vom Berg Hor", "Vom Berg Karmel"], ref: "5. Mose 34,1", st: 3 },
     { f: "Wie alt war Mose, als er starb?", a: ["120 Jahre", "100 Jahre", "80 Jahre", "175 Jahre"], ref: "5. Mose 34,7", st: 3 },
-    { f: "Wie oft schlug Mose in Kadesch mit dem Stab an den Felsen?", a: ["2-mal", "1-mal", "3-mal", "7-mal"], ref: "4. Mose 20,11", st: 3 }
+    { f: "Wie oft schlug Mose in Kadesch mit dem Stab an den Felsen?", a: ["2-mal", "1-mal", "3-mal", "7-mal"], ref: "4. Mose 20,11", st: 3 },
+    { f: "Was für Brot aßen die Israeliten beim Passah?", a: ["Ungesäuertes Brot", "Gerstenbrot", "Honigbrot", "Feigenbrot"], ref: "2. Mose 12,8", st: 2, ab: "2026-W45" },
+    { f: "Wie viele Schaubrote lagen auf dem Tisch im Heiligtum?", a: ["12", "7", "10", "3"], ref: "3. Mose 24,5-6", st: 3, ab: "2026-W45" }
   ]},
   { id: "richter", name: "Josua, Richter & Ruth", ic: "shield", fragen: [
     { f: "Wer führte Israel nach dem Tod von Mose ins verheißene Land?", a: ["Josua", "Aaron", "Kaleb", "Gideon"], ref: "Josua 1,1-2", st: 1 },
@@ -87,7 +92,8 @@ const QUIZ_THEMEN = [
     { f: "Wer nahm in Jericho heimlich von dem Gebannten?", a: ["Achan", "Korah", "Kaleb", "Dathan"], ref: "Josua 7,1", st: 3 },
     { f: "Wie viele Steine nahmen die Israeliten als Denkmal aus dem Jordan?", a: ["12", "7", "10", "40"], ref: "Josua 4,3", st: 2 },
     { f: "Bei welcher Stadt stand die Sonne still, als Josua betete?", a: ["Gibeon", "Jericho", "Ai", "Bethel"], ref: "Josua 10,12", st: 3 },
-    { f: "Wer bat Josua mit 85 Jahren: „Gib mir dieses Bergland!“?", a: ["Kaleb", "Pinehas", "Eleasar", "Othniel"], ref: "Josua 14,10-12", st: 3 }
+    { f: "Wer bat Josua mit 85 Jahren: „Gib mir dieses Bergland!“?", a: ["Kaleb", "Pinehas", "Eleasar", "Othniel"], ref: "Josua 14,10-12", st: 3 },
+    { f: "Wer zerriss einen jungen Löwen mit bloßen Händen?", a: ["Simson", "David", "Gideon", "Barak"], ref: "Richter 14,5-6", st: 1, ab: "2026-W45" }
   ]},
   { id: "koenige", name: "Könige & Propheten", ic: "crown", fragen: [
     { f: "Wer war der erste König Israels?", a: ["Saul", "David", "Salomo", "Samuel"], ref: "1. Samuel 10,1", st: 1 },
@@ -124,7 +130,14 @@ const QUIZ_THEMEN = [
     { f: "Unter wessen Leitung wurde die Mauer Jerusalems in 52 Tagen fertig?", a: ["Nehemia", "Esra", "Serubbabel", "Haggai"], ref: "Nehemia 6,15", st: 3 },
     { f: "Welche jüdische Frau wurde Königin in Persien und setzte sich für ihr Volk ein?", a: ["Esther", "Ruth", "Debora", "Vasti"], ref: "Esther 2,17; 4,16", st: 2 },
     { f: "Wie hieß der Vetter, der Esther aufgezogen hatte?", a: ["Mordechai", "Haman", "Nehemia", "Esra"], ref: "Esther 2,7", st: 3 },
-    { f: "Wer verlor seine Kinder und seinen ganzen Besitz und sagte: „Der Name des HERRN sei gelobt!“?", a: ["Hiob", "Abraham", "Jona", "Daniel"], ref: "Hiob 1,21", st: 1 }
+    { f: "Wer verlor seine Kinder und seinen ganzen Besitz und sagte: „Der Name des HERRN sei gelobt!“?", a: ["Hiob", "Abraham", "Jona", "Daniel"], ref: "Hiob 1,21", st: 1 },
+    { f: "Wie groß war Goliath?", a: ["6 Ellen und eine Spanne", "4 Ellen", "9 Ellen", "12 Ellen"], ref: "1. Samuel 17,4", st: 3, ab: "2026-W45" },
+    { f: "In wie viele Stücke riss der Prophet Ahija den neuen Mantel?", a: ["12", "10", "2", "7"], ref: "1. Könige 11,30", st: 3, ab: "2026-W45" },
+    { f: "Wer las dem Volk vom Morgen bis zum Mittag aus dem Buch des Gesetzes vor?", a: ["Esra", "Nehemia", "Jeremia", "Samuel"], ref: "Nehemia 8,2-3", st: 2, ab: "2026-W45" },
+    { f: "Welcher Prophet sollte sich Brot aus Weizen, Gerste, Bohnen, Linsen, Hirse und Dinkel backen?", a: ["Hesekiel", "Jeremia", "Elia", "Amos"], ref: "Hesekiel 4,9", st: 3, ab: "2026-W45" },
+    { f: "Welcher König zerschnitt die Buchrolle Jeremias und warf sie ins Feuer?", a: ["Jojakim", "Zedekia", "Josia", "Manasse"], ref: "Jeremia 36,22-23", st: 3, ab: "2026-W45" },
+    { f: "Was ließ sich König Ahasveros vorlesen, als er nachts nicht schlafen konnte?", a: ["Die Chronik seiner Regierung", "Die Psalmen Davids", "Das Gesetz des Mose", "Briefe aus Jerusalem"], ref: "Esther 6,1", st: 3, ab: "2026-W45" },
+    { f: "Bei wem lagert nach Jesaja 11,6 der Leopard?", a: ["Beim Böcklein", "Beim Schaf", "Beim Hasen", "Bei der Taube"], ref: "Jesaja 11,6", st: 3, ab: "2026-W45" }
   ]},
   { id: "geburt", name: "Jesu Geburt & Kindheit", ic: "star", fragen: [
     { f: "Wo wurde Jesus geboren?", a: ["In Bethlehem", "In Nazareth", "In Jerusalem", "In Kapernaum"], ref: "Lukas 2,4-7", st: 1 },
@@ -163,7 +176,9 @@ const QUIZ_THEMEN = [
     { f: "Wie lange war der Mann am Teich Bethesda schon krank, als Jesus ihn heilte?", a: ["38 Jahre", "12 Jahre", "40 Jahre", "18 Jahre"], ref: "Johannes 5,5", st: 3 },
     { f: "Wie viele Aussätzige heilte Jesus, von denen nur einer zurückkam, um zu danken?", a: ["10", "12", "7", "3"], ref: "Lukas 17,12-17", st: 2 },
     { f: "Welcher Jünger war Zöllner, bevor Jesus ihn rief?", a: ["Matthäus", "Petrus", "Thomas", "Johannes"], ref: "Matthäus 9,9", st: 2 },
-    { f: "Welcher Jünger ging Jesus auf dem Wasser entgegen?", a: ["Petrus", "Johannes", "Andreas", "Jakobus"], ref: "Matthäus 14,29", st: 1 }
+    { f: "Welcher Jünger ging Jesus auf dem Wasser entgegen?", a: ["Petrus", "Johannes", "Andreas", "Jakobus"], ref: "Matthäus 14,29", st: 1 },
+    { f: "Wo las Jesus in der Synagoge aus dem Propheten Jesaja vor?", a: ["In Nazareth", "In Kapernaum", "In Jerusalem", "In Bethlehem"], ref: "Lukas 4,16-17", st: 2, ab: "2026-W45" },
+    { f: "Wie viele Körbe mit Brotresten blieben nach der Speisung der 5000 übrig?", a: ["12", "7", "5", "3"], ref: "Johannes 6,13", st: 2, ab: "2026-W45" }
   ]},
   { id: "worte", name: "Gleichnisse & Worte Jesu", ic: "chat", fragen: [
     { f: "Wer half im Gleichnis dem Mann, der unter die Räuber gefallen war?", a: ["Ein Samariter", "Ein Priester", "Ein Levit", "Ein Pharisäer"], ref: "Lukas 10,33-34", st: 1 },
@@ -182,7 +197,8 @@ const QUIZ_THEMEN = [
     { f: "Wie viele Talente bekam im Gleichnis der erste Knecht?", a: ["5", "2", "1", "10"], ref: "Matthäus 25,15", st: 3 },
     { f: "Wie heißt der arme Mann im Gleichnis vom reichen Mann?", a: ["Lazarus", "Bartimäus", "Zachäus", "Simon"], ref: "Lukas 16,20", st: 3 },
     { f: "Was suchte die Frau im Gleichnis mit einer Lampe im ganzen Haus?", a: ["Eine verlorene Drachme", "Einen Ring", "Ein Schaf", "Eine Perle"], ref: "Lukas 15,8", st: 3 },
-    { f: "Was sollen wir nach Jesu Worten zuerst suchen?", a: ["Das Reich Gottes und seine Gerechtigkeit", "Essen und Trinken", "Ehre bei den Menschen", "Einen sicheren Besitz"], ref: "Matthäus 6,33", st: 2 }
+    { f: "Was sollen wir nach Jesu Worten zuerst suchen?", a: ["Das Reich Gottes und seine Gerechtigkeit", "Essen und Trinken", "Ehre bei den Menschen", "Einen sicheren Besitz"], ref: "Matthäus 6,33", st: 2 },
+    { f: "Worum sollen wir im Vaterunser jeden Tag bitten?", a: ["Um unser tägliches Brot", "Um Reichtum", "Um ein langes Leben", "Um Sieg über die Feinde"], ref: "Matthäus 6,11", st: 1, ab: "2026-W45" }
   ]},
   { id: "ostern", name: "Leiden & Auferstehung", ic: "sun", fragen: [
     { f: "Auf welchem Tier ritt Jesus in Jerusalem ein?", a: ["Auf einem Esel", "Auf einem Pferd", "Auf einem Kamel", "Er ging zu Fuß"], ref: "Matthäus 21,7", st: 1 },
@@ -201,7 +217,8 @@ const QUIZ_THEMEN = [
     { f: "Was stand auf der Überschrift am Kreuz?", a: ["Jesus von Nazareth, der König der Juden", "Der Sohn Gottes", "Der Prophet aus Galiläa", "Der gute Hirte"], ref: "Johannes 19,19", st: 2 },
     { f: "Wer sah den Auferstandenen nach Markus als Erste?", a: ["Maria Magdalena", "Maria, die Mutter Jesu", "Marta", "Salome"], ref: "Markus 16,9", st: 2 },
     { f: "In welches Dorf waren die zwei Jünger unterwegs, als der Auferstandene mit ihnen ging?", a: ["Emmaus", "Bethanien", "Kana", "Nain"], ref: "Lukas 24,13", st: 2 },
-    { f: "Von welchem Berg kehrten die Jünger nach der Himmelfahrt Jesu nach Jerusalem zurück?", a: ["Vom Ölberg", "Vom Berg Tabor", "Vom Berg Zion", "Vom Berg Karmel"], ref: "Apostelgeschichte 1,12", st: 3 }
+    { f: "Von welchem Berg kehrten die Jünger nach der Himmelfahrt Jesu nach Jerusalem zurück?", a: ["Vom Ölberg", "Vom Berg Tabor", "Vom Berg Zion", "Vom Berg Karmel"], ref: "Apostelgeschichte 1,12", st: 3 },
+    { f: "Was nahm Jesus beim letzten Abendmahl, dankte, brach es und gab es den Jüngern?", a: ["Das Brot", "Einen Fisch", "Ein Lamm", "Eine Feige"], ref: "Lukas 22,19", st: 1, ab: "2026-W45" }
   ]},
   { id: "gemeinde", name: "Apostel & erste Gemeinde", ic: "people", fragen: [
     { f: "Wie viele Tage nach seiner Auferstehung zeigte sich Jesus seinen Jüngern?", a: ["40 Tage lang", "7 Tage lang", "3 Tage lang", "50 Tage lang"], ref: "Apostelgeschichte 1,3", st: 2 },
@@ -222,7 +239,10 @@ const QUIZ_THEMEN = [
     { f: "Welcher junge Mann schlief während der Predigt des Paulus ein und fiel aus dem Fenster?", a: ["Eutychus", "Timotheus", "Titus", "Onesimus"], ref: "Apostelgeschichte 20,9", st: 3 },
     { f: "Wie hieß die Insel, auf der Paulus nach dem Schiffbruch landete?", a: ["Melite", "Patmos", "Zypern", "Kreta"], ref: "Apostelgeschichte 28,1", st: 3 },
     { f: "In welcher Stadt wurden die Jünger zuerst Christen genannt?", a: ["In Antiochia", "In Jerusalem", "In Rom", "In Ephesus"], ref: "Apostelgeschichte 11,26", st: 3 },
-    { f: "Welcher junge Mitarbeiter des Paulus hatte eine gläubige Mutter namens Eunike?", a: ["Timotheus", "Titus", "Silas", "Markus"], ref: "2. Timotheus 1,5", st: 2 }
+    { f: "Welcher junge Mitarbeiter des Paulus hatte eine gläubige Mutter namens Eunike?", a: ["Timotheus", "Titus", "Silas", "Markus"], ref: "2. Timotheus 1,5", st: 2 },
+    { f: "Was las der Kämmerer aus Äthiopien auf seinem Wagen?", a: ["Den Propheten Jesaja", "Die Psalmen", "Die Bücher Mose", "Einen Brief des Paulus"], ref: "Apostelgeschichte 8,28", st: 2, ab: "2026-W45" },
+    { f: "Womit vergleicht Paulus die Gemeinde in 1. Korinther 12?", a: ["Mit einem Leib mit vielen Gliedern", "Mit einem Haus aus Steinen", "Mit einer Herde", "Mit einem Weinberg"], ref: "1. Korinther 12,12", st: 2, ab: "2026-W45" },
+    { f: "Wie geht der Teufel nach 1. Petrus 5,8 umher?", a: ["Wie ein brüllender Löwe", "Wie ein hungriger Wolf", "Wie eine listige Schlange", "Wie ein reißender Bär"], ref: "1. Petrus 5,8", st: 2, ab: "2026-W45" }
   ]},
   { id: "kunde", name: "Bibelkunde", ic: "book", fragen: [
     { f: "Wie viele Bücher hat die Bibel?", a: ["66", "72", "39", "27"], ref: "Altes und Neues Testament", st: 1 },

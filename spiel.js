@@ -2249,9 +2249,9 @@ const duErgText = (art, e) => (art === "blitz" ? `${e.r} richtig` : art === "ket
 const duP = p => pkt(p); /* Punkte mit Tausenderpunkt (Biblionär bis 1.000.000) */
 function rngVon(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 /* Fragen aus Startwert + Art – für beide Spieler genau gleich (Zufall wird dafür kurz ersetzt) */
-function duFragen(seed, art, k) {
+function duFragen(seed, art, k, stand) {
   const alt = Math.random; Math.random = rngVon(seed);
-  if (art === "quiz") { Math.random = alt; return bibFragen(seed); }
+  if (art === "quiz") { Math.random = alt; return bibFragen(seed, stand); }
   try {
     if (art === "kette") {
       const seq = (KETTEN[k] || KETTEN.bibel).seq;
@@ -2430,7 +2430,7 @@ VIEWS.duelle = () => {
   wireGo(); duGegnerVerdrahten();
   $("duNeu").onclick = () => { SFX.tap(); duWahl = !duWahl; VIEWS.duelle(); if (duWahl) { duGegnerLaden(); const f = $("duSuche"); if (f && !matchMedia("(pointer: coarse)").matches) f.focus(); } };
   if ($("duNeuLaden")) $("duNeuLaden").onclick = () => { duAktualisieren().then(() => current === "duelle" && VIEWS.duelle()); };
-  const annehmen = d => duSpielStarten({ id: d.id, seed: d.seed, art: d.art || "vers", k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von });
+  const annehmen = d => duSpielStarten({ id: d.id, seed: d.seed, erstellt: d.erstellt, art: d.art || "vers", k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von });
   screen.querySelectorAll("[data-an]").forEach(b => b.onclick = () => { SFX.tap(); const d = liste.find(x => x.id === b.dataset.an); if (d) annehmen(d); });
   screen.querySelectorAll("[data-ab]").forEach(b => b.onclick = () => { SFX.tap(); const d = liste.find(x => x.id === b.dataset.ab); if (d) duAblehnenFrage(d, () => annehmen(d)); });
   screen.querySelectorAll("[data-rev]").forEach(b => b.onclick = () => { SFX.tap(); const d = liste.find(x => x.id === b.dataset.rev); if (!d) return; const ich = d.von === S.pid;
@@ -2517,7 +2517,7 @@ function duSpielStarten(opt) {
   go("duell");
   const art = DU_TYPEN[opt.art === "kette" ? "kette-" + opt.k : opt.art] ? opt.art : "vers";
   duSpiel = Object.assign({ i: 0, p: 0, r: 0, f: 0, combo: 0, maxCombo: 0, rest: DU_BLITZ_SEK, gesendet: false }, opt, { art });
-  duSpiel.fragen = duFragen(opt.seed, art, opt.k);
+  duSpiel.fragen = duFragen(opt.seed, art, opt.k, opt.erstellt ? weekKey(opt.erstellt) : weekKey());
   document.body.classList.add("spiel-laeuft");
   if (art === "quiz") { duSpiel.modus = "duell"; countdown(() => bibStart(duSpiel)); return; }
   countdown(() => { if (art === "blitz") duBlitzUhr(); duZeige(); });
@@ -2657,10 +2657,11 @@ const bibVorwoche = () => weekKey(Date.now() - 7 * 864e5);
 const bibWocheTage = () => { const d = new Date(), wt = (d.getDay() + 6) % 7; return 7 - wt; }; // inkl. heute bis Sonntag
 
 /* Fragen aus dem Startwert: Auswahl, Antwort-Reihenfolge und die Joker-Ergebnisse sind für alle gleich */
-function bibFragen(seed) {
-  const alt = Math.random; Math.random = rngVon(seed);
+/* stand: Kalenderwoche, aus deren Fragenpool gezogen wird (Duell: Woche der Herausforderung) – neue Fragen mit ab: … ändern so keine alten Runden */
+function bibFragen(seed, stand) {
+  const alt = Math.random; Math.random = rngVon(seed); stand = stand || weekKey();
   try {
-    const alle = QUIZ_THEMEN.flatMap(t => t.fragen.map(q => Object.assign({ thema: t.name }, q)));
+    const alle = QUIZ_THEMEN.flatMap(t => t.fragen.filter(q => !q.ab || q.ab <= stand).map(q => Object.assign({ thema: t.name }, q)));
     const stufe = st => { const gew = [], themen = []; for (const q of shuffle(alle.filter(x => x.st === st))) {
         if (gew.length >= 5) break; if (themen.filter(t => t === q.thema).length >= 2) continue; gew.push(q); themen.push(q.thema); }
       return gew; };
@@ -2854,7 +2855,7 @@ function bibWocheStarten() {
     if (S.bwK && S.bwK !== wk) { S.bwVK = S.bwK; S.bwVP = S.bwP | 0; }
     S.bwK = wk; S.bwP = 0; S.bwFertig = false; save(); lbSync(true);
     go("biblionaer");
-    const G = { modus: "woche", fragen: bibFragen(bibWocheSeed(wk)) };
+    const G = { modus: "woche", fragen: bibFragen(bibWocheSeed(wk), wk) };
     countdown(() => bibStart(G));
   });
 }
@@ -2944,7 +2945,15 @@ const WILLI_THEMA = [
   [/Salomo|Sprüche|Weisheit/, "Salomo schreibt sinngemäß: Lieber ein Gemüsegericht mit Liebe als ein gemästeter Ochse mit Hass (Sprüche 15,17). Den Vers zitiert Heidi besonders gern, wenn ich am Grill brumme."],
   [/Kana|Hochzeit|Wein/, "Bei der Hochzeit zu Kana hat der Herr Jesus Wasser zu Wein gemacht (Johannes 2). Was es dazu zu essen gab, steht nicht drin – ich tippe auf ein ordentliches Festmahl!"],
   [/David|Goliath|Hirte|Schaf/, "David hat als Hirte seine Schafe vor Löwe und Bär beschützt (1. Samuel 17,34-35). Ich beschütze am Grill meine Würstchen vor meinen Töchtern – fast genauso mutig."],
-  [/Jona|Ninive/, "Jona war drei Tage im Bauch des Fisches (Jona 2,1). Der einzige Fisch in der Bibel, den ich nicht grillen würde!"]
+  [/Jona|Ninive/, "Jona war drei Tage im Bauch des Fisches (Jona 2,1). Der einzige Fisch in der Bibel, den ich nicht grillen würde!"],
+  [/Brot|Bäcker|ungesäuert|Abendmahl|Gerste/, "Ich backe ja selbst Brot – am liebsten Sauerteig, frisch aus dem Ofen. Und der Herr Jesus sagt: Ich bin das Brot des Lebens (Johannes 6,35). Davon wird man richtig satt."],
+  [/Brot|Bäcker|Körbe/, "Brot backen ist wie Glauben: Es braucht Zeit, Wärme und Geduld. Und am Ende teilt man es – wie der Herr Jesus bei der Speisung, als sogar zwölf Körbe übrig blieben (Johannes 6,13)."],
+  [/Hesekiel|Dinkel/, "Das Brot aus Hesekiel 4,9 – Weizen, Gerste, Bohnen, Linsen, Hirse, Dinkel – hab ich tatsächlich mal nachgebacken. Heidi meinte: Endlich mal Gemüse, das du freiwillig isst!"],
+  [/Schaubrot/, "Zwölf Schaubrote, für jeden Stamm eins (3. Mose 24,5-6). So viele schaffe ich in meinem Ofen nicht auf einmal – aber ich arbeite dran."],
+  [/Ahija|Mantel|Stücke|\bLeib\b|Glieder/, "Ich puzzle leidenschaftlich gern. Ahija hat einen Mantel in zwölf Stücke gerissen (1. Könige 11,30) – ein Puzzle mit Bedeutung! Und die Gemeinde ist genauso: viele Teile, ein Leib (1. Korinther 12,12)."],
+  [/Mauer|Nehemia/, "Nehemia hat die Mauer Stück für Stück in 52 Tagen wieder aufgebaut (Nehemia 6,15) – wie ein riesiges Puzzle. Da hätte ich gern mitgemacht."],
+  [/Esra|vorlesen|vorlas|\blas\b|Chronik|Kämmerer|Synagoge/, "Heidi liest für ihr Leben gern, bei uns stapeln sich die Bücher. Aber dass Esra dem Volk vom Morgen bis zum Mittag vorgelesen hat (Nehemia 8,3) – das schafft nicht mal sie."],
+  [/Jojakim|Buchrolle/, "König Jojakim hat Jeremias Buchrolle ins Feuer geworfen (Jeremia 36,23). Heidi war beim Lesen richtig empört. Ich auch – ein Kohlenfeuer ist schließlich für Steaks da!"]
 ];
 const WILLI_ALLG = [
   "Heidi hat übrigens aus Amerika das Barbecue mitgebracht – seitdem grillen wir sogar im Winter.",
@@ -2955,7 +2964,10 @@ const WILLI_ALLG = [
   "Mein Bart riecht schon nach Holzkohle – das heißt, die Glut ist perfekt.",
   "Bei so einer Frage krieg ich glatt Hunger. Gut, dass gleich die Bratwürste fertig sind.",
   "Meine Töchter rufen im Hintergrund schon mit – die beiden sind fast so bibelfest wie ihr Vater.",
-  "Rosenkohl ist für mich die elfte Plage. Steht nicht in der Bibel – aber gefühlt schon."
+  "Rosenkohl ist für mich die elfte Plage. Steht nicht in der Bibel – aber gefühlt schon.",
+  "Gerade ist mein Brot im Ofen und es riecht herrlich. Bis es fertig ist, haben wir die Frage längst gelöst.",
+  "Heidi liest gerade auf dem Sofa und sagt, das kam in ihrem letzten Buch auch irgendwo vor.",
+  "Auf meinem Esstisch liegt ein Puzzle mit 2000 Teilen. Da ist so eine Bibelfrage richtig erholsam."
 ];
 const WILLI_TSCHUESS = ["Gott segne dich – viel Erfolg!", "So, jetzt muss ich die Steaks wenden. Gott befohlen!", "Ich bete für dich. Tschüss!", "Heidi und die Mädels drücken dir die Daumen. Bis Sonntag!"];
 function pastorAntwort(f, halb, id = "willi") {
@@ -3033,7 +3045,14 @@ const AARON_THEMA = [
   [/Wachtel|Manna/, "Abends Wachteln in der Wüste (2. Mose 16,13) – ich hätte sie mit Hickory-Rauch gesmokt!"],
   [/Elia|Karmel|Feuer/, "Auf dem Karmel fiel Feuer vom Himmel auf Elias Opfer (1. Könige 18,38) – eindrucksvoller als jedes Lichtschwert."],
   [/Simson|Delila/, "Simson erinnert mich an Chewbacca: unglaublich stark – und beide mit ziemlich langen Haaren (Richter 16,17)."],
-  [/Bethlehem|Hirten|Stern|Weise/, "Der Stern über Bethlehem (Matthäus 2,9) ist mein Lieblingsstern – noch vor dem Todesstern. Okay, der ist ja auch gar kein Stern."]
+  [/Bethlehem|Hirten|Stern|Weise/, "Der Stern über Bethlehem (Matthäus 2,9) ist mein Lieblingsstern – noch vor dem Todesstern. Okay, der ist ja auch gar kein Stern."],
+  [/Leiter|Bethel/, "Jakobs Leiter bis zum Himmel (1. Mose 28,12) – früher beim Zocken hätte ich gesagt: das ultimative Level-Up! Aber in den Himmel kommt man nicht mit Punkten, sondern durch Gnade."],
+  [/Goliath/, "Goliath war über sechs Ellen groß (1. Samuel 17,4) – in meinen alten Videospielen hieß so einer Endgegner. David hatte kein Extra-Leben, aber den lebendigen Gott an seiner Seite."],
+  [/Lazarus/, "Lazarus nach vier Tagen aus dem Grab (Johannes 11) – in Videospielen nennt man das Extra-Leben. Aber das hier war echt: Jesus ist die Auferstehung und das Leben (Johannes 11,25)."],
+  [/Talent|Knecht/, "Fünf Talente verdoppelt (Matthäus 25,16) – das ist besser als jeder Highscore, den ich früher an der Konsole geschafft habe."],
+  [/Matthias|\bLos\b/, "Bei Matthias wurde das Los geworfen (Apostelgeschichte 1,26) – aber kein Zufallsgenerator wie in meinen alten Games: Die Jünger haben vorher gebetet."],
+  [/Löwe|Leopard|Böcklein/, "Eliza hat eine Katze, die sich für einen Löwen hält. Katzen kommen in der Bibel übrigens nicht vor – nur ihre großen Verwandten, Löwen und Leoparden."],
+  [/Teufel|brüllend/, "Der Teufel geht umher wie ein brüllender Löwe (1. Petrus 5,8). Elizas Katze faucht auch manchmal so – aber die meint es nicht böse. Meistens."]
 ];
 const AARON_ALLG = [
   "Eliza übt im Nebenzimmer Querflöte – wenn du genau hinhörst: Es ist die Star-Wars-Titelmelodie. Ich hab sie überredet.",
@@ -3043,7 +3062,10 @@ const AARON_ALLG = [
   "Möge die Macht mit dir sein – nein, Moment: Der Herr sei mit dir! Das ist viel besser.",
   "Yoda sagt: Tu es oder tu es nicht, es gibt kein Versuchen. Ich sag: Erst beten, dann tippen!",
   "Im Hintergrund meint Eliza gerade, ich soll weniger über Star Wars und mehr über die Bibel reden. Sie hat recht.",
-  "Pulled Pork, Mac and Cheese, Cornbread … sorry, ich hab gerade Hunger bekommen."
+  "Pulled Pork, Mac and Cheese, Cornbread … sorry, ich hab gerade Hunger bekommen.",
+  "Früher hab ich nächtelang Videospiele gezockt. Heute sammle ich lieber Bibelverse – much better Highscore!",
+  "Elizas Katze sitzt gerade auf meiner Bibel. Ich glaube, sie will auch mitspielen.",
+  "Achtung, Elizas Katze läuft über mein Handy – falls ich gleich komisch klinge, war sie das."
 ];
 const AARON_SW = [
   "Und vergiss nicht: Die helle Seite gewinnt am Ende immer – in Star Wars und erst recht in der Bibel.",
@@ -3194,8 +3216,8 @@ VIEWS.bib = () => {
       const f = $("bqSuche"); if (f && !matchMedia("(pointer: coarse)").matches) f.focus(); } };
   bibGegnerVerdrahten();
   screen.querySelectorAll("[data-bqan]").forEach(b => b.onclick = () => { SFX.tap(); const d = dran.find(x => x.id === b.dataset.bqan); if (!d) return;
-    duSpielStarten({ id: d.id, seed: d.seed, art: "quiz", k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von, heim: "bib" }); });
-  const bqAntreten = d => duSpielStarten({ id: d.id, seed: d.seed, art: "quiz", k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von, heim: "bib" });
+    duSpielStarten({ id: d.id, seed: d.seed, erstellt: d.erstellt, art: "quiz", k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von, heim: "bib" }); });
+  const bqAntreten = d => duSpielStarten({ id: d.id, seed: d.seed, erstellt: d.erstellt, art: "quiz", k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von, heim: "bib" });
   screen.querySelectorAll("[data-bqab]").forEach(b => b.onclick = () => { SFX.tap(); const d = dran.find(x => x.id === b.dataset.bqab); if (d) duAblehnenFrage(d, () => bqAntreten(d)); });
   screen.querySelectorAll("[data-bqstop]").forEach(b => b.onclick = () => { SFX.tap(); const d = warte.find(x => x.id === b.dataset.bqstop); if (d) duAbbrechenFrage(d); });
   screen.querySelectorAll("[data-bqrev]").forEach(b => b.onclick = () => { SFX.tap(); const d = liste.find(x => x.id === b.dataset.bqrev); if (!d) return; const ich = d.von === S.pid;
