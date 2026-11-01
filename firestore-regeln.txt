@@ -1,5 +1,5 @@
 rules_version = '2';
-// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer)
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -188,8 +188,8 @@ service cloud.firestore {
           || (neu().diff(resource.data).affectedKeys().hasOnly(['am', 'status']) && neu().status == 'abgelehnt'
             && !(neu().am in resource.data.ergebnisse))
         ) && besitzer(neu().am);
-      // Löschen: Ersteller oder (beim Duell eins gegen eins) der Gegner
-      allow delete: if angemeldet() && (besitzer(resource.data.von) || besitzer(resource.data.teil[1]));
+      // Löschen: Ersteller oder (beim Duell eins gegen eins) der Gegner – aber nie fertige Duelle (daraus wird die Duell-Rangliste berechnet)
+      allow delete: if angemeldet() && resource.data.status != 'fertig' && (besitzer(resource.data.von) || besitzer(resource.data.teil[1]));
     }
 
     // „Biblionär der Woche“ (6.40): ein Dokument je Woche und Spieler, ID = Woche + "_" + pid.
