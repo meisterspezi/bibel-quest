@@ -1307,6 +1307,18 @@ body[data-acc="saphir"]::after{-webkit-mask:linear-gradient(transparent 38%,#000
 .bw-los{width:100%;max-width:320px}
 .bw-ich{display:flex;flex-direction:column;align-items:center}.bw-ich span{font:800 .72rem var(--body);color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.bw-ich b{font:800 1.7rem var(--display);color:#ffe9a8}.bw-ich small{color:var(--muted);font-weight:700}
 .bw-vor{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted)}.bw-vor svg{width:20px;height:20px;flex:none}.bw-vor b{color:var(--fg)}
+/* Biblionär-Ranglisten (6.48): Gespielt · Diese Woche · Rekord gleich aufgebaut */
+.rk-bib{flex-wrap:wrap}.rk-bib>div:first-child{min-width:0}.rk-bib b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.rk-bib #rcount{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rk-bib .rk-var{grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-flow:row}
+.bi-leiste{display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:10px;height:56px;box-sizing:border-box;margin:0 0 12px;padding:0 12px;border-radius:16px;border:1px solid #66e0d055;background:linear-gradient(90deg,#66e0d01f,transparent 70%),var(--surface2)}
+.bi-leiste>svg{width:28px;height:28px}
+.bi-tx{display:flex;flex-direction:column;min-width:0}
+.bi-tx b,.bi-tx small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bi-tx b{font:800 .92rem var(--body)}.bi-tx small{font:700 .72rem var(--body);color:var(--muted)}
+.bi-wert{font:800 1.15rem var(--display);color:#ffe9a8;white-space:nowrap}
+.bi-los{display:inline-flex;align-items:center;gap:5px;height:34px;padding:0 12px;border:0;border-radius:12px;font:800 .82rem var(--body);color:#3a2500;background:linear-gradient(180deg,#ffe08a,#f2b13a);box-shadow:0 3px 0 #a26a12;cursor:pointer;white-space:nowrap}
+.bi-los svg{width:18px;height:18px}
 
 /* 6.42: eigener Reiter „Biblionär“ (7 Reiter: Schrift etwas kleiner, damit alles bei 390 px passt) */
 .tabbar button{font-size:.6rem;letter-spacing:-.01em;white-space:nowrap}

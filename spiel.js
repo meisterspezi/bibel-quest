@@ -1785,6 +1785,10 @@ function lbSync(now) {
     /* Wochenrunde „Biblionär“ steht in einer eigenen Sammlung (die Ranglisten-Regel ist an ihrer Rechengrenze) */
     if (S.bwK && L.bibWocheSetzen && S.bwSync !== S.bwK + ":" + (S.bwP | 0)) { const sig = S.bwK + ":" + (S.bwP | 0);
       L.bibWocheSetzen({ pid: S.pid, wk: S.bwK, p: Math.min(S.bwP | 0, 1000000), name: S.lbName, av: S.avatar, fr: S.frame, lv: levelOf(S.xp) }).then(() => { S.bwSync = sig; save(); }).catch(e => dbFehler("Wochenrunde speichern", e)); }
+    /* 6.48: Biblionär-Spiele für die Rangliste „Gespielt“ – als Dokument gesamt_<pid> in derselben Sammlung (Regeln bleiben unverändert) */
+    const bgSig = (S.bibSpiele | 0) + ":" + S.lbName + ":" + (S.avatar || "") + ":" + (S.frame || "") + ":" + levelOf(S.xp);
+    if ((S.bibSpiele | 0) > 0 && L.bibWocheSetzen && S.bgSync !== bgSig)
+      L.bibWocheSetzen({ pid: S.pid, wk: BIB_GESAMT, p: Math.min(S.bibSpiele | 0, 1000000), name: S.lbName, av: S.avatar, fr: S.frame, lv: levelOf(S.xp) }).then(() => { S.bgSync = bgSig; save(); }).catch(e => dbFehler("Biblionär-Spiele speichern", e));
     L.push(S.pid, lbPayload(), opts).then(ok).catch(e => {
       if (e && e.code === "permission-denied") return L.push(S.pid, ohneBib(), opts).then(ok).catch(e2 => dbFehler("Rangliste speichern", e2));
       dbFehler("Rangliste speichern", e);
@@ -1959,6 +1963,7 @@ const RANK_TABS = {
   blitz: { label: "Blitz", unit: "Richtige", titel: "Blitz-Rekord" },
   duSiege: { label: "Siege", val: r => r.duS || 0, unit: "Siege", titel: "Siege in der Arena" },
   duSpiele: { label: "Gespielt", val: r => r.duG || 0, unit: "Duelle", titel: "Duelle in der Arena" },
+  bibSpiele: { label: "Gespielt", val: r => (r.bwK === BIB_GESAMT ? r.p || 0 : 0), unit: "Spiele", titel: "Biblionär-Spiele" },
   bibWoche: { label: "Woche", val: r => (r.bwK === weekKey() ? r.bwP || 0 : 0), unit: "Punkte", titel: "Biblionär der Woche" },
   bibRekord: { label: "Rekord", val: r => r.bib || 0, unit: "Punkte", titel: "Biblionär-Rekord" }
 };
@@ -1967,13 +1972,13 @@ const RANK_KAT = [
   { id: "erfahrung", name: "Erfahrung", icon: "star", tabs: ["woche", "gesamt"] },
   { id: "kette", name: "Kette", icon: "link", tabs: ["kette"] },
   { id: "blitz", name: "Blitz", icon: "bolt", tabs: ["blitz"] },
-  { id: "biblionaer", name: "Biblionär", icon: "biblionaer", tabs: ["bibWoche", "bibRekord"] },
+  { id: "biblionaer", name: "Biblionär", icon: "biblionaer", tabs: ["bibSpiele", "bibWoche", "bibRekord"] },
   { id: "duell", name: "Arena", icon: "duell", tabs: ["duSiege", "duSpiele"] },
   { id: "ausdauer", name: "Ausdauer", icon: "fire", tabs: ["treue", "bewaehrt", "abzeichen"] }
 ];
 const katVon = tab => RANK_KAT.find(k => k.tabs.includes(tab)) || RANK_KAT[0];
 const letzterTab = {};
-const TAB_LABEL = { woche: "Woche", gesamt: "Gesamt", kette: "Kette", blitz: "Blitz", treue: "Spieltage", bewaehrt: "Bewährt", abzeichen: "Abzeichen", duSiege: "Siege", duSpiele: "Gespielt", bibWoche: "Diese Woche", bibRekord: "Rekord" };
+const TAB_LABEL = { woche: "Woche", gesamt: "Gesamt", kette: "Kette", blitz: "Blitz", treue: "Spieltage", bewaehrt: "Bewährt", abzeichen: "Abzeichen", duSiege: "Siege", duSpiele: "Gespielt", bibSpiele: "Gespielt", bibWoche: "Diese Woche", bibRekord: "Rekord" };
 const BLITZ_SUB = { richtige: ["Richtige", "blitz", "Richtige", "Blitz-Rekord"], folge: ["In Folge", "combo", "in Folge", "Richtige in Folge (60 Sek.)"] };
 let blitzSub = "richtige";
 const KETTE_SUB = { bibel: ["Bibel", "bestChain", 66], at: ["AT", "chainAT", 39], nt: ["NT", "chainNT", 27], rueck: ["Rückwärts", "chainRueck", 66] };
@@ -1984,7 +1989,9 @@ function rankWert(r) {
   if (rankTab === "blitz") return r[BLITZ_SUB[blitzSub][1]] || 0;
   return RANK_TABS[rankTab].val(r);
 }
-function rankKind() { return rankTab === "kette" ? "kette_" + ketteSub : rankTab === "blitz" ? (blitzSub === "folge" ? "combo" : "blitz") : rankTab; }
+const BIB_GESAMT = "gesamt"; /* Woche-Schlüssel für die Gesamtzahl der Biblionär-Spiele in der Sammlung biblionaer */
+const istBibTab = t => t === "bibSpiele" || t === "bibWoche" || t === "bibRekord";
+function rankKind() { if (rankTab === "bibSpiele") return "bibWoche"; return rankTab === "kette" ? "kette_" + ketteSub : rankTab === "blitz" ? (blitzSub === "folge" ? "combo" : "blitz") : rankTab; }
 VIEWS.rank = (tab) => {
   if (tab && RANK_TABS[tab]) rankTab = tab;
   const L = window.LB;
@@ -2004,8 +2011,8 @@ VIEWS.rank = (tab) => {
   screen.innerHTML = html + `<div class="stack rk">
     <nav class="kb-tabs rk-nav" aria-label="Ranglisten" style="grid-template-columns:repeat(${RANK_KAT.length},1fr)">${RANK_KAT.map(k => `<button data-kat="${k.id}" aria-pressed="${k.id === kat.id}" aria-selected="${k.id === kat.id}">${svg(k.icon)}<span>${k.name}</span></button>`).join("")}</nav>
     <div class="card rk-liste">
-      ${rankTab === "bibWoche" ? `<div id="bwBox">${bibWocheKarte()}</div>` : ""}
-      <div class="rk-kopf"><div><b>${esc(titel)}</b><span class="small muted" id="rcount">${rankTab === "woche" || rankTab === "bibWoche" ? weekKey().split("-W")[1] + ". Kalenderwoche" : ""}</span></div>${varianten ? `<div class="rk-var" role="group" aria-label="Variante">${varianten}</div>` : ""}</div>
+      <div class="rk-kopf ${istBibTab(rankTab) ? "rk-bib" : ""}"><div><b>${esc(titel)}</b><span class="small muted" id="rcount">${rankTab === "woche" || rankTab === "bibWoche" ? weekKey().split("-W")[1] + ". Kalenderwoche" : istBibTab(rankTab) ? "Gemeinde" : ""}</span></div>${varianten ? `<div class="rk-var" role="group" aria-label="Variante">${varianten}</div>` : ""}</div>
+      ${istBibTab(rankTab) ? `<div id="bwBox">${bibInfoLeiste()}</div>` : ""}
       <div id="rbody"><p class="muted" style="margin:0">Lade Rangliste …</p></div>
     </div>
     <div class="du-bar" id="rme"></div>
@@ -2016,9 +2023,9 @@ VIEWS.rank = (tab) => {
   screen.querySelectorAll("[data-sub]").forEach(b => b.onclick = () => { SFX.tap(); ketteSub = b.dataset.sub; go("rank", "kette"); });
   screen.querySelectorAll("[data-bsub]").forEach(b => b.onclick = () => { SFX.tap(); blitzSub = b.dataset.bsub; go("rank", "blitz"); });
   const bwVerdrahten = () => { const b = $("bwLos"); if (b) b.onclick = () => { SFX.tap(); bibWocheStarten(); }; };
-  if (rankTab === "bibWoche") { bwVerdrahten(); bibSiegerPruefen().then(() => (bibVorwocheListe ? bibVorwocheListe : bibVorwocheLaden())).then(() => { const box = $("bwBox"); if (box && current === "rank") { box.innerHTML = bibWocheKarte(); bwVerdrahten(); } }); }
+  if (rankTab === "bibWoche") { bwVerdrahten(); bibSiegerPruefen().then(() => (bibVorwocheListe ? bibVorwocheListe : bibVorwocheLaden())).then(() => { const box = $("bwBox"); if (box && current === "rank" && rankTab === "bibWoche") { box.innerHTML = bibInfoLeiste(); bwVerdrahten(); } }); }
   const me = S.pid || L.uid; const wk = weekKey(); let zeilen = [];
-  lbUnsub.push(L.watch(rankKind(), wk, rows => {
+  lbUnsub.push(L.watch(rankKind(), rankTab === "bibSpiele" ? BIB_GESAMT : wk, rows => {
     if (current !== "rank") return;
     rows = rows.filter(r => rankWert(r) > 0 || r.id === me).sort((a, b) => rankWert(b) - rankWert(a) || String(a.name).localeCompare(String(b.name)));
     zeilen = rows;
@@ -2049,11 +2056,11 @@ VIEWS.rank = (tab) => {
         <div class="gk-wer">${g.slice(0, 3).map(r => `<div class="${r.id === me ? "me" : ""}"><b>${esc(r.name)}</b>${ext(r)}</div>`).join("")}${g.length > 3 ? `<div class="small muted">+${g.length - 3} weitere</div>` : ""}</div></div>` : "";
       const pod = `<div class="gk">${gold}${g2.length ? `<div class="gk-zd">${klein(2, g2)}${klein(3, g3)}</div>` : ""}</div>`;
       const rest = rows.map((r, i) => [r, platz[i]]).filter(([, p]) => p > 3).slice(0, 80).map(([r, p], k, arr) => `<button class="rrow ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}"><div class="rk">${k && arr[k - 1][1] === p ? "" : p}</div>${avatarLv(r, 38)}<div class="who"><b>${esc(r.name)}${r.id === me ? '<span class="you">DU</span>' : ""}</b><span>${esc(rangVon(r))}</span>${rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)}</div><div class="val">${pkt(rankWert(r))}</div></button>`).join("");
-      if ($("rcount")) $("rcount").textContent = (rankTab === "woche" || rankTab === "bibWoche" ? wk.split("-W")[1] + ". KW · " : "") + rows.length + " Spieler";
+      if ($("rcount")) $("rcount").textContent = (rankTab === "woche" || rankTab === "bibWoche" ? wk.split("-W")[1] + ". KW · " : istBibTab(rankTab) ? "Gemeinde · " : "") + rows.length + " Spieler";
       body.innerHTML = `${pod}${rest ? `<div class="rlist">${rest}</div>` : ""}`;
       body.querySelectorAll("[data-pid]").forEach(b => b.onclick = () => { SFX.tap(); const r = rows.find(x => x.id === b.dataset.pid);
         /* Wochenrunde: Zeilen kommen aus der eigenen Sammlung – für den Vergleich den vollen Eintrag holen */
-        if (rankTab === "bibWoche" && L.holeSpieler) L.holeSpieler(r.id).then(v => profilVergleich(v || r)).catch(() => profilVergleich(r)); else profilVergleich(r); });
+        if ((rankTab === "bibWoche" || rankTab === "bibSpiele") && L.holeSpieler) L.holeSpieler(r.id).then(v => profilVergleich(v || r)).catch(() => profilVergleich(r)); else profilVergleich(r); });
     }
     const mv = myIdx > -1 ? rankWert(rows[myIdx]) : 0;
     const vor = myIdx > -1 && meinPlatz > 1 ? rows.filter((_, i) => platz[i] === meinPlatz - 1) : [];
@@ -2881,6 +2888,21 @@ async function bibSiegerPruefen() {
   save();
 }
 /* Karte über der Wochen-Rangliste: spielen bzw. eigenes Ergebnis, dazu der Sieger der Vorwoche */
+/* 6.48: eine Leiste, für Gespielt / Diese Woche / Rekord gleich aufgebaut – Texte einzeilig (kein Umbruch) */
+function bibInfoLeiste() {
+  const online = !!(S.lbName && !S.offlineOnly), n = bibWocheTage();
+  const leiste = (ic, titel, unter, rechts) => `<div class="bi-leiste">${svg(ic)}<span class="bi-tx"><b>${titel}</b><small>${unter}</small></span>${rechts}</div>`;
+  const wert = w => `<b class="bi-wert">${w}</b>`;
+  if (rankTab === "bibSpiele") return leiste("play", "Deine Spiele", "Solo, Wochenrunde und Duelle", wert(pkt(S.bibSpiele || 0)));
+  if (rankTab === "bibRekord") { const st = BIB_LEITER.filter(p => p <= (S.bibRekord || 0)).length;
+    return leiste("trophy", "Dein Rekord", st ? `Frage ${st} von 15 geschafft` : "Noch kein Spiel", wert(pkt(S.bibRekord || 0))); }
+  const v = bibVorwocheListe && bibVorwocheListe.wk === bibVorwoche() ? bibVorwocheListe.rows : null;
+  const sieger = v && v.length ? v.filter(r => r.p === v[0].p) : [];
+  const vor = sieger.length ? `Letzte Woche: ${sieger.slice(0, 2).map(r => esc(r.name)).join(", ")}${sieger.length > 2 ? " u. a." : ""} · ${pkt(sieger[0].p)}` : "";
+  if (!online) return leiste("crown", "Wochenrunde", "Nur mit Eintrag in der Rangliste", "");
+  if (bibWocheGespielt()) return leiste("crown", "Deine Runde", vor || `Neue Fragen in ${n} ${n === 1 ? "Tag" : "Tagen"}`, wert(pkt(S.bwP)));
+  return leiste("crown", "Wochenrunde", vor || `1 Versuch · noch ${n} ${n === 1 ? "Tag" : "Tage"}`, `<button class="bi-los" id="bwLos">${svg("biblionaer")}Spielen</button>`);
+}
 function bibWocheKarte() {
   const online = !!(S.lbName && !S.offlineOnly);
   const v = bibVorwocheListe && bibVorwocheListe.wk === bibVorwoche() ? bibVorwocheListe.rows : null;
