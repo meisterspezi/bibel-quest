@@ -1967,8 +1967,8 @@ const RANK_KAT = [
   { id: "erfahrung", name: "Erfahrung", icon: "star", tabs: ["woche", "gesamt"] },
   { id: "kette", name: "Kette", icon: "link", tabs: ["kette"] },
   { id: "blitz", name: "Blitz", icon: "bolt", tabs: ["blitz"] },
-  { id: "duell", name: "Arena", icon: "duell", tabs: ["duSiege", "duSpiele"] },
   { id: "biblionaer", name: "Biblionär", icon: "biblionaer", tabs: ["bibWoche", "bibRekord"] },
+  { id: "duell", name: "Arena", icon: "duell", tabs: ["duSiege", "duSpiele"] },
   { id: "ausdauer", name: "Ausdauer", icon: "fire", tabs: ["treue", "bewaehrt", "abzeichen"] }
 ];
 const katVon = tab => RANK_KAT.find(k => k.tabs.includes(tab)) || RANK_KAT[0];
@@ -2846,25 +2846,9 @@ function bibWocheKarte() {
   return `<div class="card bw-karte">${knopf}${vor}</div>`;
 }
 
-/* Symbol „biblionaer“ (6.43): Goldmedaille mit Türkis-Bändern, Fragezeichen und offener Bibel.
-   Beim nächsten Lauf des Symbol-Generators (werkzeuge/symbole-erzeugen.js, Bereich Türkis „bib“) dorthin übernehmen und hier entfernen. */
-(function () {
-  if (document.getElementById("wr-defs-bib")) return;
-  const d = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  d.setAttribute("id", "wr-defs-bib"); d.setAttribute("width", "0"); d.setAttribute("height", "0"); d.setAttribute("aria-hidden", "true"); d.style.position = "absolute";
-  d.innerHTML = '<defs><radialGradient id="wrH_bib"><stop offset="0" stop-color="#fff6d0" stop-opacity=".75"/><stop offset=".5" stop-color="#66e0d0" stop-opacity=".32"/><stop offset="1" stop-color="#66e0d0" stop-opacity="0"/></radialGradient>'
-    + '<linearGradient id="wrT_bib" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e6fffb"/><stop offset=".45" stop-color="#66e0d0"/><stop offset="1" stop-color="#127a78"/></linearGradient>'
-    + '<linearGradient id="wrD_bib" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1f3f7a"/><stop offset="1" stop-color="#0f1a45"/></linearGradient></defs>';
-  document.body.insertBefore(d, document.body.firstChild);
-})();
-ICONS.biblionaer = `<svg x="0" y="0" width="24" height="24" viewBox="0 0 64 64" overflow="visible" class="wr wr-bib"><circle class="wr-halo" cx="32" cy="32" r="31" fill="url(#wrH_bib)"/><ellipse cx="32" cy="61" rx="17" ry="2.2" fill="#000" opacity=".3"/>`
-  + `<path d="M21 38L13 58l7-2 4 6 8-18Z" fill="url(#wrT_bib)" stroke="#1b2a55" stroke-width="1.4" stroke-linejoin="round"/><path d="M43 38l8 20-7-2-4 6-8-18Z" fill="url(#wrT_bib)" stroke="#1b2a55" stroke-width="1.4" stroke-linejoin="round"/>`
-  + `<circle cx="32" cy="28" r="23" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1.6"/><circle cx="32" cy="28" r="20.5" fill="none" stroke="#fff8dc" stroke-width="1" stroke-dasharray="1.6 2.6" opacity=".9"/>`
-  + `<circle cx="32" cy="28" r="16.5" fill="url(#wrD_bib)" stroke="#1b2a55" stroke-width="1.2"/><circle cx="32" cy="28" r="16.5" fill="none" stroke="#66e0d0" stroke-width="1.3" opacity=".8"/>`
-  + `<g transform="translate(32 25.5) scale(1.05)"><path d="M-4.6 -6.4q.6-5.6 5.6-5.6q5.4 0 5.4 4.8q0 3-3.2 4.6q-2.4 1.2-2.4 4" fill="none" stroke="#1b2a55" stroke-width="5.2" stroke-linecap="round"/><path d="M-4.6 -6.4q.6-5.6 5.6-5.6q5.4 0 5.4 4.8q0 3-3.2 4.6q-2.4 1.2-2.4 4" fill="none" stroke="url(#wrG)" stroke-width="3" stroke-linecap="round"/><circle cx=".8" cy="6.6" r="2.34" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1"/></g>`
-  + `<path d="M24.5 38.4c2.5-1 5-1 7.5.4c2.5-1.4 5-1.4 7.5-.4" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" opacity=".85"/><path d="M15 19q4-8 12-10" stroke="#fff" stroke-width="1.8" stroke-linecap="round" fill="none" opacity=".75"/>`
-  + `<path class="wr-spark" d="M51 3l1.49 4.01 4.01 1.49-4.01 1.49-1.49 4.01-1.49-4.01-4.01-1.49 4.01-1.49z" fill="#fff"/></svg>`;
-
+/* Symbol „biblionaer“ (6.43): Michaels eigenes Biblionär-Logo (icons/biblionaer-logo.webp) – überall statt des alten Symbols,
+   auch in Fußleiste, Rangliste und Startkachel. Liegt als Bild im SVG, damit svg("biblionaer") wie bisher funktioniert. */
+ICONS.biblionaer = `<image href="icons/biblionaer-logo.webp" x="-1" y="-1" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>`;
 /* Symbol „telefon“ (Belohnungs-/Joker-Violett) – beim nächsten Lauf des Symbol-Generators dorthin übernehmen */
 ICONS.telefon = `<svg x="0" y="0" width="24" height="24" viewBox="0 0 64 64" overflow="visible" class="wr wr-lohn"><circle class="wr-halo" cx="32" cy="32" r="31" fill="url(#wrH_lohn)"/><ellipse cx="32" cy="61" rx="17" ry="2.2" fill="#000" opacity=".3"/><path d="M15 9.5c2.6-1.9 6.3-1.2 7.6 1.8l4.2 9.4c1.1 2.5.2 5.4-2.1 6.8l-3.4 2.1c2.8 6.4 7.4 11.1 13.6 14.1l2.2-3.3c1.5-2.2 4.4-3 6.8-1.9l9.3 4.3c3 1.4 3.6 5.2 1.6 7.7l-3.6 4.4c-2.8 3.4-7.6 4.6-11.7 2.9C26.5 52.6 15.6 41.8 10.4 28.7 8.8 24.6 10 19.9 13.4 17.1z" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1.6" stroke-linejoin="round"/><path d="M14.6 14.2c-2.4 2.7-3 6.6-1.6 10" stroke="#fff" stroke-width="2.2" stroke-linecap="round" fill="none" opacity=".75"/><path d="M37 8.5a19 19 0 0 1 18.5 18.5M37 16a11.5 11.5 0 0 1 11 11" stroke="url(#wrX_lohn)" stroke-width="3.4" stroke-linecap="round" fill="none"/><path d="M37 8.5a19 19 0 0 1 18.5 18.5M37 16a11.5 11.5 0 0 1 11 11" stroke="#1b2a55" stroke-width=".8" stroke-linecap="round" fill="none" opacity=".5"/><path class="wr-spark" d="M54 42.5l1.49 4.01 4.01 1.49-4.01 1.49-1.49 4.01-1.49-4.01-4.01-1.49 4.01-1.49z" fill="#fff"/></svg>`;
 /* ---------- Telefonjoker (6.42, ersetzt den Joker „Bibelstelle“) – Kontakt 1: Pastor Willi ----------
