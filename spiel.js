@@ -2301,8 +2301,21 @@ function duFrage(art, k) {
    Herausforderer zieht eine offene Herausforderung zurück (Duell wird gelöscht),
    Gegenspieler lehnt ab, solange er noch nicht gespielt hat (Status „abgelehnt“, der Herausforderer sieht es). */
 function duNeuZeichnen() { if (current === "duelle") VIEWS.duelle(); else if (current === "bib") VIEWS.bib(); }
+/* 6.50: Abbrechen erst 24 Stunden nach der eigenen Runde – damit niemand schlechte Runden gleich wieder löscht.
+   „erstellt“ ist die Serverzeit, zu der die Runde gespielt und die Herausforderung abgeschickt wurde. */
+const DU_STOP_SPERRE = 24 * 36e5;
+function duStopAb(d) { return (d.erstellt || Date.now()) + DU_STOP_SPERRE; }
+function duStopGesperrt(d) { return Date.now() < duStopAb(d); }
+function duStopZeit(d) { const ab = new Date(duStopAb(d)), heute = new Date(), uhr = ab.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+  return `${ab.toDateString() === heute.toDateString() ? "heute" : "morgen"} um ${uhr} Uhr`; }
+function duStopKnopfIc(d) { return svg(duStopGesperrt(d) ? "lock" : "nein"); }
+function duStopLabel(d) { return duStopGesperrt(d) ? `Abbrechen erst ${duStopZeit(d)} möglich` : `Herausforderung an ${d.anName} abbrechen`; }
 function duAbbrechenFrage(d) {
   const L = window.LB;
+  if (duStopGesperrt(d)) {
+    const std = Math.max(1, Math.ceil((duStopAb(d) - Date.now()) / 36e5));
+    return modal(`<div class="label">Noch gesperrt</div><h2>${esc(d.anName)}</h2><p class="muted">Eine Herausforderung kannst du erst <b>24 Stunden nach deiner Runde</b> abbrechen – so kann niemand schwache Runden einfach wieder löschen.</p><p>Abbrechen möglich <b>${esc(duStopZeit(d))}</b> (noch ${std === 1 ? "etwa 1 Stunde" : `${std} Stunden`}).</p><button class="btn primary" data-close="ok">Verstanden</button>`);
+  }
   modal(`<div class="label">Herausforderung abbrechen?</div><h2>${esc(d.anName)}</h2><p class="muted">${esc(d.anName)} sieht dieses ${esc(duTypText(d))}-Duell dann nicht mehr. Deine ${duP(d.vonErg.p)} Punkte aus dieser Runde verfallen.</p><button class="btn primary" data-close="nein">Weiter warten</button><button class="btn ghost" data-close="stop">${svg("nein")} Herausforderung abbrechen</button>`,
     r => { if (r !== "stop") return;
       L.duellLoeschen(d.id).then(() => { duListe = (duListe || []).filter(x => x.id !== d.id); duNeuZeichnen(); toast(`${svg("nein", "var(--muted)")}<div>Herausforderung an <b>${esc(d.anName)}</b> abgebrochen.</div>`); })
@@ -2420,7 +2433,7 @@ VIEWS.duelle = () => {
       <span class="ar-vor"><b>${duP(d.vonErg.p)}</b><small class="ar-zeit">noch ${tageText(n)}</small></span>
       <span class="ar-knoepfe"><button class="ar-antreten" data-an="${d.id}">${svg("bolt")}Antreten</button><button class="ar-rev" data-ab="${d.id}" aria-label="Ablehnen">${svg("nein")}</button></span></li>`; };
   const warteZeile = d => { const n = tage(d.ablauf), weg = Math.min(100, Math.max(4, Math.round((1 - (d.ablauf - jetzt) / (7 * 864e5)) * 100)));
-    return `<li class="ar-zeile warte"><span class="du-medaille t-${art(d)}">${esc(duInitialen(d.anName))}</span><span class="ar-tx"><b>${esc(d.anName)}</b><span>${duMarke(d)} deine <b class="du-gold">${duP(d.vonErg.p)}</b></span><i class="du-uhr" aria-label="noch ${tageText(n)}"><i style="width:${weg}%"></i></i></span><span class="du-tage">${n}<small>${n === 1 ? "Tag" : "Tage"}</small></span><button class="ar-rev ar-stop" data-stop="${d.id}" aria-label="Herausforderung an ${esc(d.anName)} abbrechen">${svg("nein")}</button></li>`; };
+    return `<li class="ar-zeile warte"><span class="du-medaille t-${art(d)}">${esc(duInitialen(d.anName))}</span><span class="ar-tx"><b>${esc(d.anName)}</b><span>${duMarke(d)} deine <b class="du-gold">${duP(d.vonErg.p)}</b></span><i class="du-uhr" aria-label="noch ${tageText(n)}"><i style="width:${weg}%"></i></i></span><span class="du-tage">${n}<small>${n === 1 ? "Tag" : "Tage"}</small></span><button class="ar-rev ar-stop${duStopGesperrt(d) ? " gesperrt" : ""}" data-stop="${d.id}" aria-label="${esc(duStopLabel(d))}">${duStopKnopfIc(d)}</button></li>`; };
   const titel = (ic, t, n) => `<div class="ar-label">${svg(ic)}<span>${t}</span>${n ? `<i>${n}</i>` : ""}</div>`;
   screen.innerHTML = `
     ${duArenaHtml(fuerMich)}
@@ -3359,7 +3372,7 @@ VIEWS.bib = () => {
     ? `<p class="small muted bq2-leer">${window.LB && window.LB.ok ? "Für Duelle brauchst du einen Eintrag in der Gemeinde-Rangliste." : "Für Duelle brauchst du Internet."}</p>`
     : `${duListe === null ? `<p class="small muted du-laden">${svg("biblionaer")} Lade Duelle …</p>` : ""}
       ${dran.length ? `<ul class="bq2-liste">${dran.map(dranZeile).join("")}</ul>` : ""}
-      ${warte.length ? `<div class="bq2-warte">${svg("sun")}<span>Wartet auf:</span>${warte.map(d => `<button class="du-chip bq-stop" data-bqstop="${d.id}" aria-label="Herausforderung an ${esc(d.anName)} abbrechen">${esc(d.anName)}${svg("nein")}</button>`).join("")}</div>` : ""}
+      ${warte.length ? `<div class="bq2-warte">${svg("sun")}<span>Wartet auf:</span>${warte.map(d => `<button class="du-chip bq-stop${duStopGesperrt(d) ? " gesperrt" : ""}" data-bqstop="${d.id}" aria-label="${esc(duStopLabel(d))}">${esc(d.anName)}${duStopKnopfIc(d)}</button>`).join("")}</div>` : ""}
       ${fertig.length ? `<div class="bq2-erg">${fertig.map(ergKachel).join("")}</div>` : ""}
       ${!dran.length && !warte.length && !fertig.length && duListe !== null ? `<p class="small muted bq2-leer">Noch keine Duelle – fordere oben jemanden heraus. Ihr bekommt beide dieselben 15 Fragen.</p>` : ""}
       ${andere > 0 ? `<button class="ar-mehr bq2-mehr" data-go="duelle">${andere} ${andere === 1 ? "weiteres Duell wartet" : "weitere Duelle warten"} in der Arena</button>` : ""}`;
