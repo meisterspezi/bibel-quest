@@ -1,4 +1,4 @@
-const APP_VERSION = "6.39";
+const APP_VERSION = "6.40";
 /* =====================================================================
    Bibelbuch-Quest – Spieldaten
    Bücher (Schlachter 2000), Lieder, Bibelverse (Schlachter 2000 © Genfer Bibelgesellschaft),
@@ -326,6 +326,11 @@ const BADGES = [
   { id: "duSteine5", kat: "duell", name: "Fünf glatte Steine", d: "5 Duelle gewonnen (1. Samuel 17,40)", ic: "crown", tal: 15, ok: s => (s.duSiege || 0) >= 5 },
   { id: "duKampf", kat: "duell", name: "Der gute Kampf", d: "50 Duelle gespielt (2. Timotheus 4,7)", ic: "duell", tal: 30, ok: s => (s.duSpiele || 0) >= 50 },
   { id: "duHelden", kat: "duell", name: "Davids Helden", d: "25 Duelle gewonnen (2. Samuel 23,8)", ic: "crown", tal: 40, ok: s => (s.duSiege || 0) >= 25 },
+
+  // „Wer wird Biblionär?“ (6.40)
+  { id: "bib16", kat: "koennen", name: "Auf Felsen gebaut", d: "Bei „Wer wird Biblionär?“ die Sicherheitsstufe 16.000 erreicht (Matthäus 7,24)", ic: "biblionaer", tal: 10, ok: s => (s.bibRekord || 0) >= 16000 },
+  { id: "biblionaer", kat: "koennen", name: "Biblionär", d: "Bei „Wer wird Biblionär?“ alle 15 Fragen richtig – 1.000.000 Punkte (Psalm 19,11)", ic: "biblionaer", tal: 40, ok: s => (s.bibRekord || 0) >= 1000000 },
+  { id: "bibWoche", kat: "gemeinschaft", name: "Biblionär der Woche", d: "Platz 1 in der Wochenrunde von „Wer wird Biblionär?“", ic: "crown", tal: 15, ok: s => (s.bwSiege || []).length >= 1 },
 
   { id: "shop", kat: "schatz", name: "Neuer Glanz", d: "Etwas im Talente-Laden gekauft", ic: "gem", ok: s => kaufAnzahl(s) >= 1 },
   { id: "schatz", kat: "schatz", name: "Schatzsucher", d: "5 Dinge im Laden gekauft (Matthäus 13,44)", ic: "gem", tal: 10, ok: s => kaufAnzahl(s) >= 5 },

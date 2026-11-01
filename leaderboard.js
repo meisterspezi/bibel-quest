@@ -169,11 +169,23 @@ if (!configured) {
       const s = await fs.getDocs(fs.query(duelle, fs.where("teil", "array-contains", pid), fs.limit(60)));
       return s.docs.map(duDaten).sort((x, y) => y.erstellt - x.erstellt);
     };
+    // „Biblionär der Woche“ (6.40): eigene Sammlung biblionaer/{Woche}_{pid} = { pid, wk, p, name, av, fr, lv }
+    // (nicht im Ranglisten-Eintrag, weil dessen Regel an der Grenze von 1000 Rechenschritten ist)
+    const bibliothek = fs.collection(db, "biblionaer");
+    const bibZeile = d => { const x = d.data(); return { id: x.pid, name: x.name, avatar: x.av, frame: x.fr, level: x.lv || 1, bwK: x.wk, bwP: x.p || 0, p: x.p || 0 }; };
+    LB.bibWocheSetzen = async (e) => {
+      await LB.signIn();
+      const d = { pid: e.pid, wk: e.wk, p: e.p | 0, name: String(e.name || "").slice(0, 20), lv: Math.min(e.lv | 0 || 1, 1000), updated: fs.serverTimestamp() };
+      if (e.av) d.av = String(e.av).slice(0, 20); if (e.fr) d.fr = String(e.fr).slice(0, 20);
+      await fs.setDoc(ref("biblionaer", e.wk + "_" + e.pid), d);
+    };
+    LB.bibWoche = async (week) => (await fs.getDocs(fs.query(bibliothek, fs.where("wk", "==", week), fs.limit(500)))).docs.map(bibZeile);
     LB.gegnerListe = async () => aktiv((await fs.getDocs(fs.query(spieler, fs.orderBy("xp", "desc"), fs.limit(150)))).docs);
 
     // Live-Listen
-    const FELD = { gesamt: "xp", kette_bibel: "bestChain", kette_at: "chainAT", kette_nt: "chainNT", kette_rueck: "chainRueck", treue: "t28", bewaehrt: "bew", abzeichen: "badges", blitz: "blitz", combo: "combo", duSiege: "duS", duSpiele: "duG" };
+    const FELD = { gesamt: "xp", kette_bibel: "bestChain", kette_at: "chainAT", kette_nt: "chainNT", kette_rueck: "chainRueck", treue: "t28", bewaehrt: "bew", abzeichen: "badges", blitz: "blitz", combo: "combo", duSiege: "duS", duSpiele: "duG", bibRekord: "bib" };
     LB.watch = (kind, week, cb, onErr) => {
+      if (kind === "bibWoche") return fs.onSnapshot(fs.query(bibliothek, fs.where("wk", "==", week), fs.limit(500)), snap => cb(snap.docs.map(bibZeile)), e => onErr && onErr(e));
       const q = kind === "woche"
         ? fs.query(spieler, fs.where("week", "==", week), fs.limit(500))
         : fs.query(spieler, fs.orderBy(FELD[kind] || "xp", "desc"), fs.limit(100));

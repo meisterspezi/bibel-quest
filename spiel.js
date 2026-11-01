@@ -975,7 +975,7 @@ function go(name, arg) {
 }
 /* Untere Menüleiste: zu welchem Reiter gehört eine Ansicht? */
 const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Spielen", "bolt"], ["duelle", "Arena", "duell"], ["rank", "Gemeinde", "trophy"], ["ich", "Laden", "shop"]];
-const TAB_VON = { duell: "duelle", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen",
+const TAB_VON = { duell: "duelle", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen", biblionaer: "spielen",
   shop: "ich" };
 /* rote Zahl am Duell-Reiter: wartende Herausforderungen */
 function tbDuSetzen() { const t = $("tbDu"); if (!t) return; const n = typeof duFuerMich === "function" ? duFuerMich().length : 0; t.hidden = !n; t.textContent = n; }
@@ -1257,6 +1257,10 @@ VIEWS.spielen = () => {
   screen.innerHTML = `${seitenKopf("Spielen", `${svg("siegel")}${siegelZahl}/${Object.keys(KETTEN).length}`)}
   <div class="stack">
     <button class="bereich" data-go="blitz"><span class="b-ic">${svg("bolt")}</span><span class="b-tx"><b>Blitz-Runde</b><span>60 Sekunden: Was kommt danach?</span></span><span class="b-info">${S.bestBlitz ? "Rekord " + S.bestBlitz : ""}</span></button>
+    <div class="bib-paar">
+      <button class="bereich bib-karte" id="bibSoloBtn"><span class="b-ic">${svg("biblionaer")}</span><span class="b-tx"><b>Wer wird Biblionär?</b><span>15 Bibelfragen bis 1 Million · 3 Joker</span></span><span class="b-info">${S.bibRekord ? "Rekord<br>" + pkt(S.bibRekord) : "Neu"}</span></button>
+      <button class="bib-woche-zeile" id="bibWocheBtn">${svg("crown")}<span><b>Biblionär der Woche</b><small>${bibWocheGespielt() ? `Deine Runde: ${pkt(S.bwP)} Punkte · zur Rangliste` : "Gleiche Fragen für alle · 1 Versuch"}</small></span>${bibWocheGespielt() ? svg("check", "var(--good)") : `<i class="bw-neu">noch ${bibWocheTage()} T.</i>`}</button>
+    </div>
     <details class="erklaer"><summary><span class="label">Die Kette – ein Fehler beendet sie</span><span class="ek-i" aria-label="Erklärung">?</span></summary>
     <p class="small muted">Wer eine Kette komplett schafft, bekommt ein Siegel. Wiederhole sie in verschiedenen Wochen und Monaten für Silber, Gold und Diamant. Nach ${SIEGEL_FRISCH} Tagen verblasst ein Siegel – dann einfach auffrischen.</p></details>
     ${Object.entries(KETTEN).map(([id, k]) => { const max = k.seq.length, rec = kettenBuecher(k.key), voll = rec >= max, t = S.meister[id] || [], st = siegelStufe(t), fr = siegelFrisch(t);
@@ -1267,6 +1271,8 @@ VIEWS.spielen = () => {
   </div>`;
   wireGo();
   screen.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playChain(b.dataset.k)); });
+  $("bibSoloBtn").onclick = () => { SFX.tap(); bibSolo(); };
+  $("bibWocheBtn").onclick = () => { SFX.tap(); go("rank", "bibWoche"); };
 };
 
 /* ---------- Geführte Lektion: ansehen → anhören → ordnen ---------- */
@@ -1780,6 +1786,7 @@ function lbPayload() {
     atP: fortschritt().atP, ntP: fortschritt().ntP,
     tl: S.tage.filter(n => n > dayNum(today()) - 31).slice(-31), t28: tage28(S.tage),
     sg: siegelDaten().sg, bew: siegelDaten().bew, duS: Math.min(S.duSiege | 0, 100000), duG: Math.min(S.duSpiele | 0, 100000),
+    bib: Math.min(S.bibRekord | 0, 1000000),
     ...(S.eingeladenVon && S.eingeladenVon !== S.pid ? { von: S.eingeladenVon } : {})
   };
 }
@@ -1790,7 +1797,16 @@ function lbSync(now) {
   clearTimeout(lbTimer);
   lbTimer = setTimeout(() => {
     const opts = {}; if (!S.ownersSet && eigenePid(S.pid)) opts.owners = [L.uid];
-    L.push(S.pid, lbPayload(), opts).then(() => { if (opts.owners) { S.ownersSet = true; try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} geraetSpeichern(); } }).catch(e => dbFehler("Rangliste speichern", e));
+    const ok = () => { if (opts.owners) { S.ownersSet = true; try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} geraetSpeichern(); } };
+    /* Übergang 6.40: Solange die neuen Firebase-Regeln (Biblionär-Felder) noch nicht veröffentlicht sind, ohne diese Felder speichern */
+    const ohneBib = () => { const d = lbPayload(); delete d.bib; return d; };
+    /* Wochenrunde „Biblionär“ steht in einer eigenen Sammlung (die Ranglisten-Regel ist an ihrer Rechengrenze) */
+    if (S.bwK && L.bibWocheSetzen && S.bwSync !== S.bwK + ":" + (S.bwP | 0)) { const sig = S.bwK + ":" + (S.bwP | 0);
+      L.bibWocheSetzen({ pid: S.pid, wk: S.bwK, p: Math.min(S.bwP | 0, 1000000), name: S.lbName, av: S.avatar, fr: S.frame, lv: levelOf(S.xp) }).then(() => { S.bwSync = sig; save(); }).catch(e => dbFehler("Wochenrunde speichern", e)); }
+    L.push(S.pid, lbPayload(), opts).then(ok).catch(e => {
+      if (e && e.code === "permission-denied") return L.push(S.pid, ohneBib(), opts).then(ok).catch(e2 => dbFehler("Rangliste speichern", e2));
+      dbFehler("Rangliste speichern", e);
+    });
   }, now ? 0 : 2500);
 }
 /* Datenbankfehler (z. B. abgelehnt durch die Regeln) an den Verwalter melden – Verbindungsprobleme nicht */
@@ -1810,7 +1826,12 @@ function spielstandExport() { const c = JSON.parse(JSON.stringify(S)); delete c.
 function zusammenfuehren(r) {
   if (!r || typeof r !== "object") return;
   const max = k => { S[k] = Math.max(+S[k] || 0, +r[k] || 0); };
-  ["xp", "tal", "right", "bestStreak", "bestChain", "chainAT", "chainNT", "chainRueck", "bestBlitz", "bestCombo", "questBonusCount", "bestGoalStreak", "bestDayRight", "duSiege", "duSpiele", "duGesendet", "duAngenommen", "lvLohn"].forEach(max);
+  ["xp", "tal", "right", "bestStreak", "bestChain", "chainAT", "chainNT", "chainRueck", "bestBlitz", "bestCombo", "questBonusCount", "bestGoalStreak", "bestDayRight", "duSiege", "duSpiele", "duGesendet", "duAngenommen", "lvLohn", "bibRekord", "bibSpiele", "bibMillion"].forEach(max);
+  /* Wochenrunde: die neuere Woche gewinnt; in derselben Woche zählt der höhere Wert (ein Versuch wird nie zurückgesetzt) */
+  if ((r.bwK || "") > (S.bwK || "")) { if (S.bwK && S.bwK !== r.bwK) { S.bwVK = S.bwK; S.bwVP = S.bwP | 0; } S.bwK = r.bwK; S.bwP = r.bwP | 0; S.bwFertig = !!r.bwFertig; }
+  else if (r.bwK && r.bwK === S.bwK) { S.bwP = Math.max(S.bwP | 0, r.bwP | 0); S.bwFertig = !!(S.bwFertig || r.bwFertig); }
+  if ((r.bwVK || "") > (S.bwVK || "") && r.bwVK !== S.bwK) { S.bwVK = r.bwVK; S.bwVP = r.bwVP | 0; }
+  S.bwSiege = [...new Set([...(S.bwSiege || []), ...(Array.isArray(r.bwSiege) ? r.bwSiege : [])])].slice(-60);
   S.duArten = [...new Set([...(S.duArten || []), ...(Array.isArray(r.duArten) ? r.duArten : [])])]; S.duKetteVoll = !!(S.duKetteVoll || r.duKetteVoll);
   S.duGes = [...new Set([...(S.duGes || []), ...(Array.isArray(r.duGes) ? r.duGes : [])])].slice(-60);
   ["aufgefrischt", "eingeladen", "fischerDabei", "menschenfischer"].forEach(k => { S[k] = !!(S[k] || r[k]); });
@@ -1895,13 +1916,14 @@ async function lbStart() {
         const td = $("torDuell"), n = duFuerMich().length; if (td && current === "home") { const pk = td.querySelector(".du-punkt"); if (pk) pk.remove(); if (n) { td.insertAdjacentHTML("beforeend", `<i class="du-punkt">${n}</i>`); td.setAttribute("aria-label", `Arena – ${n} ${n === 1 ? "Herausforderung wartet" : "Herausforderungen warten"}`); } }
         if ((current === "spielen" || current === "duelle") && !document.querySelector(".modal") && !duSpiel) go(current);
       });
+      bibSiegerPruefen();
     }
   } catch (e) {}
 }
 const uidAnderweitigBelegt = () => { const L = window.LB; return GERAET.liste.some(p => p.key !== GERAET.aktiv && p.pid === L.uid); };
 /* Werte eines Ranglisten-Eintrags als Spielstand (falls kein Online-Spielstand vorhanden ist) */
 function ausRangliste(d) {
-  return { weekKey: d.week, weekXp: d.weekXp || 0, xp: d.xp, bestChain: d.bestChain, chainAT: d.chainAT, chainNT: d.chainNT, chainRueck: d.chainRueck, bestBlitz: d.blitz, bestCombo: d.combo, bestStreak: d.bestStreak, badges: d.badgeIds || [], tage: Array.isArray(d.tl) ? d.tl : [], duSiege: d.duS || 0, duSpiele: d.duG || 0 };
+  return { weekKey: d.week, weekXp: d.weekXp || 0, xp: d.xp, bestChain: d.bestChain, chainAT: d.chainAT, chainNT: d.chainNT, chainRueck: d.chainRueck, bestBlitz: d.blitz, bestCombo: d.combo, bestStreak: d.bestStreak, badges: d.badgeIds || [], tage: Array.isArray(d.tl) ? d.tl : [], duSiege: d.duS || 0, duSpiele: d.duG || 0, bibRekord: d.bib || 0 };
 }
 /* Gerät hat schon einen Ranglisten-Eintrag, aber kein Name ist gespeichert: nachfragen */
 function wiedererkennen(r) {
@@ -1954,7 +1976,9 @@ const RANK_TABS = {
   abzeichen: { label: "Abzeichen", val: r => r.badges || 0, unit: "", titel: "Abzeichen-Sammler" },
   blitz: { label: "Blitz", unit: "Richtige", titel: "Blitz-Rekord" },
   duSiege: { label: "Siege", val: r => r.duS || 0, unit: "Siege", titel: "Siege in der Arena" },
-  duSpiele: { label: "Gespielt", val: r => r.duG || 0, unit: "Duelle", titel: "Duelle in der Arena" }
+  duSpiele: { label: "Gespielt", val: r => r.duG || 0, unit: "Duelle", titel: "Duelle in der Arena" },
+  bibWoche: { label: "Woche", val: r => (r.bwK === weekKey() ? r.bwP || 0 : 0), unit: "Punkte", titel: "Biblionär der Woche" },
+  bibRekord: { label: "Rekord", val: r => r.bib || 0, unit: "Punkte", titel: "Biblionär-Rekord" }
 };
 /* Vier Kategorien; Unterteilungen erscheinen als kleiner Umschalter im Listenkopf */
 const RANK_KAT = [
@@ -1962,11 +1986,12 @@ const RANK_KAT = [
   { id: "kette", name: "Kette", icon: "link", tabs: ["kette"] },
   { id: "blitz", name: "Blitz", icon: "bolt", tabs: ["blitz"] },
   { id: "duell", name: "Arena", icon: "duell", tabs: ["duSiege", "duSpiele"] },
+  { id: "biblionaer", name: "Biblionär", icon: "biblionaer", tabs: ["bibWoche", "bibRekord"] },
   { id: "ausdauer", name: "Ausdauer", icon: "fire", tabs: ["treue", "bewaehrt", "abzeichen"] }
 ];
 const katVon = tab => RANK_KAT.find(k => k.tabs.includes(tab)) || RANK_KAT[0];
 const letzterTab = {};
-const TAB_LABEL = { woche: "Woche", gesamt: "Gesamt", kette: "Kette", blitz: "Blitz", treue: "Spieltage", bewaehrt: "Bewährt", abzeichen: "Abzeichen", duSiege: "Siege", duSpiele: "Gespielt" };
+const TAB_LABEL = { woche: "Woche", gesamt: "Gesamt", kette: "Kette", blitz: "Blitz", treue: "Spieltage", bewaehrt: "Bewährt", abzeichen: "Abzeichen", duSiege: "Siege", duSpiele: "Gespielt", bibWoche: "Diese Woche", bibRekord: "Rekord" };
 const BLITZ_SUB = { richtige: ["Richtige", "blitz", "Richtige", "Blitz-Rekord"], folge: ["In Folge", "combo", "in Folge", "Richtige in Folge (60 Sek.)"] };
 let blitzSub = "richtige";
 const KETTE_SUB = { bibel: ["Bibel", "bestChain", 66], at: ["AT", "chainAT", 39], nt: ["NT", "chainNT", 27], rueck: ["Rückwärts", "chainRueck", 66] };
@@ -1997,7 +2022,8 @@ VIEWS.rank = (tab) => {
   screen.innerHTML = html + `<div class="stack rk">
     <nav class="kb-tabs rk-nav" aria-label="Ranglisten" style="grid-template-columns:repeat(${RANK_KAT.length},1fr)">${RANK_KAT.map(k => `<button data-kat="${k.id}" aria-pressed="${k.id === kat.id}" aria-selected="${k.id === kat.id}">${svg(k.icon)}<span>${k.name}</span></button>`).join("")}</nav>
     <div class="card rk-liste">
-      <div class="rk-kopf"><div><b>${esc(titel)}</b><span class="small muted" id="rcount">${rankTab === "woche" ? weekKey().split("-W")[1] + ". Kalenderwoche" : ""}</span></div>${varianten ? `<div class="rk-var" role="group" aria-label="Variante">${varianten}</div>` : ""}</div>
+      ${rankTab === "bibWoche" ? `<div id="bwBox">${bibWocheKarte()}</div>` : ""}
+      <div class="rk-kopf"><div><b>${esc(titel)}</b><span class="small muted" id="rcount">${rankTab === "woche" || rankTab === "bibWoche" ? weekKey().split("-W")[1] + ". Kalenderwoche" : ""}</span></div>${varianten ? `<div class="rk-var" role="group" aria-label="Variante">${varianten}</div>` : ""}</div>
       <div id="rbody"><p class="muted" style="margin:0">Lade Rangliste …</p></div>
     </div>
     <div class="du-bar" id="rme"></div>
@@ -2007,6 +2033,8 @@ VIEWS.rank = (tab) => {
   screen.querySelectorAll("[data-kat]").forEach(b => b.onclick = () => { SFX.tap(); const k = RANK_KAT.find(x => x.id === b.dataset.kat); go("rank", letzterTab[k.id] || k.tabs[0]); });
   screen.querySelectorAll("[data-sub]").forEach(b => b.onclick = () => { SFX.tap(); ketteSub = b.dataset.sub; go("rank", "kette"); });
   screen.querySelectorAll("[data-bsub]").forEach(b => b.onclick = () => { SFX.tap(); blitzSub = b.dataset.bsub; go("rank", "blitz"); });
+  const bwVerdrahten = () => { const b = $("bwLos"); if (b) b.onclick = () => { SFX.tap(); bibWocheStarten(); }; };
+  if (rankTab === "bibWoche") { bwVerdrahten(); bibSiegerPruefen().then(() => (bibVorwocheListe ? bibVorwocheListe : bibVorwocheLaden())).then(() => { const box = $("bwBox"); if (box && current === "rank") { box.innerHTML = bibWocheKarte(); bwVerdrahten(); } }); }
   const me = S.pid || L.uid; const wk = weekKey(); let zeilen = [];
   lbUnsub.push(L.watch(rankKind(), wk, rows => {
     if (current !== "rank") return;
@@ -2032,22 +2060,24 @@ VIEWS.rank = (tab) => {
       const ext = r => rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor);
       const person = (r, sz) => `<button class="gk-p ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}">${avatarLv(r, sz)}<b>${esc(r.name)}</b>${ext(r)}</button>`;
       const gold = `<div class="gk-gold"><span class="pod-krone">${svg("crown")}</span>
-        <div class="gk-t">${voll ? vollText : `Platz 1 · ${wert1} ${esc(unit)}`}${g1.length > 1 ? `<small>${g1.length} Spieler teilen sich Platz 1</small>` : voll ? `<small>${wert1} ${esc(unit)}</small>` : ""}</div>
+        <div class="gk-t">${voll ? vollText : `Platz 1 · ${pkt(wert1)} ${esc(unit)}`}${g1.length > 1 ? `<small>${g1.length} Spieler teilen sich Platz 1</small>` : voll ? `<small>${wert1} ${esc(unit)}</small>` : ""}</div>
         <div class="gk-leute">${g1.map(r => person(r, g1.length > 4 ? 44 : 50)).join("")}</div></div>`;
-      const klein = (n, g) => g.length ? `<div class="gk-k gk-k${n} gk-licht"><div class="gk-h"><span class="gk-med">${n}</span><span>${rankWert(g[0])} ${esc(unit)}</span></div>
+      const klein = (n, g) => g.length ? `<div class="gk-k gk-k${n} gk-licht"><div class="gk-h"><span class="gk-med">${n}</span><span>${pkt(rankWert(g[0]))} ${esc(unit)}</span></div>
         <div class="gk-stapel">${g.slice(0, 5).map(r => `<button data-pid="${esc(r.id)}" class="${r.id === me ? "me" : ""}">${avatarLv(r, 36)}</button>`).join("")}${g.length > 5 ? `<span class="gk-mehr">+${g.length - 5}</span>` : ""}</div>
         <div class="gk-wer">${g.slice(0, 3).map(r => `<div class="${r.id === me ? "me" : ""}"><b>${esc(r.name)}</b>${ext(r)}</div>`).join("")}${g.length > 3 ? `<div class="small muted">+${g.length - 3} weitere</div>` : ""}</div></div>` : "";
       const pod = `<div class="gk">${gold}${g2.length ? `<div class="gk-zd">${klein(2, g2)}${klein(3, g3)}</div>` : ""}</div>`;
-      const rest = rows.map((r, i) => [r, platz[i]]).filter(([, p]) => p > 3).slice(0, 80).map(([r, p], k, arr) => `<button class="rrow ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}"><div class="rk">${k && arr[k - 1][1] === p ? "" : p}</div>${avatarLv(r, 38)}<div class="who"><b>${esc(r.name)}${r.id === me ? '<span class="you">DU</span>' : ""}</b><span>${esc(rangVon(r))}</span>${rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)}</div><div class="val">${rankWert(r)}</div></button>`).join("");
-      if ($("rcount")) $("rcount").textContent = (rankTab === "woche" ? wk.split("-W")[1] + ". KW · " : "") + rows.length + " Spieler";
+      const rest = rows.map((r, i) => [r, platz[i]]).filter(([, p]) => p > 3).slice(0, 80).map(([r, p], k, arr) => `<button class="rrow ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}"><div class="rk">${k && arr[k - 1][1] === p ? "" : p}</div>${avatarLv(r, 38)}<div class="who"><b>${esc(r.name)}${r.id === me ? '<span class="you">DU</span>' : ""}</b><span>${esc(rangVon(r))}</span>${rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)}</div><div class="val">${pkt(rankWert(r))}</div></button>`).join("");
+      if ($("rcount")) $("rcount").textContent = (rankTab === "woche" || rankTab === "bibWoche" ? wk.split("-W")[1] + ". KW · " : "") + rows.length + " Spieler";
       body.innerHTML = `${pod}${rest ? `<div class="rlist">${rest}</div>` : ""}`;
-      body.querySelectorAll("[data-pid]").forEach(b => b.onclick = () => { SFX.tap(); profilVergleich(rows.find(r => r.id === b.dataset.pid)); });
+      body.querySelectorAll("[data-pid]").forEach(b => b.onclick = () => { SFX.tap(); const r = rows.find(x => x.id === b.dataset.pid);
+        /* Wochenrunde: Zeilen kommen aus der eigenen Sammlung – für den Vergleich den vollen Eintrag holen */
+        if (rankTab === "bibWoche" && L.holeSpieler) L.holeSpieler(r.id).then(v => profilVergleich(v || r)).catch(() => profilVergleich(r)); else profilVergleich(r); });
     }
     const mv = myIdx > -1 ? rankWert(rows[myIdx]) : 0;
     const vor = myIdx > -1 && meinPlatz > 1 ? rows.filter((_, i) => platz[i] === meinPlatz - 1) : [];
     const ahead = vor.length ? rankWert(vor[0]) - mv : 0;
     const ich = myIdx > -1 ? rows[myIdx] : { name: S.lbName, avatar: S.avatar, frame: S.frame, level: levelOf(S.xp) };
-    $("rme").innerHTML = `${avatarLv(ich, 36)}<div class="du-tx"><b>Platz ${meinPlatz || "–"} · ${mv} ${esc(unit || "")}</b><span>${vor.length ? `Noch ${ahead + 1} bis Platz ${meinPlatz - 1} (${esc(vor[0].name)}${vor.length > 1 ? " u. a." : ""})` : meinPlatz === 1 ? "Du bist an der Spitze!" : "Spiel eine Runde für deinen Platz"}</span></div>${meinPlatz === 1 ? `<span class="du-krone">${svg("crown")}</span>` : ""}`;
+    $("rme").innerHTML = `${avatarLv(ich, 36)}<div class="du-tx"><b>Platz ${meinPlatz || "–"} · ${pkt(mv)} ${esc(unit || "")}</b><span>${vor.length ? `Noch ${pkt(ahead + 1)} bis Platz ${meinPlatz - 1} (${esc(vor[0].name)}${vor.length > 1 ? " u. a." : ""})` : meinPlatz === 1 ? "Du bist an der Spitze!" : rankTab === "bibWoche" ? (bibWocheGespielt() ? "Deine Runde ist gespielt" : "Spiel die Wochenrunde für deinen Platz") : "Spiel eine Runde für deinen Platz"}</span></div>${meinPlatz === 1 ? `<span class="du-krone">${svg("crown")}</span>` : ""}`;
   }, () => { if ($("rbody")) $("rbody").innerHTML = `<p class="muted" style="margin:0">Rangliste konnte nicht geladen werden. Prüfe die Internetverbindung.</p>`; }));
 };
 /* Name wählen (Pflicht): neuer Spieler oder bestehenden Spieler aus der Rangliste */
@@ -2219,7 +2249,8 @@ const DU_TYPEN = {
   "kette-bibel": { art: "kette", k: "bibel", name: "Kette Bibel", ic: "kette-bibel", info: "Ganze Bibel Buch für Buch · ein Fehler beendet sie" },
   "kette-at": { art: "kette", k: "at", name: "Kette AT", ic: "kette-at", info: "1. Mose bis Maleachi · ein Fehler beendet sie" },
   "kette-nt": { art: "kette", k: "nt", name: "Kette NT", ic: "kette-nt", info: "Matthäus bis Offenbarung · ein Fehler beendet sie" },
-  "kette-rueck": { art: "kette", k: "rueck", name: "Rückwärts", ic: "kette-rueck", info: "Offenbarung bis 1. Mose · für Profis" }
+  "kette-rueck": { art: "kette", k: "rueck", name: "Rückwärts", ic: "kette-rueck", info: "Offenbarung bis 1. Mose · für Profis" },
+  quiz: { art: "quiz", k: "leiter", name: "Wer wird Biblionär?", kurz: "Biblionär", ic: "biblionaer", info: "15 Bibelfragen bis 1 Million Punkte · 3 Joker · Aussteigen erlaubt" }
 };
 let duListe = null, duFehler = "", duSpiel = null, duWahl = false, duGegner = null, duSuche = "", duAlle = false;
 const DU_ERG_KURZ = 4;
@@ -2230,10 +2261,12 @@ const duTypVon = d => { const t = (d.art || "vers") === "kette" ? "kette-" + d.k
 const duTypAktuell = () => (DU_TYPEN[S.duTyp] ? S.duTyp : "vers");
 const duTypText = d => { const t = duTypVon(d) || "vers"; return t === "vers" ? `Lernvers ${monatName(d.k)}` : DU_TYPEN[t].name; };
 const duErgText = (art, e) => (art === "blitz" ? `${e.r} richtig` : art === "kette" ? `${e.r}/${e.n} Bücher richtig` : `${e.r}/${e.n} richtig`);
+const duP = p => pkt(p); /* Punkte mit Tausenderpunkt (Biblionär bis 1.000.000) */
 function rngVon(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 /* Fragen aus Startwert + Art – für beide Spieler genau gleich (Zufall wird dafür kurz ersetzt) */
 function duFragen(seed, art, k) {
   const alt = Math.random; Math.random = rngVon(seed);
+  if (art === "quiz") { Math.random = alt; return bibFragen(seed); }
   try {
     if (art === "kette") {
       const seq = (KETTEN[k] || KETTEN.bibel).seq;
@@ -2308,14 +2341,14 @@ function duBelohnen() {
     S.duGes = [...(S.duGes || []), d.id].slice(-60);
     const p = d.vonErg.p, q = d.anErg.p;
     if (p > q) tal += DU_SIEG_TAL; else if (p === q) tal += DU_REMIS_TAL; /* der Sieg selbst wird in duZaehlen() aus den Duellen gezählt */
-    setTimeout(() => toast(`${svg(p > q ? "crown" : "bolt", p > q ? "#f2c14e" : "var(--ar-spielen)")}<div><b>${esc(duTypText(d))}-Duell gegen ${esc(d.anName)}: ${p > q ? "gewonnen!" : p === q ? "unentschieden" : "verloren"}</b><div class="small muted">${p} : ${q} Punkte${p > q ? ` · +${DU_SIEG_TAL} Talente` : p === q ? ` · +${DU_REMIS_TAL} Talente` : ""}</div></div>`), 600);
+    setTimeout(() => toast(`${svg(p > q ? "crown" : "bolt", p > q ? "#f2c14e" : "var(--ar-spielen)")}<div><b>${esc(duTypText(d))}-Duell gegen ${esc(d.anName)}: ${p > q ? "gewonnen!" : p === q ? "unentschieden" : "verloren"}</b><div class="small muted">${duP(p)} : ${duP(q)} Punkte${p > q ? ` · +${DU_SIEG_TAL} Talente` : p === q ? ` · +${DU_REMIS_TAL} Talente` : ""}</div></div>`), 600);
   });
   if (tal) S.tal += tal; save(); renderHud();
   /* Sieg sofort in die Rangliste und Abzeichen prüfen (sonst erst beim nächsten Spiel) */
   checkBadges(); lbSync();
 }
 /* Kleine farbige Marke für die Duell-Art (Liste, Hinweise) */
-const duMarke = d => { const t = duTypVon(d) || "vers"; return `<i class="du-marke t-${DU_TYPEN[t].art}">${esc(DU_TYPEN[t].name)}</i>`; };
+const duMarke = d => { const t = duTypVon(d) || "vers"; return `<i class="du-marke t-${DU_TYPEN[t].art}">${esc(DU_TYPEN[t].kurz || DU_TYPEN[t].name)}</i>`; };
 
 /* Anzeige-Helfer der Duellseite: Initialen, Siegesserie, nächstes Abzeichen, Arena-Banner */
 const duInitialen = n => (String(n || "?").trim().split(/\s+/).map(w => w[0]).join("").slice(0, 2) || "?").toUpperCase();
@@ -2365,7 +2398,7 @@ VIEWS.duelle = () => {
       const p = ich ? d.vonErg.p : d.anErg.p, q = ich ? d.anErg.p : d.vonErg.p, erg = p > q ? "sieg" : p === q ? "remis" : "nieder";
       const knapp = erg === "nieder" && q > 0 && (q - p) / q < 0.15, anteil = p + q ? Math.round(p / (p + q) * 100) : 50;
       const text = erg === "sieg" ? "Gewonnen" : erg === "remis" ? "Remis" : knapp ? "Knapp verloren" : "Verloren";
-      return `<li class="ar-zeile ${erg}"><span class="du-medaille t-${art(d)}">${erg === "sieg" ? svg("crown") : esc(duInitialen(gegner))}</span><span class="ar-tx"><b>${esc(gegner)}</b><span><em>${text}</em> ${duMarke(d)}</span><i class="du-balken" role="img" aria-label="${p} zu ${q} Punkte"><i style="width:${anteil}%"></i></i></span><span class="du-stand"><b>${p}</b><small>${q}</small></span><button class="ar-rev" data-rev="${d.id}" aria-label="${erg === "sieg" ? "Nochmal" : "Revanche"} gegen ${esc(gegner)}">${svg("bolt")}</button></li>`;
+      return `<li class="ar-zeile ${erg}"><span class="du-medaille t-${art(d)}">${erg === "sieg" ? svg("crown") : esc(duInitialen(gegner))}</span><span class="ar-tx"><b>${esc(gegner)}</b><span><em>${text}</em> ${duMarke(d)}</span><i class="du-balken" role="img" aria-label="${duP(p)} zu ${duP(q)} Punkte"><i style="width:${anteil}%"></i></i></span><span class="du-stand"><b>${duP(p)}</b><small>${duP(q)}</small></span><button class="ar-rev" data-rev="${d.id}" aria-label="${erg === "sieg" ? "Nochmal" : "Revanche"} gegen ${esc(gegner)}">${svg("bolt")}</button></li>`;
     }
     return `<li class="ar-zeile grau"><span class="du-medaille">${svg("lock")}</span><span class="ar-tx"><b>${esc(gegner)}</b><span>${st === "abgelehnt" ? "abgelehnt" : "abgelaufen"} ${duMarke(d)}</span></span><span></span><button class="ar-rev" data-weg="${d.id}" aria-label="Entfernen">${svg("nein")}</button></li>`;
   };
@@ -2374,10 +2407,10 @@ VIEWS.duelle = () => {
     return `<li class="ar-karte t-${art(d)}${n <= 1 ? " eilig" : ""}">
       <span class="du-medaille t-${art(d)}">${esc(duInitialen(d.vonName))}</span>
       <span class="ar-tx"><b>${esc(d.vonName)}</b><span>${duMarke(d)}</span></span>
-      <span class="ar-vor"><b>${d.vonErg.p}</b><small class="ar-zeit">noch ${tageText(n)}</small></span>
+      <span class="ar-vor"><b>${duP(d.vonErg.p)}</b><small class="ar-zeit">noch ${tageText(n)}</small></span>
       <span class="ar-knoepfe"><button class="ar-antreten" data-an="${d.id}">${svg("bolt")}Antreten</button><button class="ar-rev" data-ab="${d.id}" aria-label="Ablehnen">${svg("nein")}</button></span></li>`; };
   const warteZeile = d => { const n = tage(d.ablauf), weg = Math.min(100, Math.max(4, Math.round((1 - (d.ablauf - jetzt) / (7 * 864e5)) * 100)));
-    return `<li class="ar-zeile warte"><span class="du-medaille t-${art(d)}">${esc(duInitialen(d.anName))}</span><span class="ar-tx"><b>${esc(d.anName)}</b><span>${duMarke(d)} deine <b class="du-gold">${d.vonErg.p}</b></span><i class="du-uhr" aria-label="noch ${tageText(n)}"><i style="width:${weg}%"></i></i></span><span class="du-tage">${n}<small>${n === 1 ? "Tag" : "Tage"}</small></span><span></span></li>`; };
+    return `<li class="ar-zeile warte"><span class="du-medaille t-${art(d)}">${esc(duInitialen(d.anName))}</span><span class="ar-tx"><b>${esc(d.anName)}</b><span>${duMarke(d)} deine <b class="du-gold">${duP(d.vonErg.p)}</b></span><i class="du-uhr" aria-label="noch ${tageText(n)}"><i style="width:${weg}%"></i></i></span><span class="du-tage">${n}<small>${n === 1 ? "Tag" : "Tage"}</small></span><span></span></li>`; };
   const titel = (ic, t, n) => `<div class="ar-label">${svg(ic)}<span>${t}</span>${n ? `<i>${n}</i>` : ""}</div>`;
   screen.innerHTML = `
     ${duArenaHtml(fuerMich)}
@@ -2470,6 +2503,7 @@ function duSpielStarten(opt) {
   duSpiel = Object.assign({ i: 0, p: 0, r: 0, f: 0, combo: 0, maxCombo: 0, rest: DU_BLITZ_SEK, gesendet: false }, opt, { art });
   duSpiel.fragen = duFragen(opt.seed, art, opt.k);
   document.body.classList.add("spiel-laeuft");
+  if (art === "quiz") { duSpiel.modus = "duell"; countdown(() => bibStart(duSpiel)); return; }
   countdown(() => { if (art === "blitz") duBlitzUhr(); duZeige(); });
 }
 /* Blitz: eine gemeinsame Uhr über alle Fragen */
@@ -2557,13 +2591,14 @@ async function duEnde() {
     }
   } catch (e) { fehler = true; titel = "Nicht gesendet"; zeile = "Die Verbindung hat nicht geklappt. Prüfe dein Internet und versuche es nochmal."; }
   const typ = D.art === "kette" ? "kette-" + D.k : D.art, ich = { r: D.r, n };
-  const extra = D.art === "blitz" && D.maxCombo >= 2 ? ` · beste Combo ${D.maxCombo}` : D.art === "kette" && D.r === D.fragen.length ? " · ganze Kette!" : "";
-  const gegnerSpalte = !D.neu ? `<div class="du-vs-sp ${!sieg && D.p !== D.gegnerErg.p ? "vorn" : ""}"><span>${esc(D.gegner)}</span><b>${D.gegnerErg.p}</b><small>${duErgText(D.art, D.gegnerErg)}</small></div>` : `<div class="du-vs-sp offen"><span>${esc(D.gegner)}</span><b>?</b><small>ist dran</small></div>`;
+  const extra = D.art === "blitz" && D.maxCombo >= 2 ? ` · beste Combo ${D.maxCombo}` : D.art === "kette" && D.r === D.fragen.length ? " · ganze Kette!"
+    : D.art === "quiz" ? (D.p >= BIB_LEITER[14] ? " · Biblionär!" : D.raus ? " · ausgestiegen" : "") : "";
+  const gegnerSpalte = !D.neu ? `<div class="du-vs-sp ${!sieg && D.p !== D.gegnerErg.p ? "vorn" : ""}"><span>${esc(D.gegner)}</span><b>${duP(D.gegnerErg.p)}</b><small>${duErgText(D.art, D.gegnerErg)}</small></div>` : `<div class="du-vs-sp offen"><span>${esc(D.gegner)}</span><b>?</b><small>ist dran</small></div>`;
   screen.innerHTML = `<div class="vl vl-ende du-ende">
-    <div class="vle-ic ${sieg ? "" : "du"}">${svg(sieg ? "crown" : "bolt")}</div>
+    <div class="vle-ic ${sieg ? "" : D.art === "quiz" ? "bib-ic" : "du"}">${svg(sieg ? "crown" : D.art === "quiz" ? "biblionaer" : "bolt")}</div>
     <h1>${titel}</h1><p class="muted">${zeile}</p>
     <div class="du-art-zeile">${duMarke({ art: D.art, k: D.k })}<span class="small muted">${esc(DU_TYPEN[typ].info)}</span></div>
-    <div class="du-vs"><div class="du-vs-sp ${sieg ? "vorn" : ""}"><span>Du</span><b>${D.p}</b><small>${duErgText(D.art, ich)}${extra}</small></div><span class="du-vs-x">:</span>${gegnerSpalte}</div>
+    <div class="du-vs"><div class="du-vs-sp ${sieg ? "vorn" : ""}"><span>Du</span><b>${duP(D.p)}</b><small>${duErgText(D.art, ich)}${extra}</small></div><span class="du-vs-x">:</span>${gegnerSpalte}</div>
     <div class="vle-werte"><div><b>+${xp}</b><span>XP</span></div>${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>${tal > DU_FAIR_TAL ? "Talente" : "Fairplay"}</span></div>` : ""}</div>
     ${fehler ? `<button class="btn primary breit" id="duNochmal">Nochmal senden</button>` : `<button class="btn primary breit" id="duFertig">Zurück zur Arena</button>`}
     ${!D.neu && !fehler ? `<button class="btn ghost breit" id="duRevanche">${svg("bolt")} ${sieg ? "Nochmal duellieren" : "Revanche"}</button>` : ""}</div>`;
@@ -2573,6 +2608,244 @@ async function duEnde() {
   if ($("duNochmal")) $("duNochmal").onclick = () => { SFX.tap(); duEnde(); };
   if ($("duRevanche")) $("duRevanche").onclick = () => { SFX.tap(); duSpiel = null; go("duelle"); duTypWahl({ id: D.vonPid, name: D.gegner }, typ, !sieg); };
   if (!D.xpGegeben) { D.xpGegeben = true; setTimeout(() => { addXp(xp); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350); }
+}
+
+/* ---------- „Wer wird Biblionär?“ (v6.40) ----------
+   15 Bibelfragen (5 leicht, 5 mittel, 5 schwer) mit Gewinnleiter wie im Fernsehen, 3 Joker, Aussteigen ab Frage 2.
+   Drei Wege ins Spiel: Arena-Duell (gleiche Fragen über den Startwert), Solo-Übung (Spielen) und
+   „Biblionär der Woche“ (gleiche Fragen für alle in dieser Kalenderwoche, ein Versuch, Rangliste unter Gemeinde). */
+const BIB_LEITER = [50, 100, 200, 300, 500, 1000, 2000, 4000, 8000, 16000, 32000, 64000, 125000, 500000, 1000000];
+const BIB_SICHER = [4, 9];               // Sicherheitsstufen: Frage 5 (500) und Frage 10 (16.000)
+const BIB_SEK = 30;                      // Bedenkzeit je Frage
+const BIB_WOCHE_TAL = 5;                 // Teilnahme an der Wochenrunde
+const BIB_SIEG_TAL = 20;                 // Platz 1 der Vorwoche (mind. 3 Teilnehmer)
+const pkt = n => (+n || 0).toLocaleString("de-DE");
+/* Punkte, die nach „erreicht“ richtigen Antworten sicher sind */
+const bibGesichert = erreicht => { let s = 0; BIB_SICHER.forEach(i => { if (erreicht > i) s = BIB_LEITER[i]; }); return s; };
+const bibWocheSeed = wk => hash("biblionaer-" + wk) % 2147483647;
+const bibVorwoche = () => weekKey(Date.now() - 7 * 864e5);
+const bibWocheTage = () => { const d = new Date(), wt = (d.getDay() + 6) % 7; return 7 - wt; }; // inkl. heute bis Sonntag
+
+/* Fragen aus dem Startwert: Auswahl, Antwort-Reihenfolge und die Joker-Ergebnisse sind für alle gleich */
+function bibFragen(seed) {
+  const alt = Math.random; Math.random = rngVon(seed);
+  try {
+    const alle = QUIZ_THEMEN.flatMap(t => t.fragen.map(q => Object.assign({ thema: t.name }, q)));
+    const stufe = st => { const gew = [], themen = []; for (const q of shuffle(alle.filter(x => x.st === st))) {
+        if (gew.length >= 5) break; if (themen.filter(t => t === q.thema).length >= 2) continue; gew.push(q); themen.push(q.thema); }
+      return gew; };
+    return [...stufe(1), ...stufe(2), ...stufe(3)].map(q => {
+      const loesung = q.a[0], falsche = q.a.slice(1), opts = shuffle(q.a.slice()), weg = shuffle(falsche).slice(0, 2);
+      /* Gemeinde-Joker: bei leichten Fragen weiß es die Gemeinde meist, bei schweren ist sie unsicherer */
+      let richtigAnteil = [0, .66, .5, .36][q.st] + Math.random() * .16;
+      const w = falsche.map(() => Math.random() + .25), sw = w.reduce((a, b) => a + b, 0);
+      let ant = opts.map(o => (o === loesung ? richtigAnteil : (1 - richtigAnteil) * w[falsche.indexOf(o)] / sw));
+      if (q.st === 3 && Math.random() < .18) { const j = ant.indexOf(Math.max(...ant.filter((_, k) => opts[k] !== loesung))), r = opts.indexOf(loesung); [ant[j], ant[r]] = [ant[r], ant[j]]; }
+      let proz = ant.map(a => Math.round(a * 100)); proz[proz.indexOf(Math.max(...proz))] += 100 - proz.reduce((a, b) => a + b, 0);
+      return { f: q.f, opts, loesung, ref: q.ref, st: q.st, thema: q.thema, weg, gemeinde: proz };
+    });
+  } finally { Math.random = alt; }
+}
+
+/* Spiel starten. G: { modus: "duell" | "solo" | "woche", fragen, gegner? } – beim Duell ist G das Duell-Objekt selbst */
+function bibStart(G) {
+  Object.assign(G, { i: 0, r: 0, gewonnen: 0, joker: { halb: false, gemeinde: false, bibel: false }, halbBei: -1, hilfe: "", fertigGrund: "" });
+  document.body.classList.add("spiel-laeuft");
+  bibZeige(G);
+}
+const bibLeiterHtml = (G, kurz) => `<ol class="bib-leiter" aria-label="Gewinnleiter">${BIB_LEITER.map((p, k) => ({ p, k })).reverse().map(({ p, k }) =>
+  `<li class="${k < G.i ? "ok" : ""} ${k === G.i && !G.fertigGrund ? "jetzt" : ""} ${BIB_SICHER.includes(k) || k === 14 ? "sicher" : ""}"><span>${k + 1}</span><b>${pkt(p)}</b></li>`).join("")}</ol>
+  ${kurz ? "" : `<p class="small muted bib-leiter-info">Sicher sind 500 (ab Frage 5) und 16.000 Punkte (ab Frage 10). Aussteigen geht ab Frage 2.</p>`}`;
+function bibLeiterZeigen(G, dauer) {
+  const m = modal(`<div class="label">Gewinnleiter</div>${bibLeiterHtml(G, !!dauer)}${dauer ? "" : `<button class="btn primary" data-close>Weiter</button>`}`);
+  m.classList.add("bib-leiter-modal"); m.dataset.frei = "1";
+  if (dauer) setTimeout(() => m.remove(), dauer);
+  return m;
+}
+function bibZeige(G) {
+  if (G.abgeschlossen || G.fertigGrund) return;
+  if (G.modus === "duell" && (current !== "duell" || duSpiel !== G)) return;
+  if (G.modus !== "duell" && current !== "biblionaer") return;
+  const f = G.fragen[G.i], halb = G.halbBei === G.i;
+  const lang = f.opts.some(o => o.length > 22);
+  const titel = G.modus === "duell" ? `Duell gegen ${esc(G.gegner)}` : G.modus === "woche" ? `Biblionär der Woche · ${weekKey().split("-W")[1]}. KW` : "Wer wird Biblionär?";
+  screen.innerHTML = `<div class="vl bib">
+    <div class="vl-kopf"><button class="vl-x" id="bibX" aria-label="Spiel abbrechen">${svg("back")}</button>
+      <button class="bib-leiste" id="bibLeiter" aria-label="Gewinnleiter ansehen"><span>Frage ${G.i + 1}/15</span><b>${pkt(BIB_LEITER[G.i])}</b></button></div>
+    <span class="vl-titel bib-titel">${svg("biblionaer")} ${titel}</span>
+    <div class="bib-stand"><span>${G.gewonnen ? `Erreicht <b>${pkt(G.gewonnen)}</b>` : "Noch keine Punkte"}</span><span>Sicher <b>${pkt(bibGesichert(G.i))}</b></span></div>
+    <div class="du-zeit bib-zeit"><i id="bibZeit" style="animation-duration:${BIB_SEK}s"></i></div>
+    <div class="bib-frage-box st${f.st}"><span class="bib-thema">${esc(f.thema)}</span><h2 class="bib-frage">${esc(f.f)}</h2></div>
+    <div class="bib-antw ${lang ? "lang" : ""}">${f.opts.map((o, j) => `<button class="bib-opt" data-o="${j}" ${halb && f.weg.includes(o) ? 'disabled data-weg="1"' : ""}><i>${"ABCD"[j]}</i><span>${halb && f.weg.includes(o) ? "" : esc(o)}</span></button>`).join("")}</div>
+    <div class="bib-hilfe" id="bibHilfe" aria-live="polite">${G.hilfe || ""}</div>
+    <div class="bib-joker" role="group" aria-label="Joker">
+      <button data-j="halb" ${G.joker.halb ? "disabled" : ""}><b>50:50</b><span>2 falsche weg</span></button>
+      <button data-j="gemeinde" ${G.joker.gemeinde ? "disabled" : ""}>${svg("people")}<span>Gemeinde</span></button>
+      <button data-j="bibel" ${G.joker.bibel ? "disabled" : ""}>${svg("book")}<span>Bibelstelle</span></button></div>
+    ${G.i >= 1 ? `<button class="btn ghost bib-raus" id="bibRaus">Aussteigen mit ${pkt(G.gewonnen)} Punkten</button>` : `<p class="small muted bib-tipp">Tipp: Jeder Joker hilft einmal pro Spiel.</p>`}
+  </div>`;
+  let fertig = false;
+  const start = performance.now();
+  const zeit = setTimeout(() => antworten(null, null), BIB_SEK * 1000); timers.push(zeit);
+  const tick = setInterval(() => { if (fertig) return; const el = $("bibZeit"); if (!el) return clearInterval(tick); const rest = BIB_SEK - (performance.now() - start) / 1000; if (rest <= 5 && rest > 0 && Math.abs(rest - Math.round(rest)) < .06) SFX.tick(); }, 100); timers.push(tick);
+  function antworten(j, el) {
+    if (fertig || G.abgeschlossen) return; fertig = true; clearTimeout(zeit);
+    const z = $("bibZeit"); if (z) z.style.animationPlayState = "paused";
+    screen.querySelectorAll(".bib-opt,#bibRaus").forEach(b => (b.disabled = true));
+    const jk = screen.querySelector(".bib-joker"); if (jk) jk.classList.add("gesperrt");
+    if (el) { el.classList.add("eingeloggt"); SFX.tap(); }
+    const ok = j != null && f.opts[j] === f.loesung;
+    timers.push(setTimeout(() => {
+      screen.querySelectorAll(".bib-opt").forEach(b => { if (f.opts[+b.dataset.o] === f.loesung) b.classList.add("richtig"); else if (b === el) b.classList.add("falsch"); });
+      if (ok) {
+        G.r++; G.gewonnen = BIB_LEITER[G.i]; SFX.right(G.r); vibrate(15);
+        const [x, y] = centerOf(el); burst(x, y, 14 + G.i * 2, { speed: 4 }); floatText("+" + pkt(BIB_LEITER[G.i] - (G.i ? BIB_LEITER[G.i - 1] : 0)), x, y);
+        if (G.i === 14) { timers.push(setTimeout(() => bibFertig(G, "biblionaer"), 1400)); return; }
+        if (BIB_SICHER.includes(G.i)) { tone(1568, 0, .2, "sine", .12); toast(`${svg("check", "var(--good)")}<div><b>${pkt(BIB_LEITER[G.i])} Punkte sind sicher!</b></div>`); }
+        G.i++; G.hilfe = "";
+        timers.push(setTimeout(() => { bibLeiterZeigen(G, 1500); timers.push(setTimeout(() => bibZeige(G), 1550)); }, 900));
+      } else {
+        SFX.wrong(); vibrate([40, 30, 40]); shakeScreen();
+        if (j == null) toast(`${svg("sun", "var(--muted)")}<div>Die Zeit ist um!</div>`);
+        G.letzte = f; timers.push(setTimeout(() => bibFertig(G, j == null ? "zeit" : "falsch"), 1800));
+      }
+    }, el ? (f.st === 3 ? 1700 : 1100) : 300));
+  }
+  screen.querySelectorAll(".bib-opt").forEach(b => b.onclick = () => antworten(+b.dataset.o, b));
+  screen.querySelectorAll("[data-j]").forEach(b => b.onclick = () => {
+    if (fertig) return; const art = b.dataset.j; if (G.joker[art]) return;
+    G.joker[art] = true; SFX.coin(); b.disabled = true;
+    if (art === "halb") {
+      G.halbBei = G.i;
+      screen.querySelectorAll(".bib-opt").forEach(x => { if (f.weg.includes(f.opts[+x.dataset.o])) { x.disabled = true; x.dataset.weg = "1"; x.querySelector("span").textContent = ""; } });
+    } else if (art === "gemeinde") {
+      const zeilen = f.opts.map((o, k) => ({ o, k, w: f.gemeinde[k] })).filter(x => !(G.halbBei === G.i && f.weg.includes(x.o)));
+      const summe = zeilen.reduce((a, x) => a + x.w, 0) || 1;
+      G.hilfe = `<div class="bib-umfrage" role="img" aria-label="Die Gemeinde stimmt ab">${zeilen.map(x => { const p = Math.round(x.w / summe * 100); return `<div><i>${"ABCD"[x.k]}</i><span><em style="width:${p}%"></em></span><b>${p} %</b></div>`; }).join("")}</div>`;
+      $("bibHilfe").innerHTML = G.hilfe;
+    } else {
+      G.hilfe = `<div class="bib-stelle">${svg("book")}<span>Schlag nach: <b>${esc(f.ref)}</b></span></div>`;
+      $("bibHilfe").innerHTML = G.hilfe;
+    }
+  });
+  $("bibLeiter").onclick = () => { SFX.tap(); bibLeiterZeigen(G); };
+  if ($("bibRaus")) $("bibRaus").onclick = () => {
+    SFX.tap();
+    modal(`<div class="label">Aussteigen?</div><h2 style="margin:0">${pkt(G.gewonnen)} Punkte mitnehmen</h2>
+      <p class="muted">${bibGesichert(G.i) >= G.gewonnen ? "Deine Punkte sind schon sicher – du kannst ohne Risiko weiterspielen." : `Bei einer falschen Antwort fällst du auf ${pkt(bibGesichert(G.i))} Punkte zurück. Mit der nächsten Antwort wären es ${pkt(BIB_LEITER[G.i])}.`}</p>
+      <button class="btn primary" data-close="weiter">Weiterspielen</button><button class="btn ghost" data-close="raus">Aussteigen</button>`,
+      r => { if (r !== "raus" || fertig) return; fertig = true; clearTimeout(zeit); G.letzte = f;
+        screen.querySelectorAll(".bib-opt").forEach(b => { b.disabled = true; if (f.opts[+b.dataset.o] === f.loesung) b.classList.add("richtig"); });
+        timers.push(setTimeout(() => bibFertig(G, "raus"), 1500)); });
+  };
+  $("bibX").onclick = () => {
+    SFX.tap();
+    const text = G.modus === "duell" ? (G.neu ? "Die Herausforderung wird dann nicht gesendet." : "Du kannst später noch einmal neu anfangen.")
+      : G.modus === "woche" ? "Die Wochenrunde hat nur einen Versuch. Wenn du abbrichst, zählt sie mit 0 Punkten." : "Dein Fortschritt in dieser Runde geht verloren.";
+    modal(`<div class="label">Spiel abbrechen?</div><h2>Wer wird Biblionär?</h2><p class="muted">${text}</p><button class="btn primary" data-close="weiter">Weiterspielen</button><button class="btn ghost" data-close="ende">Abbrechen</button>`,
+      r => { if (r !== "ende") return; fertig = true; G.abgeschlossen = true; clearTimers();
+        if (G.modus === "duell") { duSpiel = null; go("duelle"); }
+        else if (G.modus === "woche") { G.gewonnen = 0; G.fertigGrund = "abbruch"; bibErgebnis(G, 0); go("rank", "bibWoche"); }
+        else go("spielen"); });
+  };
+}
+/* Ende: richtige Antworten, Punkte nach Leiter/Sicherheitsstufe */
+function bibFertig(G, grund) {
+  if (G.fertigGrund) return; G.fertigGrund = grund;
+  const punkte = grund === "biblionaer" ? BIB_LEITER[14] : grund === "raus" ? G.gewonnen : bibGesichert(G.i);
+  document.querySelectorAll(".bib-leiter-modal").forEach(m => m.remove());
+  if (G.modus === "duell") { G.p = punkte; G.raus = grund === "raus"; bibErgebnis(G, punkte); G.abgeschlossen = true; duEnde(); return; }
+  bibEnde(G, punkte);
+}
+/* Rekord, Wochenrunde, Zähler (für alle Wege gleich) */
+function bibErgebnis(G, punkte) {
+  if (G.gezaehlt) return; G.gezaehlt = true;
+  S.bibSpiele = (S.bibSpiele || 0) + 1;
+  if (punkte > (S.bibRekord || 0)) { G.rekord = !!S.bibRekord || punkte > 0; S.bibRekord = punkte; }
+  if (punkte >= BIB_LEITER[14]) S.bibMillion = (S.bibMillion || 0) + 1;
+  if (G.modus === "woche") { S.bwP = punkte; S.bwFertig = true; }
+  save();
+}
+function bibEnde(G, punkte) {
+  bibErgebnis(G, punkte);
+  const grund = G.fertigGrund, million = grund === "biblionaer", woche = G.modus === "woche";
+  const xp = 10 + 3 * G.r + (million ? 50 : 0);
+  const tal = Math.floor(G.r / 3) + (million ? 25 : 0) + (G.rekord && !woche ? 3 : 0) + (woche ? BIB_WOCHE_TAL : 0);
+  if (!G.belohnt) { G.belohnt = true; richtig(G.r); quest("runde", 1); save(); }
+  const titel = million ? "Biblionär!" : grund === "raus" ? "Klug ausgestiegen!" : grund === "zeit" ? "Die Zeit ist um" : "Leider falsch";
+  const zeile = million ? "Alle 15 Fragen richtig – du hast die Million!" : grund === "raus" ? `Du nimmst ${pkt(punkte)} Punkte mit.` : `Du fällst auf die Sicherheitsstufe zurück: ${pkt(punkte)} Punkte.`;
+  const f = G.letzte;
+  screen.innerHTML = `<div class="vl vl-ende bib-ende">
+    <div class="vle-ic bib-ic">${svg(million ? "crown" : "biblionaer")}</div>
+    <h1>${titel}</h1><p class="muted">${zeile}</p>
+    <div class="bib-gross"><b>${pkt(punkte)}</b><span>Punkte · ${G.r} von 15 richtig${G.rekord && !million ? " · neuer Rekord!" : ""}</span></div>
+    ${f && !million ? `<div class="bib-loesung"><span class="small muted">Frage ${G.i + 1}: ${esc(f.f)}</span><b>${svg("check", "var(--good)")} ${esc(f.loesung)}</b><span class="small muted">${svg("book")} ${esc(f.ref)}</span></div>` : ""}
+    <div class="vle-werte"><div><b>+${xp}</b><span>XP</span></div><div><b>+${tal}${TAL_MUENZE}</b><span>Talente</span></div>${woche ? "" : `<div><b>${pkt(S.bibRekord)}</b><span>Rekord</span></div>`}</div>
+    ${woche ? `<p class="small muted" style="margin:0">Alle in der Gemeinde bekommen diese Woche dieselben Fragen. Am Montag gibt es neue.</p>
+      <button class="btn primary breit" id="bibRang">${svg("trophy")} Zur Wochen-Rangliste</button><button class="btn ghost breit" data-go="spielen">Zurück zu Spielen</button>`
+      : `<button class="btn primary breit" id="bibNochmal">${svg("biblionaer")} Nochmal spielen</button><button class="btn ghost breit" data-go="spielen">Zurück zu Spielen</button>`}
+  </div>`;
+  wireGo();
+  if ($("bibNochmal")) $("bibNochmal").onclick = () => { SFX.tap(); bibSolo(); };
+  if ($("bibRang")) $("bibRang").onclick = () => { SFX.tap(); go("rank", "bibWoche"); };
+  SFX.win(); if (million) rain(140); else if (punkte >= 16000) rain(60);
+  setTimeout(() => { addXp(xp); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350);
+}
+/* Solo-Übung (Spielen): zufällige Fragen */
+VIEWS.biblionaer = () => { screen.innerHTML = ""; };
+function bibSolo() {
+  go("biblionaer");
+  const G = { modus: "solo", fragen: bibFragen(crypto.getRandomValues(new Uint32Array(1))[0] % 2147483647) };
+  countdown(() => bibStart(G));
+}
+/* Wochenrunde: ein Versuch je Kalenderwoche; der Versuch zählt ab dem Start (Abbrechen = 0 Punkte) */
+const bibWocheGespielt = () => S.bwK === weekKey();
+function bibWocheStarten() {
+  if (bibWocheGespielt()) { go("rank", "bibWoche"); return; }
+  const wk = weekKey();
+  modal(`<div class="label">Biblionär der Woche</div><h2 style="margin:0">${wk.split("-W")[1]}. Kalenderwoche</h2>
+    <p class="muted">Alle in der Gemeinde bekommen dieselben 15 Fragen. Du hast <b>einen Versuch</b> – wer abbricht, bekommt 0 Punkte. Am Montag kommt die Siegerin oder der Sieger aufs Podest.</p>
+    <button class="btn primary" data-close="los">${svg("biblionaer")} Los geht's</button><button class="btn ghost" data-close>Später</button>`, r => {
+    if (r !== "los") return;
+    if (S.bwK && S.bwK !== wk) { S.bwVK = S.bwK; S.bwVP = S.bwP | 0; }
+    S.bwK = wk; S.bwP = 0; S.bwFertig = false; save(); lbSync(true);
+    go("biblionaer");
+    const G = { modus: "woche", fragen: bibFragen(bibWocheSeed(wk)) };
+    countdown(() => bibStart(G));
+  });
+}
+/* Sieger der Vorwoche: Platz 1 bekommt Krone (Abzeichen) und Talente – einmal pro Woche geprüft */
+let bibVorwocheListe = null;
+async function bibVorwocheLaden() {
+  const L = window.LB; if (!L || !L.ok || !L.bibWoche) return null;
+  const vw = bibVorwoche();
+  try { bibVorwocheListe = { wk: vw, rows: (await L.bibWoche(vw)).filter(r => r.p > 0).sort((a, b) => b.p - a.p) }; } catch (e) { return null; }
+  return bibVorwocheListe;
+}
+async function bibSiegerPruefen() {
+  const vw = bibVorwoche();
+  if (S.bwGeprueft === vw || !S.pid || !(S.bwK === vw || S.bwVK === vw)) return;
+  const v = await bibVorwocheLaden(); if (!v) return;
+  S.bwGeprueft = vw;
+  const top = v.rows.length ? v.rows[0].p : 0;
+  if (v.rows.length >= 3 && top > 0 && v.rows.some(r => r.id === S.pid && r.p === top) && !(S.bwSiege || []).includes(vw)) {
+    S.bwSiege = [...(S.bwSiege || []), vw].slice(-60); S.tal += BIB_SIEG_TAL; renderHud();
+    setTimeout(() => { SFX.badge(); rain(90); toast(`${svg("crown", "#f2c14e")}<div><b>Biblionär der Woche!</b><div class="small muted">Platz 1 in der ${vw.split("-W")[1]}. KW mit ${pkt(top)} Punkten · +${BIB_SIEG_TAL} Talente</div></div>`); }, 800);
+    checkBadges(); lbSync();
+  }
+  save();
+}
+/* Karte über der Wochen-Rangliste: spielen bzw. eigenes Ergebnis, dazu der Sieger der Vorwoche */
+function bibWocheKarte() {
+  const online = !!(S.lbName && !S.offlineOnly);
+  const v = bibVorwocheListe && bibVorwocheListe.wk === bibVorwoche() ? bibVorwocheListe.rows : null;
+  const sieger = v && v.length ? v.filter(r => r.p === v[0].p) : [];
+  const vor = sieger.length ? `<div class="bw-vor">${svg("crown", "#f2c14e")}<span>Letzte Woche: <b>${sieger.slice(0, 3).map(r => esc(r.name)).join(", ")}</b>${sieger.length > 3 ? " u. a." : ""} · ${pkt(sieger[0].p)}</span></div>` : "";
+  const n = bibWocheTage();
+  const knopf = !online ? `<p class="small muted" style="margin:0">Für die Wochenrunde brauchst du einen Eintrag in der Gemeinde-Rangliste.</p>`
+    : bibWocheGespielt() ? `<div class="bw-ich"><span>Deine Runde</span><b>${pkt(S.bwP)}</b><small>Neue Fragen in ${n} ${n === 1 ? "Tag" : "Tagen"}</small></div>`
+    : `<button class="btn primary bw-los" id="bwLos">${svg("biblionaer")} Wochenrunde spielen</button><span class="small muted">1 Versuch · noch ${n} ${n === 1 ? "Tag" : "Tage"}</span>`;
+  return `<div class="card bw-karte">${knopf}${vor}</div>`;
 }
 
 /* ---------- Feedback an den Entwickler ---------- */
