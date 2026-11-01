@@ -1213,6 +1213,31 @@ body[data-acc="perle"]::after{-webkit-mask:none;mask:none;background:url("data:i
   .ar-karte{animation:arPuls 2.8s ease-in-out infinite}@keyframes arPuls{50%{box-shadow:0 0 0 2px color-mix(in srgb,var(--dt) 24%,transparent),0 0 26px color-mix(in srgb,var(--dt) 34%,transparent)}}
   .ar-fort i,.du-balken i{animation:duWachs .9s cubic-bezier(.2,.8,.2,1) both}@keyframes duWachs{from{width:0}}
 }
+
+/* ===== Level-Belohnungen (v6.39): Talente-Staffel, Meilensteine mit Sonder-Gegenständen ===== */
+.lv-modal .card{gap:10px}
+.lv-modal h2{margin:0}
+.modal .lv-tal{margin:0;display:flex;justify-content:center;align-self:stretch;background:none;border:0;box-shadow:none;padding:0;font:900 1.45rem var(--body);color:#fff1c2;text-shadow:0 0 18px #f2c14e88}
+.lv-tal .tal-n svg,.lv-tal .tal-n img{width:1.2em;height:1.2em}
+.lv-lohn{display:flex;align-items:center;gap:12px;text-align:left;padding:10px 12px;border-radius:16px;background:#0e1226b3;border:1px solid color-mix(in srgb,var(--ar-lohn,#b38cff) 55%,transparent);box-shadow:0 0 22px color-mix(in srgb,var(--ar-lohn,#b38cff) 25%,transparent)}
+.lv-lohn>div{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.lv-lohn b{font-weight:800;line-height:1.25}
+.lv-lohn .av{flex:none}
+.lv-nur{white-space:nowrap;font:900 .6rem var(--body);letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:99px;background:var(--ar-lohn,#b38cff);color:#1d0b3a}
+.lv-an{flex:none;width:auto;padding:8px 12px;font-size:.85rem}
+.lv-lohn .pz.lv-an{display:inline-flex;align-items:center;gap:4px}
+.lv-swatch{width:48px;height:48px;border-radius:50%;display:block;flex:none;box-shadow:0 0 14px #0008,inset 0 1px 0 #fff6}
+.lv-titel-ic{flex:none;width:48px;height:48px;display:grid;place-items:center;border-radius:50%;background:#f2c14e22}
+.lv-titel-ic svg{width:34px;height:34px}
+.lv-ausblick{margin:0}
+.modal.lv-ms .card{border-color:#f2c14e88;box-shadow:0 0 60px #f2c14e40}
+.modal .lvlbig.ms{background:radial-gradient(circle at 35% 30%,#fff6d6,#f2c14e 55%,#a8730f);color:#2a1d00;box-shadow:0 0 0 6px #f2c14e33,0 0 60px #f2c14e}
+@media (prefers-reduced-motion:no-preference){.modal .lvlbig.ms{animation:spinIn .8s cubic-bezier(.2,.9,.3,1.4),lvMs 2.4s ease-in-out .8s infinite}
+ @keyframes lvMs{50%{box-shadow:0 0 0 12px #f2c14e22,0 0 80px #f2c14e}}}
+/* Farbwelt Saphir (Level 10) – Saphir-Pflaster unter Gottes Füßen (2. Mose 24,10) */
+body[data-acc="saphir"]{--th:#7d93ff;--accent:#7d93ff;--accent-ink:#0a1640}
+body[data-acc="saphir"]::after{-webkit-mask:linear-gradient(transparent 38%,#000 70%);mask:linear-gradient(transparent 38%,#000 70%);
+ background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 700' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='%237d93ff' stroke-width='1.6'%3E%3Cpath d='M195 330L-200 700M195 330L-40 700M195 330L75 700M195 330L155 700M195 330L235 700M195 330L315 700M195 330L430 700M195 330L590 700' opacity='.35'/%3E%3Cpath d='M120 400H270M70 460H320M20 540H370M-30 640H420' opacity='.3'/%3E%3C/g%3E%3Cg fill='%23c9d6ff'%3E%3Ccircle cx='60' cy='120' r='1.4'/%3E%3Ccircle cx='310' cy='90' r='1.2'/%3E%3Ccircle cx='250' cy='200' r='1'/%3E%3Ccircle cx='120' cy='230' r='1.2'/%3E%3C/g%3E%3C/svg%3E"),radial-gradient(70% 30% at 50% 47%,#7d93ff2e,transparent 70%)}
 </style>
 </head>
 <body>

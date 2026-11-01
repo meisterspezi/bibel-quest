@@ -15,7 +15,7 @@ const DEF = {
   songHeard: [], gapPerfect: false, peeked: false, earlyBird: false,
   dq: { day: "", items: [], bonus: false }, questBonusCount: 0, lv: {}, duGes: [], duSiege: 0, duSpiele: 0, duTyp: "vers", duGesendet: 0, duAngenommen: 0, duArten: [], duKetteVoll: false,
   mute: false, beat: true, gapSing: false, atTi: 0, ntTi: 0,
-  lbName: "", pid: "", ownersSet: false, offlineOnly: false, weekKey: "", weekXp: 0, podium: false, wochensieger: false, wochenziel: false,
+  lvLohn: 0, lbName: "", pid: "", ownersSet: false, offlineOnly: false, weekKey: "", weekXp: 0, podium: false, wochensieger: false, wochenziel: false,
   ver: 6
 };
 let S = JSON.parse(JSON.stringify(DEF));
@@ -752,10 +752,70 @@ function richtig(n = 1) {
   quest("right", n);
 }
 function addTal(n) { if (n <= 0) return; S.tal += n; renderHud(); save(); SFX.coin(); }
+/* ---------- Level-Belohnungen (v6.39) ----------
+   S.lvLohn = höchstes Level, dessen Belohnung schon ausgezahlt ist (0 = noch nie nach neuem Plan gerechnet).
+   Talente für jedes übersprungene Level werden mitgezahlt; Skins schalten sich über need:"lvN" von selbst frei. */
+const SKIN_LISTE = { avatar: () => AVATARE, rahmen: () => RAHMEN, titel: () => TITEL, farbe: () => THEMES };
+const SKIN_ART = { avatar: "Avatar", rahmen: "Rahmen", titel: "Titel", farbe: "Farbe" };
+function skinVon(n) { const s = LEVEL_SKIN[n]; if (!s) return null; const it = SKIN_LISTE[s[0]]().find(x => x.id === s[1]); return it ? { kat: s[0], it, n } : null; }
+function skinBild(sk, size = 56) {
+  const name = S.lbName || "?";
+  if (sk.kat === "avatar") return avatarHtml({ avatar: sk.it.id, frame: S.frame, name }, size);
+  if (sk.kat === "rahmen") return avatarHtml({ avatar: S.avatar, frame: sk.it.id, name }, size);
+  if (sk.kat === "farbe") return `<span class="swatch lv-swatch" style="background:radial-gradient(circle at 35% 30%,#fff8,${sk.it.c} 45%,#1b2146)"></span>`;
+  return `<span class="kb-titel-ic lv-titel-ic">${svg("scroll")}</span>`;
+}
+const skinTraegt = sk => ({ avatar: S.avatar, rahmen: S.frame, titel: S.title, farbe: S.theme })[sk.kat] === sk.it.id;
+function skinAnlegen(sk) {
+  if (sk.kat === "avatar") S.avatar = sk.it.id; if (sk.kat === "rahmen") S.frame = sk.it.id; if (sk.kat === "titel") S.title = sk.it.id;
+  if (sk.kat === "farbe") { S.theme = sk.it.id; applyTheme(); }
+  save(); lbSync(); renderHud();
+}
+/* Nächster Meilenstein mit Gegenstand (für den Ausblick im Fenster) */
+function naechsterSkin(n) { for (let k = n + 1; k <= 30; k++) { const s = skinVon(k); if (s) return s; } return null; }
+function lohnKarte(sk, mitKnopf) {
+  return `<div class="lv-lohn">${skinBild(sk)}<div><b>${SKIN_ART[sk.kat]} „${esc(sk.it.name)}“</b><span class="lv-nur" title="Gibt es nur durch das Level, nicht im Laden">Level ${sk.n} · exklusiv</span></div>${mitKnopf && !skinTraegt(sk) ? `<button class="btn ghost lv-an" data-lvan="${sk.n}">Anlegen</button>` : ""}</div>`;
+}
+function lohnVerdrahten(m) {
+  m.querySelectorAll("[data-lvan]").forEach(b => b.onclick = () => { const sk = skinVon(+b.dataset.lvan); if (!sk) return; SFX.tap(); skinAnlegen(sk); b.replaceWith(Object.assign(document.createElement("span"), { className: "pz ok lv-an", innerHTML: `${svg("check")} angelegt` })); });
+}
 function levelUp(n) {
-  SFX.level(); vibrate([30, 40, 30, 40, 80]); rain(110);
-  const bonus = 5 + n * 2; S.tal += bonus; save(); renderHud(); lbSync();
-  modal(`<div class="label">Level aufgestiegen</div><div class="lvlbig">${n}</div><h2>${titleOf(n)}</h2><p class="muted">Bonus: +${bonus} Talente</p><button class="btn primary" data-close>Weiter</button>`);
+  if (!S.lvLohn) levelNachreichen(n - 1);  // alter Spielstand: erst bis zum vorigen Level nachrechnen
+  const von = Math.max(1, S.lvLohn || 1);
+  let tal = 0; const skins = [];
+  for (let k = von + 1; k <= n; k++) { tal += lvTalente(k); const s = skinVon(k); if (s) skins.push(s); }
+  const meilenstein = skins.length || n % 5 === 0;
+  S.lvLohn = Math.max(S.lvLohn || 0, n); S.tal += tal; save(); renderHud(); lbSync();
+  SFX.level(); vibrate([30, 40, 30, 40, 80]); rain(meilenstein ? 180 : 110);
+  if (meilenstein) setTimeout(() => SFX.badge(), 700);
+  const nx = naechsterSkin(n), fehlt = nx ? Math.max(0, cum(nx.n) - S.xp) : 0;
+  const m = modal(`<div class="label">${meilenstein ? "Meilenstein erreicht" : "Level aufgestiegen"}</div><div class="lvlbig ${meilenstein ? "ms" : ""}">${n}</div><h2>${titleOf(n)}</h2>
+    ${tal ? `<div class="lv-tal">+${tal} Talente</div>` : ""}${skins.map(s => lohnKarte(s, true)).join("")}
+    ${nx ? `<p class="small muted lv-ausblick">Nächste Sonderbelohnung bei Level ${nx.n}: ${SKIN_ART[nx.kat]} „${esc(nx.it.name)}“ · noch ${fehlt} XP</p>` : ""}
+    <button class="btn primary" data-close>Weiter</button>`);
+  m.classList.add("lv-modal"); if (meilenstein) m.classList.add("lv-ms"); lohnVerdrahten(m);
+}
+/* Einmalig für alle, die schon vor 6.39 gespielt haben: alle Level-Talente nach dem neuen Plan (ohne Abzug des alten Bonus,
+   der bei übersprungenen Leveln oft gar nicht gezahlt wurde) und alle erreichten Level-Skins */
+function levelNachreichen(bis) {
+  if (S.lvLohn) return false;
+  const L = bis || levelOf(S.xp); let plus = 0; const skins = [];
+  for (let k = 2; k <= L; k++) { plus += lvTalente(k); const s = skinVon(k); if (s) skins.push(s); }
+  S.lvLohn = Math.max(1, L); S.tal += plus; save(); renderHud(); lbSync();
+  if (!plus && !skins.length) return false;
+  setTimeout(() => {
+    if (document.querySelector(".modal")) { setTimeout(levelNachZeigen, 1500); return; }
+    levelNachZeigen();
+  }, 700);
+  function levelNachZeigen() {
+    SFX.badge(); rain(120);
+    const m = modal(`<div class="label">Nachträglich für dich</div><h2>Neue Level-Belohnungen</h2>
+      <p class="muted small">Ab jetzt bringt jedes Level mehr Talente, und jedes 5. Level ist ein Meilenstein mit einem besonderen Gegenstand. Für deine bisherigen ${L} Level bekommst du alle Level-Talente nach dem neuen Plan:</p>
+      ${plus ? `<div class="lv-tal">+${plus} Talente</div>` : ""}${skins.map(s => lohnKarte(s, true)).join("")}
+      <button class="btn primary" data-close>Danke!</button>`);
+    m.classList.add("lv-modal", "lv-ms"); lohnVerdrahten(m);
+  }
+  return true;
 }
 function checkBadges() {
   let neu = 0;
@@ -895,9 +955,12 @@ function ruestungHtml(n, klein = true) {
   if (!n) return "";
   return `<span class="ruest ${klein ? "klein" : ""}" title="Waffenrüstung Gottes: ${n} von 6">${RUESTUNG.slice(0, n).map(r => svg("ar-" + r.id)).join("")}</span>`;
 }
+/* Freischalt-Bedingung: "lvN" = ab Level N (Level-Belohnung), sonst ein Abzeichen */
+const needOk = need => /^lv\d+$/.test(need || "") ? levelOf(S.xp) >= +need.slice(2) : S.badges.includes(need);
+const needText = need => /^lv\d+$/.test(need || "") ? `ab Level ${need.slice(2)}` : `Abzeichen „${(BADGES.find(x => x.id === need) || {}).name || ""}“`;
 function itemFrei(kat, it) {
   if (it.price === 0) return true;
-  if (it.price < 0) return S.badges.includes(it.need);
+  if (it.price < 0) return needOk(it.need);
   return S.owned.includes(kat + it.id);
 }
 
@@ -1144,6 +1207,7 @@ VIEWS.home = () => {
   const tb = $("truheBtn"); if (tb) tb.onclick = () => truheOeffnen(tb);
   const td = $("torDuell"); if (td) td.onclick = () => { SFX.tap(); go("duelle"); };
   lvVerdrahten();
+  if (S.lbName) levelNachreichen();
   const vz = $("versZeile"); if (vz) { vz.onclick = () => { const auf = vz.getAttribute("aria-expanded") !== "true"; vz.setAttribute("aria-expanded", auf); };
     requestAnimationFrame(() => { const bq = vz.querySelector("blockquote"); if (bq && bq.scrollHeight <= bq.clientHeight + 2) vz.classList.add("passt"); }); }
   void sterne;
@@ -1583,7 +1647,7 @@ VIEWS.shop = (tab, wahl) => {
     }
     const pre = { avatar: "av", rahmen: "fr", titel: "ti", farbe: "" }[kat];
     if (aktiv) return { art: "aktiv", text: "aktiv" };
-    if (it.price < 0) return S.badges.includes(it.need) ? { art: "frei", eq: pre || "farbe" } : { art: "zu", text: "Abzeichen", need: it.need };
+    if (it.price < 0) return needOk(it.need) ? { art: "frei", eq: pre || "farbe" } : { art: "zu", text: "Abzeichen", need: it.need };
     if (itemFrei(pre ? pre + "-" : "", it)) return { art: "frei", eq: pre || "farbe" };
     if (kat === "avatar" || kat === "rahmen") {
       const liste = (kat === "avatar" ? AVATARE : RAHMEN).filter(x => x.price > 0);
@@ -1608,7 +1672,7 @@ VIEWS.shop = (tab, wahl) => {
   const knopf = zs.art === "kauf" ? `<button class="btn gold kb-kauf" data-buy="${zs.buy}" data-id="${sel.id}" data-p="${zs.preis}">Kaufen · ${zs.preis}${muenze}</button>`
     : zs.art === "frei" ? `<button class="btn gold kb-kauf" data-eq="${zs.eq}" data-id="${sel.id}">Anlegen</button>`
     : zs.art === "aktiv" ? `<span class="pz ok kb-status">${svg("check")} ${zs.text}</span>`
-    : `<span class="pz zu kb-status">${svg("lock")} ${zs.need ? `Abzeichen „${esc((BADGES.find(x => x.id === zs.need) || {}).name || "")}“` : esc(zs.text)}</span>`;
+    : `<span class="pz zu kb-status">${svg("lock")} ${zs.need ? esc(needText(zs.need)) : esc(zs.text)}</span>`;
   const katIc = k => k === "rahmen" ? avatarHtml({ avatar: "initial", frame: "gold", name: "M" }, 22) : svg(SHOP_KAT[k][1]);
   const kachel = it => { const z = zustand(shopTab, it, shopTab !== "ruestung" && istAktiv(it));
     const bild = shopTab === "ruestung" ? svg("ar-" + it.id) : shopTab === "avatar" ? avatarHtml({ avatar: it.id, frame: "none", name: S.lbName || "?" }, 46)
@@ -1746,7 +1810,7 @@ function spielstandExport() { const c = JSON.parse(JSON.stringify(S)); delete c.
 function zusammenfuehren(r) {
   if (!r || typeof r !== "object") return;
   const max = k => { S[k] = Math.max(+S[k] || 0, +r[k] || 0); };
-  ["xp", "tal", "right", "bestStreak", "bestChain", "chainAT", "chainNT", "chainRueck", "bestBlitz", "bestCombo", "questBonusCount", "bestGoalStreak", "bestDayRight", "duSiege", "duSpiele", "duGesendet", "duAngenommen"].forEach(max);
+  ["xp", "tal", "right", "bestStreak", "bestChain", "chainAT", "chainNT", "chainRueck", "bestBlitz", "bestCombo", "questBonusCount", "bestGoalStreak", "bestDayRight", "duSiege", "duSpiele", "duGesendet", "duAngenommen", "lvLohn"].forEach(max);
   S.duArten = [...new Set([...(S.duArten || []), ...(Array.isArray(r.duArten) ? r.duArten : [])])]; S.duKetteVoll = !!(S.duKetteVoll || r.duKetteVoll);
   S.duGes = [...new Set([...(S.duGes || []), ...(Array.isArray(r.duGes) ? r.duGes : [])])].slice(-60);
   ["aufgefrischt", "eingeladen", "fischerDabei", "menschenfischer"].forEach(k => { S[k] = !!(S[k] || r[k]); });

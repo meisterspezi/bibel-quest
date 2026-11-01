@@ -1,4 +1,4 @@
-const APP_VERSION = "6.38";
+const APP_VERSION = "6.39";
 /* =====================================================================
    Bibelbuch-Quest – Spieldaten
    Bücher (Schlachter 2000), Lieder, Bibelverse (Schlachter 2000 © Genfer Bibelgesellschaft),
@@ -161,7 +161,8 @@ const THEMES = [
   { id: "zeder", name: "Zeder vom Libanon", price: 30, c: "#9fd36a", bezug: "Mit Zedernholz vom Libanon baute Salomo den Tempel (1. Könige 5–6). Der Gerechte wächst wie eine Zeder (Psalm 92,13)." },
   { id: "lilie", name: "Lilien des Feldes", price: 40, c: "#f59ac0", bezug: "„Betrachtet die Lilien des Feldes, wie sie wachsen!“ Nicht einmal Salomo war so schön gekleidet wie eine von ihnen (Matthäus 6,28-29)." },
   { id: "granatapfel", name: "Granatapfel", price: 50, c: "#e2566c", bezug: "Am Saum des Gewandes des Hohenpriesters hingen abwechselnd Granatäpfel und goldene Glöckchen (2. Mose 28,33-34)." },
-  { id: "perle", name: "Perle", price: 60, c: "#e3e9f6", bezug: "Jesus vergleicht das Himmelreich mit einer kostbaren Perle, für die ein Kaufmann alles hergibt (Matthäus 13,45-46). Die Tore des neuen Jerusalem sind Perlen (Offenbarung 21,21)." }
+  { id: "perle", name: "Perle", price: 60, c: "#e3e9f6", bezug: "Jesus vergleicht das Himmelreich mit einer kostbaren Perle, für die ein Kaufmann alles hergibt (Matthäus 13,45-46). Die Tore des neuen Jerusalem sind Perlen (Offenbarung 21,21)." },
+  { id: "saphir", name: "Saphir", price: -1, need: "lv10", c: "#7d93ff", bezug: "Mose und die Ältesten sahen den Gott Israels. Unter seinen Füßen war es wie ein Werk aus Saphir, klar wie der Himmel selbst (2. Mose 24,10)." }
 ];
 const AVATARE = [
   { id: "initial", name: "Anfangsbuchstabe", price: 0, bezug: "Dein Name – Gott kennt dich mit Namen (Jesaja 43,1)." },
@@ -173,7 +174,9 @@ const AVATARE = [
   { id: "harfe", name: "Harfe Davids", price: 100, bezug: "David spielte Harfe für König Saul und schrieb viele Psalmen (1. Samuel 16,23)." },
   { id: "anker", name: "Anker", price: 140, bezug: "Die Hoffnung auf Gott ist ein sicherer und fester Anker für die Seele (Hebräer 6,19)." },
   { id: "loewe", name: "Löwe aus Juda", price: 200, bezug: "Jesus wird der Löwe aus dem Stamm Juda genannt, der gesiegt hat (Offenbarung 5,5)." },
-  { id: "krone", name: "Krone des Lebens", price: 300, bezug: "Wer bis zum Tod treu bleibt, dem verspricht Jesus die Krone des Lebens (Offenbarung 2,10)." }
+  { id: "krone", name: "Krone des Lebens", price: 300, bezug: "Wer bis zum Tod treu bleibt, dem verspricht Jesus die Krone des Lebens (Offenbarung 2,10)." },
+  { id: "stern", name: "Stern von Bethlehem", price: -1, need: "lv15", bezug: "Der Stern ging den Weisen voraus, bis er über dem Ort stehen blieb, wo das Kind war. Da freuten sie sich sehr (Matthäus 2,9-10)." },
+  { id: "adler", name: "Adler", price: -1, need: "lv25", bezug: "Wer auf den HERRN hofft, bekommt neue Kraft und steigt auf mit Flügeln wie ein Adler (Jesaja 40,31)." }
 ];
 const RAHMEN = [
   { id: "none", name: "Ohne Rahmen", price: 0 },
@@ -183,7 +186,9 @@ const RAHMEN = [
   { id: "gold", name: "Bundeslade (Gold)", price: 200, bezug: "Die Bundeslade war mit reinem Gold überzogen (2. Mose 25,11)." },
   { id: "regenbogen", name: "Regenbogen", price: 320, bezug: "Der Regenbogen ist das Zeichen für Gottes Bund mit Noah und der ganzen Erde (1. Mose 9,13)." },
   { id: "licht", name: "Licht der Welt", price: 450, bezug: "Jesus sagt zu seinen Jüngern: Ihr seid das Licht der Welt (Matthäus 5,14)." },
-  { id: "gewappnet", name: "Gewappnet", price: -1, need: "armor", bezug: "Für alle, die die ganze Waffenrüstung Gottes angelegt haben (Epheser 6,11)." }
+  { id: "gewappnet", name: "Gewappnet", price: -1, need: "armor", bezug: "Für alle, die die ganze Waffenrüstung Gottes angelegt haben (Epheser 6,11)." },
+  { id: "oelzweig", name: "Ölzweig", price: -1, need: "lv20", bezug: "Am Abend kam die Taube zu Noah zurück, mit einem frischen Ölblatt im Schnabel. Da wusste er: Das Wasser ist gesunken (1. Mose 8,11)." },
+  { id: "jerusalem", name: "Neues Jerusalem", price: -1, need: "lv30", bezug: "Die Mauern der heiligen Stadt ruhen auf zwölf Edelsteinen, ihre zwölf Tore sind zwölf Perlen und die Straße ist reines Gold (Offenbarung 21,19-21)." }
 ];
 const TITEL = [
   { id: "none", name: "Ohne Titel", price: 0 },
@@ -196,8 +201,16 @@ const TITEL = [
   { id: "daniel", name: "Treu wie Daniel", price: -1, need: "streak30", bezug: "Daniel betete dreimal am Tag, auch als es verboten war (Daniel 6,11)." },
   { id: "rueckwaerts", name: "Rückwärtsleser", price: -1, need: "chainRueck", bezug: "„Gedenke der Tage der Vorzeit“ – Mose erinnert Israel an Gottes Geschichte (5. Mose 32,7)." },
   { id: "meister", name: "Bibel-Meister", price: -1, need: "chain66", bezug: "Esra war ein kundiger Schriftgelehrter im Gesetz des Mose (Esra 7,6)." },
-  { id: "gewappnet", name: "Gewappnet", price: -1, need: "armor", bezug: "Zieht die ganze Waffenrüstung Gottes an (Epheser 6,11)." }
+  { id: "gewappnet", name: "Gewappnet", price: -1, need: "armor", bezug: "Zieht die ganze Waffenrüstung Gottes an (Epheser 6,11)." },
+  { id: "treu", name: "Treuer Knecht", price: -1, need: "lv5", bezug: "Wer über wenigem treu gewesen ist, den will der Herr über vieles setzen (Matthäus 25,21)." }
 ];
+
+/* ---------- Belohnungen beim Levelaufstieg (v6.39) ----------
+   Jedes Level: 10 + 3 × Level Talente. Jedes 5. Level ist ein Meilenstein mit vielen Talenten
+   und bis Level 30 einem Gegenstand, den es nur durch das Level gibt (need: "lvN" in den Listen oben). */
+const LEVEL_MEILENSTEIN = { 5: 100, 10: 200, 15: 300, 20: 400, 25: 500, 30: 750 };
+const lvTalente = n => n % 5 === 0 ? (LEVEL_MEILENSTEIN[n] || 750) : 10 + 3 * n;
+const LEVEL_SKIN = { 5: ["titel", "treu"], 10: ["farbe", "saphir"], 15: ["avatar", "stern"], 20: ["rahmen", "oelzweig"], 25: ["avatar", "adler"], 30: ["rahmen", "jerusalem"] };
 /* Epheser 6,14-17 – wird Stück für Stück angelegt */
 const RUESTUNG = [
   { id: "guertel", name: "Gürtel der Wahrheit", price: 50, vers: "So steht nun fest, eure Lenden umgürtet mit Wahrheit …", ref: "Epheser 6,14" },
