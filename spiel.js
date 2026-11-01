@@ -974,8 +974,8 @@ function go(name, arg) {
   tabbarSetzen(name); (VIEWS[name] || VIEWS.home)(arg);
 }
 /* Untere Menüleiste: zu welchem Reiter gehört eine Ansicht? */
-const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Spielen", "bolt"], ["duelle", "Arena", "duell"], ["rank", "Gemeinde", "trophy"], ["ich", "Laden", "shop"]];
-const TAB_VON = { duell: "duelle", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen", biblionaer: "spielen",
+const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Spielen", "bolt"], ["bib", "Biblionär", "biblionaer"], ["duelle", "Arena", "duell"], ["rank", "Gemeinde", "trophy"], ["ich", "Laden", "shop"]];
+const TAB_VON = { duell: "duelle", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen", biblionaer: "bib",
   shop: "ich" };
 /* rote Zahl am Duell-Reiter: wartende Herausforderungen */
 function tbDuSetzen() { const t = $("tbDu"); if (!t) return; const n = typeof duFuerMich === "function" ? duFuerMich().length : 0; t.hidden = !n; t.textContent = n; }
@@ -1257,10 +1257,6 @@ VIEWS.spielen = () => {
   screen.innerHTML = `${seitenKopf("Spielen", `${svg("siegel")}${siegelZahl}/${Object.keys(KETTEN).length}`)}
   <div class="stack">
     <button class="bereich" data-go="blitz"><span class="b-ic">${svg("bolt")}</span><span class="b-tx"><b>Blitz-Runde</b><span>60 Sekunden: Was kommt danach?</span></span><span class="b-info">${S.bestBlitz ? "Rekord " + S.bestBlitz : ""}</span></button>
-    <div class="bib-paar">
-      <button class="bereich bib-karte" id="bibSoloBtn"><span class="b-ic">${svg("biblionaer")}</span><span class="b-tx"><b>Wer wird Biblionär?</b><span>15 Bibelfragen bis 1 Million · 3 Joker</span></span><span class="b-info">${S.bibRekord ? "Rekord<br>" + pkt(S.bibRekord) : "Neu"}</span></button>
-      <button class="bib-woche-zeile" id="bibWocheBtn">${svg("crown")}<span><b>Biblionär der Woche</b><small>${bibWocheGespielt() ? `Deine Runde: ${pkt(S.bwP)} Punkte · zur Rangliste` : "Gleiche Fragen für alle · 1 Versuch"}</small></span>${bibWocheGespielt() ? svg("check", "var(--good)") : `<i class="bw-neu">noch ${bibWocheTage()} T.</i>`}</button>
-    </div>
     <details class="erklaer"><summary><span class="label">Die Kette – ein Fehler beendet sie</span><span class="ek-i" aria-label="Erklärung">?</span></summary>
     <p class="small muted">Wer eine Kette komplett schafft, bekommt ein Siegel. Wiederhole sie in verschiedenen Wochen und Monaten für Silber, Gold und Diamant. Nach ${SIEGEL_FRISCH} Tagen verblasst ein Siegel – dann einfach auffrischen.</p></details>
     ${Object.entries(KETTEN).map(([id, k]) => { const max = k.seq.length, rec = kettenBuecher(k.key), voll = rec >= max, t = S.meister[id] || [], st = siegelStufe(t), fr = siegelFrisch(t);
@@ -1271,8 +1267,6 @@ VIEWS.spielen = () => {
   </div>`;
   wireGo();
   screen.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playChain(b.dataset.k)); });
-  $("bibSoloBtn").onclick = () => { SFX.tap(); bibSolo(); };
-  $("bibWocheBtn").onclick = () => { SFX.tap(); go("rank", "bibWoche"); };
 };
 
 /* ---------- Geführte Lektion: ansehen → anhören → ordnen ---------- */
@@ -2485,14 +2479,14 @@ function duTypWahl(r, bisher, revanche = false) {
     m.querySelectorAll("[data-mtyp]").forEach(x => x.setAttribute("aria-checked", x === b)); $("duMInfo").textContent = DU_TYPEN[wahl].info;
     $("duMLos").innerHTML = `${svg("bolt")} ${esc(DU_TYPEN[wahl].name)}-Duell starten`; });
 }
-function duHerausfordern(r, typ = duTypAktuell()) {
+function duHerausfordern(r, typ = duTypAktuell(), extra = {}) {
   if (!duOk()) { go("duelle"); return; }
   const offen = (duListe || []).filter(d => d.von === S.pid && duStatus(d) === "offen");
   if (offen.length >= DU_MAX_OFFEN) { toast(`${svg("bolt", "var(--muted)")}<div>Du hast schon ${DU_MAX_OFFEN} offene Duelle.</div>`); return; }
   if (offen.some(d => d.an === r.id)) { toast(`${svg("bolt", "var(--muted)")}<div>Gegen ${esc(r.name)} läuft schon ein Duell.</div>`); return; }
   const T = DU_TYPEN[typ] || DU_TYPEN.vers;
   const seed = crypto.getRandomValues(new Uint32Array(1))[0] % 2147483647;
-  duSpielStarten({ neu: true, an: r.id, gegner: r.name, seed, art: T.art, k: T.art === "vers" ? duVerseKey() : T.k });
+  duSpielStarten(Object.assign({ neu: true, an: r.id, gegner: r.name, seed, art: T.art, k: T.art === "vers" ? duVerseKey() : T.k }, extra));
 }
 
 /* ----- Das Duell selbst: eine Frage pro Bildschirm, Zeitbalken, sofortige Rückmeldung ----- */
@@ -2600,13 +2594,15 @@ async function duEnde() {
     <div class="du-art-zeile">${duMarke({ art: D.art, k: D.k })}<span class="small muted">${esc(DU_TYPEN[typ].info)}</span></div>
     <div class="du-vs"><div class="du-vs-sp ${sieg ? "vorn" : ""}"><span>Du</span><b>${duP(D.p)}</b><small>${duErgText(D.art, ich)}${extra}</small></div><span class="du-vs-x">:</span>${gegnerSpalte}</div>
     <div class="vle-werte"><div><b>+${xp}</b><span>XP</span></div>${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>${tal > DU_FAIR_TAL ? "Talente" : "Fairplay"}</span></div>` : ""}</div>
-    ${fehler ? `<button class="btn primary breit" id="duNochmal">Nochmal senden</button>` : `<button class="btn primary breit" id="duFertig">Zurück zur Arena</button>`}
+    ${fehler ? `<button class="btn primary breit" id="duNochmal">Nochmal senden</button>` : `<button class="btn primary breit" id="duFertig">${D.heim === "bib" ? "Zurück zu Biblionär" : "Zurück zur Arena"}</button>`}
     ${!D.neu && !fehler ? `<button class="btn ghost breit" id="duRevanche">${svg("bolt")} ${sieg ? "Nochmal duellieren" : "Revanche"}</button>` : ""}</div>`;
   if (!fehler) { SFX.win(); rain(sieg ? 90 : 40); }
-  const weiter = () => { duSpiel = null; go("duelle"); };
+  const weiter = () => { duSpiel = null; go(D.heim || "duelle"); };
   if ($("duFertig")) $("duFertig").onclick = () => { SFX.tap(); weiter(); };
   if ($("duNochmal")) $("duNochmal").onclick = () => { SFX.tap(); duEnde(); };
-  if ($("duRevanche")) $("duRevanche").onclick = () => { SFX.tap(); duSpiel = null; go("duelle"); duTypWahl({ id: D.vonPid, name: D.gegner }, typ, !sieg); };
+  if ($("duRevanche")) $("duRevanche").onclick = () => { SFX.tap(); duSpiel = null;
+    if (D.heim === "bib") { go("bib"); bibRevanche({ id: D.vonPid, name: D.gegner }, !sieg); return; }
+    go("duelle"); duTypWahl({ id: D.vonPid, name: D.gegner }, typ, !sieg); };
   if (!D.xpGegeben) { D.xpGegeben = true; setTimeout(() => { addXp(xp); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350); }
 }
 
@@ -2643,13 +2639,13 @@ function bibFragen(seed) {
       if (q.st === 3 && Math.random() < .18) { const j = ant.indexOf(Math.max(...ant.filter((_, k) => opts[k] !== loesung))), r = opts.indexOf(loesung); [ant[j], ant[r]] = [ant[r], ant[j]]; }
       let proz = ant.map(a => Math.round(a * 100)); proz[proz.indexOf(Math.max(...proz))] += 100 - proz.reduce((a, b) => a + b, 0);
       return { f: q.f, opts, loesung, ref: q.ref, st: q.st, thema: q.thema, weg, gemeinde: proz };
-    });
+    }).map((q, idx) => Object.assign(q, { ws: hash("willi|" + seed + "|" + idx) }));
   } finally { Math.random = alt; }
 }
 
 /* Spiel starten. G: { modus: "duell" | "solo" | "woche", fragen, gegner? } – beim Duell ist G das Duell-Objekt selbst */
 function bibStart(G) {
-  Object.assign(G, { i: 0, r: 0, gewonnen: 0, joker: { halb: false, gemeinde: false, bibel: false }, halbBei: -1, hilfe: "", fertigGrund: "" });
+  Object.assign(G, { i: 0, r: 0, gewonnen: 0, joker: { halb: false, gemeinde: false, tel: false }, halbBei: -1, hilfe: "", fertigGrund: "" });
   document.body.classList.add("spiel-laeuft");
   bibZeige(G);
 }
@@ -2681,13 +2677,15 @@ function bibZeige(G) {
     <div class="bib-joker" role="group" aria-label="Joker">
       <button data-j="halb" ${G.joker.halb ? "disabled" : ""}><b>50:50</b><span>2 falsche weg</span></button>
       <button data-j="gemeinde" ${G.joker.gemeinde ? "disabled" : ""}>${svg("people")}<span>Gemeinde</span></button>
-      <button data-j="bibel" ${G.joker.bibel ? "disabled" : ""}>${svg("book")}<span>Bibelstelle</span></button></div>
+      <button data-j="tel" ${G.joker.tel ? "disabled" : ""}>${svg("telefon")}<span>Telefon</span></button></div>
     ${G.i >= 1 ? `<button class="btn ghost bib-raus" id="bibRaus">Aussteigen mit ${pkt(G.gewonnen)} Punkten</button>` : `<p class="small muted bib-tipp">Tipp: Jeder Joker hilft einmal pro Spiel.</p>`}
   </div>`;
-  let fertig = false;
-  const start = performance.now();
-  const zeit = setTimeout(() => antworten(null, null), BIB_SEK * 1000); timers.push(zeit);
-  const tick = setInterval(() => { if (fertig) return; const el = $("bibZeit"); if (!el) return clearInterval(tick); const rest = BIB_SEK - (performance.now() - start) / 1000; if (rest <= 5 && rest > 0 && Math.abs(rest - Math.round(rest)) < .06) SFX.tick(); }, 100); timers.push(tick);
+  let fertig = false, pausiert = false, zeitRest = BIB_SEK * 1000, zeitAb = performance.now();
+  let zeit = setTimeout(() => antworten(null, null), zeitRest); timers.push(zeit);
+  /* Während des Telefonats (Kontaktwahl und Gespräch) steht die Uhr */
+  const zeitPause = () => { if (fertig || pausiert) return; pausiert = true; clearTimeout(zeit); zeitRest -= performance.now() - zeitAb; const z = $("bibZeit"); if (z) z.style.animationPlayState = "paused"; };
+  const zeitWeiter = () => { if (fertig || !pausiert || G.abgeschlossen) return; pausiert = false; zeitAb = performance.now(); zeit = setTimeout(() => antworten(null, null), Math.max(300, zeitRest)); timers.push(zeit); const z = $("bibZeit"); if (z) z.style.animationPlayState = "running"; };
+  const tick = setInterval(() => { if (fertig || pausiert) return; const el = $("bibZeit"); if (!el) return clearInterval(tick); const rest = (zeitRest - (performance.now() - zeitAb)) / 1000; if (rest <= 5 && rest > 0 && Math.abs(rest - Math.round(rest)) < .06) SFX.tick(); }, 100); timers.push(tick);
   function antworten(j, el) {
     if (fertig || G.abgeschlossen) return; fertig = true; clearTimeout(zeit);
     const z = $("bibZeit"); if (z) z.style.animationPlayState = "paused";
@@ -2714,6 +2712,7 @@ function bibZeige(G) {
   screen.querySelectorAll(".bib-opt").forEach(b => b.onclick = () => antworten(+b.dataset.o, b));
   screen.querySelectorAll("[data-j]").forEach(b => b.onclick = () => {
     if (fertig) return; const art = b.dataset.j; if (G.joker[art]) return;
+    if (art === "tel") { telefonJoker(b); return; }
     G.joker[art] = true; SFX.coin(); b.disabled = true;
     if (art === "halb") {
       G.halbBei = G.i;
@@ -2723,11 +2722,22 @@ function bibZeige(G) {
       const summe = zeilen.reduce((a, x) => a + x.w, 0) || 1;
       G.hilfe = `<div class="bib-umfrage" role="img" aria-label="Die Gemeinde stimmt ab">${zeilen.map(x => { const p = Math.round(x.w / summe * 100); return `<div><i>${"ABCD"[x.k]}</i><span><em style="width:${p}%"></em></span><b>${p} %</b></div>`; }).join("")}</div>`;
       $("bibHilfe").innerHTML = G.hilfe;
-    } else {
-      G.hilfe = `<div class="bib-stelle">${svg("book")}<span>Schlag nach: <b>${esc(f.ref)}</b></span></div>`;
-      $("bibHilfe").innerHTML = G.hilfe;
     }
   });
+  /* Telefonjoker: erst Kontakt wählen (Willi oder Aaron), dann telefonieren – die Uhr steht dabei */
+  function telefonJoker(b) {
+    SFX.tap(); zeitPause();
+    telefonWahl(id => {
+      if (fertig || G.abgeschlossen) return;
+      G.joker.tel = true; SFX.coin(); b.disabled = true;
+      const w = pastorAntwort(f, G.halbBei === G.i, id);
+      pastorAnruf(w, () => {
+        G.hilfe = `<div class="bib-stelle bib-willi">${svg("telefon")}<span>${PASTOREN[id].kurz} tippt auf <b>${esc(w.tipp)}</b> · ${w.grad}</span></div>`;
+        const h = $("bibHilfe"); if (h) h.innerHTML = G.hilfe;
+        zeitWeiter();
+      });
+    }, () => zeitWeiter());
+  }
   $("bibLeiter").onclick = () => { SFX.tap(); bibLeiterZeigen(G); };
   if ($("bibRaus")) $("bibRaus").onclick = () => {
     SFX.tap();
@@ -2744,9 +2754,9 @@ function bibZeige(G) {
       : G.modus === "woche" ? "Die Wochenrunde hat nur einen Versuch. Wenn du abbrichst, zählt sie mit 0 Punkten." : "Dein Fortschritt in dieser Runde geht verloren.";
     modal(`<div class="label">Spiel abbrechen?</div><h2>Wer wird Biblionär?</h2><p class="muted">${text}</p><button class="btn primary" data-close="weiter">Weiterspielen</button><button class="btn ghost" data-close="ende">Abbrechen</button>`,
       r => { if (r !== "ende") return; fertig = true; G.abgeschlossen = true; clearTimers();
-        if (G.modus === "duell") { duSpiel = null; go("duelle"); }
+        if (G.modus === "duell") { duSpiel = null; go(G.heim || "duelle"); }
         else if (G.modus === "woche") { G.gewonnen = 0; G.fertigGrund = "abbruch"; bibErgebnis(G, 0); go("rank", "bibWoche"); }
-        else go("spielen"); });
+        else go("bib"); });
   };
 }
 /* Ende: richtige Antworten, Punkte nach Leiter/Sicherheitsstufe */
@@ -2782,8 +2792,8 @@ function bibEnde(G, punkte) {
     ${f && !million ? `<div class="bib-loesung"><span class="small muted">Frage ${G.i + 1}: ${esc(f.f)}</span><b>${svg("check", "var(--good)")} ${esc(f.loesung)}</b><span class="small muted">${svg("book")} ${esc(f.ref)}</span></div>` : ""}
     <div class="vle-werte"><div><b>+${xp}</b><span>XP</span></div><div><b>+${tal}${TAL_MUENZE}</b><span>Talente</span></div>${woche ? "" : `<div><b>${pkt(S.bibRekord)}</b><span>Rekord</span></div>`}</div>
     ${woche ? `<p class="small muted" style="margin:0">Alle in der Gemeinde bekommen diese Woche dieselben Fragen. Am Montag gibt es neue.</p>
-      <button class="btn primary breit" id="bibRang">${svg("trophy")} Zur Wochen-Rangliste</button><button class="btn ghost breit" data-go="spielen">Zurück zu Spielen</button>`
-      : `<button class="btn primary breit" id="bibNochmal">${svg("biblionaer")} Nochmal spielen</button><button class="btn ghost breit" data-go="spielen">Zurück zu Spielen</button>`}
+      <button class="btn primary breit" id="bibRang">${svg("trophy")} Zur Wochen-Rangliste</button><button class="btn ghost breit" data-go="bib">Zurück zu Biblionär</button>`
+      : `<button class="btn primary breit" id="bibNochmal">${svg("biblionaer")} Nochmal spielen</button><button class="btn ghost breit" data-go="bib">Zurück zu Biblionär</button>`}
   </div>`;
   wireGo();
   if ($("bibNochmal")) $("bibNochmal").onclick = () => { SFX.tap(); bibSolo(); };
@@ -2847,6 +2857,298 @@ function bibWocheKarte() {
     : `<button class="btn primary bw-los" id="bwLos">${svg("biblionaer")} Wochenrunde spielen</button><span class="small muted">1 Versuch · noch ${n} ${n === 1 ? "Tag" : "Tage"}</span>`;
   return `<div class="card bw-karte">${knopf}${vor}</div>`;
 }
+
+/* Symbol „telefon“ (Belohnungs-/Joker-Violett) – beim nächsten Lauf des Symbol-Generators dorthin übernehmen */
+ICONS.telefon = `<svg x="0" y="0" width="24" height="24" viewBox="0 0 64 64" overflow="visible" class="wr wr-lohn"><circle class="wr-halo" cx="32" cy="32" r="31" fill="url(#wrH_lohn)"/><ellipse cx="32" cy="61" rx="17" ry="2.2" fill="#000" opacity=".3"/><path d="M15 9.5c2.6-1.9 6.3-1.2 7.6 1.8l4.2 9.4c1.1 2.5.2 5.4-2.1 6.8l-3.4 2.1c2.8 6.4 7.4 11.1 13.6 14.1l2.2-3.3c1.5-2.2 4.4-3 6.8-1.9l9.3 4.3c3 1.4 3.6 5.2 1.6 7.7l-3.6 4.4c-2.8 3.4-7.6 4.6-11.7 2.9C26.5 52.6 15.6 41.8 10.4 28.7 8.8 24.6 10 19.9 13.4 17.1z" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1.6" stroke-linejoin="round"/><path d="M14.6 14.2c-2.4 2.7-3 6.6-1.6 10" stroke="#fff" stroke-width="2.2" stroke-linecap="round" fill="none" opacity=".75"/><path d="M37 8.5a19 19 0 0 1 18.5 18.5M37 16a11.5 11.5 0 0 1 11 11" stroke="url(#wrX_lohn)" stroke-width="3.4" stroke-linecap="round" fill="none"/><path d="M37 8.5a19 19 0 0 1 18.5 18.5M37 16a11.5 11.5 0 0 1 11 11" stroke="#1b2a55" stroke-width=".8" stroke-linecap="round" fill="none" opacity=".5"/><path class="wr-spark" d="M54 42.5l1.49 4.01 4.01 1.49-4.01 1.49-1.49 4.01-1.49-4.01-4.01-1.49 4.01-1.49z" fill="#fff"/></svg>`;
+/* ---------- Telefonjoker (6.42, ersetzt den Joker „Bibelstelle“) – Kontakt 1: Pastor Willi ----------
+   Willi hat ein sehr gutes Bibelwissen, trägt Bart, ist verheiratet mit Heidi aus Amerika, hat zwei Töchter
+   und grillt am liebsten Fleisch – Gemüse mag er nicht so. Seine Antwort hängt nur vom Startwert der Frage ab
+   (und ob 50:50 schon genommen wurde): Im Duell und in der Wochenrunde sagt er allen dasselbe.
+   Bei leichten Fragen liegt er fast immer richtig, bei schweren ist er manchmal unsicher oder irrt sich. */
+const WILLI_HALLO = [
+  "Hallo, hier Willi! Ah, „Wer wird Biblionär?“ – na, dann lies mal vor …",
+  "Willi hier – Moment, ich leg nur schnell die Grillzange weg … So, schieß los!",
+  "Pastor Willi am Apparat! Du hast Glück, die Steaks brauchen noch fünf Minuten.",
+  "Ja, hallo? Heidi, mach mal die Musik leiser, das ist wichtig! … Also, wie lautet die Frage?"
+];
+const WILLI_SICHER = [
+  x => `Da muss ich nicht lange überlegen: ${x.X}. Das steht in ${x.ref}.`,
+  x => `Das ist ganz klar ${x.X} – lies mal ${x.ref} nach.`,
+  x => `${x.X}! Da bin ich mir so sicher wie beim Grillen, dass ein Steak gewendet werden muss. Steht in ${x.ref}.`
+];
+const WILLI_ZIEMLICH = [
+  x => `Ich bin mir ziemlich sicher, dass es ${x.X} ist. Wenn ich mich recht erinnere, steht das in ${x.ref}.`,
+  x => `Hm … ich sage ${x.X}. Ich glaube, das steht in ${x.ref} – schau aber lieber nochmal genau hin.`
+];
+const WILLI_SCHWANK = [
+  x => `Puh, das ist knifflig. Ich schwanke zwischen ${x.X} und ${x.Y} … ich würde ${x.X} nehmen, aber ganz sicher bin ich nicht.`,
+  x => `Ich streich mir gerade nachdenklich durch den Bart … ${x.X} oder ${x.Y}? Ich tendiere zu ${x.X}.`
+];
+const WILLI_GERATEN = [
+  x => `Oje, da bin ich überfragt. Aus dem Bauch heraus würde ich ${x.X} sagen – aber verlass dich nicht drauf!`,
+  x => `Ehrlich gesagt weiß ich es nicht genau. Vielleicht ${x.X}? Das musst du am Ende selbst entscheiden.`
+];
+/* Bezüge zur Frage: [Suchmuster über Frage, Antwort, Bibelstelle und Thema, Satz] */
+const WILLI_THEMA = [
+  [/Esau|Isaak|Jakob|Linsen/, "Isaak hatte Esau lieb, weil er so gern von seinem Wildbret aß (1. Mose 25,28) – ein Mann nach meinem Geschmack! Dass Esau dann alles für ein Linsengericht hergab, verstehe ich bis heute nicht."],
+  [/Daniel|Nebukadnezar|Löwengrube|Belsazar/, "Daniel hat zehn Tage lang nur Gemüse gegessen und sah danach besser aus als alle anderen (Daniel 1,12-15). Heidi hält mir den Vers bei jedem Grillabend unter die Nase …"],
+  [/Manna|Wachtel|Wüste|Sinai/, "In der Wüste gab es abends Wachteln (2. Mose 16,13) – der Herr weiß eben, was ein hungriger Mann braucht!"],
+  [/Passah|Pharao|Plage|Lamm/, "Das Passahlamm sollte am Feuer gebraten werden, nicht gekocht (2. Mose 12,8-9). Ich sag ja immer: Grillen ist biblisch!"],
+  [/verloren|Kalb|Gleichnis|Lukas 15/, "Als der verlorene Sohn heimkam, ließ der Vater das gemästete Kalb schlachten (Lukas 15,23). Das nenne ich ein Fest!"],
+  [/Abraham|Abram|Sara\b|Mamre/, "Abraham hat für seine drei Besucher ein zartes, gutes Kalb zubereiten lassen (1. Mose 18,7). Gastfreundschaft mit Fleisch – so gehört sich das."],
+  [/Petrus|Kornelius/, "Mein Lieblingsvers für den Grillabend: „Steh auf, Petrus, schlachte und iss!“ (Apostelgeschichte 10,13)."],
+  [/Elia|Rabe|Karmel|Isebel|Ahab/, "Die Raben brachten Elia morgens und abends Brot und Fleisch (1. Könige 17,6) – von Salat steht da nichts."],
+  [/Fisch|Genezareth|Brote|5000|fünftausend|Netz|Fischer/, "Der Herr Jesus selbst hat am See ein Kohlenfeuer gemacht und Fisch darauf gelegt (Johannes 21,9). Grillen am Ufer – herrlich!"],
+  [/Römer|Paulus|Saulus|Korinth|Galater|Epheser|Philipper|Timotheus/, "Paulus schreibt: Der Schwache isst Gemüse (Römer 14,2). Ich will ja niemanden richten – aber ich nehme lieber noch ein Würstchen."],
+  [/Noah|Arche|Sintflut|Regenbogen/, "Nach der Sintflut hat Gott Noah erlaubt, auch Fleisch zu essen (1. Mose 9,3). Seitdem bin ich Noah sehr dankbar!"],
+  [/Täufer|Heuschreck|Jordan/, "Johannes der Täufer aß Heuschrecken und wilden Honig (Matthäus 3,4). Heuschrecken vom Grill hab ich noch nicht probiert – meine Töchter würden schreiend weglaufen."],
+  [/Gideon/, "Gideon hat für den Engel des Herrn ein Ziegenböcklein zubereitet (Richter 6,19). Gute Wahl, Gideon!"],
+  [/Simson|Delila|Philister|Löwe/, "Simson fand Honig im Kadaver des Löwen (Richter 14,8-9) – also, nicht jedes Fleischgericht in der Bibel ist zu empfehlen."],
+  [/Salomo|Sprüche|Weisheit/, "Salomo schreibt sinngemäß: Lieber ein Gemüsegericht mit Liebe als ein gemästeter Ochse mit Hass (Sprüche 15,17). Den Vers zitiert Heidi besonders gern, wenn ich am Grill brumme."],
+  [/Kana|Hochzeit|Wein/, "Bei der Hochzeit zu Kana hat der Herr Jesus Wasser zu Wein gemacht (Johannes 2). Was es dazu zu essen gab, steht nicht drin – ich tippe auf ein ordentliches Festmahl!"],
+  [/David|Goliath|Hirte|Schaf/, "David hat als Hirte seine Schafe vor Löwe und Bär beschützt (1. Samuel 17,34-35). Ich beschütze am Grill meine Würstchen vor meinen Töchtern – fast genauso mutig."],
+  [/Jona|Ninive/, "Jona war drei Tage im Bauch des Fisches (Jona 2,1). Der einzige Fisch in der Bibel, den ich nicht grillen würde!"]
+];
+const WILLI_ALLG = [
+  "Heidi hat übrigens aus Amerika das Barbecue mitgebracht – seitdem grillen wir sogar im Winter.",
+  "Meine zwei Töchter wollen mir immer Zucchini auf den Grill schmuggeln. Ich bete noch drüber.",
+  "Heidi ruft gerade aus der Küche: „Good luck!“ – und ich sag: Gottes Segen!",
+  "Wenn du die Million holst, gibt es beim Gemeindefest ein Extra-Steak für dich. Die Gemüsespieße bringt Heidi mit.",
+  "Heidi sagt dann immer: „Willi, denk an Daniel!“ – der hat zehn Tage nur Gemüse gegessen (Daniel 1,12). Ich denk lieber an das gemästete Kalb aus Lukas 15.",
+  "Mein Bart riecht schon nach Holzkohle – das heißt, die Glut ist perfekt.",
+  "Bei so einer Frage krieg ich glatt Hunger. Gut, dass gleich die Bratwürste fertig sind.",
+  "Meine Töchter rufen im Hintergrund schon mit – die beiden sind fast so bibelfest wie ihr Vater.",
+  "Rosenkohl ist für mich die elfte Plage. Steht nicht in der Bibel – aber gefühlt schon."
+];
+const WILLI_TSCHUESS = ["Gott segne dich – viel Erfolg!", "So, jetzt muss ich die Steaks wenden. Gott befohlen!", "Ich bete für dich. Tschüss!", "Heidi und die Mädels drücken dir die Daumen. Bis Sonntag!"];
+function pastorAntwort(f, halb, id = "willi") {
+  const P = PASTOREN[id] || PASTOREN.willi;
+  const rnd = rngVon((f.ws || hash(f.f)) ^ (halb ? 0x5bd1e995 : 0) ^ P.salt), wahl = a => a[Math.floor(rnd() * a.length)];
+  const sichtbar = f.opts.map((o, k) => k).filter(k => !(halb && f.weg.includes(f.opts[k])));
+  const r = f.opts.indexOf(f.loesung), falsche = sichtbar.filter(k => k !== r);
+  const txt = k => `<b>${"ABCD"[k]}: ${esc(f.opts[k])}</b>`, kurz = k => `${"ABCD"[k]}: ${f.opts[k]}`;
+  const [sicher, ziemlich, schwank] = P.quoten[(f.st || 1) - 1];
+  const p = rnd(), y = wahl(falsche);
+  let tipp, grad, satz, richtigGetippt = true;
+  if (p < sicher) { tipp = r; grad = "ganz sicher"; satz = wahl(P.sicher)({ X: txt(r), ref: esc(f.ref) }); }
+  else if (p < ziemlich) { tipp = r; grad = "ziemlich sicher"; satz = wahl(P.ziemlich)({ X: txt(r), ref: esc(f.ref) }); }
+  else if (p < schwank) { tipp = r; grad = `unsicher (oder ${"ABCD"[y]})`; satz = wahl(P.schwank)({ X: txt(r), Y: txt(y) }); }
+  else {
+    tipp = y; richtigGetippt = false;
+    if (rnd() < .5) { grad = `unsicher (oder ${"ABCD"[r]})`; satz = wahl(P.schwank)({ X: txt(y), Y: txt(r) }); }
+    else { grad = "nur geraten"; satz = wahl(P.geraten)({ X: txt(y) }); }
+  }
+  /* Bezug zur Frage nur, wenn der Pastor richtig liegt – sonst würde er sich selbst widersprechen */
+  const heu = `${f.f} ${f.loesung} ${f.ref} ${f.thema}`, passend = P.thema.filter(([re]) => re.test(heu)).map(([, t]) => t);
+  const extra = richtigGetippt && passend.length && rnd() < .8 ? wahl(passend) : wahl(P.allg);
+  const saetze = [wahl(P.hallo), satz, esc(extra)];
+  /* Aaron: Star Wars gern noch einmal extra, wenn der Satz davor keinen Bezug hatte */
+  if (P.sw && !/Star Wars|Jedi|Yoda|Macht|Todesstern|Han Solo|Luke|Vader|Tatooine|Chewbacca|C-3PO|Lichtschwert|Kamino|Falke|Mos Eisley|Obi-Wan/.test(extra) && rnd() < .6) saetze.push(esc(wahl(P.sw)));
+  saetze.push(wahl(P.tschuess));
+  return { saetze, tipp: kurz(tipp), grad, richtig: tipp === r, wer: id };
+}
+
+/* ---------- Zweiter Telefonjoker-Kontakt: Pastor Aaron (6.42) ----------
+   Aaron ist Amerikaner, arbeitet in Deutschland und wohnt mit seiner Frau Eliza in Eichstätt. Eliza kommt aus Russland,
+   spielt Querflöte und ist sehr musikalisch. Aaron weiß alles über Star Wars und liebt amerikanisches BBQ.
+   Star Wars darf bei ihm oft vorkommen – auch wenn der Bezug manchmal etwas konstruiert ist. */
+const AARON_HALLO = [
+  "Hey, hier ist Aaron! Oh, „Wer wird Biblionär?“ – awesome, schieß los!",
+  "Aaron hier – sorry, Eliza übt gerade Querflöte, ich geh kurz raus … Okay, ich höre!",
+  "Hallo! Aaron am Apparat. Ich hab gerade „Das Imperium schlägt zurück“ pausiert – für dich mach ich das gern.",
+  "Hi! Moment, ich wisch mir nur die BBQ-Sauce von den Fingern … So, go!"
+];
+const AARON_SICHER = [
+  x => `Oh, das ist easy: ${x.X}. Steht in ${x.ref}. Da bin ich mir so sicher wie Yoda.`,
+  x => `${x.X} – hundertprozentig! Lies ${x.ref} nach. Und ausnahmsweise hab ich kein mieses Gefühl dabei, wie Han Solo sagen würde.`,
+  x => `Ganz klar ${x.X}. Das steht in ${x.ref} – das weiß ich so genau wie die Reihenfolge aller Star-Wars-Filme.`
+];
+const AARON_ZIEMLICH = [
+  x => `Ich bin ziemlich sicher: ${x.X}. Ich glaube, das steht in ${x.ref}.`,
+  x => `Hmm, ich sage ${x.X}. Wenn ich mich nicht irre, steht das in ${x.ref} – check das lieber nochmal.`
+];
+const AARON_SCHWANK = [
+  x => `Okay, tricky … ${x.X} oder ${x.Y}? Ich spüre eine Erschütterung in der Macht. Ich würde ${x.X} nehmen, aber sicher bin ich nicht.`,
+  x => `Puh, ich schwanke zwischen ${x.X} und ${x.Y}. Mein Bauchgefühl sagt ${x.X}.`
+];
+const AARON_GERATEN = [
+  x => `Sorry, da bin ich überfragt. Aus dem Bauch heraus: ${x.X} – aber verlass dich nicht drauf!`,
+  x => `Ehrlich? Ich weiß es nicht. Vielleicht ${x.X}? Wie Yoda sagen würde: Schwer zu sehen, die Antwort ist.`
+];
+const AARON_THEMA = [
+  [/Goliath/, "David gegen Goliath – das ist wie Luke gegen den Todesstern: Der Kleine gewinnt. Nur hat David nicht auf die Macht vertraut, sondern auf den Herrn (1. Samuel 17,45)."],
+  [/David|Harfe|Saul\b/, "David spielte so schön Harfe, dass Saul ruhig wurde (1. Samuel 16,23). Eliza sagt, mit der Querflöte klappt das bei mir genauso."],
+  [/Jericho|Posaune/, "In Jericho fielen die Mauern, als das Volk die Posaunen hörte und laut schrie (Josua 6,20) – ganz ohne Schuss. Das hätte nicht mal der Todesstern geschafft."],
+  [/Josua|Sonne/, "Tatooine hat zwei Sonnen – aber nur bei Josua blieb die Sonne stehen (Josua 10,13). That’s a real miracle!"],
+  [/Jona|Ninive/, "Jona im Bauch des Fisches erinnert mich an den Millennium Falken im Bauch des Weltraum-Wurms in „Das Imperium schlägt zurück“. Beide kamen wieder raus – Jona, weil er gebetet hat (Jona 2,2)."],
+  [/Daniel|Löwengrube/, "Daniel in der Löwengrube – wie Luke in der Grube mit dem Rancor! Nur brauchte Daniel keinen Trick: Gott verschloss den Löwen den Rachen (Daniel 6,23)."],
+  [/Saulus|Paulus|Damaskus/, "Saulus wurde vom Verfolger zum Apostel (Apostelgeschichte 9). Darth Vader hat für seine Umkehr bis zum Ende von Episode VI gebraucht!"],
+  [/Pfingsten|Zungen|Turmbau|Sprache/, "C-3PO beherrscht über sechs Millionen Kommunikationsformen. Aber zu Pfingsten hat jeder die Apostel in seiner eigenen Sprache gehört (Apostelgeschichte 2,6) – das war ein echtes Wunder."],
+  [/Schilfmeer|Meer\b|Stab/, "Yoda hebt einen X-Wing aus dem Sumpf – aber ein ganzes Meer teilen wie bei Mose (2. Mose 14,21), das kann nur der lebendige Gott."],
+  [/Wüste|40 Jahre|vierzig/, "40 Jahre durch die Wüste – länger als Luke auf Tatooine gelebt hat. Und Manna statt blauer Milch!"],
+  [/Sintflut|Arche|Noah/, "Bei der Sintflut war die ganze Erde unter Wasser – fast wie der Planet Kamino. Gut, dass Noah eine Arche hatte (1. Mose 7)."],
+  [/Jünger|zwölf|Apostel/, "Zwölf Jünger – genau so viele Plätze hat der Hohe Rat der Jedi. Zufall? Ja, ganz eindeutig."],
+  [/Isaak|Abraham/, "Abraham hat 25 Jahre auf seinen Sohn Isaak gewartet. In Star Wars geht das viel plötzlicher: „Ich bin dein Vater!“"],
+  [/Salomo|Weisheit|Sprüche/, "Salomo hat Gott um Weisheit gebeten (1. Könige 3,9) – weiser als Yoda und ohne komische Satzstellung."],
+  [/Psalm|Lied|sang|singen|Mirjam|Pauke|Musik|Asaf|Levit/, "Eliza sagt, die Psalmen sind die schönste Musik der Welt. Sie muss es wissen – sie spielt Querflöte, seit sie als Kind in Russland war."],
+  [/Mirjam|Pauke/, "Mirjam nahm die Pauke und alle Frauen tanzten (2. Mose 15,20). Eliza hätte bestimmt ihre Querflöte mitgebracht!"],
+  [/Esau|Wildbret/, "Esau war Jäger und brachte Wildbret (1. Mose 27). Ich stell mir das als Texas-Brisket vor – zwölf Stunden low and slow geräuchert."],
+  [/Wachtel|Manna/, "Abends Wachteln in der Wüste (2. Mose 16,13) – ich hätte sie mit Hickory-Rauch gesmokt!"],
+  [/Elia|Karmel|Feuer/, "Auf dem Karmel fiel Feuer vom Himmel auf Elias Opfer (1. Könige 18,38) – eindrucksvoller als jedes Lichtschwert."],
+  [/Simson|Delila/, "Simson erinnert mich an Chewbacca: unglaublich stark – und beide mit ziemlich langen Haaren (Richter 16,17)."],
+  [/Bethlehem|Hirten|Stern|Weise/, "Der Stern über Bethlehem (Matthäus 2,9) ist mein Lieblingsstern – noch vor dem Todesstern. Okay, der ist ja auch gar kein Stern."]
+];
+const AARON_ALLG = [
+  "Eliza übt im Nebenzimmer Querflöte – wenn du genau hinhörst: Es ist die Star-Wars-Titelmelodie. Ich hab sie überredet.",
+  "Was ich an Eichstätt liebe? Die Gemeinde. Was ich vermisse? Richtiges amerikanisches BBQ.",
+  "Eliza kommt aus Russland, ich aus Amerika, und wir wohnen in Eichstätt – bei uns ist es fast wie in der Cantina von Mos Eisley, nur viel friedlicher.",
+  "Wenn du die Million holst, lade ich dich zu Burgern und Spare Ribs ein – American Style!",
+  "Möge die Macht mit dir sein – nein, Moment: Der Herr sei mit dir! Das ist viel besser.",
+  "Yoda sagt: Tu es oder tu es nicht, es gibt kein Versuchen. Ich sag: Erst beten, dann tippen!",
+  "Im Hintergrund meint Eliza gerade, ich soll weniger über Star Wars und mehr über die Bibel reden. Sie hat recht.",
+  "Pulled Pork, Mac and Cheese, Cornbread … sorry, ich hab gerade Hunger bekommen."
+];
+const AARON_SW = [
+  "Und vergiss nicht: Die helle Seite gewinnt am Ende immer – in Star Wars und erst recht in der Bibel.",
+  "Übrigens: Ich hab ein Lichtschwert-Lesezeichen in meiner Bibel. Blau, natürlich.",
+  "Ein Jedi wird man durch Training – ein Biblionär auch. Weiter so, junger Padawan!",
+  "Wie Obi-Wan sagen würde: Das ist die Antwort, nach der du suchst."
+];
+const AARON_TSCHUESS = ["Der Herr sei mit dir – always!", "Good luck! Eliza spielt dir einen Tusch auf der Querflöte.", "Okay, ich muss zurück zum Smoker. God bless!", "Bis Sonntag in der Gemeinde – see you!"];
+/* Pastor Aaron als Porträt: kurze Haare, freundliches Lächeln, blaues Lichtschwert */
+const AARON_BILD = `<svg class="willi-bild" viewBox="0 0 96 96" aria-hidden="true"><defs><radialGradient id="aaH" cx=".5" cy=".5" r=".5"><stop offset=".55" stop-color="#7fc8ff" stop-opacity=".45"/><stop offset="1" stop-color="#7fc8ff" stop-opacity="0"/></radialGradient><linearGradient id="aaHaut" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe6cf"/><stop offset="1" stop-color="#f0c29c"/></linearGradient><linearGradient id="aaHemd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c9563f"/><stop offset="1" stop-color="#7a2a25"/></linearGradient></defs>
+<circle cx="48" cy="48" r="47" fill="url(#aaH)"/><circle cx="48" cy="48" r="38" fill="#1b2146" stroke="url(#wrG)" stroke-width="3"/>
+<clipPath id="aaK"><circle cx="48" cy="48" r="36.5"/></clipPath><g clip-path="url(#aaK)">
+<path d="M18 92c2-17 14-24 30-24s28 7 30 24z" fill="url(#aaHemd)" stroke="#1b2a55" stroke-width="1.4"/><path d="M40 70l8 8 8-8" fill="#f6f1e6" stroke="#1b2a55" stroke-width="1.2"/>
+<path d="M43 61h10v8h-10z" fill="url(#aaHaut)"/>
+<ellipse cx="48" cy="45" rx="15" ry="17" fill="url(#aaHaut)" stroke="#1b2a55" stroke-width="1.4"/>
+<path d="M33 41c-1-11 6-17 15-17 9 0 16 5 15 17-2-5-6-8-11-8-5 2-11 3-17 1-1 2-2 4-2 7z" fill="#c69a5a" stroke="#1b2a55" stroke-width="1.2"/>
+<circle cx="42.5" cy="45" r="1.9" fill="#1b2a55"/><circle cx="53.5" cy="45" r="1.9" fill="#1b2a55"/><path d="M39 41q3.5-1.6 7 0M50 41q3.5-1.6 7 0" stroke="#8a6232" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+<path d="M41.5 53q6.5 5.5 13 0" fill="#fff" stroke="#3a1e08" stroke-width="1.6" stroke-linecap="round"/>
+<path d="M36 33q3-6 9-7" stroke="#fff" stroke-opacity=".55" stroke-width="2" fill="none" stroke-linecap="round"/></g>
+<g transform="rotate(32 78 34)"><rect x="76.5" y="2" width="5" height="34" rx="2.5" fill="#bfe6ff" opacity=".35"/><rect x="77.5" y="3" width="3" height="33" rx="1.5" fill="#e9f7ff"/><rect x="76" y="35" width="6" height="14" rx="1.5" fill="url(#wrSt)" stroke="#1b2a55" stroke-width="1"/><path d="M76 39h6M76 43h6" stroke="#1b2a55" stroke-width=".8"/></g></svg>`;
+/* Die beiden Kontakte des Telefonjokers. salt: eigener Zufall je Kontakt, damit Willi und Aaron nicht immer gleich antworten. */
+const PASTOREN = {
+  willi: { name: "Pastor Willi", kurz: "Willi", info: "Bibelkenner & Grillmeister", bild: () => WILLI_BILD, salt: 0, quoten: [[.9, .98, .995], [.62, .86, .94], [.38, .64, .82]],
+    hallo: WILLI_HALLO, sicher: WILLI_SICHER, ziemlich: WILLI_ZIEMLICH, schwank: WILLI_SCHWANK, geraten: WILLI_GERATEN, thema: WILLI_THEMA, allg: WILLI_ALLG, tschuess: WILLI_TSCHUESS },
+  aaron: { name: "Pastor Aaron", kurz: "Aaron", info: "Bibelkenner & Star-Wars-Experte", bild: () => AARON_BILD, salt: 0x2c1b3c6d, quoten: [[.9, .98, .995], [.6, .85, .93], [.36, .62, .8]],
+    hallo: AARON_HALLO, sicher: AARON_SICHER, ziemlich: AARON_ZIEMLICH, schwank: AARON_SCHWANK, geraten: AARON_GERATEN, thema: AARON_THEMA, allg: AARON_ALLG, tschuess: AARON_TSCHUESS, sw: AARON_SW }
+};
+/* Wen rufst du an? Erst nach der Wahl ist der Joker verbraucht – Abbrechen gibt ihn zurück. */
+function telefonWahl(weiter, abbruch) {
+  const m = modal(`<div class="label">Telefonjoker</div><h2 style="margin:0">Wen rufst du an?</h2>
+    <div class="tel-wahl">${Object.entries(PASTOREN).map(([id, P]) => `<button class="tel-kontakt" data-tel="${id}">${P.bild()}<span><b>${P.name}</b><small>${P.info}</small></span>${svg("telefon")}</button>`).join("")}</div>
+    <p class="small muted" style="margin:0">Die Uhr steht, solange du telefonierst. Du hast nur einen Anruf.</p>
+    <button class="btn ghost" data-close>Doch nicht</button>`, x => { if (x !== "gewaehlt") abbruch(); });
+  m.classList.add("willi-modal");
+  m.querySelectorAll("[data-tel]").forEach(b => b.onclick = () => { m.remove(); weiter(b.dataset.tel); });
+}
+/* Pastor Willi als kleines Porträt im Stil „Himmlisches Licht“ (Bart, Grillzange) */
+const WILLI_BILD = `<svg class="willi-bild" viewBox="0 0 96 96" aria-hidden="true"><defs><radialGradient id="wiH" cx=".5" cy=".5" r=".5"><stop offset=".55" stop-color="#b38cff" stop-opacity=".45"/><stop offset="1" stop-color="#b38cff" stop-opacity="0"/></radialGradient><linearGradient id="wiHaut" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe2c4"/><stop offset="1" stop-color="#e9b88e"/></linearGradient><linearGradient id="wiBart" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9a6a3c"/><stop offset="1" stop-color="#5e3a1c"/></linearGradient><linearGradient id="wiHemd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3d5ab8"/><stop offset="1" stop-color="#1d2f6b"/></linearGradient></defs>
+<circle cx="48" cy="48" r="47" fill="url(#wiH)"/><circle cx="48" cy="48" r="38" fill="#1b2146" stroke="url(#wrG)" stroke-width="3"/>
+<clipPath id="wiK"><circle cx="48" cy="48" r="36.5"/></clipPath><g clip-path="url(#wiK)">
+<path d="M18 92c2-17 14-24 30-24s28 7 30 24z" fill="url(#wiHemd)" stroke="#1b2a55" stroke-width="1.4"/><path d="M42 69l6 9 6-9" fill="#fff" stroke="#1b2a55" stroke-width="1.2"/>
+<circle cx="48" cy="42" r="16" fill="url(#wiHaut)" stroke="#1b2a55" stroke-width="1.4"/>
+<path d="M32 40c-1 6 1 12 4 17 3 5 7 9 12 9s9-4 12-9c3-5 5-11 4-17-2 4-5 6-8 6-3-2-5-2-8-2s-5 0-8 2c-3 0-6-2-8-6z" fill="url(#wiBart)" stroke="#1b2a55" stroke-width="1.2"/>
+<path d="M42 49q6 4 12 0" fill="none" stroke="#3a1e08" stroke-width="1.8" stroke-linecap="round"/><path d="M43.5 53q4.5 2.4 9 0" fill="#c4544c"/>
+<path d="M33 35c0-10 7-15 15-15s15 5 15 15c-3-5-8-7-15-7s-12 2-15 7z" fill="#7a5230" stroke="#1b2a55" stroke-width="1.2"/>
+<circle cx="42" cy="40" r="1.9" fill="#1b2a55"/><circle cx="54" cy="40" r="1.9" fill="#1b2a55"/><path d="M38.5 36q3.5-2 7 0M50.5 36q3.5-2 7 0" stroke="#5e3a1c" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+<path d="M36 30q2-6 8-7" stroke="#fff" stroke-opacity=".55" stroke-width="2" fill="none" stroke-linecap="round"/></g>
+<g transform="rotate(28 78 30)"><rect x="76" y="20" width="4" height="30" rx="2" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1"/><path d="M74 21V9M78 21V7M82 21V9" stroke="url(#wrG)" stroke-width="2.4" stroke-linecap="round"/><path d="M73 21h10" stroke="#1b2a55" stroke-width="1"/></g></svg>`;
+/* Das Telefonat: es klingelt, dann erzählt Willi Satz für Satz. Die Bedenkzeit steht so lange. */
+function pastorAnruf(w, weiter) {
+  const P = PASTOREN[w.wer] || PASTOREN.willi;
+  const ruhig = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const m = modal(`<div class="willi">
+      <div class="willi-kopf">${P.bild()}<div><div class="label">Telefonjoker</div><b>${P.name}</b><small id="wStatus"><i class="w-ring"></i> Es klingelt …</small></div></div>
+      <div class="willi-text" id="wText" aria-live="polite">${w.saetze.map((t, k) => `<p class="${ruhig ? "da" : ""}" data-k="${k}">${t}</p>`).join("")}</div>
+      <button class="btn primary" data-close="auf">${svg("telefon")} Danke, ${P.kurz}! Auflegen</button></div>`, () => weiter());
+  m.classList.add("willi-modal");
+  const status = $("wStatus"); let sek = 0, uhr = null;
+  [0, 1].forEach(k => { tone(440, k * .9, .35, "sine", .06); tone(480, k * .9, .35, "sine", .05); });
+  setTimeout(() => {
+    if (!document.body.contains(m)) return;
+    status.innerHTML = `<i class="w-an"></i> verbunden · 0:00`;
+    uhr = setInterval(() => { if (!document.body.contains(m)) return clearInterval(uhr); sek++; status.innerHTML = `<i class="w-an"></i> verbunden · 0:${String(sek).padStart(2, "0")}`; }, 1000);
+    m.querySelectorAll(".willi-text p").forEach((el, k) => setTimeout(() => el.classList.add("da"), ruhig ? 0 : 250 + k * 1100));
+  }, ruhig ? 0 : 1700);
+}
+
+/* ---------- Eigener Reiter „Biblionär“ (6.42): Solo, Biblionär der Woche, einfaches Duell, Rekord ----------
+   Das Biblionär-Duell geht hier mit einem Tipp (ohne Duell-Art-Auswahl); alle anderen Duelle bleiben in der Arena. */
+let bibDuWahl = false, bibDuSuche = "";
+const bibIstQuiz = d => (d.art || "vers") === "quiz";
+function bibGegnerHtml() {
+  const offen = (duListe || []).filter(d => d.von === S.pid && duStatus(d) === "offen");
+  const q = nameSchluessel(bibDuSuche), liste = (duGegner || []).filter(r => !q || nameSchluessel(r.name).includes(q)).slice(0, 40);
+  return `<div class="card du-gegner bq-gegner" id="bqGegner">
+    ${offen.length >= DU_MAX_OFFEN ? `<p class="small muted" style="margin:0">Du hast schon ${DU_MAX_OFFEN} offene Duelle – warte, bis jemand antwortet.</p>` : `
+    <input class="du-suche" id="bqSuche" type="search" placeholder="Wen herausfordern? Name suchen …" value="${esc(bibDuSuche)}" autocomplete="off" aria-label="Gegner suchen">
+    ${duGegner === null ? `<p class="small muted">Lade Gemeinde …</p>` : `<ul class="du-wahl">${liste.map(r => { const laeuft = offen.some(d => d.an === r.id);
+      return `<li><button class="du-person" data-bqg="${esc(r.id)}" ${laeuft ? "disabled" : ""}>${avatarLv(r, 34)}<span class="du-tx"><b>${esc(r.name)}</b><span>${laeuft ? "Duell läuft schon" : "Level " + (r.level || 1)}</span></span>${laeuft ? "" : `<span class="du-los bq-los">${svg("biblionaer")}</span>`}</button></li>`; }).join("") || `<li class="small muted">Niemand gefunden.</li>`}</ul>`}`}
+  </div>`;
+}
+function bibGegnerVerdrahten() {
+  const neu = () => { const box = $("bqGegner"); if (box) { box.outerHTML = bibGegnerHtml(); bibGegnerVerdrahten(); } };
+  const f = $("bqSuche"); if (f) f.oninput = () => { bibDuSuche = f.value; const pos = f.selectionStart; neu(); const g = $("bqSuche"); g.focus(); try { g.setSelectionRange(pos, pos); } catch (e) {} };
+  screen.querySelectorAll("[data-bqg]").forEach(b => b.onclick = () => { SFX.tap(); const r = (duGegner || []).find(x => x.id === b.dataset.bqg); if (r) bibHerausfordern(r); });
+}
+function bibHerausfordern(r) {
+  const los = () => { bibDuWahl = false; duHerausfordern(r, "quiz", { heim: "bib" }); };
+  if (duListe) los(); else duAktualisieren().then(los);
+}
+/* Revanche nach einem Biblionär-Duell: gleich wieder Biblionär, nur kurz bestätigen */
+function bibRevanche(r, revanche) {
+  modal(`<div class="label">${revanche ? "Revanche" : "Nochmal"} gegen</div><h2 style="margin:0">${esc(r.name)}</h2>
+    <p class="small muted" style="margin:0">Neue 15 Fragen – ${esc(r.name)} bekommt genau dieselben.</p>
+    <button class="btn primary" data-close="los">${svg("biblionaer")} Biblionär-Duell starten</button><button class="btn ghost" data-close>Abbrechen</button>`,
+    x => { if (x === "los") bibHerausfordern(r); }).dataset.frei = "1";
+}
+VIEWS.bib = () => {
+  const online = duOk(), wk = weekKey(), n = bibWocheTage(), gespielt = bibWocheGespielt();
+  const liste = (duListe || []).filter(bibIstQuiz), alleDran = duFuerMich(), dran = alleDran.filter(bibIstQuiz), andere = alleDran.length - dran.length;
+  const warte = liste.filter(d => d.von === S.pid && duStatus(d) === "offen");
+  const fertig = liste.filter(d => d.status === "fertig" && d.vonErg && d.anErg).slice(0, 3);
+  const woche = !(S.lbName && !S.offlineOnly)
+    ? `<div class="bq-woche aus">${svg("crown")}<span><b>Biblionär der Woche</b><small>Nur mit Eintrag in der Gemeinde-Rangliste</small></span></div>`
+    : `<button class="bq-woche" id="bqWoche">${svg("crown")}<span><b>Biblionär der Woche</b><small>${gespielt ? `Deine Runde: ${pkt(S.bwP)} Punkte · zur Rangliste` : `${wk.split("-W")[1]}. KW · gleiche Fragen für alle · 1 Versuch`}</small></span>${gespielt ? svg("check", "var(--good)") : `<i class="bw-neu">noch ${n} T.</i>`}</button>`;
+  const dranKarte = d => `<li class="ar-karte t-quiz"><span class="du-medaille t-quiz">${esc(duInitialen(d.vonName))}</span><span class="ar-tx"><b>${esc(d.vonName)}</b><span>fordert dich heraus</span></span>
+      <span class="ar-vor"><b>${duP(d.vonErg.p)}</b><small class="ar-zeit">noch ${Math.max(0, Math.ceil((d.ablauf - Date.now()) / 864e5))} T.</small></span>
+      <span class="ar-knoepfe"><button class="ar-antreten" data-bqan="${d.id}">${svg("bolt")}Antreten</button></span></li>`;
+  const ergZeile = d => { const ich = d.von === S.pid, g = ich ? d.anName : d.vonName, p = ich ? d.vonErg.p : d.anErg.p, q = ich ? d.anErg.p : d.vonErg.p, e = p > q ? "sieg" : p === q ? "remis" : "nieder";
+    return `<li class="ar-zeile ${e}"><span class="du-medaille t-quiz">${e === "sieg" ? svg("crown") : esc(duInitialen(g))}</span><span class="ar-tx"><b>${esc(g)}</b><span><em>${e === "sieg" ? "Gewonnen" : e === "remis" ? "Remis" : "Verloren"}</em></span></span><span class="du-stand"><b>${duP(p)}</b><small>${duP(q)}</small></span><button class="ar-rev" data-bqrev="${d.id}" aria-label="${e === "sieg" ? "Nochmal" : "Revanche"} gegen ${esc(g)}">${svg("bolt")}</button></li>`; };
+  const duell = !online
+    ? `<p class="small muted bq-hinweis">${window.LB && window.LB.ok ? "Für Duelle brauchst du einen Eintrag in der Gemeinde-Rangliste." : "Für Duelle brauchst du Internet."}</p>`
+    : `${duListe === null ? `<p class="small muted du-laden">${svg("biblionaer")} Lade Duelle …</p>` : ""}
+      ${dran.length ? `<ul class="ar-liste">${dran.map(dranKarte).join("")}</ul>` : ""}
+      <button class="ar-start bq-start" id="bqNeu" ${bibDuWahl ? 'aria-expanded="true"' : ""}>${svg("duell")}<b>${bibDuWahl ? "Gegner wählen" : "Biblionär-Duell starten"}</b>${svg(bibDuWahl ? "nein" : "bolt")}</button>
+      ${bibDuWahl ? bibGegnerHtml() : ""}
+      ${warte.length ? `<p class="small muted bq-warte">${svg("sun")} Wartet auf: ${warte.map(d => `<b>${esc(d.anName)}</b>`).join(", ")}</p>` : ""}
+      ${fertig.length ? `<ul class="ar-liste">${fertig.map(ergZeile).join("")}</ul>` : ""}
+      ${andere > 0 ? `<button class="ar-mehr" data-go="duelle">${andere} ${andere === 1 ? "weiteres Duell wartet" : "weitere Duelle warten"} in der Arena</button>` : ""}`;
+  screen.innerHTML = `
+    <header class="bq-kopf"><span class="bq-logo">${svg("biblionaer")}</span><div><h1>Wer wird Biblionär?</h1><span>15 Bibelfragen bis zur Million</span></div></header>
+    <button class="bq-solo" id="bqSolo"><span class="bq-solo-tx"><b>Solo spielen</b><small>Zufällige Fragen · so oft du willst</small></span><span class="bq-rek">${S.bibRekord ? `Rekord<b>${pkt(S.bibRekord)}</b>` : `<b>Neu</b>`}</span>${svg("play")}</button>
+    ${woche}
+    <div class="ar-label bq-label">${svg("duell")}<span>Duell</span>${dran.length ? `<i>${dran.length}</i>` : ""}</div>
+    ${duell}
+    <div class="ar-label bq-label">${svg("star")}<span>Deine Joker</span></div>
+    <div class="bq-joker"><span><b>50:50</b><small>2 falsche weg</small></span><span>${svg("people")}<small>Die Gemeinde stimmt ab</small></span><span>${svg("telefon")}<small>Anruf bei Pastor Willi oder Aaron</small></span></div>
+    <button class="bq-rang" data-go="rank" data-arg="bibRekord">${svg("trophy")}<span>${S.bibSpiele || 0} Spiele · Rekord ${pkt(S.bibRekord || 0)}${S.bibMillion ? ` · ${S.bibMillion}× Million` : ""}</span><b>Rangliste</b></button>`;
+  wireGo();
+  $("bqSolo").onclick = () => { SFX.tap(); bibSolo(); };
+  if ($("bqWoche")) $("bqWoche").onclick = () => { SFX.tap(); if (gespielt) go("rank", "bibWoche"); else bibWocheStarten(); };
+  if ($("bqNeu")) $("bqNeu").onclick = () => { SFX.tap(); bibDuWahl = !bibDuWahl; VIEWS.bib();
+    if (bibDuWahl) { duGegnerLaden().then(() => { if (current !== "bib" || !bibDuWahl) return; const b = $("bqGegner"); if (!b) return;
+        const fokus = document.activeElement?.id === "bqSuche"; b.outerHTML = bibGegnerHtml(); bibGegnerVerdrahten(); if (fokus) { const f = $("bqSuche"); f.focus(); f.setSelectionRange(f.value.length, f.value.length); } });
+      const f = $("bqSuche"); if (f && !matchMedia("(pointer: coarse)").matches) f.focus(); } };
+  bibGegnerVerdrahten();
+  screen.querySelectorAll("[data-bqan]").forEach(b => b.onclick = () => { SFX.tap(); const d = dran.find(x => x.id === b.dataset.bqan); if (!d) return;
+    duSpielStarten({ id: d.id, seed: d.seed, art: "quiz", k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von, heim: "bib" }); });
+  screen.querySelectorAll("[data-bqrev]").forEach(b => b.onclick = () => { SFX.tap(); const d = liste.find(x => x.id === b.dataset.bqrev); if (!d) return; const ich = d.von === S.pid;
+    const p = ich ? d.vonErg.p : d.anErg.p, q = ich ? d.anErg.p : d.vonErg.p; bibRevanche({ id: ich ? d.an : d.von, name: ich ? d.anName : d.vonName }, p <= q); });
+  if (online && duListe === null) duAktualisieren().then(() => { if (current === "bib" && document.activeElement?.id !== "bqSuche") VIEWS.bib(); });
+};
 
 /* ---------- Feedback an den Entwickler ---------- */
 /* Wird in Firebase (Sammlung "feedback") gespeichert; lesen kann es nur der Entwickler in der Firebase-Konsole.
