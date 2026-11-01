@@ -1156,51 +1156,40 @@ VIEWS.home = () => {
   neuerTag(); save();
   const vKey = VERS_DES_TAGES[dayNum(today()) % VERS_DES_TAGES.length];
   const geschafft = GROUPS.filter((_, k) => S.stars[k]).length;
-  const ni = naechsteLektion();
-  /* Zwei große Knöpfe: Lernen (Übersicht, nächste Lektion ist dort hervorgehoben) und Spielen */
-  const ziel = ni >= 0 ? `<b>${esc(GROUPS[ni].name)}</b>${S.stars[ni] ? " · mehr Sterne" : ""}` : "Alle Lektionen geschafft!";
-  const duN = duFuerMich().length;
-  const weiter = `<div class="arena"><div class="start-tore">
-    <button class="tor" data-ar="lernen" data-go="lernen">
-      <span class="tor-ic">${svg("book")}</span><span class="tor-titel">Lernen</span>
-      <span class="tor-info">${ni >= 0 ? "Als Nächstes" : ""}<span>${ziel}</span></span>
-      ${ringSvg(geschafft / GROUPS.length, "var(--ar-lernen)", `${geschafft}/${GROUPS.length}`, 40)}</button>
-    <button class="tor" data-ar="spielen" data-go="spielen">
-      <span class="tor-ic">${svg("bolt")}</span><span class="tor-titel">Spielen</span>
-      <span class="tor-info">Blitz · Kette<span>Lückenquiz</span></span>
-      <span class="tor-rek">${S.bestBlitz ? `Rekord<b>${S.bestBlitz}</b>` : ""}</span></button>
-  </div>
-    <button class="arena-medaille" id="torDuell" aria-label="Arena${duN ? ` – ${duN} ${duN === 1 ? "Herausforderung wartet" : "Herausforderungen warten"}` : ""}"><span class="am-logo">${DUELL_LOGO}</span><b>Arena</b>${duN ? `<i class="du-punkt">${duN}</i>` : ""}</button></div>`;
+  const ni = naechsteLektion(), duN = duFuerMich().length;
+  /* Seit 6.43: vier gleich große Felder (2×2) – Lernen, Spielen, Biblionär, Arena */
+  const felder = [
+    { go: "lernen", ar: "lernen", ic: svg("book"), t: "Lernen", info: `<b>${geschafft}/${GROUPS.length}</b> · ${ni >= 0 ? esc(GROUPS[ni].name) : "Alles geschafft!"}`, ecke: "" },
+    { go: "spielen", ar: "spielen", ic: svg("bolt"), t: "Spielen", info: S.bestBlitz ? `Blitz · Kette · Lücke<br>Rekord <b>${S.bestBlitz}</b>` : "Blitz · Kette · Lücke", ecke: "" },
+    { go: "bib", ar: "bib", ic: svg("biblionaer"), t: "Biblionär", info: S.bibRekord ? `Rekord <b>${pkt(S.bibRekord)}</b>` : "15 Fragen zur Million", ecke: "" },
+    { id: "torDuell", ar: "arena", ic: `<span class="sf-logo">${DUELL_LOGO}</span>`, t: "Arena", info: duN ? `<b>${duN}</b> ${duN === 1 ? "Duell wartet" : "Duelle warten"}` : "Fordere jemanden heraus", ecke: duN ? `<i class="du-punkt">${duN}</i>` : "" }];
+  const weiter = `<div class="sf-grid">${felder.map(f => `<button class="sf" data-ar="${f.ar}" ${f.go ? `data-go="${f.go}"` : `id="${f.id}"`} aria-label="${f.t}${f.ar === "arena" && duN ? ` – ${duN} ${duN === 1 ? "Herausforderung wartet" : "Herausforderungen warten"}` : ""}">
+      <span class="sf-ic">${f.ic}</span><span class="sf-t">${f.t}</span><span class="sf-info">${f.info}</span>${f.ecke ? `<span class="sf-ecke">${f.ecke}</span>` : ""}</button>`).join("")}</div>`;
   const erledigt = S.dq.items.filter(i => i.done).length;
-  /* Tagesaufgaben als drei Medaillen mit Fortschrittsring; antippen führt dorthin, wo man sie erledigt */
+  /* Tagesaufgaben kompakt: je Aufgabe eine Zeile mit kleinem Ring, rechts die Schatztruhe */
   const AUFG_ART = { runde: ["step", "spielen", "spielen"], xp: ["star", "home", "spielen"], right: ["target", "spielen", "blitz"], blitz: ["bolt", "spielen", "blitz"],
     station: ["book", "lernen", "lernen"], ketteGespielt: ["link", "spielen", "spielen"], lied: ["music", "lernen", "lied"], luecke: ["scroll", "spielen", "gap"], lernvers: ["scroll", "lernen", "verslektion"], duell: ["duell", "spielen", "duelle"] };
   const aufg = S.dq.items.map(it => { const a = AUFGABEN.find(x => x.id === it.id); if (!a) return ""; const pr = Math.min(it.prog, a.ziel);
-    const [ic, ar, ziel] = AUFG_ART[a.ev] || ["target", "spielen", "spielen"], C = 2 * Math.PI * 27;
-    return `<li><button class="tq ${it.done ? "done" : ""}" data-ar="${ar}" data-go="${ziel}"${ziel === "gap" ? ' data-arg="alle"' : ""} aria-label="${esc(a.text)}: ${pr} von ${a.ziel}${it.done ? ", erledigt" : ""}">
-      <span class="tq-med"><svg class="tq-ring" viewBox="0 0 60 60" aria-hidden="true"><circle cx="30" cy="30" r="27" fill="none" stroke="#ffffff14" stroke-width="4"/><circle cx="30" cy="30" r="27" fill="none" stroke="var(--tq)" stroke-width="4" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - pr / a.ziel)}" transform="rotate(-90 30 30)"/></svg>
-        <span class="tq-ic">${svg(ic)}</span>${it.done ? `<span class="tq-key">${SCHLUESSEL}</span>` : ""}</span>
-      <span class="tq-text">${esc(a.text)}</span><span class="tq-zahl">${it.done ? "Schlüssel!" : `${pr} / ${a.ziel}`}</span></button></li>`; }).join("");
+    const [ic, ar, ziel] = AUFG_ART[a.ev] || ["target", "spielen", "spielen"], C = 2 * Math.PI * 13;
+    return `<li><button class="tz ${it.done ? "done" : ""}" data-ar="${ar}" data-go="${ziel}"${ziel === "gap" ? ' data-arg="alle"' : ""} aria-label="${esc(a.text)}: ${pr} von ${a.ziel}${it.done ? ", erledigt" : ""}">
+      <span class="tz-ic"><svg class="tz-ring" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="none" stroke="#ffffff16" stroke-width="3"/><circle cx="16" cy="16" r="13" fill="none" stroke="var(--tq)" stroke-width="3" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - pr / a.ziel)}" transform="rotate(-90 16 16)"/></svg>${svg(ic)}</span>
+      <span class="tz-tx">${esc(a.text)}</span><span class="tz-z">${it.done ? SCHLUESSEL : `${pr}/${a.ziel}`}</span></button></li>`; }).join("");
   const bereit = !S.dq.bonus && (S.dq.geschafft || erledigt === 3);
-  const truhe = `<li>${S.dq.bonus
-    ? `<div class="tq-preis erhalten" aria-label="Schatztruhe geöffnet: ${AUFGABE_BONUS_XP} XP und ${AUFGABE_BONUS} Talente erhalten"><span class="tp-ic">${TRUHE_AUF}<span class="tq-ok">${svg("check")}</span></span><span class="tp-xp">+${AUFGABE_BONUS_XP}<small> XP</small></span><span class="tp-tal">+${AUFGABE_BONUS}${TAL_MUENZE}</span></div>`
+  const truhe = S.dq.bonus
+    ? `<div class="tz-truhe erhalten" aria-label="Schatztruhe geöffnet: ${AUFGABE_BONUS_XP} XP und ${AUFGABE_BONUS} Talente erhalten">${TRUHE_AUF}<span class="tz-lohn">${svg("check")} Erhalten</span></div>`
     : bereit
-    ? `<button class="tq-preis bereit" id="truheBtn" aria-label="Schatztruhe mit drei Schlüsseln öffnen"><span class="tp-ic">${truheZu(3)}</span><span class="tp-keys">${[0, 1, 2].map(i => `<i class="${i < erledigt ? "an" : ""}">${SCHLUESSEL}</i>`).join("")}</span><span class="tp-auf">Öffnen!</span></button>`
-    : `<div class="tq-preis" aria-label="Schatztruhe mit drei Schlössern – ${erledigt} von 3 Schlüsseln"><span class="tp-ic">${truheZu(erledigt)}</span><span class="tp-keys">${[0, 1, 2].map(i => `<i class="${i < erledigt ? "an" : ""}">${SCHLUESSEL}</i>`).join("")}</span><span class="tp-hinweis">${erledigt}/3</span></div>`}</li>`;
-  const sterne = Object.values(S.stars).reduce((a, b) => a + b, 0);
-  const wocheXp = S.weekKey === weekKey() ? S.weekXp : 0;
+    ? `<button class="tz-truhe bereit" id="truheBtn" aria-label="Schatztruhe mit drei Schlüsseln öffnen">${truheZu(3)}<span class="tz-lohn">Öffnen!</span></button>`
+    : `<div class="tz-truhe" aria-label="Schatztruhe – ${erledigt} von 3 Schlüsseln">${truheZu(erledigt)}<span class="tz-keys">${[0, 1, 2].map(i => `<i class="${i < erledigt ? "an" : ""}">${SCHLUESSEL}</i>`).join("")}</span><span class="tz-lohn">+${AUFGABE_BONUS_XP} XP · +${AUFGABE_BONUS}${TAL_MUENZE}</span></div>`;
+  const orn = t => `<div class="orn" aria-hidden="true"><i></i>${t ? `<b>${t}</b>` : `<svg viewBox="0 0 20 20"><path d="M10 1v18M3 7h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>`}<i></i></div>`;
   const siegel = (() => { const f = Object.entries(KETTEN).map(([id, k]) => ({ id, k, t: S.meister[id] || [] })).filter(x => x.t.length && siegelRest(x.t) <= 5).sort((a, b) => siegelRest(a.t) - siegelRest(b.t))[0];
       return f ? `<button class="erinnerung" data-go="spielen">${siegelHtml(siegelStufe(f.t), siegelFrisch(f.t), true)}<span><b>${siegelFrisch(f.t) ? `Dein Siegel „${esc(f.k.name)}“ verblasst in ${siegelRest(f.t)} Tag(en)` : `Dein Siegel „${esc(f.k.name)}“ ist verblasst`}</b><span class="small muted">Jetzt die Kette wiederholen und auffrischen${siegelFrisch(f.t) ? "" : ` (+${AUFFRISCH_TAL} Talente)`}</span></span></button>` : ""; })();
-  screen.innerHTML = `<div class="stack start">
-    ${MONATSVERSE[monatKey()] ? lvKarte(monatKey()) : `<button class="vers-zeile" id="versZeile" aria-expanded="false">${versHtml(vKey, "tag klein")}<span class="vz-mehr">mehr</span></button>`}
+  screen.innerHTML = `<div class="stack start start2">
+    <div class="start-vers">${MONATSVERSE[monatKey()] ? lvKarte(monatKey()) : `<button class="vers-zeile" id="versZeile" aria-expanded="false">${versHtml(vKey, "tag klein")}<span class="vz-mehr">mehr</span></button>`}</div>
     ${siegel}
+    ${orn("")}
     ${weiter}
-    <section class="heute2 ${S.dq.bonus ? "fertig" : ""}" aria-label="Tagesaufgaben">
-      <div class="h2-kopf"><span class="h2-sonne">${svg("sun")}</span><b>Tagesaufgaben</b>
-        <span class="h2-stand">${S.dq.bonus ? "Alle geschafft!" : bereit ? "Die Truhe wartet!" : `${erledigt} von 3 · ca. ${AUFGABEN_MAX_MIN} Min.`}</span></div>
-      <div class="h2-pfad"><i style="width:${erledigt / 3 * 100}%"></i></div>
-      <ul class="tq-liste">${aufg}${truhe}</ul>
-    </section>
+    ${orn(S.dq.bonus ? "Heute geschafft!" : bereit ? "Die Truhe wartet!" : "Tagesaufgaben")}
+    <section class="heute3 ${S.dq.bonus ? "fertig" : ""}" aria-label="Tagesaufgaben, ${erledigt} von 3 erledigt"><ul>${aufg}</ul>${truhe}</section>
     ${entwickler && postfachNeu ? `<button class="erinnerung pf-hinweis" data-go="postfach">${svg("chat")}<span><b>${postfachNeu} ${postfachNeu === 1 ? "neue Meldung" : "neue Meldungen"} im Postkasten</b><span class="small muted">Feedback, Status und Datenbank</span></span></button>` : ""}
   </div>`;
   wireGo();
@@ -1210,7 +1199,6 @@ VIEWS.home = () => {
   if (S.lbName) levelNachreichen();
   const vz = $("versZeile"); if (vz) { vz.onclick = () => { const auf = vz.getAttribute("aria-expanded") !== "true"; vz.setAttribute("aria-expanded", auf); };
     requestAnimationFrame(() => { const bq = vz.querySelector("blockquote"); if (bq && bq.scrollHeight <= bq.clientHeight + 2) vz.classList.add("passt"); }); }
-  void sterne;
 };
 
 /* ---------- Schatz (Reiter „Ich“): Profil oben, darunter direkt der Laden ---------- */
@@ -2857,6 +2845,25 @@ function bibWocheKarte() {
     : `<button class="btn primary bw-los" id="bwLos">${svg("biblionaer")} Wochenrunde spielen</button><span class="small muted">1 Versuch · noch ${n} ${n === 1 ? "Tag" : "Tage"}</span>`;
   return `<div class="card bw-karte">${knopf}${vor}</div>`;
 }
+
+/* Symbol „biblionaer“ (6.43): Goldmedaille mit Türkis-Bändern, Fragezeichen und offener Bibel.
+   Beim nächsten Lauf des Symbol-Generators (werkzeuge/symbole-erzeugen.js, Bereich Türkis „bib“) dorthin übernehmen und hier entfernen. */
+(function () {
+  if (document.getElementById("wr-defs-bib")) return;
+  const d = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  d.setAttribute("id", "wr-defs-bib"); d.setAttribute("width", "0"); d.setAttribute("height", "0"); d.setAttribute("aria-hidden", "true"); d.style.position = "absolute";
+  d.innerHTML = '<defs><radialGradient id="wrH_bib"><stop offset="0" stop-color="#fff6d0" stop-opacity=".75"/><stop offset=".5" stop-color="#66e0d0" stop-opacity=".32"/><stop offset="1" stop-color="#66e0d0" stop-opacity="0"/></radialGradient>'
+    + '<linearGradient id="wrT_bib" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e6fffb"/><stop offset=".45" stop-color="#66e0d0"/><stop offset="1" stop-color="#127a78"/></linearGradient>'
+    + '<linearGradient id="wrD_bib" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1f3f7a"/><stop offset="1" stop-color="#0f1a45"/></linearGradient></defs>';
+  document.body.insertBefore(d, document.body.firstChild);
+})();
+ICONS.biblionaer = `<svg x="0" y="0" width="24" height="24" viewBox="0 0 64 64" overflow="visible" class="wr wr-bib"><circle class="wr-halo" cx="32" cy="32" r="31" fill="url(#wrH_bib)"/><ellipse cx="32" cy="61" rx="17" ry="2.2" fill="#000" opacity=".3"/>`
+  + `<path d="M21 38L13 58l7-2 4 6 8-18Z" fill="url(#wrT_bib)" stroke="#1b2a55" stroke-width="1.4" stroke-linejoin="round"/><path d="M43 38l8 20-7-2-4 6-8-18Z" fill="url(#wrT_bib)" stroke="#1b2a55" stroke-width="1.4" stroke-linejoin="round"/>`
+  + `<circle cx="32" cy="28" r="23" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1.6"/><circle cx="32" cy="28" r="20.5" fill="none" stroke="#fff8dc" stroke-width="1" stroke-dasharray="1.6 2.6" opacity=".9"/>`
+  + `<circle cx="32" cy="28" r="16.5" fill="url(#wrD_bib)" stroke="#1b2a55" stroke-width="1.2"/><circle cx="32" cy="28" r="16.5" fill="none" stroke="#66e0d0" stroke-width="1.3" opacity=".8"/>`
+  + `<g transform="translate(32 25.5) scale(1.05)"><path d="M-4.6 -6.4q.6-5.6 5.6-5.6q5.4 0 5.4 4.8q0 3-3.2 4.6q-2.4 1.2-2.4 4" fill="none" stroke="#1b2a55" stroke-width="5.2" stroke-linecap="round"/><path d="M-4.6 -6.4q.6-5.6 5.6-5.6q5.4 0 5.4 4.8q0 3-3.2 4.6q-2.4 1.2-2.4 4" fill="none" stroke="url(#wrG)" stroke-width="3" stroke-linecap="round"/><circle cx=".8" cy="6.6" r="2.34" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1"/></g>`
+  + `<path d="M24.5 38.4c2.5-1 5-1 7.5.4c2.5-1.4 5-1.4 7.5-.4" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" opacity=".85"/><path d="M15 19q4-8 12-10" stroke="#fff" stroke-width="1.8" stroke-linecap="round" fill="none" opacity=".75"/>`
+  + `<path class="wr-spark" d="M51 3l1.49 4.01 4.01 1.49-4.01 1.49-1.49 4.01-1.49-4.01-4.01-1.49 4.01-1.49z" fill="#fff"/></svg>`;
 
 /* Symbol „telefon“ (Belohnungs-/Joker-Violett) – beim nächsten Lauf des Symbol-Generators dorthin übernehmen */
 ICONS.telefon = `<svg x="0" y="0" width="24" height="24" viewBox="0 0 64 64" overflow="visible" class="wr wr-lohn"><circle class="wr-halo" cx="32" cy="32" r="31" fill="url(#wrH_lohn)"/><ellipse cx="32" cy="61" rx="17" ry="2.2" fill="#000" opacity=".3"/><path d="M15 9.5c2.6-1.9 6.3-1.2 7.6 1.8l4.2 9.4c1.1 2.5.2 5.4-2.1 6.8l-3.4 2.1c2.8 6.4 7.4 11.1 13.6 14.1l2.2-3.3c1.5-2.2 4.4-3 6.8-1.9l9.3 4.3c3 1.4 3.6 5.2 1.6 7.7l-3.6 4.4c-2.8 3.4-7.6 4.6-11.7 2.9C26.5 52.6 15.6 41.8 10.4 28.7 8.8 24.6 10 19.9 13.4 17.1z" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1.6" stroke-linejoin="round"/><path d="M14.6 14.2c-2.4 2.7-3 6.6-1.6 10" stroke="#fff" stroke-width="2.2" stroke-linecap="round" fill="none" opacity=".75"/><path d="M37 8.5a19 19 0 0 1 18.5 18.5M37 16a11.5 11.5 0 0 1 11 11" stroke="url(#wrX_lohn)" stroke-width="3.4" stroke-linecap="round" fill="none"/><path d="M37 8.5a19 19 0 0 1 18.5 18.5M37 16a11.5 11.5 0 0 1 11 11" stroke="#1b2a55" stroke-width=".8" stroke-linecap="round" fill="none" opacity=".5"/><path class="wr-spark" d="M54 42.5l1.49 4.01 4.01 1.49-4.01 1.49-1.49 4.01-1.49-4.01-4.01-1.49 4.01-1.49z" fill="#fff"/></svg>`;

@@ -1324,6 +1324,50 @@ body[data-acc="saphir"]::after{-webkit-mask:linear-gradient(transparent 38%,#000
 .bq-joker b{font:900 1.05rem var(--body);color:#fff}.bq-joker svg{width:26px;height:26px}.bq-joker small{font:700 .7rem/1.2 var(--body);color:#d9caff}
 .bq-rang{width:100%;display:flex;align-items:center;gap:10px;margin-top:14px;padding:11px 14px;border-radius:16px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font:700 .82rem var(--body);cursor:pointer;text-align:left}
 .bq-rang svg{width:24px;height:24px;flex:none}.bq-rang span{flex:1;min-width:0}.bq-rang b{color:var(--ar-gemeinde);white-space:nowrap}
+/* Startseite 6.43: Lernvers abgesetzt, vier Felder (2×2), Tagesaufgaben kompakt */
+.start2{gap:10px}
+.start2 .start-vers .lv{margin:0;border-top:3px solid #f2c14e}
+.start2 .lv-text{-webkit-line-clamp:3}
+.orn{display:flex;align-items:center;gap:8px;color:#f2c14e;margin:0 4px;min-height:16px}
+.orn i{flex:1;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,#f2c14e99)}.orn i:last-child{background:linear-gradient(270deg,transparent,#f2c14e99)}
+.orn svg{width:14px;height:14px;display:block;filter:drop-shadow(0 0 6px #f2c14e)}
+.orn b{font:800 .78rem var(--display);letter-spacing:.14em;text-transform:uppercase;text-shadow:0 0 10px #f2c14e88;white-space:nowrap}
+.sf-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.sf{--ar:var(--ar-lernen);position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;align-content:center;column-gap:10px;row-gap:2px;height:86px;padding:10px 12px;
+  font:inherit;color:inherit;cursor:pointer;text-align:left;border-radius:20px;overflow:hidden;
+  background:radial-gradient(120% 95% at 0% 0%,color-mix(in srgb,var(--ar) 30%,transparent),transparent 62%),linear-gradient(165deg,#252c5e,#151a3b);
+  border:1px solid color-mix(in srgb,var(--ar) 50%,transparent);
+  box-shadow:inset 0 1px 0 #ffffff26,0 4px 0 color-mix(in srgb,var(--ar) 32%,#0b0f24),0 0 22px color-mix(in srgb,var(--ar) 16%,transparent)}
+.sf[data-ar="spielen"]{--ar:var(--ar-spielen)}.sf[data-ar="bib"]{--ar:#66e0d0}.sf[data-ar="arena"]{--ar:#ff8a5c}
+.sf:active{transform:translateY(3px);box-shadow:inset 0 1px 0 #ffffff26,0 1px 0 color-mix(in srgb,var(--ar) 32%,#0b0f24)}
+.sf-ic{grid-row:1/3;width:50px;height:50px;border-radius:15px;display:grid;place-items:center;background:color-mix(in srgb,var(--ar) 16%,#0e1226);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ar) 45%,transparent)}
+.sf-ic>svg{width:38px;height:38px;filter:drop-shadow(0 0 8px color-mix(in srgb,var(--ar) 70%,transparent))}
+.sf-logo{display:block;width:44px;height:44px}.sf-logo svg{width:100%;height:100%}
+.sf-t{align-self:end;font:800 1.02rem/1.1 var(--display);letter-spacing:.02em}
+.sf-info{align-self:start;font-size:.68rem;font-weight:700;color:var(--muted);line-height:1.25;overflow:hidden}.sf-info b{color:var(--ar)}
+.sf-ecke{position:absolute;top:7px;right:9px}.sf-zahl{font-size:.68rem;font-weight:900;color:var(--ar)}
+.sf .du-punkt{position:static;font-style:normal}
+@media (max-width:379px){.sf{column-gap:8px;padding:8px 9px}.sf-ic{width:40px;height:40px;border-radius:12px}.sf-ic>svg{width:31px;height:31px}.sf-logo{width:36px;height:36px}.sf-t{font-size:.86rem}.sf-info{font-size:.62rem}}
+@media (prefers-reduced-motion:no-preference){.sf::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 40%,#ffffff18 50%,transparent 60%);background-size:260% 100%;animation:glanz 7s ease-in-out infinite;pointer-events:none}.sf:nth-child(2)::after{animation-delay:1.7s}.sf:nth-child(3)::after{animation-delay:3.4s}.sf:nth-child(4)::after{animation-delay:5.1s}}
+.heute3{display:grid;grid-template-columns:minmax(0,1fr) 84px;gap:8px;background:#ffffff08;border:1px solid #ffffff14;border-radius:18px;padding:8px}
+.heute3.fertig{border-color:color-mix(in srgb,var(--good) 45%,transparent)}
+.heute3 ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.tz{--tq:var(--ar-spielen);display:flex;align-items:center;gap:8px;width:100%;min-height:34px;padding:2px 8px 2px 4px;border-radius:12px;border:0;background:#ffffff0a;color:inherit;font:inherit;cursor:pointer;text-align:left}
+.tz[data-ar="lernen"]{--tq:var(--ar-lernen)}.tz[data-ar="home"]{--tq:#f2c14e}
+.tz-ic{position:relative;width:34px;height:34px;flex:none;display:grid;place-items:center}
+.tz-ring{position:absolute;inset:0;width:34px;height:34px}.tz-ic>svg:last-child{width:20px;height:20px}
+.tz-tx{flex:1;min-width:0;font-size:.8rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tz-z{font-size:.74rem;font-weight:900;color:var(--muted)}.tz-z svg{width:20px;height:20px;display:block}
+.tz.done{background:color-mix(in srgb,#f2c14e 14%,transparent)}.tz.done .tz-tx{color:var(--muted);text-decoration:line-through}
+.tz-truhe{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:inherit;color:inherit;padding:4px 2px;border-radius:14px;
+  background:radial-gradient(circle at 50% 40%,#f2c14e2a,transparent 70%),#ffffff08;border:1px solid #f2c14e44}
+.tz-truhe>svg{width:50px;height:50px}
+.tz-keys{display:flex;gap:2px}.tz-keys i svg{width:13px;height:13px;display:block;filter:grayscale(1);opacity:.4}.tz-keys i.an svg{filter:none;opacity:1}
+.tz-lohn{font-size:.62rem;font-weight:800;color:#f2c14e;white-space:nowrap;display:flex;align-items:center;gap:2px}.tz-lohn svg{width:12px;height:12px;flex:none}
+.tz-truhe.bereit{cursor:pointer;border-color:#f2c14e;box-shadow:0 0 18px #f2c14e55}
+.tz-truhe.erhalten .tz-lohn{color:var(--good)}
+@media (prefers-reduced-motion:no-preference){.tz-truhe.bereit{animation:tzWackel 1.6s ease-in-out infinite}}
+@keyframes tzWackel{0%,100%{transform:rotate(0)}10%{transform:rotate(-4deg)}20%{transform:rotate(4deg)}30%{transform:rotate(0)}}
 /* Telefonjoker Pastor Willi und Pastor Aaron */
 .tel-wahl{display:flex;flex-direction:column;gap:8px}
 .tel-kontakt{display:grid;grid-template-columns:64px minmax(0,1fr) 30px;align-items:center;gap:12px;padding:8px 12px 8px 8px;border-radius:18px;border:1px solid #b38cff55;border-bottom:4px solid #0007;background:linear-gradient(180deg,#b38cff22,#b38cff08),var(--surface2);color:var(--fg);text-align:left;cursor:pointer}
