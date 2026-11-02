@@ -2956,7 +2956,15 @@ const WILLI_HALLO = [
   "Pastor Willi! Kurz warten, ich wisch mir nur den Bart ab – es gab Spaghetti. Ohne Gemüsesoße, versteht sich.",
   "Hallo? Ja, hier Willi! Die Mädels haben gerade den Hörer abgenommen und „Papa, Biblionär!“ gerufen. Ich bin ganz Ohr.",
   "Pastor Willi, grüß Gott – oder wie wir damals am Bible College in Iowa gesagt haben: Hi there! Was gibt's?",
-  "Willi hier! Heidi telefoniert gerade mit ihrer Familie in Iowa – gut, dass ich das zweite Handy hab. Schieß los!"
+  "Willi hier! Heidi telefoniert gerade mit ihrer Familie in Iowa – gut, dass ich das zweite Handy hab. Schieß los!",
+  "Willi hier – Moment, ich leg nur schnell die Gitarre weg … So, jetzt bin ich ganz Ohr.",
+  "Pastor Willi! Hörst du die Musik im Hintergrund? Musikteam-Probe. Ich geh kurz raus – die schaffen das Lied auch ohne mich. Hoffentlich.",
+  "Hallo, Willi am Apparat! Ich hab mich gerade frisch parfümiert. Riechst du das nicht durchs Telefon? Schade – Heidi sagt, im Treppenhaus schon.",
+  "Willi hier! Heidi und ich stehen gerade vor dem Kleiderschrank und stimmen die Farben für Sonntag ab. Du rettest mich – leg los!",
+  "Hallo, hier Willi! Ich packe schon mal gedanklich die Koffer für Amerika. Das Parfüm ist drin – das Wichtigste also. Schieß los!",
+  "Grüß dich, hier Willi! Ich sitze an der Predigt – da ist eine Bibelfrage wie Nachtisch. Her damit!",
+  "Willi hier – ich erkläre gerade einem Vegetarier, dass Holzkohle eigentlich auch pflanzlich ist. Gutes Timing, rette mich!",
+  "Pastor Willi am Apparat! Heidi fragt gerade, ob mein Hemd zu ihrem Kleid passt. Natürlich passt es – wir passen ja auch zusammen. Also, die Frage?"
 ];
 const WILLI_SICHER = [
   x => `Da muss ich nicht lange überlegen: ${x.X}. Das steht in ${x.ref}.`,
@@ -2968,18 +2976,26 @@ const WILLI_SICHER = [
   x => `Ganz klar ${x.X}. Über ${x.ref} hab ich schon gepredigt – da sitzt jedes Wort.`,
   x => `Das ist ${x.X}! Meine Töchter wüssten das auch – ${x.ref} haben wir beim Abendessen gelesen.`,
   x => `Einfach: ${x.X}. Wer ${x.ref} einmal gelesen hat, vergisst das nicht mehr.`,
-  x => `${x.X} – das haben wir schon am Bible College in Iowa gelernt. Lies ${x.ref} nach.`
+  x => `${x.X} – das haben wir schon am Bible College in Iowa gelernt. Lies ${x.ref} nach.`,
+  x => `${x.X}! Das sitzt bei mir wie ein G-Dur-Akkord. Steht in ${x.ref}.`,
+  x => `Ganz klar ${x.X} – darüber hab ich sogar schon in einer Gemeinde in Amerika gepredigt. Lies ${x.ref}.`,
+  x => `${x.X}. So sicher, wie Heidi und ich am Sonntag farblich zusammenpassen. Steht in ${x.ref}.`,
+  x => `${x.X}! Dafür muss ich nicht mal die Gitarre stimmen, so klar ist das. Lies ${x.ref} nach.`,
+  x => `Das ist ${x.X}! Über ${x.ref} könnte ich dir jetzt eine Predigt mit drei Punkten halten – aber du hast ja nur 30 Sekunden.`
 ];
 /* Antwortsätze, wenn die „Bibelstelle“ keine echte Versangabe ist (Bibelkunde, z. B. „Die Paulusbriefe“) – 6.53 */
 const WILLI_SICHER_OHNE = [
   x => `${x.X}. Das weiß ich so sicher wie das Amen in der Kirche.`,
   x => `Ha, die kenne ich! ${x.X}. Die Bibelbücher kann ich im Schlaf – Heidi sagt, manchmal tatsächlich.`,
   x => `Ganz klar ${x.X}. Das haben meine Töchter mit dem Lied aus eurer App gelernt – und ich gleich mit.`,
-  x => `${x.X} – da bin ich mir sicherer als bei der Frage, ob Rosenkohl schmeckt.`
+  x => `${x.X} – da bin ich mir sicherer als bei der Frage, ob Rosenkohl schmeckt.`,
+  x => `${x.X} – so klar wie ein frisch gestimmter Gitarrenakkord.`,
+  x => `Ganz klar ${x.X}. Da bin ich sicherer als ein Vegetarier am Salatbuffet.`
 ];
 const WILLI_ZIEMLICH_OHNE = [
   x => `Ich bin ziemlich sicher: ${x.X}. Aber zähl lieber nochmal nach.`,
-  x => `Hm … ${x.X}, würde ich sagen. Mein Puzzle-Gedächtnis sagt jedenfalls ja.`
+  x => `Hm … ${x.X}, würde ich sagen. Mein Puzzle-Gedächtnis sagt jedenfalls ja.`,
+  x => `Ziemlich sicher ${x.X}. Klingt jedenfalls stimmig – und als Musikteamleiter hör ich so was.`
 ];
 const WILLI_ZIEMLICH = [
   x => `Ich bin mir ziemlich sicher, dass es ${x.X} ist. Wenn ich mich recht erinnere, steht das in ${x.ref}.`,
@@ -2987,7 +3003,9 @@ const WILLI_ZIEMLICH = [
   x => `Ich würde ${x.X} sagen. Das müsste in ${x.ref} stehen – meine Bibel liegt leider gerade im Auto.`,
   x => `Ziemlich sicher ${x.X}. Ich meine, das ist ${x.ref} – Heidi nickt jedenfalls.`,
   x => `Ich denke ${x.X}, so zu neunzig Prozent. Steht wohl in ${x.ref}. Die restlichen zehn Prozent hat der Grillrauch vernebelt.`,
-  x => `Mein Gefühl sagt ${x.X} – und ${x.ref} bestätigt das, wenn ich mich recht erinnere.`
+  x => `Mein Gefühl sagt ${x.X} – und ${x.ref} bestätigt das, wenn ich mich recht erinnere.`,
+  x => `Ich tippe auf ${x.X}. Müsste ${x.ref} sein – meine Bibel steckt gerade im Gitarrenkoffer.`,
+  x => `Ziemlich sicher ${x.X}, ich meine ${x.ref}. Heidi nickt – und sie trägt heute dieselbe Farbe wie ich, das zählt doppelt.`
 ];
 const WILLI_SCHWANK = [
   x => `Puh, das ist knifflig. Ich schwanke zwischen ${x.X} und ${x.Y} … ich würde ${x.X} nehmen, aber ganz sicher bin ich nicht.`,
@@ -2995,7 +3013,10 @@ const WILLI_SCHWANK = [
   x => `Hmm … ${x.X} oder ${x.Y}? Das ist schwerer als die Wahl zwischen Bratwurst und Rippchen. Ich sag ${x.X}, aber ohne Garantie.`,
   x => `Jetzt erwischst du mich auf dem falschen Fuß. Ich meine ${x.X}, aber ${x.Y} lässt mich nicht ganz los.`,
   x => `Heidi sagt ${x.Y}, ich sage ${x.X}. Und meistens hat Heidi recht … hm. Ich bleib trotzdem bei ${x.X}.`,
-  x => `Ich krame in meinem Gedächtnis … ${x.X}? Oder doch ${x.Y}? Ich nehme ${x.X} – aber prüf es lieber selbst.`
+  x => `Ich krame in meinem Gedächtnis … ${x.X}? Oder doch ${x.Y}? Ich nehme ${x.X} – aber prüf es lieber selbst.`,
+  x => `${x.X} oder ${x.Y}? Das ist so schwer wie die Frage, ob Heidi am Sonntag Blau oder Türkis trägt. Ich leg mich auf ${x.X} fest – mit Bauchweh.`,
+  x => `Ich zupfe nachdenklich an der Gitarre … ${x.X}? ${x.Y} klingt aber auch nicht schief. Ich nehme ${x.X}, ohne Gewähr.`,
+  x => `Das ist wie ein Akkord mit einem falschen Ton: ${x.X} oder ${x.Y}? Ich sag ${x.X} – aber hör lieber nochmal genau hin.`
 ];
 const WILLI_GERATEN = [
   x => `Oje, da bin ich überfragt. Aus dem Bauch heraus würde ich ${x.X} sagen – aber verlass dich nicht drauf!`,
@@ -3003,7 +3024,10 @@ const WILLI_GERATEN = [
   x => `Da muss ich passen – das hab ich im Bibelunterricht wohl verträumt. Ich rate mal ${x.X}.`,
   x => `Puh, keine Ahnung. Eine meiner Töchter ruft gerade ${x.X} – mehr hab ich leider nicht.`,
   x => `Ich stochere im Nebel wie im Grillrauch. Vielleicht ${x.X}? Hör lieber auf dein Herz.`,
-  x => `Ehrlich: Das ist ein Puzzleteil, das mir fehlt. Ich sag mal ${x.X}, aber das ist geraten.`
+  x => `Ehrlich: Das ist ein Puzzleteil, das mir fehlt. Ich sag mal ${x.X}, aber das ist geraten.`,
+  x => `Da bin ich so ratlos wie ein Vegetarier vor dem Grill. Ich rate ${x.X}.`,
+  x => `Puh, da bin ich verstimmt wie meine Gitarre nach dem Flug aus Amerika. Vielleicht ${x.X}?`,
+  x => `Ehrlich? Keine Ahnung. Heidi ist gerade nicht da – und ohne sie fehlt mir die Hälfte, nicht nur farblich. Ich rate ${x.X}.`
 ];
 /* Bezüge zur Frage: [Suchmuster über Frage, Antwort, Bibelstelle und Thema, Satz] */
 const WILLI_THEMA = [
@@ -3284,7 +3308,20 @@ const WILLI_THEMA = [
   [/mehr gehorchen/, "Man muss Gott mehr gehorchen als den Menschen (Apostelgeschichte 5,29) – die Apostel ließen sich nicht einschüchtern."],
   [/Unglauben/, "Ich glaube; hilf meinem Unglauben (Markus 9,24) – ein ehrliches Gebet. Das bete ich auch manchmal. Nicht nur beim Grillanzünden."],
   [/Missionsbefehl|Gehet hin|alle Völker|Missionsreise|Barnabas/, "Geht hin in alle Welt! Heidi und ich haben uns nach dem Bible College in Iowa genau das zu Herzen genommen – nur eben Richtung Deutschland."],
-  [/Rebekka|Frau für Isaak/, "Abrahams Knecht fand Rebekka in der Fremde (1. Mose 24). Ich hab meine Heidi in Iowa gefunden – Gott führt, auch über den Ozean."]
+  [/Rebekka|Frau für Isaak/, "Abrahams Knecht fand Rebekka in der Fremde (1. Mose 24). Ich hab meine Heidi in Iowa gefunden – Gott führt, auch über den Ozean."],
+  [/Harfe|1\. Samuel 16/, "David hat für Saul auf der Harfe gespielt, und der böse Geist wich von ihm (1. Samuel 16,23). Ich spiele Gitarre – bei mir weicht höchstens der Grillrauch."],
+  [/Jubal/, "Jubal ist der Vater aller Harfen- und Flötenspieler (1. Mose 4,21) – sozusagen der erste Musikteamleiter. Den hätte ich sofort für Sonntag eingeteilt."],
+  [/Psalm|Lobt? den HERRN/, "Lobt ihn mit Saitenspiel und Flöte (Psalm 150,4)! Saitenspiel – das bin ich mit meiner Gitarre. Ich sag ja: Lobpreis ist biblisch!"],
+  [/Asaph|Sänger/, "Asaph war unter David der Leiter der Sänger (1. Chronik 16,5) – ein Kollege! Als Musikteamleiter weiß ich: Der Mann hatte viel zu organisieren."],
+  [/Mirjam|Pauke|Schilfmeer/, "Mirjam nahm die Pauke, und alle Frauen zogen tanzend hinter ihr her (2. Mose 15,20). Im Musikteam hätte ich sie sofort genommen – auch wenn Heidi sagt, die Kirchenfenster überleben keine Pauke."],
+  [/Weihrauch|Myrrhe|Aloe|Wohlgeruch/, "Paulus schreibt, wir sind für Gott ein Wohlgeruch des Christus (2. Korinther 2,15). Heidi meint, ich nehme den Vers etwas zu wörtlich – wegen meines Parfüms."],
+  [/Narde|Bethanien|Johannes 12/, "Maria salbte Jesus mit kostbarem Nardenöl, und das ganze Haus war vom Duft erfüllt (Johannes 12,3). Bei uns ist das jeden Sonntagmorgen so – Heidi sagt, mein Parfüm riecht man schon auf dem Parkplatz."],
+  [/Salböl|Psalm 133|Eintracht|einträchtig/, "Das Salböl fließt herab in den Bart Aarons (Psalm 133,2) – Bart und Wohlgeruch in einem Vers! Das ist eindeutig mein Psalm."],
+  [/Leibrock|Potifar/, "Josef bekam von seinem Vater einen bunten Leibrock (1. Mose 37,3). Wäre Heidi dabei gewesen, hätte sie ihm sofort das passende Kleid dazu ausgesucht – bei uns geht keiner unabgestimmt aus dem Haus."],
+  [/Lydia|Purpur/, "Lydia handelte mit Purpur (Apostelgeschichte 16,14). Heidi und ich trugen mal beide Purpur im Gottesdienst. Die Gemeinde hat geklatscht – oder gelacht, so genau weiß ich das nicht."],
+  [/Missionsreise|Barnabas|Silas|Antiochia/, "Paulus und Barnabas wurden auf Missionsreise ausgesandt (Apostelgeschichte 13,2). Wir fliegen jedes Jahr nach Amerika, zu Heidis Familie und zu Gemeinden. Nur hatte Paulus kein Gepäcklimit – Heidis Bücher und mein Parfüm hätten sich gefreut."],
+  [/Kleider|Gewand/, "„Lass deine Kleider allezeit weiß sein, und lass deinem Haupt das Öl nicht mangeln“ (Prediger 9,8). Kleider und Duft in einem Vers – Heidi und ich halten uns dran, nur farblich etwas mutiger."],
+  [/Garten Eden|1\. Mose 1,29|Kraut/, "Im Garten Eden gab Gott Pflanzen zur Speise (1. Mose 1,29) – das zitieren unsere Vegetarier gern. Ich antworte mit 1. Mose 9,3. Und dann sitzen wir zusammen am Tisch, jeder mit seinem Teller. So soll Gemeinde sein!"]
 ];
 const WILLI_ALLG = [
   "Heidi hat übrigens aus Amerika das Barbecue mitgebracht – seitdem grillen wir sogar im Winter.",
@@ -3320,7 +3357,25 @@ const WILLI_ALLG = [
   "Iowa ist flach und voller Mais. Heidi sagt, Mais ist Gemüse. Ich sag: Popcorn zählt nicht.",
   "Pastor Aaron hat übrigens am selben Bible College studiert wie ich. Iowa bringt gute Leute hervor – allen voran Heidi!",
   "Heidi und Pastor Aaron kommen beide aus Iowa. Wenn die zwei loslegen, verstehe ich nur noch „corn“ und „snowstorm“.",
-  "Im Winter in Iowa hab ich gelernt: Bei minus 25 Grad grillt man trotzdem. Man steht nur näher an der Glut."
+  "Im Winter in Iowa hab ich gelernt: Bei minus 25 Grad grillt man trotzdem. Man steht nur näher an der Glut.",
+  "Ich hab gerade die Gitarre für Sonntag gestimmt. Wenn du die Million holst, spielt das Musikteam ein Siegeslied.",
+  "Heidi und ich haben heute beide Dunkelgrün an. Nicht abgesprochen, sagt sie. Ich glaube ihr kein Wort.",
+  "Wenn du mich beim Gemeindefest suchst: einfach der Nase nach. Heidi sagt, mein Parfüm hat eine größere Reichweite als unser WLAN.",
+  "Ein Vegetarier hat mich gefragt, ob ich mal Grillgemüse probiere. Ich hab gesagt: Ich bete drüber. Das war vor drei Jahren.",
+  "Unsere Vegetarier in der Gemeinde sind wunderbare Leute. Ich bete jeden Tag dafür, dass sie die Bratwurst noch entdecken.",
+  "Kennst du den? Treffen sich ein Vegetarier und ein Pastor am Grill – am Ende sind beide satt. Das nenne ich ein Wunder.",
+  "Nächstes Jahr fliegen wir wieder nach Amerika – Heidis Familie besuchen und Gemeinden. Ich übe schon: „The big steak, please!“",
+  "In Amerika besuchen wir jedes Jahr Gemeinden. Die verstehen mein Englisch – solange Heidi danebensteht und nickt.",
+  "Heidi sagt, unser Koffer für Amerika ist halb Kleidung, halb Parfüm. Das ist übertrieben. Höchstens ein Drittel Parfüm.",
+  "Das Schönste an meinem Beruf? Menschen von Jesus zu erzählen. Das Zweitschönste? Das Gemeindefest. Das Drittschönste? Die Gitarre.",
+  "Heidi sagt, wenn man mich lässt, wird aus jeder Antwort eine Predigt mit drei Punkten. Keine Sorge – heute nur ein Punkt.",
+  "Im Musikteam sag ich immer: Wir spielen nicht vor der Gemeinde, sondern für Gott. Die Gemeinde darf aber gern mitsingen!",
+  "Meine Gitarre hat schon mehr Gottesdienste erlebt als mancher Kirchenstuhl.",
+  "Heidi und ich hatten letzten Sonntag Partnerlook in Weinrot. Die Jugend hat ein Foto gemacht. Ich fürchte, wir sind jetzt ein Meme.",
+  "Bei uns hängt eine Farbkarte am Kleiderschrank: Heidi wählt die Farbe, ich das Parfüm. Teamwork in der Ehe!",
+  "Am Flughafen in Amerika hat der Zollbeamte an meinem Koffer gerochen und gesagt: „Sir, you smell great.“ Ich hab geantwortet: „God bless you!“",
+  "Ich leite das Musikteam – das heißt: Ich zähle ein, alle anderen fangen trotzdem zu unterschiedlichen Zeiten an. Wie beim Grillen – jedes Würstchen hat sein Tempo.",
+  "Wenn ich predige, vergesse ich manchmal die Zeit. Heidi gibt mir dann aus der ersten Reihe ein Zeichen – farblich passend zu meiner Krawatte."
 ];
 const WILLI_TSCHUESS = ["Gott segne dich – viel Erfolg!", "So, jetzt muss ich die Steaks wenden. Gott befohlen!", "Ich bete für dich. Tschüss!", "Heidi und die Mädels drücken dir die Daumen. Bis Sonntag!",
   "Gott befohlen – und denk dran: Gottes Wort ist mehr wert als Tausende Gold- und Silberstücke (Psalm 119,72).",
@@ -3331,7 +3386,12 @@ const WILLI_TSCHUESS = ["Gott segne dich – viel Erfolg!", "So, jetzt muss ich 
   "Viel Erfolg! Und falls es schiefgeht: Beim Gemeindefest gibt's trotzdem eine Bratwurst für dich.",
   "Der HERR segne dich und behüte dich (4. Mose 6,24). Bis bald!",
   "Ich leg jetzt auf, bevor die Glut ausgeht. Gottes Segen!",
-  "Gott befohlen – und wie man in Iowa sagt: Take care!"];
+  "Gott befohlen – und wie man in Iowa sagt: Take care!",
+"So, ich muss zur Musikprobe – die Gitarre wartet. Gott befohlen!",
+"Tschüss! Und wenn es am Sonntag im Gemeindesaal gut duftet: Das bin ich.",
+"Heidi winkt – im selben Farbton wie ich, versteht sich. Gottes Segen!",
+"Gott segne dich! Ich muss noch Flüge nach Amerika vergleichen.",
+"Bis Sonntag! Wenn du gewinnst, spiel ich dir ein Lied auf der Gitarre. Tschüss!"];
 /* Abwechslung (6.51): Sätze, die auf diesem Gerät kürzlich schon kamen, werden übersprungen. Der Tipp selbst
    (richtig/falsch, Sicherheit) hängt weiter nur vom Startwert ab – fair im Duell und in der Wochenrunde.
    Jede Auswahl verbraucht genau einen Zufallswert, egal ob übersprungen wird. */
@@ -3367,11 +3427,19 @@ function pastorAntwort(f, halb, id = "willi") {
   }
   /* Bezug zur Frage nur, wenn der Pastor richtig liegt – sonst würde er sich selbst widersprechen.
      Gesucht wird in Frage, Lösung und Bibelstelle (nicht im Themennamen – dafür gibt es die Themen-Witze). */
-  const heu = `${f.f} ${f.loesung} ${f.ref}`, passend = P.thema.filter(([re]) => re.test(heu)).map(([, t]) => t);
-  /* Reihenfolge: genauer Bezug zur Frage (nur wenn richtig) → Witz zum Thema → allgemeiner Satz */
+  const heu = `${f.f} ${f.loesung} ${f.ref}`, passend = P.thema.map(([re], k) => k).filter(k => P.thema[k][0].test(heu));
+  /* Reihenfolge: genauer Bezug zur Frage (nur wenn richtig) → Witz zum Thema → allgemeiner Satz.
+     6.56: Ein Bezug, der kürzlich schon kam, wird übersprungen – sonst kommt bei derselben Frage immer dieselbe Geschichte. */
   const themenWitze = (P.themen || {})[f.thema];
-  const extra = richtigGetippt && passend.length && rnd() < .8 ? passend[Math.floor(rnd() * passend.length)]
-    : themenWitze && rnd() < .6 ? wahl(themenWitze, "th:" + f.thema) : wahl(P.allg);
+  const bezugKenn = k => `${id}|bezug|${k}`, frischeBezuege = passend.filter(k => !zuletzt.includes(bezugKenn(k)));
+  let extra;
+  if (richtigGetippt && passend.length && rnd() < .8 && frischeBezuege.length) {
+    const k = frischeBezuege[Math.floor(rnd() * frischeBezuege.length)]; zuletzt.push(bezugKenn(k)); extra = P.thema[k][1];
+  } else {
+    /* Themen-Witz nur, wenn davon noch einer „frisch“ ist – sonst lieber ein allgemeiner Satz */
+    const thFrisch = themenWitze && themenWitze.some((t, k) => !zuletzt.includes(`${id}|th:${f.thema}|${k}`));
+    extra = thFrisch && rnd() < .6 ? wahl(themenWitze, "th:" + f.thema) : wahl(P.allg);
+  }
   const saetze = [wahl(P.hallo), satz, esc(extra)];
   /* Aaron: Star Wars gern noch einmal extra, wenn der Satz davor keinen Bezug hatte */
   if (P.sw && !/Star Wars|Jedi|Yoda|Macht|Todesstern|Han Solo|Luke|Vader|Tatooine|Chewbacca|C-3PO|Lichtschwert|Kamino|Falke|Mos Eisley|Obi-Wan|Hoth/.test(extra) && rnd() < .6) saetze.push(esc(wahl(P.sw)));
@@ -3805,22 +3873,22 @@ const WILLI_THEMEN = {
   "Mose & Wüstenzeit": ["40 Jahre Wüste – und Gott hat jeden Tag Brot geschickt. Backen musste keiner, das ist fast unfair.", "Das Volk murrte in der Wüste übers Essen. Ich murre nur, wenn es Gemüseauflauf gibt."],
   "Josua, Richter & Ruth": ["Zur Richterzeit tat jeder, was ihn recht dünkte (Richter 21,25) – wie meine Töchter, wenn Heidi und ich kurz weg sind.", "Das Buch Richter ist spannender als jeder Krimi auf Heidis Nachttisch."],
   "Könige & Propheten": ["Die Königsbücher sind wie eine lange Serie – am Ende jeder Folge heißt es: Er tat, was recht oder böse war in den Augen des HERRN.", "So viele Könige – Heidi hat für mich eine Liste an den Kühlschrank gehängt."],
-  "Jesu Geburt & Kindheit": ["Bethlehem heißt „Brothaus“ – Jesus, das Brot des Lebens, kam im Brothaus zur Welt. Für einen Bäcker die schönste Geschichte!", "Weihnachten backt Heidi amerikanische Cookies und ich deutsches Brot. Völkerverständigung in der Küche!"],
+  "Jesu Geburt & Kindheit": ["Bethlehem heißt „Brothaus“ – Jesus, das Brot des Lebens, kam im Brothaus zur Welt. Für einen Bäcker die schönste Geschichte!", "Weihnachten backt Heidi amerikanische Cookies und ich deutsches Brot. Völkerverständigung in der Küche!", "Weihrauch und Myrrhe als Geschenk – die Weisen wussten, was gut riecht. Heidi sagt, ich hätte ihnen gefallen."],
   "Jesu Wirken & Wunder": ["Jesus hat Kranke geheilt, Stürme gestillt und Tausende satt gemacht. Das mit dem Sattmachen beeindruckt mich als Grillmeister besonders.", "Bei Jesus gab es ständig gemeinsames Essen – mit Zöllnern, Sündern und Freunden. Tischgemeinschaft ist Evangelium!"],
-  "Gleichnisse & Worte Jesu": ["Jesus hat in Bildern aus dem Alltag gesprochen – Brot, Samen, Schafe. Heute wäre vielleicht ein Grill dabei.", "Gleichnisse sind wie ein Puzzle: Erst sieht man Teile, dann plötzlich das ganze Bild."],
+  "Gleichnisse & Worte Jesu": ["Jesus hat in Bildern aus dem Alltag gesprochen – Brot, Samen, Schafe. Heute wäre vielleicht ein Grill dabei.", "Gleichnisse sind wie ein Puzzle: Erst sieht man Teile, dann plötzlich das ganze Bild.", "Jesus hat so gepredigt, dass alle zugehört haben – ganz ohne Gitarre. Ich arbeite noch dran."],
   "Leiden & Auferstehung": ["Das ist das Herz des Evangeliums – da wird selbst ein Grillmeister ganz still.", "Ostern ist das größte Fest – größer als jedes Gemeindefest. Das Grab ist leer!"],
-  "Apostel & erste Gemeinde": ["Paulus war Missionar – Heidi und ich auch: aus Iowa nach Deutschland. Nur ohne Schiffbruch, Gott sei Dank.", "Die ersten Christen brachen das Brot in den Häusern (Apostelgeschichte 2,46) – Gemeinde fängt am Esstisch an!", "Die Apostelgeschichte ist voller Reisen und Schiffbrüche. Mein größtes Abenteuer war der Umzug von Ingolstadt nach Eichstätt."],
-  "Psalmen & Weisheit": ["Die Psalmen lese ich gern morgens – Heidi liest dazu in einem ihrer tausend Bücher.", "Weisheit beginnt mit der Furcht des HERRN. Und gutes Grillen mit Geduld."],
+  "Apostel & erste Gemeinde": ["Paulus war Missionar – Heidi und ich auch: aus Iowa nach Deutschland. Nur ohne Schiffbruch, Gott sei Dank.", "Die ersten Christen brachen das Brot in den Häusern (Apostelgeschichte 2,46) – Gemeinde fängt am Esstisch an!", "Die Apostelgeschichte ist voller Reisen und Schiffbrüche. Mein größtes Abenteuer war der Umzug von Ingolstadt nach Eichstätt.", "In Amerika besuchen wir jedes Jahr Gemeinden – wie Paulus, nur mit Flugzeug statt Schiff und mit deutlich mehr Parfüm im Koffer."],
+  "Psalmen & Weisheit": ["Die Psalmen lese ich gern morgens – Heidi liest dazu in einem ihrer tausend Bücher.", "Weisheit beginnt mit der Furcht des HERRN. Und gutes Grillen mit Geduld.", "Die Psalmen sind das Liederbuch der Bibel. Als Musikteamleiter hätte ich David sofort ins Team geholt – Asaph als Stellvertreter."],
   "Propheten": ["Den Propheten wollte oft keiner zuhören. Kenne ich, wenn ich rufe: Das Essen ist fertig!", "Die kleinen Propheten hab ich mit dem Lied aus der App gelernt. Seitdem summe ich sie beim Teigkneten."],
   "Briefe & Offenbarung": ["Paulus schrieb so viele Briefe – ich schreibe höchstens Einkaufszettel. Hauptsache, Fleisch steht drauf.", "Die Briefe sind wie Post von einem guten Freund – nur dass Paulus manche im Gefängnis geschrieben hat."],
   "Bibelkunde": ["66 Bücher – wie ein Puzzle mit 66 Teilen. Wer alle kennt, sieht ein wunderschönes Bild.", "Die Reihenfolge der Bibelbücher hab ich mit dem Lied in unserer App gelernt. Jetzt werde ich es beim Backen nicht mehr los."],
-  "Frauen der Bibel": ["Die Frauen der Bibel waren mutig, klug und treu – wie Heidi. Die ist sogar aus Iowa nach Bayern gezogen!", "Heidi hat ein ganzes Regal voller Bücher über Frauen der Bibel. Ich hab ein Regal mit Grillbüchern. Wir ergänzen uns.", "Ohne die Frauen in der Bibel gäbe es viele Geschichten gar nicht. Ohne Heidi gäbe es bei uns kein Gemüse. Na gut – das wäre mir recht."],
+  "Frauen der Bibel": ["Die Frauen der Bibel waren mutig, klug und treu – wie Heidi. Die ist sogar aus Iowa nach Bayern gezogen!", "Heidi hat ein ganzes Regal voller Bücher über Frauen der Bibel. Ich hab ein Regal mit Grillbüchern. Wir ergänzen uns.", "Ohne die Frauen in der Bibel gäbe es viele Geschichten gar nicht. Ohne Heidi gäbe es bei uns kein Gemüse. Na gut – das wäre mir recht.", "Ester hat sich zwölf Monate mit Öl und Duftstoffen vorbereitet (Ester 2,12). Heidi sagt, ich brauche morgens ungefähr genauso lange."],
   "Tiere der Bibel": ["Die Bibel ist voller Tiere – Löwen, Raben, Wachteln, Lämmer. Als Grillmeister sage ich zu manchen lieber nichts.", "Meine Töchter fragen, ob es im Himmel Tiere gibt. Ich sage: Jesaja 11 sieht ganz danach aus!", "In der Bibel sind Tiere oft Gottes Boten – Raben, Tauben, sogar eine Eselin. Bei uns ist der Bote meistens das Telefon."],
-  "Orte & Reisen": ["Die Bibel ist ein Reisebuch – von Ur bis Rom. Ich bin bisher von Ingolstadt nach Eichstätt gekommen. Immerhin!", "Wenn ich mal ins Heilige Land fahre, will ich am See Genezareth Fisch grillen – genau wie in Johannes 21.", "Abraham ist ohne Navi losgezogen, nur mit Gottes Zusage. Ich verfahre mich mit Navi schon zwischen Ingolstadt und Eichstätt."],
+  "Orte & Reisen": ["Die Bibel ist ein Reisebuch – von Ur bis Rom. Ich bin bisher von Ingolstadt nach Eichstätt gekommen. Immerhin!", "Wenn ich mal ins Heilige Land fahre, will ich am See Genezareth Fisch grillen – genau wie in Johannes 21.", "Abraham ist ohne Navi losgezogen, nur mit Gottes Zusage. Ich verfahre mich mit Navi schon zwischen Ingolstadt und Eichstätt.", "Wir fliegen jedes Jahr nach Amerika – zu Heidis Familie und zu Gemeinden. Paulus wäre neidisch auf die Flugmeilen."],
   "Wer sagte das?": ["Zitate erkennen ist wie Stimmen am Telefon erkennen – manche sofort, andere erst beim zweiten Satz.", "Der Satz, den ich zu Hause am häufigsten höre? „Willi, nicht schon wieder Fleisch!“ – Heidi.", "Die Bibel ist voller großer Sätze. Mein Lieblingssatz bleibt: Es ist vollbracht."]
 };
 const AARON_THEMEN = {
-  "Schöpfung & Urgeschichte": ["Gott sprach – und es wurde Licht. Keine Spezialeffekte nötig, nur ein Wort!", "Die Schöpfung ist das ultimative Worldbuilding – schöner als jede Galaxis im Kino."],
+  "Schöpfung & Urgeschichte": ["Gott sprach – und es wurde Licht. Keine Spezialeffekte nötig, nur ein Wort!", "Die Schöpfung ist das ultimative Worldbuilding – schöner als jede Galaxis im Kino.", "Der zweithäufigste Satz bei uns zu Hause: „Willi, nicht so viel Parfüm!“ Der häufigste kommt beim Grillen."],
   "Abraham bis Josef": ["Josefs Geschichte ist eine Saga in mehreren Episoden – Verrat, Gefängnis und ein Happy End.", "Familiendrama bei Jakob – fast so kompliziert wie bei den Skywalkers. Aber Gott hat Gutes daraus gemacht (1. Mose 50,20)."],
   "Mose & Wüstenzeit": ["Mose gegen den Pharao – ein Showdown, und Gott hat gewonnen. Ohne Lichtschwert!", "40 Jahre Wüste – länger als jede Mission auf Tatooine. Aber Gott war jeden Tag dabei."],
   "Josua, Richter & Ruth": ["Die Richter waren Helden mit Schwächen – der wahre Held in dem Buch ist Gott.", "Ruth ist mein Lieblingsbuch für Zugezogene – und davon gibt es bei uns zu Hause gleich zwei."],
