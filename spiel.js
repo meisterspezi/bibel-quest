@@ -1763,10 +1763,12 @@ VIEWS.profil = () => {
   <div class="row-btns" style="margin-top:12px"><button class="btn ghost mini" id="wechseln">Spieler wechseln</button><button class="btn ghost mini" id="rename">Namen ändern</button>${S.pid && online && !S.offlineOnly ? `<button class="btn ghost mini" id="leave">Aus der Rangliste austreten</button>` : ""}</div><div id="pextra"></div>
   ${entwickler ? `<button class="btn" data-go="postfach" style="margin-top:12px;width:100%">${svg("post")} Postkasten${postfachNeu ? ` (${postfachNeu} neu)` : ""}</button>` : ""}
   <button class="feedback-link" id="fbLink2">${svg("chat")} Feedback an den Entwickler</button>
+  ${online ? kennungHtml("kennProfil") : ""}
   <p class="small muted" style="margin-top:18px">Bibelverse: ${VERS_QUELLE} © Genfer Bibelgesellschaft.</p>`;
   wireGo();
   $("wechseln").onclick = () => { SFX.tap(); go("wer"); };
   $("fbLink2").onclick = () => { SFX.tap(); feedbackOeffnen(); };
+  kennungKopierenVerdrahten(screen);
   if ($("rename")) $("rename").onclick = () => { SFX.tap(); $("pextra").innerHTML = `<div class="card stack"><label class="label" for="rn">Neuer Spitzname</label><input class="field" id="rn" maxlength="20" value="${esc(S.lbName)}"><button class="btn primary" id="rnSave">Speichern</button></div>`;
     $("rnSave").onclick = () => { const n = $("rn").value.trim().replace(/\s+/g, " "); if (n.length < 2) { SFX.wrong(); return; } S.lbName = n; save(); lbSync(true); SFX.coin(); go("profil"); }; };
   if ($("leave")) $("leave").onclick = () => { SFX.tap(); $("pextra").innerHTML = `<div class="card stack"><b>Aus der Rangliste austreten?</b><p class="small muted" style="margin:0">Dein Eintrag wird für alle gelöscht. Dein Spielstand auf diesem Gerät bleibt erhalten.</p><div class="topline"><button class="btn" id="lvNo">Abbrechen</button><button class="btn primary" id="lvYes">Austreten</button></div></div>`;
@@ -1867,7 +1869,12 @@ async function profilBeitreten(pid, opts = {}) {
   const L = window.LB;
   /* bisheriger eigener Eintrag (auch aus älteren App-Versionen ohne gespeicherte Kennung = Gerätekennung) */
   const altPid = S.pid ? (eigenePid(S.pid) ? S.pid : "") : (L.uid && !uidAnderweitigBelegt() ? L.uid : "");
-  const daten = await L.join(pid, opts);
+  let daten;
+  try { daten = await L.join(pid, opts); }
+  catch (e) { /* zweiter Versuch (z. B. schwaches Netz) – nicht bei abgelehnter Berechtigung */
+    if (String((e && e.code) || "").includes("permission-denied")) throw e;
+    await new Promise(r => setTimeout(r, 1500)); daten = await L.join(pid, opts);
+  }
   let remote = null; try { remote = await L.loadState(pid); } catch (e) {}
   if (remote) zusammenfuehren(remote);
   else if (daten) { /* noch kein Online-Spielstand: Werte aus der Rangliste übernehmen */
@@ -1876,6 +1883,49 @@ async function profilBeitreten(pid, opts = {}) {
   S.lbName = (daten && daten.name) || S.lbName; S.pid = pid; S.ownersSet = true;
   if (altPid && altPid !== pid && !GERAET.liste.some(p => p.key !== GERAET.aktiv && p.pid === altPid)) { try { await L.remove(altPid); } catch (e) {} }
   applyTheme(); save(); renderHud(); checkBadges(); lbSync(true); cloudSync(true);
+}
+/* Verständlicher Grund für einen Fehler beim Beitreten (mit Fehlercode zum Nachschauen) */
+function fehlerGrund(e) {
+  const c = String((e && e.code) || "").replace(/^firestore\//, "");
+  const T = {
+    "permission-denied": "Der Server hat das Eintragen abgelehnt (keine Berechtigung).",
+    "auth/network-request-failed": "Die Anmeldung beim Server war nicht erreichbar – Netz zu schwach oder ein Blocker (z. B. iCloud Privat-Relay, Werbeblocker) verhindert sie.",
+    "auth/internal-error": "Die Anmeldung beim Server wurde unterbrochen – evtl. blockiert ein Werbeblocker oder iCloud Privat-Relay sie.",
+    "auth/too-many-requests": "Zu viele Versuche – bitte ein paar Minuten warten.",
+    "auth/operation-not-allowed": "Die Anmeldung ist auf dem Server abgeschaltet – bitte dem Verwalter Bescheid geben.",
+    "auth/web-storage-unsupported": "Der Browser erlaubt keinen Speicher (privater Modus?).",
+    "unavailable": "Der Server war nicht erreichbar (kein oder schwaches Netz).",
+    "deadline-exceeded": "Zeitüberschreitung – das Netz ist zu langsam.",
+    "not-found": "Dieser Spieler-Eintrag wurde nicht gefunden.",
+    "unauthenticated": "Dieses Gerät ist nicht beim Server angemeldet."
+  };
+  if (!navigator.onLine) return { t: "Dieses Gerät ist gerade offline.", c: c || "offline" };
+  if (T[c]) return { t: T[c], c };
+  if (c.startsWith("auth/")) return { t: "Die Anmeldung beim Server ist fehlgeschlagen.", c };
+  return { t: "Unerwarteter Fehler in der App.", c: c || String((e && (e.name + ": " + (e.message || ""))) || "unbekannt").slice(0, 90) };
+}
+/* Kennung dieses Geräts beim Server (für die Zusammenführung durch den Verwalter) */
+const geraetKennung = () => { const L = window.LB; return (L && L.uid) || ""; };
+function kennungHtml(id) {
+  const k = geraetKennung();
+  return `<div class="kennung"><span class="small muted">Gerätekennung</span>${k ? `<button class="btn ghost mini" data-kopier="${id}">Kopieren</button>` : ""}<code id="${id}">${k ? esc(k) : "noch keine – Anmeldung fehlt"}</code></div>`;
+}
+function kennungKopierenVerdrahten(root) {
+  root.querySelectorAll("[data-kopier]").forEach(b => b.onclick = async ev => {
+    ev.stopPropagation(); SFX.tap(); const el = $(b.dataset.kopier);
+    try { await navigator.clipboard.writeText(el.textContent); b.textContent = "Kopiert ✓"; }
+    catch (e) { const r = document.createRange(); r.selectNodeContents(el); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); b.textContent = "Markiert"; }
+  });
+}
+/* Beitreten hat nicht geklappt: Grund, Fehlercode und Gerätekennung zeigen, „Nochmal versuchen“ anbieten */
+function beitrittFehler(e, nochmal) {
+  try { console.error("Beitreten fehlgeschlagen", e); } catch (x) {}
+  const g = fehlerGrund(e);
+  const m = modal(`<div class="label">Das hat nicht geklappt</div><h2 style="margin:0">Beitreten fehlgeschlagen</h2>
+    <p style="margin:0">${esc(g.t)}</p><p class="small muted" style="margin:0">Fehlercode: <code>${esc(g.c)}</code></p>
+    ${kennungHtml("kennFehler")}<p class="small muted" style="margin:0">Klappt es weiterhin nicht, schick Fehlercode und Gerätekennung an den Verwalter – er kann dich dann von Hand verbinden.</p>
+    ${nochmal ? `<button class="btn primary" data-close="nochmal">Nochmal versuchen</button>` : ""}<button class="btn ghost" data-close="zu">Schließen</button>`, a => { if (a === "nochmal" && nochmal) nochmal(); });
+  kennungKopierenVerdrahten(m);
 }
 async function lbStart() {
   const L = window.LB; if (!L || !L.ok || !L.uid) return;
@@ -1936,8 +1986,9 @@ function wiedererkennen(r) {
   modal(`<div class="label">Willkommen zurück</div>${avatarHtml(r, 64)}<h2>Bist du ${esc(r.name)}?</h2><p class="muted small">Auf diesem Gerät wurde schon als ${esc(r.name)} gespielt (${(r.xp || 0).toLocaleString("de-DE")} XP). Alle Punkte und Abzeichen werden übernommen.</p>
     <button class="btn primary" data-close="ja">Ja, ich bin ${esc(r.name)}</button><button class="btn ghost" data-close="nein">Nein, jemand anderes</button>`, async a => {
     if (a !== "ja") return;
-    try { await profilBeitreten(r.id, {}); SFX.win(); rain(70); toast(`${svg("people", accent())}<div><b>Willkommen zurück, ${esc(S.lbName)}!</b><div class="small muted">Dein Fortschritt ist übernommen.</div></div>`); go("home"); }
-    catch (e) { toast("<div>Das hat nicht geklappt. Prüfe die Internetverbindung.</div>"); }
+    const versuch = async () => { try { await profilBeitreten(r.id, {}); SFX.win(); rain(70); toast(`${svg("people", accent())}<div><b>Willkommen zurück, ${esc(S.lbName)}!</b><div class="small muted">Dein Fortschritt ist übernommen.</div></div>`); go("home"); }
+      catch (e) { SFX.wrong(); beitrittFehler(e, versuch); } };
+    versuch();
   });
 }
 /* Ohne Internet angelegter Name: gibt es ihn schon in der Rangliste? Dann nachfragen. */
@@ -2170,9 +2221,12 @@ function beitrittAnzeigen(html, modus = "") {
       modal(`<div class="label">Bestätigen</div>${avatarHtml(r, 64)}<h2>Bist du ${esc(r.name)}?</h2><p class="muted small">Dieses Gerät spielt dann als ${esc(r.name)} weiter.${S.xp > 0 ? " Dein bisheriger Fortschritt hier wird hinzugefügt." : ""}</p>
         <button class="btn primary" data-close="ja">Ja, das bin ich</button><button class="btn ghost" data-close="nein">Nein</button>`, async antw => {
         if (antw !== "ja") return;
-        screen.querySelector("#nliste").innerHTML = `<p class="muted small">Verbinde …</p>`;
-        try { await profilBeitreten(r.id, {}); SFX.win(); rain(80); toast(`${svg("people", accent())}<div><b>Willkommen zurück, ${esc(S.lbName)}!</b><div class="small muted">Dein Spielstand ist jetzt auf diesem Gerät.</div></div>`); fertig(); }
-        catch (e) { SFX.wrong(); zeichne(); toast(`<div>Das hat nicht geklappt. Prüfe die Internetverbindung.</div>`); }
+        const versuch = async () => {
+          if (screen.querySelector("#nliste")) screen.querySelector("#nliste").innerHTML = `<p class="muted small">Verbinde …</p>`;
+          try { await profilBeitreten(r.id, {}); SFX.win(); rain(80); toast(`${svg("people", accent())}<div><b>Willkommen zurück, ${esc(S.lbName)}!</b><div class="small muted">Dein Spielstand ist jetzt auf diesem Gerät.</div></div>`); fertig(); }
+          catch (e) { SFX.wrong(); if (current === hier && $("nliste")) zeichne(); beitrittFehler(e, versuch); }
+        };
+        versuch();
       });
     });
   };
