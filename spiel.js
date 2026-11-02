@@ -2942,24 +2942,52 @@ const WILLI_HALLO = [
   "Hallo, hier Willi! Ah, „Wer wird Biblionär?“ – na, dann lies mal vor …",
   "Willi hier – Moment, ich leg nur schnell die Grillzange weg … So, schieß los!",
   "Pastor Willi am Apparat! Du hast Glück, die Steaks brauchen noch fünf Minuten.",
-  "Ja, hallo? Heidi, mach mal die Musik leiser, das ist wichtig! … Also, wie lautet die Frage?"
+  "Ja, hallo? Heidi, mach mal die Musik leiser, das ist wichtig! … Also, wie lautet die Frage?",
+  "Willi hier! Ich hab gerade 1.500 Teile Himmel gepuzzelt – nur blau. Da ist eine Bibelfrage die reinste Erholung.",
+  "Hallo, hier Willi! Du hast Glück, mein Brotteig muss eh noch eine Stunde gehen.",
+  "Pastor Willi, grüß Gott! Moment, Heidi wollte rangehen – sie dachte, ihre Mutter ruft aus Amerika an.",
+  "Willi am Apparat – ich stehe mit Mehl bis zu den Ellbogen in der Küche. Leg los!",
+  "Grüß dich, hier Willi! Ich hab das Handy gerade mit der Grillzange angenommen. Geht erstaunlich gut.",
+  "Ah, du bist das! Heidi hat schon gesagt: „Der ruft bestimmt wegen Biblionär an.“ Frauen wissen so was.",
+  "Willi hier – ich sitze gerade über der Predigt für Sonntag. Eine kleine Pause kommt mir sehr recht.",
+  "Hallo, Willi am Telefon! Ich stehe beim Metzger in der Schlange, aber für dich trete ich kurz zur Seite.",
+  "Pastor Willi! Kurz warten, ich wisch mir nur den Bart ab – es gab Spaghetti. Ohne Gemüsesoße, versteht sich.",
+  "Hallo? Ja, hier Willi! Die Mädels haben gerade den Hörer abgenommen und „Papa, Biblionär!“ gerufen. Ich bin ganz Ohr."
 ];
 const WILLI_SICHER = [
   x => `Da muss ich nicht lange überlegen: ${x.X}. Das steht in ${x.ref}.`,
   x => `Das ist ganz klar ${x.X} – lies mal ${x.ref} nach.`,
-  x => `${x.X}! Da bin ich mir so sicher wie beim Grillen, dass ein Steak gewendet werden muss. Steht in ${x.ref}.`
+  x => `${x.X}! Da bin ich mir sicherer als bei der Frage, ob Rosenkohl schmeckt. Steht in ${x.ref}.`,
+  x => `${x.X}. So sicher wie das Amen in der Kirche – steht in ${x.ref}.`,
+  x => `Ha, die kenne ich! ${x.X}. Schlag ${x.ref} auf, da steht's schwarz auf weiß.`,
+  x => `${x.X} – dafür würde ich meine Grillzange verwetten. Na gut, wetten tun wir nicht. Aber es steht in ${x.ref}.`,
+  x => `Ganz klar ${x.X}. Über ${x.ref} hab ich schon gepredigt – da sitzt jedes Wort.`,
+  x => `Das ist ${x.X}! Meine Töchter wüssten das auch – ${x.ref} haben wir beim Abendessen gelesen.`,
+  x => `Einfach: ${x.X}. Wer ${x.ref} einmal gelesen hat, vergisst das nicht mehr.`
 ];
 const WILLI_ZIEMLICH = [
   x => `Ich bin mir ziemlich sicher, dass es ${x.X} ist. Wenn ich mich recht erinnere, steht das in ${x.ref}.`,
-  x => `Hm … ich sage ${x.X}. Ich glaube, das steht in ${x.ref} – schau aber lieber nochmal genau hin.`
+  x => `Hm … ich sage ${x.X}. Ich glaube, das steht in ${x.ref} – schau aber lieber nochmal genau hin.`,
+  x => `Ich würde ${x.X} sagen. Das müsste in ${x.ref} stehen – meine Bibel liegt leider gerade im Auto.`,
+  x => `Ziemlich sicher ${x.X}. Ich meine, das ist ${x.ref} – Heidi nickt jedenfalls.`,
+  x => `Ich denke ${x.X}, so zu neunzig Prozent. Steht wohl in ${x.ref}. Die restlichen zehn Prozent hat der Grillrauch vernebelt.`,
+  x => `Mein Gefühl sagt ${x.X} – und ${x.ref} bestätigt das, wenn ich mich recht erinnere.`
 ];
 const WILLI_SCHWANK = [
   x => `Puh, das ist knifflig. Ich schwanke zwischen ${x.X} und ${x.Y} … ich würde ${x.X} nehmen, aber ganz sicher bin ich nicht.`,
-  x => `Ich streich mir gerade nachdenklich durch den Bart … ${x.X} oder ${x.Y}? Ich tendiere zu ${x.X}.`
+  x => `Ich streich mir gerade nachdenklich durch den Bart … ${x.X} oder ${x.Y}? Ich tendiere zu ${x.X}.`,
+  x => `Hmm … ${x.X} oder ${x.Y}? Das ist schwerer als die Wahl zwischen Bratwurst und Rippchen. Ich sag ${x.X}, aber ohne Garantie.`,
+  x => `Jetzt erwischst du mich auf dem falschen Fuß. Ich meine ${x.X}, aber ${x.Y} lässt mich nicht ganz los.`,
+  x => `Heidi sagt ${x.Y}, ich sage ${x.X}. Und meistens hat Heidi recht … hm. Ich bleib trotzdem bei ${x.X}.`,
+  x => `Ich krame in meinem Gedächtnis … ${x.X}? Oder doch ${x.Y}? Ich nehme ${x.X} – aber prüf es lieber selbst.`
 ];
 const WILLI_GERATEN = [
   x => `Oje, da bin ich überfragt. Aus dem Bauch heraus würde ich ${x.X} sagen – aber verlass dich nicht drauf!`,
-  x => `Ehrlich gesagt weiß ich es nicht genau. Vielleicht ${x.X}? Das musst du am Ende selbst entscheiden.`
+  x => `Ehrlich gesagt weiß ich es nicht genau. Vielleicht ${x.X}? Das musst du am Ende selbst entscheiden.`,
+  x => `Da muss ich passen – das hab ich im Bibelunterricht wohl verträumt. Ich rate mal ${x.X}.`,
+  x => `Puh, keine Ahnung. Eine meiner Töchter ruft gerade ${x.X} – mehr hab ich leider nicht.`,
+  x => `Ich stochere im Nebel wie im Grillrauch. Vielleicht ${x.X}? Hör lieber auf dein Herz.`,
+  x => `Ehrlich: Das ist ein Puzzleteil, das mir fehlt. Ich sag mal ${x.X}, aber das ist geraten.`
 ];
 /* Bezüge zur Frage: [Suchmuster über Frage, Antwort, Bibelstelle und Thema, Satz] */
 const WILLI_THEMA = [
@@ -2990,11 +3018,11 @@ const WILLI_THEMA = [
   [/Esra|vorlesen|vorlas|\blas\b|Chronik|Kämmerer|Synagoge/, "Heidi liest für ihr Leben gern, bei uns stapeln sich die Bücher. Aber dass Esra dem Volk vom Morgen bis zum Mittag vorgelesen hat (Nehemia 8,3) – das schafft nicht mal sie."],
   [/Jojakim|Buchrolle/, "König Jojakim hat Jeremias Buchrolle ins Feuer geworfen (Jeremia 36,23). Heidi war beim Lesen richtig empört. Ich auch – ein Kohlenfeuer ist schließlich für Steaks da!"],
   [/Psalm|Hirte\b|Hirsch|Baum an Wasser/, "Psalm 23 sagt: Du bereitest vor mir einen Tisch (Psalm 23,5). Ich stelle mir da immer einen gut gedeckten Grilltisch vor."],
-  [/Hirsch|lechzt/, "Wie der Hirsch nach Wasser lechzt (Psalm 42,2) – so lechze ich nach dem Gottesdienst nach einem Steak. Aber nur fast so sehr."],
+  [/Hirsch|lechzt/, "Wie der Hirsch nach Wasser lechzt, so lechzt meine Seele nach Gott (Psalm 42,2). Mein Magen lechzt eher nach Mittagessen – aber der ist ja auch nicht so geistlich."],
   [/Ameise|Faule/, "Geh zur Ameise, du Fauler (Sprüche 6,6)! Heidi zitiert das immer, wenn ich nach dem Grillen auf dem Sofa einschlafe."],
   [/tüchtige Frau|Lemuel|Sprüche 31/, "Sprüche 31 lobt die tüchtige Frau – Heidi hat das Kapitel bei uns an den Kühlschrank gehängt. Mit Leuchtmarker."],
   [/Salomo|Sprüche 1|Furcht des HERRN/, "Die Furcht des HERRN ist der Anfang der Erkenntnis (Sprüche 1,7). Der Anfang einer guten Mahlzeit ist übrigens ein frisch gebackenes Brot."],
-  [/Prediger|seine Zeit|nichtig/, "Alles hat seine Zeit (Prediger 3,1) – auch das Steak auf dem Grill. Wer zu früh wendet, bereut es."],
+  [/Prediger|seine Zeit|nichtig/, "Alles hat seine Zeit (Prediger 3,1) – auch der Brotteig. Wer ihn zu früh in den Ofen schiebt, backt einen Ziegelstein."],
   [/Hiob|Uz|Elihu/, "Hiob hat alles verloren und Gott trotzdem gelobt. Ich verliere schon die Geduld, wenn meinem Puzzle ein Teil fehlt."],
   [/Hohelied|Braut|stark wie der Tod/, "Das Hohelied lese ich Heidi manchmal vor. Sonst liest ja immer sie mir vor – ausgleichende Gerechtigkeit!"],
   [/Bathseba|Psalm 51/, "Nach seiner Schuld betete David: Schaffe mir, o Gott, ein reines Herz (Psalm 51,12). Den Vers bete ich auch – meistens nach dem dritten Würstchen."],
@@ -3023,7 +3051,7 @@ const WILLI_THEMA = [
   [/Zehnten|Vorratshaus/, "Bringt den ganzen Zehnten ins Vorratshaus (Maleachi 3,10). Heidi hat gefragt, ob das auch für meine Würstchen gilt."],
   [/Maleachi 3,23|Elia/, "Gott kündigt den Propheten Elia an (Maleachi 3,23). Elia hat in der Wüste übrigens ein auf heißen Steinen gebackenes Brot vom Engel bekommen (1. Könige 19,6) – himmlisches Backhandwerk!"],
   [/Sold der Sünde|Gnadengabe|Römer 6/, "Der Sold der Sünde ist der Tod, aber Gottes Gnadengabe ist das ewige Leben (Römer 6,23). Geschenkt – wie die letzte Bratwurst, die ich dir überlasse."],
-  [/scheiden|Römer 8/, "Nichts kann uns von Gottes Liebe trennen (Römer 8,39) – nicht mal ein angebranntes Steak."],
+  [/scheiden|Römer 8/, "Nichts kann uns von Gottes Liebe trennen (Römer 8,39) – nicht mal ein Puzzle, bei dem das letzte Randstück fehlt."],
   [/Liebe|1. Korinther 13/, "Die Liebe ist langmütig (1. Korinther 13,4). Heidi braucht das, wenn ich mir zum dritten Mal Nachschlag hole."],
   [/500|1. Korinther 15/, "Über 500 Brüder sahen den Auferstandenen auf einmal (1. Korinther 15,6). So viele Leute kriege ich nicht mal beim Gemeindefest satt."],
   [/neue Schöpfung/, "Eine neue Schöpfung in Christus (2. Korinther 5,17) – wie aus Mehl und Wasser ein Brot wird. Nur unendlich wunderbarer."],
@@ -3059,7 +3087,13 @@ const WILLI_THEMA = [
   [/Blut vergossen|1. Chronik 22/, "David durfte den Tempel nicht bauen, aber er hat alles dafür vorbereitet (1. Chronik 22,5) – wie ich, wenn ich am Vorabend den Sauerteig ansetze, damit morgens gebacken werden kann."],
   [/Einweihung|2. Chronik 7/, "Bei Salomos Tempelweihe fiel Feuer vom Himmel (2. Chronik 7,1). Die schnellste Grillglut aller Zeiten!"],
   [/Schriftgelehrter/, "Esra war Schriftgelehrter – ein echter Bücherwurm. Heidi wäre mit ihm sofort ins Gespräch gekommen."],
-  [/Leopard|Böcklein/, "Der Leopard lagert beim Böcklein (Jesaja 11,6) – im Friedensreich ist sogar das Böcklein sicher. Vor mir am Grill hoffentlich auch."]
+  [/Leopard|Böcklein/, "Der Leopard lagert beim Böcklein (Jesaja 11,6) – im Friedensreich ist sogar das Böcklein sicher. Vor mir am Grill hoffentlich auch."],
+  [/Josef|Mundschenk|Bäcker|Pharao/, "Josef hat den Traum des obersten Bäckers gedeutet (1. Mose 40,16-19) – für den ging es leider nicht gut aus. Seitdem backe ich nur noch mit Gebet."],
+  [/Rut|Boas|Ähren|Noomi/, "Boas lud Rut ein, ihren Bissen in den Essig zu tauchen (Rut 2,14) – ein echter Gastgeber! Ich hätte ihr noch eine Bratwurst angeboten."],
+  [/Martha|Maria|Bethanien/, "Martha hat sich mit dem Essen abgemüht, Maria saß zu Jesu Füßen (Lukas 10,39-42). Ich bin ehrlich gesagt eher Martha – vor allem am Grill."],
+  [/Emmaus/, "Die Emmausjünger erkannten Jesus, als er das Brot brach (Lukas 24,30-31). Seitdem ist Brot brechen für mich etwas ganz Besonderes."],
+  [/Dornbusch|Mose|Horeb/, "Der Dornbusch brannte und verbrannte doch nicht (2. Mose 3,2). Das wünsche ich mir manchmal für meine Würstchen."],
+  [/Witwe|Zarpat|Mehl/, "Bei der Witwe in Zarpat ging das Mehl im Topf nicht aus (1. Könige 17,16). Mein Sauerteig heißt deshalb „Elia“."]
 ];
 const WILLI_ALLG = [
   "Heidi hat übrigens aus Amerika das Barbecue mitgebracht – seitdem grillen wir sogar im Winter.",
@@ -3073,17 +3107,52 @@ const WILLI_ALLG = [
   "Rosenkohl ist für mich die elfte Plage. Steht nicht in der Bibel – aber gefühlt schon.",
   "Gerade ist mein Brot im Ofen und es riecht herrlich. Bis es fertig ist, haben wir die Frage längst gelöst.",
   "Heidi liest gerade auf dem Sofa und sagt, das kam in ihrem letzten Buch auch irgendwo vor.",
-  "Auf meinem Esstisch liegt ein Puzzle mit 2000 Teilen. Da ist so eine Bibelfrage richtig erholsam."
+  "Auf meinem Esstisch liegt ein Puzzle mit 2000 Teilen. Da ist so eine Bibelfrage richtig erholsam.",
+  "Ich hab mir ein Puzzle mit der Arche Noah gekauft – 3000 Teile, davon gefühlt 2000 Wasser.",
+  "Heidi hat diese Woche schon drei Bücher gelesen. Ich hab in der Zeit ein Brot gebacken. Wir ergänzen uns.",
+  "Meine Töchter haben mir eine Schürze geschenkt: „Ich grille, also bin ich.“ Theologisch fragwürdig, aber sie passt.",
+  "Kleiner Tipp vom Pastor: Wer jeden Tag ein Kapitel liest, ist in gut drei Jahren einmal durch die ganze Bibel.",
+  "Mein Bart hat übrigens schon mehr Bibelstunden erlebt als mancher Theologiestudent.",
+  "Heidi sagt, in Amerika dauert ein Barbecue den ganzen Tag. Ich hab sofort gesagt: Gott segne Amerika!",
+  "Die Mädels wollten ein Gemüse-Puzzle mit mir legen. Die Karotten-Teile sind rein zufällig unters Sofa gerutscht.",
+  "Heidi meinte, ich soll mal Tofu probieren. Ich wollte ihr einen Bibelvers dagegen zeigen – und habe Sprüche 15,17 gefunden. Der spricht leider für sie.",
+  "Eine meiner Töchter hält mir gerade einen Zettel hin: „Papa, sag die richtige Antwort!“ Danke für den Tipp, Schatz.",
+  "Ich hab einmal Zucchini gegrillt. Einmal. Wir reden nicht drüber.",
+  "Heidi liest mehr Bücher als ich – aber in der Bibel blättere ich schneller. Das lass ich mir nicht nehmen.",
+  "Für so eine Frage leg ich sogar mein Brotmesser beiseite. Das will was heißen!"
 ];
-const WILLI_TSCHUESS = ["Gott segne dich – viel Erfolg!", "So, jetzt muss ich die Steaks wenden. Gott befohlen!", "Ich bete für dich. Tschüss!", "Heidi und die Mädels drücken dir die Daumen. Bis Sonntag!"];
+const WILLI_TSCHUESS = ["Gott segne dich – viel Erfolg!", "So, jetzt muss ich die Steaks wenden. Gott befohlen!", "Ich bete für dich. Tschüss!", "Heidi und die Mädels drücken dir die Daumen. Bis Sonntag!",
+  "Gott befohlen – und denk dran: Gottes Wort ist mehr wert als Tausende Gold- und Silberstücke (Psalm 119,72).",
+  "So, mein Brot will aus dem Ofen. Gott segne dich!",
+  "Ich muss weiterpuzzeln – mir fehlt noch ein Stück Himmel. Tschüss!",
+  "Heidi ruft „Bye!“, die Mädels rufen „Tschüss!“, und ich sage: Gott befohlen!",
+  "Und jetzt: kurz beten, dann tippen. Mach's gut!",
+  "Viel Erfolg! Und falls es schiefgeht: Beim Gemeindefest gibt's trotzdem eine Bratwurst für dich.",
+  "Der HERR segne dich und behüte dich (4. Mose 6,24). Bis bald!",
+  "Ich leg jetzt auf, bevor die Glut ausgeht. Gottes Segen!"];
+/* Abwechslung (6.51): Sätze, die auf diesem Gerät kürzlich schon kamen, werden übersprungen. Der Tipp selbst
+   (richtig/falsch, Sicherheit) hängt weiter nur vom Startwert ab – fair im Duell und in der Wochenrunde.
+   Jede Auswahl verbraucht genau einen Zufallswert, egal ob übersprungen wird. */
+const TEL_ZULETZT_KEY = "bq-telefon-zuletzt";
+function telZuletzt() { try { const a = JSON.parse(localStorage.getItem(TEL_ZULETZT_KEY) || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+function telMerken(liste) { try { localStorage.setItem(TEL_ZULETZT_KEY, JSON.stringify(liste.slice(-150))); } catch (e) {} }
 function pastorAntwort(f, halb, id = "willi") {
   const P = PASTOREN[id] || PASTOREN.willi;
-  const rnd = rngVon((f.ws || hash(f.f)) ^ (halb ? 0x5bd1e995 : 0) ^ P.salt), wahl = a => a[Math.floor(rnd() * a.length)];
+  const rnd = rngVon((f.ws || hash(f.f)) ^ (halb ? 0x5bd1e995 : 0) ^ P.salt), zuletzt = telZuletzt();
+  /* wahl: zufälliger Eintrag; ist er kürzlich gekommen, der nächste noch nicht gehörte. Gesperrt wird je Liste
+     höchstens gut die Hälfte, damit immer genug Auswahl bleibt. */
+  const wahl = a => {
+    const start = Math.floor(rnd() * a.length), name = Object.keys(P).find(k => P[k] === a) || "x";
+    const kenn = k => `${id}|${name}|${k}`, gesperrt = new Set(zuletzt.filter(z => z.startsWith(`${id}|${name}|`)).slice(-Math.ceil(a.length * .6)));
+    let k = start;
+    for (let n = 0; n < a.length; n++) { const j = (start + n) % a.length; if (!gesperrt.has(kenn(j))) { k = j; break; } }
+    zuletzt.push(kenn(k)); return a[k];
+  };
   const sichtbar = f.opts.map((o, k) => k).filter(k => !(halb && f.weg.includes(f.opts[k])));
   const r = f.opts.indexOf(f.loesung), falsche = sichtbar.filter(k => k !== r);
   const txt = k => `<b>${"ABCD"[k]}: ${esc(f.opts[k])}</b>`, kurz = k => `${"ABCD"[k]}: ${f.opts[k]}`;
   const [sicher, ziemlich, schwank] = P.quoten[(f.st || 1) - 1];
-  const p = rnd(), y = wahl(falsche);
+  const p = rnd(), y = falsche[Math.floor(rnd() * falsche.length)]; /* Tipp nur vom Startwert abhängig */
   let tipp, grad, satz, richtigGetippt = true;
   if (p < sicher) { tipp = r; grad = "ganz sicher"; satz = wahl(P.sicher)({ X: txt(r), ref: esc(f.ref) }); }
   else if (p < ziemlich) { tipp = r; grad = "ziemlich sicher"; satz = wahl(P.ziemlich)({ X: txt(r), ref: esc(f.ref) }); }
@@ -3095,11 +3164,12 @@ function pastorAntwort(f, halb, id = "willi") {
   }
   /* Bezug zur Frage nur, wenn der Pastor richtig liegt – sonst würde er sich selbst widersprechen */
   const heu = `${f.f} ${f.loesung} ${f.ref} ${f.thema}`, passend = P.thema.filter(([re]) => re.test(heu)).map(([, t]) => t);
-  const extra = richtigGetippt && passend.length && rnd() < .8 ? wahl(passend) : wahl(P.allg);
+  const extra = richtigGetippt && passend.length && rnd() < .8 ? passend[Math.floor(rnd() * passend.length)] : wahl(P.allg);
   const saetze = [wahl(P.hallo), satz, esc(extra)];
   /* Aaron: Star Wars gern noch einmal extra, wenn der Satz davor keinen Bezug hatte */
   if (P.sw && !/Star Wars|Jedi|Yoda|Macht|Todesstern|Han Solo|Luke|Vader|Tatooine|Chewbacca|C-3PO|Lichtschwert|Kamino|Falke|Mos Eisley|Obi-Wan/.test(extra) && rnd() < .6) saetze.push(esc(wahl(P.sw)));
   saetze.push(wahl(P.tschuess));
+  telMerken(zuletzt);
   return { saetze, tipp: kurz(tipp), grad, richtig: tipp === r, wer: id };
 }
 
@@ -3111,24 +3181,47 @@ const AARON_HALLO = [
   "Hey, hier ist Aaron! Oh, „Wer wird Biblionär?“ – awesome, schieß los!",
   "Aaron hier – sorry, Eliza übt gerade Querflöte, ich geh kurz raus … Okay, ich höre!",
   "Hallo! Aaron am Apparat. Ich hab gerade „Das Imperium schlägt zurück“ pausiert – für dich mach ich das gern.",
-  "Hi! Moment, ich wisch mir nur die BBQ-Sauce von den Fingern … So, go!"
+  "Hi! Moment, ich wisch mir nur die BBQ-Sauce von den Fingern … So, go!",
+  "Hey, Aaron hier! Ich bin im Supermarkt und suche verzweifelt Root Beer. Aber für dich hab ich Zeit.",
+  "Aaron speaking – oh, sorry, Gewohnheit! Hier ist Aaron. Was gibt's?",
+  "Hallo! Ich hab gerade versucht, Elizas Katze „Sitz“ beizubringen. Sie hat mich ignoriert. Deine Frage ist bestimmt leichter.",
+  "Hi, hier Aaron! Eliza lässt dich grüßen – auf Russisch: Privet!",
+  "Howdy! So sagt man in Texas. Aaron am Telefon – womit kann ich helfen?",
+  "Aaron hier! Ich sortiere gerade meine Lego-Raumschiffe … äh, ich meine: meine Predigtnotizen. Leg los!",
+  "Hallo, hier Aaron – ich kämpfe gerade mit der, die, das. Bibelfragen sind einfacher als deutsche Artikel!",
+  "Hey! Aaron hier. Gutes Timing – mein Pulled Pork braucht noch sechs Stunden.",
+  "Aaron am Apparat! Eliza hat gerade ihre Querflöte weggelegt – du hast jetzt meine volle Aufmerksamkeit."
 ];
 const AARON_SICHER = [
   x => `Oh, das ist easy: ${x.X}. Steht in ${x.ref}. Da bin ich mir so sicher wie Yoda.`,
   x => `${x.X} – hundertprozentig! Lies ${x.ref} nach. Und ausnahmsweise hab ich kein mieses Gefühl dabei, wie Han Solo sagen würde.`,
-  x => `Ganz klar ${x.X}. Das steht in ${x.ref} – das weiß ich so genau wie die Reihenfolge aller Star-Wars-Filme.`
+  x => `Ganz klar ${x.X}. Das steht in ${x.ref} – das weiß ich so genau wie die Reihenfolge aller Star-Wars-Filme.`,
+  x => `No doubt: ${x.X}. Schau in ${x.ref} – it's right there.`,
+  x => `Ganz sicher ${x.X}. Steht in ${x.ref}. Eliza nickt auch – und sie hat das bessere Gedächtnis von uns beiden.`,
+  x => `${x.X} – so sicher wie Pancakes am Sonntagmorgen. Lies ${x.ref}.`,
+  x => `Easy one: ${x.X}! ${x.ref} – das könnte ich dir sogar auf Englisch vorlesen.`,
+  x => `Das ist ${x.X}, ganz klar. ${x.ref} gehört zu meinen Lieblingsstellen.`
 ];
 const AARON_ZIEMLICH = [
   x => `Ich bin ziemlich sicher: ${x.X}. Ich glaube, das steht in ${x.ref}.`,
-  x => `Hmm, ich sage ${x.X}. Wenn ich mich nicht irre, steht das in ${x.ref} – check das lieber nochmal.`
+  x => `Hmm, ich sage ${x.X}. Wenn ich mich nicht irre, steht das in ${x.ref} – check das lieber nochmal.`,
+  x => `I think it's ${x.X}. Wenn mein Gedächtnis mich nicht trügt: ${x.ref}.`,
+  x => `Ziemlich sicher ${x.X}. ${x.ref}, glaube ich – Eliza würde jetzt sagen: „Schau nach, Aaron!“`,
+  x => `Ich tippe auf ${x.X}. Steht wohl in ${x.ref}. Nicht ganz Jedi-sicher, aber fast.`
 ];
 const AARON_SCHWANK = [
   x => `Okay, tricky … ${x.X} oder ${x.Y}? Ich spüre eine Erschütterung in der Macht. Ich würde ${x.X} nehmen, aber sicher bin ich nicht.`,
-  x => `Puh, ich schwanke zwischen ${x.X} und ${x.Y}. Mein Bauchgefühl sagt ${x.X}.`
+  x => `Puh, ich schwanke zwischen ${x.X} und ${x.Y}. Mein Bauchgefühl sagt ${x.X}.`,
+  x => `Hmm, ${x.X} oder ${x.Y}? Das ist wie die Frage: Episode IV oder V? Ich sag ${x.X} – aber frag mich in fünf Minuten nochmal.`,
+  x => `Eliza flüstert ${x.Y}, ich denke ${x.X}. Ich gehe mit ${x.X}, aber ohne Garantie.`,
+  x => `Ich hab ein mieses Gefühl bei dieser Frage … ${x.X}, vielleicht auch ${x.Y}. I lean towards ${x.X}.`
 ];
 const AARON_GERATEN = [
   x => `Sorry, da bin ich überfragt. Aus dem Bauch heraus: ${x.X} – aber verlass dich nicht drauf!`,
-  x => `Ehrlich? Ich weiß es nicht. Vielleicht ${x.X}? Wie Yoda sagen würde: Schwer zu sehen, die Antwort ist.`
+  x => `Ehrlich? Ich weiß es nicht. Vielleicht ${x.X}? Wie Yoda sagen würde: Schwer zu sehen, die Antwort ist.`,
+  x => `Da bin ich lost. Elizas Katze ist gerade übers Handy gelaufen und hat ${x.X} gedrückt – besser weiß ich es ehrlich auch nicht.`,
+  x => `No idea, sorry! Ich rate ${x.X} – ein Schuss ins Blaue, wie bei einem Sturmtruppler.`,
+  x => `Puh. Ich sag ${x.X}, aber das ist reines Raten – so wie ich bei deutschen Artikeln.`
 ];
 const AARON_THEMA = [
   [/Goliath/, "David gegen Goliath – das ist wie Luke gegen den Todesstern: Der Kleine gewinnt. Nur hat David nicht auf die Macht vertraut, sondern auf den Herrn (1. Samuel 17,45)."],
@@ -3253,15 +3346,40 @@ const AARON_ALLG = [
   "Pulled Pork, Mac and Cheese, Cornbread … sorry, ich hab gerade Hunger bekommen.",
   "Früher hab ich nächtelang Videospiele gezockt. Heute sammle ich lieber Bibelverse – much better Highscore!",
   "Elizas Katze sitzt gerade auf meiner Bibel. Ich glaube, sie will auch mitspielen.",
-  "Achtung, Elizas Katze läuft über mein Handy – falls ich gleich komisch klinge, war sie das."
+  "Achtung, Elizas Katze läuft über mein Handy – falls ich gleich komisch klinge, war sie das.",
+  "Funfact: In Amerika gibt es Kirchen mit Drive-in. In Eichstätt gibt es dafür die schöneren Kirchtürme.",
+  "Eliza hat mir beigebracht, Borschtsch zu kochen. Ich hab ihr beigebracht, Ribs zu smoken. Fairer Deal.",
+  "Die Katze hat heute meinen Lego-Millennium-Falken umgeworfen. Ich vergebe ihr – siebzigmal siebenmal (Matthäus 18,22).",
+  "Deutsch ist schwer: Warum heißt es „das Mädchen“, aber „die Gemeinde“? Die Bibel ist da manchmal einfacher.",
+  "Mein deutscher Lieblingssatz: „Gottes Segen und guten Appetit!“ Passt immer.",
+  "Ich träume von einem Thanksgiving-Truthahn für die ganze Gemeinde. Eliza meint, dafür ist unser Ofen zu klein.",
+  "Eliza spielt gerade „Amazing Grace“ auf der Querflöte. Gänsehaut – sogar die Katze hält still.",
+  "In Texas sagt man: Everything is bigger in Texas. Aber Gottes Gnade ist noch größer – sogar größer als Texas!",
+  "Meine Bibel-App läuft im Dunkelmodus. Nicht wegen der dunklen Seite – nur wegen der Augen.",
+  "Eliza sagt, ich rede beim Telefonieren zu viel. Okay, okay – zurück zur Frage!",
+  "In Amerika sagen wir „awesome“ zu allem. Aber bei Gott passt es wirklich: ehrfurchtgebietend.",
+  "Ich hab Eliza „Wer wird Biblionär?“ gezeigt. Jetzt will sie gegen mich spielen – ich hab ein bisschen Angst."
 ];
 const AARON_SW = [
   "Und vergiss nicht: Die helle Seite gewinnt am Ende immer – in Star Wars und erst recht in der Bibel.",
   "Übrigens: Ich hab ein Lichtschwert-Lesezeichen in meiner Bibel. Blau, natürlich.",
   "Ein Jedi wird man durch Training – ein Biblionär auch. Weiter so, junger Padawan!",
-  "Wie Obi-Wan sagen würde: Das ist die Antwort, nach der du suchst."
+  "Wie Obi-Wan sagen würde: Das ist die Antwort, nach der du suchst.",
+  "Fun fact: „Möge die Macht mit dir sein“ klingt fast wie „Der HERR sei mit euch“ aus Rut 2,4. Ich sag ja: Die Bibel war zuerst!",
+  "Ich hab alle Star-Wars-Filme bestimmt zehnmal gesehen. Die Bibel lese ich aber noch öfter – promise!",
+  "Wie Yoda sagen würde: Stolz du sein kannst, wenn richtig die Antwort ist.",
+  "Mein Wecker spielt morgens den Imperialen Marsch. Eliza findet das nicht lustig.",
+  "R2-D2 würde jetzt fröhlich piepen. Ich piepe einfach mit: Biep-bup!",
+  "Jedi-Tipp: erst Ruhe, dann Antwort. Christen-Tipp: erst Gebet, dann Antwort. Ich mache beides."
 ];
-const AARON_TSCHUESS = ["Der Herr sei mit dir – always!", "Good luck! Eliza spielt dir einen Tusch auf der Querflöte.", "Okay, ich muss zurück zum Smoker. God bless!", "Bis Sonntag in der Gemeinde – see you!"];
+const AARON_TSCHUESS = ["Der Herr sei mit dir – always!", "Good luck! Eliza spielt dir einen Tusch auf der Querflöte.", "Okay, ich muss zurück zum Smoker. God bless!", "Bis Sonntag in der Gemeinde – see you!",
+  "Möge … äh, der Herr mit dir sein! Bye!",
+  "Gotta go – die Katze hat die BBQ-Soße entdeckt. God bless!",
+  "Da swidanija, wie Eliza sagt – und Gottes Segen von mir!",
+  "Okay, ich muss los – Episode V läuft noch auf Pause. Be blessed!",
+  "Take care! Ich bete für dich – wirklich, nicht nur so dahergesagt.",
+  "See you later, alligator! Gott segne dich.",
+  "Bye! Und grüß die Gemeinde von mir – oh wait, ich seh sie ja am Sonntag."];
 /* Pastor Aaron als Porträt: kurze Haare, freundliches Lächeln, blaues Lichtschwert */
 const AARON_BILD = `<svg class="willi-bild" viewBox="0 0 96 96" aria-hidden="true"><defs><radialGradient id="aaH" cx=".5" cy=".5" r=".5"><stop offset=".55" stop-color="#7fc8ff" stop-opacity=".45"/><stop offset="1" stop-color="#7fc8ff" stop-opacity="0"/></radialGradient><linearGradient id="aaHaut" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe6cf"/><stop offset="1" stop-color="#f0c29c"/></linearGradient><linearGradient id="aaHemd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c9563f"/><stop offset="1" stop-color="#7a2a25"/></linearGradient></defs>
 <circle cx="48" cy="48" r="47" fill="url(#aaH)"/><circle cx="48" cy="48" r="38" fill="#1b2146" stroke="url(#wrG)" stroke-width="3"/>
