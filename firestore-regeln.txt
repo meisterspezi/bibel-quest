@@ -1,5 +1,5 @@
 rules_version = '2';
-// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -129,11 +129,13 @@ service cloud.firestore {
       allow delete: if angemeldet() && besitzer(resource.data.pid);
     }
 
-    // Wer ist der Entwickler? Das Dokument einstellungen/entwickler {pid: "<Spieler-ID>"} legt der Verwalter
-    // in der Firebase-Konsole an. Alle Geräte dieses Spielerprofils dürfen das Feedback-Postfach öffnen.
+    // Wer ist Verwalter? Das Dokument einstellungen/entwickler {pid: "<Spieler-ID>", geraete: ["<Gerätekennung>", …]}
+    // pflegt der Verwalter NUR in der Firebase-Konsole (die App darf es nicht ändern). Verwalter-Rechte hat
+    // ausschließlich ein Gerät, dessen Kennung in „geraete“ steht – nicht jedes Gerät des Spielerprofils.
+    // Neues Gerät des Verwalters: Kennung unten im Profil ablesen und in der Konsole zu „geraete“ hinzufügen.
     function istEntwickler() {
       let e = /databases/$(database)/documents/einstellungen/entwickler;
-      return angemeldet() && exists(e) && besitzer(get(e).data.pid);
+      return angemeldet() && exists(e) && ich() in get(e).data.get('geraete', []);
     }
     match /einstellungen/{id} {
       allow get: if angemeldet();
