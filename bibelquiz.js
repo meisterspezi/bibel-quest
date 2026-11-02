@@ -3,7 +3,8 @@
    Die richtige Antwort steht immer zuerst; die App mischt die Reihenfolge (im Duell und in der Wochenrunde mit gemeinsamem Startwert).
    Achtung: Wer Fragen ändert, ändert die Fragen laufender Duelle und der laufenden Wochenrunde – neue Fragen darum am besten montags ergänzen.
    Neue Fragen einfach im passenden Thema ergänzen – mit ab: "<Kalenderwoche>" (z. B. "2026-W45"): Sie kommen erst ab dieser Woche ins Spiel,
-   ältere Duelle und die laufende Wochenrunde behalten so ihre Fragen (seit 6.46). */
+   ältere Duelle und die laufende Wochenrunde behalten so ihre Fragen (seit 6.46).
+   Frage ändern: alte Fassung mit bis: "<Kalenderwoche>" auslaufen lassen, neue Fassung mit ab: derselben Woche dahinter (seit 6.54). */
 const QUIZ_THEMEN = [
   { id: "anfang", name: "Schöpfung & Urgeschichte", ic: "sun", fragen: [
     { f: "Wie hieß der erste Mensch?", a: ["Adam", "Noah", "Abel", "Henoch"], ref: "1. Mose 2,19-20", st: 1 },
@@ -66,7 +67,8 @@ const QUIZ_THEMEN = [
     { f: "Wovon träumte der oberste Bäcker, der mit Josef im Gefängnis saß?", a: ["Von drei Brotkörben auf seinem Kopf", "Von einem Weinstock mit drei Reben", "Von sieben dürren Ähren", "Von Sonne, Mond und elf Sternen"], ref: "1. Mose 40,16-17", st: 2, ab: "2026-W45" },
     { f: "Wie zahlreich sollten Abrahams Nachkommen nach Gottes Versprechen werden?", a: ["Wie die Sterne am Himmel", "Wie die Fische im Meer", "Wie die Blätter am Baum", "Wie die Vögel unter dem Himmel"], ref: "1. Mose 15,5", st: 1, ab: "2026-W45" },
     { f: "Welchen Sohn sollte Abraham auf einem Berg im Land Morija opfern?", a: ["Isaak", "Ismael", "Jakob", "Lot"], ref: "1. Mose 22,2", st: 1, ab: "2026-W45" },
-    { f: "Wofür verkaufte Esau sein Erstgeburtsrecht?", a: ["Für ein Linsengericht mit Brot", "Für einen Becher Wein", "Für einen Mantel", "Für 30 Silberlinge"], ref: "1. Mose 25,34", st: 1, ab: "2026-W45" },
+    { f: "Wofür verkaufte Esau sein Erstgeburtsrecht?", a: ["Für ein Linsengericht mit Brot", "Für einen Becher Wein", "Für einen Mantel", "Für 30 Silberlinge"], ref: "1. Mose 25,34", st: 1, ab: "2026-W45" , bis: "2026-W46" },
+    { f: "Wofür verkaufte Esau sein Erstgeburtsrecht?", a: ["Für ein Linsengericht mit Brot", "Für ein Stück Wildbret", "Für einen Mantel", "Für 30 Silberlinge"], ref: "1. Mose 25,34", st: 1, ab: "2026-W46" },
     { f: "Was opferte Abraham an Isaaks Stelle?", a: ["Einen Widder", "Ein Lamm", "Eine Taube", "Ein Kalb"], ref: "1. Mose 22,13", st: 2, ab: "2026-W45" },
     { f: "Wie hieß Abrahams Neffe, der nach Sodom zog?", a: ["Lot", "Laban", "Nahor", "Elieser"], ref: "1. Mose 13,12", st: 2, ab: "2026-W45" },
     { f: "Wen schickte Abraham aus, um für Isaak eine Frau zu suchen?", a: ["Seinen ältesten Knecht", "Seinen Sohn Ismael", "Seinen Neffen Lot", "Melchisedek"], ref: "1. Mose 24,2-4", st: 2, ab: "2026-W45" },
@@ -113,7 +115,8 @@ const QUIZ_THEMEN = [
     { f: "Wer führte das Volk Israel aus Ägypten?", a: ["Mose", "Josua", "Abraham", "David"], ref: "2. Mose 3,10", st: 1, ab: "2026-W45" },
     { f: "Wie lautet das erste der Zehn Gebote?", a: ["Du sollst keine anderen Götter neben mir haben", "Du sollst nicht töten", "Du sollst deinen Vater und deine Mutter ehren", "Du sollst nicht stehlen"], ref: "2. Mose 20,3", st: 1, ab: "2026-W45" },
     { f: "Was kam bei der zweiten Plage aus dem Nil über ganz Ägypten?", a: ["Frösche", "Heuschrecken", "Stechmücken", "Hagel"], ref: "2. Mose 7,27-8,2", st: 2, ab: "2026-W45" },
-    { f: "Was sollten die Israeliten beim Passah an die Türpfosten streichen?", a: ["Das Blut des Lammes", "Öl", "Wein", "Asche"], ref: "2. Mose 12,7", st: 2, ab: "2026-W45" },
+    { f: "Was sollten die Israeliten beim Passah an die Türpfosten streichen?", a: ["Das Blut des Lammes", "Öl", "Wein", "Asche"], ref: "2. Mose 12,7", st: 2, ab: "2026-W45" , bis: "2026-W46" },
+    { f: "Was sollten die Israeliten beim Passah an die Türpfosten streichen?", a: ["Das Blut des Lammes", "Öl", "Wasser", "Asche"], ref: "2. Mose 12,7", st: 2, ab: "2026-W46" },
     { f: "Wie führte Gott Israel bei Tag und bei Nacht?", a: ["In einer Wolkensäule und einer Feuersäule", "Durch einen hellen Stern", "Durch einen Engel mit Posaune", "Durch eine Taube"], ref: "2. Mose 13,21", st: 2, ab: "2026-W45" },
     { f: "Worauf schrieb Gott die Zehn Gebote?", a: ["Auf zwei steinerne Tafeln", "Auf eine Buchrolle", "Auf Holztafeln", "In den Sand"], ref: "2. Mose 31,18", st: 2, ab: "2026-W45" },
     { f: "Welches Gebot ist nach Epheser 6,2 das erste mit einer Verheißung?", a: ["Ehre deinen Vater und deine Mutter", "Du sollst nicht stehlen", "Du sollst nicht lügen", "Gedenke des Sabbattages"], ref: "Epheser 6,2", st: 2, ab: "2026-W45" },
@@ -216,7 +219,8 @@ const QUIZ_THEMEN = [
     { f: "Was antwortete der junge Samuel, als Gott ihn in der Nacht rief?", a: ["Rede, denn dein Knecht hört!", "Hier bin ich, sende mich!", "Ich bin zu jung!", "Wer bist du, Herr?"], ref: "1. Samuel 3,10", st: 2, ab: "2026-W45" },
     { f: "Wie fand Salomo heraus, welche von zwei Frauen die echte Mutter des Kindes war?", a: ["Er ließ ein Schwert bringen, um das Kind zu teilen", "Er warf das Los", "Er befragte einen Propheten", "Er ließ beide Frauen schwören"], ref: "1. Könige 3,24-27", st: 2, ab: "2026-W45" },
     { f: "In welche zwei Reiche zerfiel das Königreich nach Salomos Tod?", a: ["Israel und Juda", "Juda und Benjamin", "Samaria und Galiläa", "Edom und Moab"], ref: "1. Könige 12,19-20", st: 2, ab: "2026-W45" },
-    { f: "Was ging bei der Witwe in Zarpat nicht aus?", a: ["Das Mehl im Topf und das Öl im Krug", "Das Wasser im Brunnen", "Der Wein im Schlauch", "Das Brot im Korb"], ref: "1. Könige 17,16", st: 2, ab: "2026-W45" },
+    { f: "Was ging bei der Witwe in Zarpat nicht aus?", a: ["Das Mehl im Topf und das Öl im Krug", "Das Wasser im Brunnen", "Der Wein im Schlauch", "Das Brot im Korb"], ref: "1. Könige 17,16", st: 2, ab: "2026-W45" , bis: "2026-W46" },
+    { f: "Was ging bei der Witwe in Zarpat nicht aus?", a: ["Das Mehl im Topf und das Öl im Krug", "Das Wasser im Brunnen", "Der Honig im Krug", "Das Brot im Korb"], ref: "1. Könige 17,16", st: 2, ab: "2026-W46" },
     { f: "Wie redete Gott am Horeb zu Elia?", a: ["In einem leisen, sanften Säuseln", "Im starken Sturm", "Im Erdbeben", "Im Feuer"], ref: "1. Könige 19,11-12", st: 2, ab: "2026-W45" },
     { f: "Welcher babylonische König eroberte Jerusalem und verbrannte den Tempel?", a: ["Nebukadnezar", "Belsazar", "Kyrus", "Sanherib"], ref: "2. Könige 25,8-9", st: 2, ab: "2026-W45" },
     { f: "Was wollte Daniel am Hof von Babylon nicht essen?", a: ["Die Speise vom Tisch des Königs", "Gemüse", "Brot", "Wasser"], ref: "Daniel 1,8", st: 2, ab: "2026-W45" },
@@ -238,7 +242,8 @@ const QUIZ_THEMEN = [
     { f: "Welcher Engel brachte Maria die Botschaft von der Geburt Jesu?", a: ["Gabriel", "Michael", "Ein Cherub", "Ein Seraph"], ref: "Lukas 1,26-27", st: 2 },
     { f: "Wohin wurde das neugeborene Jesuskind gelegt?", a: ["In eine Krippe", "In eine Wiege", "In einen Korb", "In ein Bett"], ref: "Lukas 2,7", st: 1 },
     { f: "Wer hörte in der Nacht der Geburt zuerst die Botschaft der Engel?", a: ["Hirten auf dem Feld", "Die Weisen", "König Herodes", "Die Priester im Tempel"], ref: "Lukas 2,8-11", st: 1 },
-    { f: "Was schenkten die Weisen aus dem Morgenland dem Kind?", a: ["Gold, Weihrauch und Myrrhe", "Brot, Wein und Öl", "Silber, Seide und Gewürze", "Ein Lamm, eine Taube und Gold"], ref: "Matthäus 2,11", st: 1 },
+    { f: "Was schenkten die Weisen aus dem Morgenland dem Kind?", a: ["Gold, Weihrauch und Myrrhe", "Brot, Wein und Öl", "Silber, Seide und Gewürze", "Ein Lamm, eine Taube und Gold"], ref: "Matthäus 2,11", st: 1 , bis: "2026-W46" },
+    { f: "Was schenkten die Weisen aus dem Morgenland dem Kind?", a: ["Gold, Weihrauch und Myrrhe", "Brot, Honig und Öl", "Silber, Seide und Gewürze", "Ein Lamm, eine Taube und Gold"], ref: "Matthäus 2,11", st: 1, ab: "2026-W46" },
     { f: "Wohin flohen Josef und Maria mit Jesus vor Herodes?", a: ["Nach Ägypten", "Nach Babylon", "Nach Rom", "Nach Damaskus"], ref: "Matthäus 2,13-14", st: 2 },
     { f: "In welcher Stadt wuchs Jesus auf?", a: ["In Nazareth", "In Bethlehem", "In Jerusalem", "In Jericho"], ref: "Lukas 2,39-40", st: 1 },
     { f: "Wie alt war Jesus, als er im Tempel mit den Lehrern sprach?", a: ["12 Jahre", "7 Jahre", "18 Jahre", "30 Jahre"], ref: "Lukas 2,42-46", st: 2 },
@@ -376,7 +381,8 @@ const QUIZ_THEMEN = [
     { f: "Für wen hielt Maria Magdalena den Auferstandenen zuerst?", a: ["Für den Gärtner", "Für einen Engel", "Für Petrus", "Für einen Hirten"], ref: "Johannes 20,15", st: 2, ab: "2026-W45" },
     { f: "Wie oft fragte der Auferstandene Petrus: „Hast du mich lieb?“", a: ["3-mal", "7-mal", "2-mal", "12-mal"], ref: "Johannes 21,17", st: 2, ab: "2026-W45" },
     { f: "Wie wurde Jesus vor den Augen der Jünger in den Himmel aufgenommen?", a: ["Eine Wolke nahm ihn auf", "In einem feurigen Wagen", "Auf einem weißen Pferd", "Über eine Leiter"], ref: "Apostelgeschichte 1,9", st: 2, ab: "2026-W45" },
-    { f: "Was brachte Nikodemus zum Begräbnis Jesu mit?", a: ["Eine Mischung aus Myrrhe und Aloe", "Gold und Weihrauch", "Einen Krug mit Wein", "Einen neuen Mantel"], ref: "Johannes 19,39", st: 3, ab: "2026-W45" },
+    { f: "Was brachte Nikodemus zum Begräbnis Jesu mit?", a: ["Eine Mischung aus Myrrhe und Aloe", "Gold und Weihrauch", "Einen Krug mit Wein", "Einen neuen Mantel"], ref: "Johannes 19,39", st: 3, ab: "2026-W45" , bis: "2026-W46" },
+    { f: "Was brachte Nikodemus zum Begräbnis Jesu mit?", a: ["Eine Mischung aus Myrrhe und Aloe", "Gold und Weihrauch", "Einen Krug mit Öl", "Einen neuen Mantel"], ref: "Johannes 19,39", st: 3, ab: "2026-W46" },
     { f: "Wie viele große Fische fingen die Jünger nach der Auferstehung am See?", a: ["153", "144", "99", "120"], ref: "Johannes 21,11", st: 3, ab: "2026-W45" }
   ]},
   { id: "gemeinde", name: "Apostel & erste Gemeinde", ic: "people", fragen: [

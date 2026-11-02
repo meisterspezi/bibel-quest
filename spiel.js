@@ -2681,7 +2681,7 @@ const bibWocheTage = () => { const d = new Date(), wt = (d.getDay() + 6) % 7; re
 function bibFragen(seed, stand) {
   const alt = Math.random; Math.random = rngVon(seed); stand = stand || weekKey();
   try {
-    const alle = QUIZ_THEMEN.flatMap(t => t.fragen.filter(q => !q.ab || q.ab <= stand).map(q => Object.assign({ thema: t.name }, q)));
+    const alle = QUIZ_THEMEN.flatMap(t => t.fragen.filter(q => (!q.ab || q.ab <= stand) && (!q.bis || stand < q.bis)).map(q => Object.assign({ thema: t.name }, q)));
     const stufe = st => { const gew = [], themen = []; for (const q of shuffle(alle.filter(x => x.st === st))) {
         if (gew.length >= 5) break; if (themen.filter(t => t === q.thema).length >= 2) continue; gew.push(q); themen.push(q.thema); }
       return gew; };
