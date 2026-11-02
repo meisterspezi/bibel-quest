@@ -2209,7 +2209,8 @@ function beitrittAnzeigen(html, modus = "") {
   let alle = []; const hier = current;
   const zeichne = () => {
     const q = $("suche").value.trim().toLowerCase();
-    const liste = alle.filter(r => !q || String(r.name).toLowerCase().includes(q));
+    /* Das Verwalter-Profil kann man nicht per Auswahl übernehmen (nur über den Verwalter) */
+    const liste = alle.filter(r => (!ENTW_PID || r.id !== ENTW_PID || GERAET.liste.some(p => p.pid === r.id)) && (!q || String(r.name).toLowerCase().includes(q)));
     $("nliste").innerHTML = liste.length ? liste.map(r => { const t = r.updated && (r.updated.toMillis ? r.updated.toMillis() : Date.parse(r.updated));
       const lokal = GERAET.liste.find(p => p.key !== GERAET.aktiv && p.pid === r.id);
       return `<button class="rrow wahl" data-pid="${esc(r.id)}">${avatarHtml(r, 38)}<div class="who"><b>${esc(r.name)}</b><span>${lokal ? "spielt schon auf diesem Gerät" : `Level ${r.level || 1} · ${(r.xp || 0).toLocaleString("de-DE")} XP${t ? " · zuletzt " + new Date(t).toLocaleDateString("de-DE") : ""}`}</span></div><div class="val">›</div></button>`; }).join("")

@@ -1,5 +1,5 @@
 rules_version = '2';
-// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -63,8 +63,13 @@ service cloud.firestore {
     }
     // „Ich spiele schon mit“: jedes angemeldete Gerät darf sich selbst als Besitzer eintragen
     // (bewusst ohne PIN – in der Gemeinde vertrauen wir einander)
-    function perAuswahl() {
-      return 'owners' in request.resource.data && ich() in request.resource.data.owners;
+    // Ausnahme: das Profil des Verwalters (einstellungen/entwickler) – sonst wäre jedes Gerät Verwalter
+    function perAuswahl(pid) {
+      return 'owners' in request.resource.data && ich() in request.resource.data.owners && !verwalterProfil(pid);
+    }
+    function verwalterProfil(pid) {
+      let e = /databases/$(database)/documents/einstellungen/entwickler;
+      return exists(e) && get(e).data.pid == pid;
     }
     // Zusammenführung, die der Verwalter in der Firebase-Konsole angelegt hat
     function perZusammenfuehrung(pid) {
@@ -88,12 +93,19 @@ service cloud.firestore {
           || (pid.matches('^[A-Za-z0-9]+-[a-z0-9]{4}$') && pid.split('-')[0] == ich()
               && 'owners' in request.resource.data && request.resource.data.owners == [ich()]));
       // Werte nur EINMAL prüfen (Firestore erlaubt höchstens 1000 Rechenschritte pro Regel)
-      allow update: if angemeldet() && werteOk(request.resource.data) && besitzerBleiben() && (
+      // Beitreten (nur Besitzerliste/Kopplungscode ändern sich): Werte sind unverändert und werden nicht erneut
+      // geprüft – bei vollen Profilen (alle Felder) überschritt die Prüfung sonst die 1000-Schritte-Grenze.
+      allow update: if angemeldet() && besitzerBleiben() && (
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['owners', 'updated', 'code'])
+            && (!('owners' in request.resource.data) || (request.resource.data.owners is list && request.resource.data.owners.size() <= 10))
+            && text(request.resource.data, 'code', 12) && hoechstensIchDazu(pid)
+            && (istBesitzer(pid) || perAuswahl(pid) || perZusammenfuehrung(pid) || perCode(pid)))
+          || (werteOk(request.resource.data) && (
           (request.resource.data.keys().hasOnly(felder()) && hoechstensIchDazu(pid)
-            && (istBesitzer(pid) || perAuswahl() || perZusammenfuehrung(pid) || perCode(pid)))
+            && (istBesitzer(pid) || perAuswahl(pid) || perZusammenfuehrung(pid) || perCode(pid)))
           // Verwalter: doppelte Namen zusammenführen (Besitzerlisten bleiben unverändert)
           || (request.resource.data.keys().hasOnly(felder().concat(['zu'])) && zuOk(request.resource.data)
-              && (!('owners' in resource.data) || request.resource.data.owners == resource.data.owners) && istEntwickler()));
+              && (!('owners' in resource.data) || request.resource.data.owners == resource.data.owners) && istEntwickler()))));
       allow delete: if angemeldet() && istBesitzer(pid);
     }
 
