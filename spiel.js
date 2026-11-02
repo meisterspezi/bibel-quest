@@ -514,7 +514,8 @@ const SFX = {
   level() { [392, 523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, i * .09, .3, "triangle", .17)); [523, 659, 784].forEach(f => tone(f * 2, .6, .8, "sine", .07)); },
   badge() { [784, 988, 1175, 1568].forEach((f, i) => tone(f, i * .07, .22, "sine", .14)); },
   tick() { tone(1200, 0, .03, "square", .04); },
-  beat(n) { tone(n % 2 ? 98 : 82, 0, .16, "sine", .1, 50); }
+  beat(n) { tone(n % 2 ? 98 : 82, 0, .16, "sine", .1, 50); },
+  siegel() { tone(110, 0, .18, "sine", .16, 55); tone(1900, .02, .05, "square", .05, 600); tone(1400, .07, .05, "square", .04, 400); }
 };
 function renderMute() { $("muteBtn").innerHTML = svg(S.mute ? "mute" : "sound"); }
 $("muteBtn").onclick = () => { S.mute = !S.mute; save(); renderMute(); if (!S.mute) SFX.tap(); else vorlesenStop(); };
@@ -972,6 +973,7 @@ function go(name, arg) {
   if (!S.lbName && name !== "name") name = "name";
   current = name; window.scrollTo(0, 0); document.body.classList.remove("spiel-laeuft");
   tabbarSetzen(name); (VIEWS[name] || VIEWS.home)(arg);
+  if (typeof duAufloesQ !== "undefined" && duAufloesQ.length) setTimeout(duAufloesVersuch, 400);
 }
 /* Untere Menüleiste: zu welchem Reiter gehört eine Ansicht? */
 const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Spielen", "bolt"], ["bib", "Biblionär", "biblionaer"], ["duelle", "Arena", "duell"], ["rank", "Gemeinde", "trophy"], ["ich", "Laden", "shop"]];
@@ -2332,6 +2334,78 @@ const duTypAktuell = () => (DU_TYPEN[S.duTyp] ? S.duTyp : "vers");
 const duTypText = d => { const t = duTypVon(d) || "vers"; return t === "vers" ? `Lernvers ${monatName(d.k)}` : DU_TYPEN[t].name; };
 const duErgText = (art, e) => (art === "blitz" ? `${e.r} richtig` : art === "kette" ? `${e.r}/${e.n} Bücher richtig` : `${e.r}/${e.n} richtig`);
 const duP = p => pkt(p); /* Punkte mit Tausenderpunkt (Biblionär bis 1.000.000) */
+
+/* ---------- Auflösung „Siegelbruch“ (6.62): die Punkte des Gegners bleiben bis zum Ende versiegelt ----------
+   Erst zählt die eigene Zahl hoch, dann wackelt das Siegel, bricht, und die Gegner-Punkte zählen hoch.
+   Die bessere Karte hebt sich und bekommt die Krone. Belohnungseffekte (Ton, Konfetti) nur für den Gewinner.
+   Antippen überspringt die Animation. Genutzt am Duell-Ende (Gegenspieler) und einmalig beim Herausforderer. */
+const sbGroesse = p => (String(duP(p)).length > 7 ? " lang" : String(duP(p)).length > 5 ? " mittel" : "");
+function sbHtml(o) {
+  return `<div class="sb-paar">
+    <div class="sb-k" id="sbDu"><span class="sb-krone">${svg("crown", "#f2c14e")}</span><span class="sb-n">Du</span><b class="sb-z${sbGroesse(o.du.p)}" id="sbZ1">0</b><small>${duErgText(o.art, o.du)}</small></div>
+    <div class="sb-k" id="sbEr"><span class="sb-krone">${svg("crown", "#f2c14e")}</span><span class="sb-n">${esc(o.gegner)}</span><b class="sb-z${sbGroesse(o.er.p)}" id="sbZ2">?</b><small>${duErgText(o.art, o.er)}</small>
+      <span class="sb-siegel" id="sbSiegel" aria-hidden="true"><i>?</i></span></div></div>`;
+}
+function sbStarten(root, o, fertig) {
+  const ruhig = matchMedia("(prefers-reduced-motion: reduce)").matches, T = [], R = [];
+  const q = sel => root.querySelector(sel); let fertigGemacht = false;
+  const nach = (ms, f) => T.push(setTimeout(f, ms));
+  const zaehle = (el, ziel, ms, f) => { const t0 = performance.now();
+    const s = t => { const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3); el.textContent = duP(Math.round(ziel * e)); if (k < 1) R.push(requestAnimationFrame(s)); else f && f(); };
+    R.push(requestAnimationFrame(s)); };
+  const splitter = karte => { for (let i = 0; i < 12; i++) { const sp = document.createElement("i"); sp.className = "sb-split"; karte.appendChild(sp);
+    const w = Math.random() * Math.PI * 2, d = 60 + Math.random() * 60;
+    sp.animate([{ transform: "translate(-50%,-50%)", opacity: 1 }, { transform: `translate(${Math.cos(w) * d}px,${Math.sin(w) * d + 40}px) rotate(${Math.random() * 360}deg)`, opacity: 0 }], { duration: 700, easing: "cubic-bezier(.2,.7,.4,1)", fill: "forwards" });
+    setTimeout(() => sp.remove(), 800); } };
+  const ende = () => {
+    if (fertigGemacht) return; fertigGemacht = true; T.forEach(clearTimeout); R.forEach(cancelAnimationFrame); root.onclick = null;
+    q("#sbZ1").textContent = duP(o.du.p); q("#sbZ2").textContent = duP(o.er.p);
+    const sg = q("#sbSiegel"); if (sg) sg.remove();
+    const sieg = o.du.p > o.er.p, remis = o.du.p === o.er.p;
+    if (!remis) { q(sieg ? "#sbDu" : "#sbEr").classList.add("sieger"); q(sieg ? "#sbEr" : "#sbDu").classList.add("verlierer"); }
+    fertig(sieg, remis);
+  };
+  if (ruhig) { ende(); return; }
+  root.onclick = e => { if (!e.target.closest("button")) ende(); };
+  zaehle(q("#sbZ1"), o.du.p, 900, () => {
+    nach(450, () => { const sg = q("#sbSiegel"); if (sg) sg.classList.add("wackel"); SFX.tick(); });
+    nach(1250, () => { const sg = q("#sbSiegel"); if (!sg) return; sg.classList.add("bricht"); SFX.siegel(); splitter(sg.parentElement);
+      zaehle(q("#sbZ2"), o.er.p, 1100, () => nach(250, ende)); });
+  });
+}
+/* Titel, Zeile und Knöpfe erscheinen erst nach der Auflösung; Ton und Konfetti nur beim Sieg */
+function sbSchluss(root, sieg) {
+  root.querySelectorAll(".sb-spaet").forEach((el, i) => setTimeout(() => el.classList.add("zeig"), i * 220));
+  if (sieg) { SFX.win(); rain(90); }
+}
+
+/* Herausforderer: fertige Duelle einmal als Auflösung zeigen (Warteschlange, nacheinander) */
+let duAufloesQ = [];
+function duAufloesVersuch() {
+  if (!duAufloesQ.length || duSpiel || document.querySelector(".modal, .sb-ov") || !["home", "duelle", "bib", "spielen", "rank", "profil", "lernen", "ich"].includes(current)) return;
+  const d = duAufloesQ.shift(), du = d.vonErg, er = d.anErg, typ = duTypVon(d) || "vers", art = DU_TYPEN[typ].art || d.art;
+  const sieg0 = du.p > er.p, remis0 = du.p === er.p, tal = sieg0 ? DU_SIEG_TAL : remis0 ? DU_REMIS_TAL : 0;
+  const ov = document.createElement("div"); ov.className = "sb-ov"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");
+  ov.innerHTML = `<div class="vl vl-ende du-ende sb-ende">
+    <div class="sb-kopf"><small>Ergebnis ist da</small><b>${esc(duTypText(d))}-Duell gegen ${esc(d.anName)}</b></div>
+    ${sbHtml({ gegner: d.anName, du, er, art })}
+    <h1 class="sb-spaet sb-titel"></h1><p class="muted sb-spaet sb-zeile"></p>
+    ${tal ? `<div class="vle-werte sb-spaet"><div><b>+${tal}${TAL_MUENZE}</b><span>Talente</span></div></div>` : ""}
+    <div class="sb-spaet sb-knoepfe"><button class="btn primary breit" id="sbWeiter">${duAufloesQ.length ? `Nächstes Ergebnis (${duAufloesQ.length})` : "Weiter"}</button>
+    <button class="btn ghost breit" id="sbRev">${svg("bolt")} ${sieg0 ? "Nochmal duellieren" : "Revanche"}</button></div></div>`;
+  document.body.appendChild(ov);
+  sbStarten(ov, { gegner: d.anName, du, er, art }, (sieg, remis) => {
+    ov.querySelector(".sb-titel").textContent = sieg ? "Gewonnen!" : remis ? "Unentschieden!" : "Knapp vorbei!";
+    if (!sieg) ov.querySelector(".sb-titel").classList.add("leise");
+    ov.querySelector(".sb-zeile").textContent = sieg ? `Du hast ${d.anName} besiegt.` : remis ? "Genau gleich viele Punkte!" : `${d.anName} war diesmal besser – fordere eine Revanche!`;
+    if (!sieg) ov.querySelector("#sbRev").classList.add("puls");
+    sbSchluss(ov, sieg);
+  });
+  const zu = () => { ov.remove(); };
+  ov.querySelector("#sbWeiter").onclick = () => { SFX.tap(); zu(); if (duAufloesQ.length) setTimeout(duAufloesVersuch, 150); else if (["duelle", "bib", "home"].includes(current)) go(current); };
+  ov.querySelector("#sbRev").onclick = () => { SFX.tap(); zu(); duAufloesQ = []; const g = { id: d.an, name: d.anName };
+    if (d.art === "quiz") { go("bib"); bibRevanche(g, !sieg0); } else { go("duelle"); duTypWahl(g, typ, !sieg0); } };
+}
 function rngVon(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 /* Fragen aus Startwert + Art – für beide Spieler genau gleich (Zufall wird dafür kurz ersetzt) */
 function duFragen(seed, art, k, stand) {
@@ -2442,8 +2516,9 @@ function duBelohnen() {
     S.duGes = [...(S.duGes || []), d.id].slice(-60);
     const p = d.vonErg.p, q = d.anErg.p;
     if (p > q) tal += DU_SIEG_TAL; else if (p === q) tal += DU_REMIS_TAL; /* der Sieg selbst wird in duZaehlen() aus den Duellen gezählt */
-    setTimeout(() => toast(`${svg(p > q ? "crown" : "bolt", p > q ? "#f2c14e" : "var(--ar-spielen)")}<div><b>${esc(duTypText(d))}-Duell gegen ${esc(d.anName)}: ${p > q ? "gewonnen!" : p === q ? "unentschieden" : "verloren"}</b><div class="small muted">${duP(p)} : ${duP(q)} Punkte${p > q ? ` · +${DU_SIEG_TAL} Talente` : p === q ? ` · +${DU_REMIS_TAL} Talente` : ""}</div></div>`), 600);
+    duAufloesQ.push(d); /* 6.62: statt Hinweis eine Auflösung im Siegelbruch-Stil */
   });
+  setTimeout(duAufloesVersuch, 600);
   if (tal) S.tal += tal; save(); renderHud();
   /* Sieg sofort in die Rangliste und Abzeichen prüfen (sonst erst beim nächsten Spiel) */
   checkBadges(); lbSync();
@@ -2508,7 +2583,7 @@ VIEWS.duelle = () => {
     return `<li class="ar-karte t-${art(d)}${n <= 1 ? " eilig" : ""}">
       <span class="du-medaille t-${art(d)}">${esc(duInitialen(d.vonName))}</span>
       <span class="ar-tx"><b>${esc(d.vonName)}</b><span>${duMarke(d)}</span></span>
-      <span class="ar-vor"><b>${duP(d.vonErg.p)}</b><small class="ar-zeit">noch ${tageText(n)}</small></span>
+      <span class="ar-vor"><b class="du-verdeckt" aria-label="Punkte verdeckt">?</b><small class="ar-zeit">noch ${tageText(n)}</small></span>
       <span class="ar-knoepfe"><button class="ar-antreten" data-an="${d.id}">${svg("bolt")}Antreten</button><button class="ar-rev" data-ab="${d.id}" aria-label="Ablehnen">${svg("nein")}</button></span></li>`; };
   const warteZeile = d => { const n = tage(d.ablauf), weg = Math.min(100, Math.max(4, Math.round((1 - (d.ablauf - jetzt) / (7 * 864e5)) * 100)));
     return `<li class="ar-zeile warte"><span class="du-medaille t-${art(d)}">${esc(duInitialen(d.anName))}</span><span class="ar-tx"><b>${esc(d.anName)}</b><span>${duMarke(d)} deine <b class="du-gold">${duP(d.vonErg.p)}</b></span><i class="du-uhr" aria-label="noch ${tageText(n)}"><i style="width:${weg}%"></i></i></span><span class="du-tage">${n}<small>${n === 1 ? "Tag" : "Tage"}</small></span><button class="ar-rev ar-stop${duStopGesperrt(d) ? " gesperrt" : ""}" data-stop="${d.id}" aria-label="${esc(duStopLabel(d))}">${duStopKnopfIc(d)}</button></li>`; };
@@ -2719,7 +2794,22 @@ async function duEnde() {
   const typ = D.art === "kette" ? "kette-" + D.k : D.art, ich = { r: D.r, n };
   const extra = D.art === "blitz" && D.maxCombo >= 2 ? ` · beste Combo ${D.maxCombo}` : D.art === "kette" && D.r === D.fragen.length ? " · ganze Kette!"
     : D.art === "quiz" ? (D.p >= BIB_LEITER[14] ? " · Biblionär!" : D.raus ? " · ausgestiegen" : "") : "";
-  const gegnerSpalte = !D.neu ? `<div class="du-vs-sp ${!sieg && D.p !== D.gegnerErg.p ? "vorn" : ""}"><span>${esc(D.gegner)}</span><b>${duP(D.gegnerErg.p)}</b><small>${duErgText(D.art, D.gegnerErg)}</small></div>` : `<div class="du-vs-sp offen"><span>${esc(D.gegner)}</span><b>?</b><small>${viele ? "sind dran" : "ist dran"}</small></div>`;
+  const gegnerSpalte = `<div class="du-vs-sp offen"><span>${esc(D.gegner)}</span><b>?</b><small>${viele ? "sind dran" : "ist dran"}</small></div>`;
+  function xpGeben(ms) { if (D.xpGegeben) return; D.xpGegeben = true; setTimeout(() => { addXp(xp); if (tal) addTal(tal); checkBadges(); lbSync(); }, ms); }
+  /* 6.62: Gegenspieler – Auflösung im Siegelbruch-Stil; Titel, Belohnung und Knöpfe erst danach */
+  const aufl = !D.neu && !fehler && !weg;
+  if (aufl) {
+    screen.innerHTML = `<div class="vl vl-ende du-ende sb-ende">
+    <div class="sb-kopf"><small>${duMarke({ art: D.art, k: D.k })}</small><b>Du gegen ${esc(D.gegner)}</b></div>
+    ${sbHtml({ gegner: D.gegner, du: { p: D.p, r: D.r, n }, er: D.gegnerErg, art: D.art })}
+    <h1 class="sb-spaet${sieg ? "" : " leise"}">${titel}</h1><p class="muted sb-spaet">${zeile}${extra ? `<br><span class="small">${extra.replace(/^ · /, "")}</span>` : ""}</p>
+    <div class="vle-werte sb-spaet"><div><b>+${xp}</b><span>XP</span></div>${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>${tal > DU_FAIR_TAL ? "Talente" : "Fairplay"}</span></div>` : ""}</div>
+    <div class="sb-spaet sb-knoepfe"><button class="btn ghost breit${sieg ? "" : " puls"}" id="duRevanche">${svg("bolt")} ${sieg ? "Nochmal duellieren" : "Revanche"}</button>
+    <button class="btn primary breit" id="duFertig">${D.heim === "bib" ? "Zurück zu Biblionär" : "Zurück zur Arena"}</button></div></div>`;
+    const wurzel = screen.querySelector(".sb-ende");
+    /* XP/Level-Aufstieg erst nach der Auflösung, damit nichts das Ergebnis vorwegnimmt */
+    sbStarten(wurzel, { gegner: D.gegner, du: { p: D.p, r: D.r, n }, er: D.gegnerErg, art: D.art }, s => { sbSchluss(wurzel, s); xpGeben(900); });
+  } else
   screen.innerHTML = `<div class="vl vl-ende du-ende">
     <div class="vle-ic ${sieg ? "" : D.art === "quiz" ? "bib-ic" : "du"}">${svg(sieg ? "crown" : D.art === "quiz" ? "biblionaer" : "bolt")}</div>
     <h1>${titel}</h1><p class="muted">${zeile}</p>
@@ -2728,14 +2818,14 @@ async function duEnde() {
     <div class="vle-werte"><div><b>+${xp}</b><span>XP</span></div>${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>${tal > DU_FAIR_TAL ? "Talente" : "Fairplay"}</span></div>` : ""}</div>
     ${fehler ? `<button class="btn primary breit" id="duNochmal">Nochmal senden</button>` : `<button class="btn primary breit" id="duFertig">${D.heim === "bib" ? "Zurück zu Biblionär" : "Zurück zur Arena"}</button>`}
     ${!D.neu && !fehler && !weg ? `<button class="btn ghost breit" id="duRevanche">${svg("bolt")} ${sieg ? "Nochmal duellieren" : "Revanche"}</button>` : ""}</div>`;
-  if (!fehler) { SFX.win(); rain(sieg ? 90 : 40); }
+  if (!aufl && !fehler && !weg) SFX.coin(); /* Herausforderung gesendet: kleiner Ton, kein Sieg-Effekt */
   const weiter = () => { duSpiel = null; go(D.heim || "duelle"); };
   if ($("duFertig")) $("duFertig").onclick = () => { SFX.tap(); weiter(); };
   if ($("duNochmal")) $("duNochmal").onclick = () => { SFX.tap(); duEnde(); };
   if ($("duRevanche")) $("duRevanche").onclick = () => { SFX.tap(); duSpiel = null;
     if (D.heim === "bib") { go("bib"); bibRevanche({ id: D.vonPid, name: D.gegner }, !sieg); return; }
     go("duelle"); duTypWahl({ id: D.vonPid, name: D.gegner }, typ, !sieg); };
-  if (!D.xpGegeben) { D.xpGegeben = true; setTimeout(() => { addXp(xp); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350); }
+  if (!aufl) xpGeben(350);
 }
 
 /* ---------- „Wer wird Biblionär?“ (v6.40) ----------
@@ -4076,7 +4166,7 @@ VIEWS.bib = () => {
     : `<button class="bq4-woche" id="bqWoche" aria-label="${gespielt ? `Biblionär der Woche: deine Runde ${pkt(S.bwP)} Punkte – Rangliste` : `Biblionär der Woche starten – noch ${n} ${n === 1 ? "Tag" : "Tage"}`}"><span class="bq4-kr">${svg("crown")}</span><span><b>Biblionär der Woche</b><small>${gespielt ? `deine Runde · ${pkt(S.bwP)} Punkte` : `${wk.split("-W")[1]}. KW · gleiche Fragen für alle · 1 Versuch`}</small></span>${gespielt ? `<span class="bq4-uhr">${svg("trophy")}<small>Liste</small></span>` : `<span class="bq4-uhr">${n}<small>${n === 1 ? "Tag" : "Tage"}</small></span>`}</button>`;
   const ichKurz = esc(duInitialen(S.lbName || "Ich"));
   const dranZeile = d => `<li class="bq2-z"><span class="bq2-av">${esc(duInitialen(d.vonName))}</span><span class="bq2-tx"><b>${esc(d.vonName)}</b><small>fordert dich heraus · noch ${Math.max(0, Math.ceil((d.ablauf - Date.now()) / 864e5))} T.</small></span>
-      <span class="bq2-p">${duP(d.vonErg.p)}</span><span class="bq2-kn"><button class="bq2-an" data-bqan="${d.id}">${svg("bolt")}Antreten</button><button class="bq2-x" data-bqab="${d.id}" aria-label="Duell von ${esc(d.vonName)} ablehnen">${svg("nein")}</button></span></li>`;
+      <span class="bq2-p du-verdeckt" aria-label="Punkte verdeckt">?</span><span class="bq2-kn"><button class="bq2-an" data-bqan="${d.id}">${svg("bolt")}Antreten</button><button class="bq2-x" data-bqab="${d.id}" aria-label="Duell von ${esc(d.vonName)} ablehnen">${svg("nein")}</button></span></li>`;
   const ergKachel = d => { const ich = d.von === S.pid, g = ich ? d.anName : d.vonName, p = ich ? d.vonErg.p : d.anErg.p, q = ich ? d.anErg.p : d.vonErg.p, e = p > q ? "sieg" : p === q ? "remis" : "nieder";
     return `<button class="bq2-e ${e}" data-bqrev="${d.id}" aria-label="${e === "sieg" ? "Nochmal" : "Revanche"} gegen ${esc(g)}">${e === "sieg" ? svg("crown") : `<span class="bq2-av klein">${esc(duInitialen(g))}</span>`}<span class="bq2-tx"><b>${esc(g)}</b><em>${e === "sieg" ? "Gewonnen" : e === "remis" ? "Remis" : "Verloren"}</em></span><span class="bq2-p">${duP(p)}<small>${duP(q)}</small></span>${svg("bolt")}</button>`; };
   const duell = !online
