@@ -2934,7 +2934,9 @@ ICONS.biblionaer = `<image href="icons/biblionaer-logo.webp" x="-1" y="-1" width
 /* Symbol „telefon“ (Belohnungs-/Joker-Violett) – beim nächsten Lauf des Symbol-Generators dorthin übernehmen */
 ICONS.telefon = `<svg x="0" y="0" width="24" height="24" viewBox="0 0 64 64" overflow="visible" class="wr wr-lohn"><circle class="wr-halo" cx="32" cy="32" r="31" fill="url(#wrH_lohn)"/><ellipse cx="32" cy="61" rx="17" ry="2.2" fill="#000" opacity=".3"/><path d="M15 9.5c2.6-1.9 6.3-1.2 7.6 1.8l4.2 9.4c1.1 2.5.2 5.4-2.1 6.8l-3.4 2.1c2.8 6.4 7.4 11.1 13.6 14.1l2.2-3.3c1.5-2.2 4.4-3 6.8-1.9l9.3 4.3c3 1.4 3.6 5.2 1.6 7.7l-3.6 4.4c-2.8 3.4-7.6 4.6-11.7 2.9C26.5 52.6 15.6 41.8 10.4 28.7 8.8 24.6 10 19.9 13.4 17.1z" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1.6" stroke-linejoin="round"/><path d="M14.6 14.2c-2.4 2.7-3 6.6-1.6 10" stroke="#fff" stroke-width="2.2" stroke-linecap="round" fill="none" opacity=".75"/><path d="M37 8.5a19 19 0 0 1 18.5 18.5M37 16a11.5 11.5 0 0 1 11 11" stroke="url(#wrX_lohn)" stroke-width="3.4" stroke-linecap="round" fill="none"/><path d="M37 8.5a19 19 0 0 1 18.5 18.5M37 16a11.5 11.5 0 0 1 11 11" stroke="#1b2a55" stroke-width=".8" stroke-linecap="round" fill="none" opacity=".5"/><path class="wr-spark" d="M54 42.5l1.49 4.01 4.01 1.49-4.01 1.49-1.49 4.01-1.49-4.01-4.01-1.49 4.01-1.49z" fill="#fff"/></svg>`;
 /* ---------- Telefonjoker (6.42, ersetzt den Joker „Bibelstelle“) – Kontakt 1: Pastor Willi ----------
-   Willi hat ein sehr gutes Bibelwissen, trägt Bart, ist verheiratet mit Heidi aus Amerika, hat zwei Töchter
+   Willi hat ein sehr gutes Bibelwissen, trägt Bart, ist verheiratet mit Heidi (geboren in Iowa, USA), hat zwei Töchter.
+   Willi hat in den USA am Faith Baptist Bible College (Iowa) Theologie studiert und dort Heidi kennengelernt;
+   nach dem Studium kamen beide als Missionare nach Deutschland. Er
    und grillt am liebsten Fleisch – Gemüse mag er nicht so. Seine Antwort hängt nur vom Startwert der Frage ab
    (und ob 50:50 schon genommen wurde): Im Duell und in der Wochenrunde sagt er allen dasselbe.
    Bei leichten Fragen liegt er fast immer richtig, bei schweren ist er manchmal unsicher oder irrt sich. */
@@ -2945,14 +2947,16 @@ const WILLI_HALLO = [
   "Ja, hallo? Heidi, mach mal die Musik leiser, das ist wichtig! … Also, wie lautet die Frage?",
   "Willi hier! Ich hab gerade 1.500 Teile Himmel gepuzzelt – nur blau. Da ist eine Bibelfrage die reinste Erholung.",
   "Hallo, hier Willi! Du hast Glück, mein Brotteig muss eh noch eine Stunde gehen.",
-  "Pastor Willi, grüß Gott! Moment, Heidi wollte rangehen – sie dachte, ihre Mutter ruft aus Amerika an.",
+  "Pastor Willi, grüß Gott! Moment, Heidi wollte rangehen – sie dachte, ihre Mutter ruft aus Iowa an.",
   "Willi am Apparat – ich stehe mit Mehl bis zu den Ellbogen in der Küche. Leg los!",
   "Grüß dich, hier Willi! Ich hab das Handy gerade mit der Grillzange angenommen. Geht erstaunlich gut.",
   "Ah, du bist das! Heidi hat schon gesagt: „Der ruft bestimmt wegen Biblionär an.“ Frauen wissen so was.",
   "Willi hier – ich sitze gerade über der Predigt für Sonntag. Eine kleine Pause kommt mir sehr recht.",
   "Hallo, Willi am Telefon! Ich stehe beim Metzger in der Schlange, aber für dich trete ich kurz zur Seite.",
   "Pastor Willi! Kurz warten, ich wisch mir nur den Bart ab – es gab Spaghetti. Ohne Gemüsesoße, versteht sich.",
-  "Hallo? Ja, hier Willi! Die Mädels haben gerade den Hörer abgenommen und „Papa, Biblionär!“ gerufen. Ich bin ganz Ohr."
+  "Hallo? Ja, hier Willi! Die Mädels haben gerade den Hörer abgenommen und „Papa, Biblionär!“ gerufen. Ich bin ganz Ohr.",
+  "Pastor Willi, grüß Gott – oder wie wir damals am Bible College in Iowa gesagt haben: Hi there! Was gibt's?",
+  "Willi hier! Heidi telefoniert gerade mit ihrer Familie in Iowa – gut, dass ich das zweite Handy hab. Schieß los!"
 ];
 const WILLI_SICHER = [
   x => `Da muss ich nicht lange überlegen: ${x.X}. Das steht in ${x.ref}.`,
@@ -2963,7 +2967,8 @@ const WILLI_SICHER = [
   x => `${x.X} – dafür würde ich meine Grillzange verwetten. Na gut, wetten tun wir nicht. Aber es steht in ${x.ref}.`,
   x => `Ganz klar ${x.X}. Über ${x.ref} hab ich schon gepredigt – da sitzt jedes Wort.`,
   x => `Das ist ${x.X}! Meine Töchter wüssten das auch – ${x.ref} haben wir beim Abendessen gelesen.`,
-  x => `Einfach: ${x.X}. Wer ${x.ref} einmal gelesen hat, vergisst das nicht mehr.`
+  x => `Einfach: ${x.X}. Wer ${x.ref} einmal gelesen hat, vergisst das nicht mehr.`,
+  x => `${x.X} – das haben wir schon am Bible College in Iowa gelernt. Lies ${x.ref} nach.`
 ];
 /* Antwortsätze, wenn die „Bibelstelle“ keine echte Versangabe ist (Bibelkunde, z. B. „Die Paulusbriefe“) – 6.53 */
 const WILLI_SICHER_OHNE = [
@@ -3142,7 +3147,7 @@ const WILLI_THEMA = [
   [/wie sie Wasser tranken/, "Gott wählte Gideons Männer danach aus, wie sie tranken (Richter 7,5). Bei uns würde Gott wahrscheinlich nach der Bratwurst-Technik auswählen."],
   [/Füchse/, "Simson fing 300 Füchse (Richter 15,4). Ich bekomme nicht mal zwei Töchter gleichzeitig ins Auto."],
   [/Haus der Philister|Wie starb Simson/, "Simson betete am Ende noch einmal um Kraft (Richter 16,28). Gott hört auch das letzte, schwache Gebet."],
-  [/Wo du hingehst|Orpa|Obed|Ähren/, "So treu wie Ruth – das wünscht man sich. Heidi ist sogar aus Amerika mit nach Bayern gekommen!"],
+  [/Wo du hingehst|Orpa|Obed|Ähren/, "So treu wie Ruth – das wünscht man sich. Heidi ist sogar aus Iowa mit nach Bayern gekommen – als Missionarin!"],
   [/Jephta|Gelübde/, "Jephta hat ein unbedachtes Gelübde getan (Richter 11,30). Seitdem verspreche ich beim Grillen nichts mehr, bevor ich nicht nachgedacht habe."],
   [/Schibbolet/, "Schibbolet (Richter 12,6) – an der Aussprache erkannte man, woher einer kam. In Eichstätt merken sie bei mir auch sofort: Der ist aus Ingolstadt!"],
   [/salbte David|Riese verspottete|bevor er König wurde/, "Gott sieht das Herz an, nicht das Äußere (1. Samuel 16,7). Gut so – sonst hätte ich mit meinem Bart keine Chance."],
@@ -3214,7 +3219,7 @@ const WILLI_THEMA = [
   [/Otter/, "Paulus schüttelte die Otter einfach ins Feuer (Apostelgeschichte 28,5). Ganz ruhig – so wünsche ich mir das auch, wenn eine Wespe auf meiner Bratwurst sitzt."],
   [/Artemis|Ephesus/, "In Ephesus schrien sie zwei Stunden lang (Apostelgeschichte 19,34). Zwei Stunden! Bei uns ist nach zwei Liedern Kaffeepause."],
   [/finstere Tal/, "Ich fürchte kein Unglück, denn du bist bei mir (Psalm 23,4) – das bete ich auch, bevor ich ein neues Brotrezept ausprobiere."],
-  [/Psalm 103/, "So fern der Osten vom Westen (Psalm 103,12) – von Eichstätt bis nach Amerika, Heidis Heimat, ist schon weit. Gottes Vergebung reicht noch weiter!"],
+  [/Psalm 103/, "So fern der Osten vom Westen (Psalm 103,12) – von Eichstätt bis nach Iowa, Heidis Heimat, ist schon weit. Gottes Vergebung reicht noch weiter!"],
   [/eigenen Verstand/, "Verlass dich nicht auf deinen Verstand (Sprüche 3,5) – das sagt Heidi auch, wenn ich ohne Rezept backe."],
   [/sanfte Antwort/, "Eine sanfte Antwort wendet den Grimm ab (Sprüche 15,1). Das funktioniert sogar bei meinen Töchtern. Manchmal."],
   [/Prediger 12,1|Prediger 3,11/, "Gedenke an deinen Schöpfer in deiner Jugend (Prediger 12,1) – darum wird bei uns abends aus der Bibel vorgelesen. Meistens liest Heidi."],
@@ -3277,7 +3282,9 @@ const WILLI_THEMA = [
   [/muss abnehmen/, "Er muss wachsen, ich aber muss abnehmen (Johannes 3,30). Heidi meint, ich soll den Vers auch wörtlich nehmen."],
   [/guten Kampf/, "Den Lauf vollendet (2. Timotheus 4,7) – ich laufe selten. Aber den Glaubenslauf will ich durchziehen."],
   [/mehr gehorchen/, "Man muss Gott mehr gehorchen als den Menschen (Apostelgeschichte 5,29) – die Apostel ließen sich nicht einschüchtern."],
-  [/Unglauben/, "Ich glaube; hilf meinem Unglauben (Markus 9,24) – ein ehrliches Gebet. Das bete ich auch manchmal. Nicht nur beim Grillanzünden."]
+  [/Unglauben/, "Ich glaube; hilf meinem Unglauben (Markus 9,24) – ein ehrliches Gebet. Das bete ich auch manchmal. Nicht nur beim Grillanzünden."],
+  [/Missionsbefehl|Gehet hin|alle Völker|Missionsreise|Barnabas/, "Geht hin in alle Welt! Heidi und ich haben uns nach dem Bible College in Iowa genau das zu Herzen genommen – nur eben Richtung Deutschland."],
+  [/Rebekka|Frau für Isaak/, "Abrahams Knecht fand Rebekka in der Fremde (1. Mose 24). Ich hab meine Heidi in Iowa gefunden – Gott führt, auch über den Ozean."]
 ];
 const WILLI_ALLG = [
   "Heidi hat übrigens aus Amerika das Barbecue mitgebracht – seitdem grillen wir sogar im Winter.",
@@ -3306,7 +3313,14 @@ const WILLI_ALLG = [
   "Für so eine Frage leg ich sogar mein Brotmesser beiseite. Das will was heißen!",
   "Ich bin gebürtiger Ingolstädter – in Eichstätt hab ich gelernt: Hier geht alles etwas gemütlicher. Wie ein guter Sauerteig.",
   "Ingolstadt hat die Autos, Eichstätt hat den Dom – und ich hab den Grill. Jeder hat seine Stärken.",
-  "Wenn ich nach Ingolstadt fahre, sagen die Leute: Der Willi ist ein Eichstätter geworden. Ich sag: Hauptsache, die Grillkohle ist dieselbe."
+  "Wenn ich nach Ingolstadt fahre, sagen die Leute: Der Willi ist ein Eichstätter geworden. Ich sag: Hauptsache, die Grillkohle ist dieselbe.",
+  "Ich hab in Iowa am Faith Baptist Bible College Theologie studiert – und dort Heidi kennengelernt. Die beste Lektion meines ganzen Studiums!",
+  "Nach dem Studium sind Heidi und ich als Missionare nach Deutschland gegangen. Für mich ging's zurück nach Hause, für Heidi war's ein Abenteuer.",
+  "In Iowa hab ich gelernt, was richtiges Barbecue ist. Heidi hat dafür in Bayern gelernt, dass man ohne Brezn nicht frühstückt.",
+  "Iowa ist flach und voller Mais. Heidi sagt, Mais ist Gemüse. Ich sag: Popcorn zählt nicht.",
+  "Pastor Aaron hat übrigens am selben Bible College studiert wie ich. Iowa bringt gute Leute hervor – allen voran Heidi!",
+  "Heidi und Pastor Aaron kommen beide aus Iowa. Wenn die zwei loslegen, verstehe ich nur noch „corn“ und „snowstorm“.",
+  "Im Winter in Iowa hab ich gelernt: Bei minus 25 Grad grillt man trotzdem. Man steht nur näher an der Glut."
 ];
 const WILLI_TSCHUESS = ["Gott segne dich – viel Erfolg!", "So, jetzt muss ich die Steaks wenden. Gott befohlen!", "Ich bete für dich. Tschüss!", "Heidi und die Mädels drücken dir die Daumen. Bis Sonntag!",
   "Gott befohlen – und denk dran: Gottes Wort ist mehr wert als Tausende Gold- und Silberstücke (Psalm 119,72).",
@@ -3316,7 +3330,8 @@ const WILLI_TSCHUESS = ["Gott segne dich – viel Erfolg!", "So, jetzt muss ich 
   "Und jetzt: kurz beten, dann tippen. Mach's gut!",
   "Viel Erfolg! Und falls es schiefgeht: Beim Gemeindefest gibt's trotzdem eine Bratwurst für dich.",
   "Der HERR segne dich und behüte dich (4. Mose 6,24). Bis bald!",
-  "Ich leg jetzt auf, bevor die Glut ausgeht. Gottes Segen!"];
+  "Ich leg jetzt auf, bevor die Glut ausgeht. Gottes Segen!",
+  "Gott befohlen – und wie man in Iowa sagt: Take care!"];
 /* Abwechslung (6.51): Sätze, die auf diesem Gerät kürzlich schon kamen, werden übersprungen. Der Tipp selbst
    (richtig/falsch, Sicherheit) hängt weiter nur vom Startwert ab – fair im Duell und in der Wochenrunde.
    Jede Auswahl verbraucht genau einen Zufallswert, egal ob übersprungen wird. */
@@ -3359,14 +3374,14 @@ function pastorAntwort(f, halb, id = "willi") {
     : themenWitze && rnd() < .6 ? wahl(themenWitze, "th:" + f.thema) : wahl(P.allg);
   const saetze = [wahl(P.hallo), satz, esc(extra)];
   /* Aaron: Star Wars gern noch einmal extra, wenn der Satz davor keinen Bezug hatte */
-  if (P.sw && !/Star Wars|Jedi|Yoda|Macht|Todesstern|Han Solo|Luke|Vader|Tatooine|Chewbacca|C-3PO|Lichtschwert|Kamino|Falke|Mos Eisley|Obi-Wan/.test(extra) && rnd() < .6) saetze.push(esc(wahl(P.sw)));
+  if (P.sw && !/Star Wars|Jedi|Yoda|Macht|Todesstern|Han Solo|Luke|Vader|Tatooine|Chewbacca|C-3PO|Lichtschwert|Kamino|Falke|Mos Eisley|Obi-Wan|Hoth/.test(extra) && rnd() < .6) saetze.push(esc(wahl(P.sw)));
   saetze.push(wahl(P.tschuess));
   telMerken(zuletzt);
   return { saetze, tipp: kurz(tipp), grad, richtig: tipp === r, wer: id };
 }
 
 /* ---------- Zweiter Telefonjoker-Kontakt: Pastor Aaron (6.42) ----------
-   Aaron ist Amerikaner, arbeitet in Deutschland und wohnt mit seiner Frau Eliza in Eichstätt. Eliza kommt aus Russland,
+   Aaron ist Amerikaner (geboren in Iowa), hat am Faith Baptist Bible College Theologie studiert – wie Willi –, arbeitet in Deutschland und wohnt mit seiner Frau Eliza in Eichstätt. Eliza kommt aus Russland,
    spielt Querflöte und ist sehr musikalisch. Aaron weiß alles über Star Wars und liebt amerikanisches BBQ.
    Star Wars darf bei ihm oft vorkommen – auch wenn der Bezug manchmal etwas konstruiert ist. */
 const AARON_HALLO = [
@@ -3378,11 +3393,12 @@ const AARON_HALLO = [
   "Aaron speaking – oh, sorry, Gewohnheit! Hier ist Aaron. Was gibt's?",
   "Hallo! Ich hab gerade versucht, Elizas Katze „Sitz“ beizubringen. Sie hat mich ignoriert. Deine Frage ist bestimmt leichter.",
   "Hi, hier Aaron! Eliza lässt dich grüßen – auf Russisch: Privet!",
-  "Howdy! So sagt man in Texas. Aaron am Telefon – womit kann ich helfen?",
+  "Hi, Aaron hier – Grüße aus Eichstätt und ein bisschen aus Iowa! Womit kann ich helfen?",
   "Aaron hier! Ich sortiere gerade meine Lego-Raumschiffe … äh, ich meine: meine Predigtnotizen. Leg los!",
   "Hallo, hier Aaron – ich kämpfe gerade mit der, die, das. Bibelfragen sind einfacher als deutsche Artikel!",
   "Hey! Aaron hier. Gutes Timing – mein Pulled Pork braucht noch sechs Stunden.",
-  "Aaron am Apparat! Eliza hat gerade ihre Querflöte weggelegt – du hast jetzt meine volle Aufmerksamkeit."
+  "Aaron am Apparat! Eliza hat gerade ihre Querflöte weggelegt – du hast jetzt meine volle Aufmerksamkeit.",
+  "Hey, Aaron hier! In Iowa ist es jetzt mitten in der Nacht – zum Glück wohne ich in Eichstätt. Shoot!"
 ];
 const AARON_SICHER = [
   x => `Oh, das ist easy: ${x.X}. Steht in ${x.ref}. Da bin ich mir so sicher wie Yoda.`,
@@ -3392,12 +3408,14 @@ const AARON_SICHER = [
   x => `Ganz sicher ${x.X}. Steht in ${x.ref}. Eliza nickt auch – und sie hat das bessere Gedächtnis von uns beiden.`,
   x => `${x.X} – so sicher wie Pancakes am Sonntagmorgen. Lies ${x.ref}.`,
   x => `Easy one: ${x.X}! ${x.ref} – das könnte ich dir sogar auf Englisch vorlesen.`,
-  x => `Das ist ${x.X}, ganz klar. ${x.ref} gehört zu meinen Lieblingsstellen.`
+  x => `Das ist ${x.X}, ganz klar. ${x.ref} gehört zu meinen Lieblingsstellen.`,
+  x => `${x.X} – das hatten wir am Bible College in Iowa schon im ersten Semester. Lies ${x.ref}.`
 ];
 const AARON_SICHER_OHNE = [
   x => `Easy: ${x.X}! Das weiß ich so sicher wie die Reihenfolge der Star-Wars-Filme.`,
   x => `${x.X} – hundertprozentig! Das hab ich mit dieser App gelernt.`,
-  x => `No doubt: ${x.X}. Eliza nickt auch.`
+  x => `No doubt: ${x.X}. Eliza nickt auch.`,
+  x => `${x.X}! Das hätte ich schon am Bible College gewusst.`
 ];
 const AARON_ZIEMLICH_OHNE = [
   x => `I think it's ${x.X}. Ziemlich sicher – aber nicht ganz Jedi-sicher.`,
@@ -3422,7 +3440,8 @@ const AARON_GERATEN = [
   x => `Ehrlich? Ich weiß es nicht. Vielleicht ${x.X}? Wie Yoda sagen würde: Schwer zu sehen, die Antwort ist.`,
   x => `Da bin ich lost. Elizas Katze ist gerade übers Handy gelaufen und hat ${x.X} gedrückt – besser weiß ich es ehrlich auch nicht.`,
   x => `No idea, sorry! Ich rate ${x.X} – ein Schuss ins Blaue, wie bei einem Sturmtruppler.`,
-  x => `Puh. Ich sag ${x.X}, aber das ist reines Raten – so wie ich bei deutschen Artikeln.`
+  x => `Puh. Ich sag ${x.X}, aber das ist reines Raten – so wie ich bei deutschen Artikeln.`,
+  x => `Puh, das kam am Bible College in Iowa nicht dran – oder ich hab in der Vorlesung geschlafen. Ich rate ${x.X}.`
 ];
 const AARON_THEMA = [
   [/Goliath/, "David gegen Goliath – das ist wie Luke gegen den Todesstern: Der Kleine gewinnt. Nur hat David nicht auf die Macht vertraut, sondern auf den Herrn (1. Samuel 17,45)."],
@@ -3456,9 +3475,9 @@ const AARON_THEMA = [
   [/Psalm|Harfe|Odem/, "Ein Psalm ist eigentlich ein Song. Eliza sagt, in Psalm 150 fehlt nur noch die Querflöte – Harfe und Zimbeln stehen ja schon drin."],
   [/Psalm 117|kürzeste/, "Psalm 117 hat nur zwei Verse – perfekt für einen jungen Padawan."],
   [/Psalm 119|Leuchte/, "Psalm 119 hat 176 Verse – länger als jede Weltraumschlacht. Und Gottes Wort ist eine Leuchte, heller als jedes Lichtschwert (Psalm 119,105)."],
-  [/Hirsch|Baum an Wasser/, "Wie ein Baum an Wasserbächen (Psalm 1,3) – in Texas ist das ein seltener Anblick. In Eichstätt an der Altmühl dafür ganz normal!"],
+  [/Hirsch|Baum an Wasser/, "Wie ein Baum an Wasserbächen (Psalm 1,3) – in Iowa sieht man eher Maisfelder bis zum Horizont. In Eichstätt an der Altmühl dafür ganz normal!"],
   [/Bathseba|Psalm 51/, "Nach seiner Schuld betete David Psalm 51: Schaffe mir, o Gott, ein reines Herz. Echte Umkehr – das hat Darth Vader erst ganz am Ende geschafft."],
-  [/Berge|Psalm 121/, "Meine Hilfe kommt vom HERRN (Psalm 121,2) – nicht von den Bergen und nicht von der Macht. In Texas gibt es eh kaum Berge."],
+  [/Berge|Psalm 121/, "Meine Hilfe kommt vom HERRN (Psalm 121,2) – nicht von den Bergen und nicht von der Macht. In Iowa gibt es eh kaum Berge – alles flach wie ein Pancake."],
   [/Hiob|Uz|Elihu/, "Hiob hat alles verloren und doch nicht aufgegeben. Bei so einem Level hätte ich früher an der Konsole längst den Controller geworfen."],
   [/Ameise|Faule/, "Geh zur Ameise, du Fauler (Sprüche 6,6)! Elizas Katze sollte den Vers mal lesen – die schläft 16 Stunden am Tag."],
   [/Furcht des HERRN|Sprüche 1/, "Yoda sagt, Furcht führt zur dunklen Seite. Aber die Furcht des HERRN ist der Anfang der Erkenntnis (Sprüche 1,7) – das ist Ehrfurcht, die helle Seite!"],
@@ -3546,11 +3565,11 @@ const AARON_THEMA = [
   [/Sprache der Menschen|verwirrte Gott/, "Seit Babel gibt es viele Sprachen. Ich hab Englisch, Berlinerisch und jetzt Bayerisch gelernt – das war fast eine eigene Sprachverwirrung!"],
   [/Sterne am Himmel/, "Nachkommen wie die Sterne (1. Mose 15,5) – mehr als alle Sternsysteme einer Galaxis. Und anders als im Film ist das echt!"],
   [/Widder|Isaak opfern|Land Morija/, "Der HERR sieht vor (1. Mose 22,14) – das ist besser als jeder Plot-Twist, weil die ganze Geschichte auf Jesus hinweist."],
-  [/Kamelen zu trinken|Frau für Isaak/, "Rebekka hat freiwillig zehn Kamele getränkt – das ist Gastfreundschaft, Texas-Style!"],
+  [/Kamelen zu trinken|Frau für Isaak/, "Rebekka hat freiwillig zehn Kamele getränkt – das ist Gastfreundschaft, Iowa-Style!"],
   [/Ziegenb/, "Jakob im Ziegenfell (1. Mose 27,16) – das älteste Kostüm der Bibel. Mein Chewbacca-Kostüm zu Fasching war aber überzeugender."],
   [/Rahel|Laban/, "Sieben Jahre warten – und sie kamen ihm vor wie wenige Tage (1. Mose 29,20). Ich werde ungeduldig, wenn die Pizza zwölf Minuten braucht."],
   [/Becher|Benjamins Sack/, "Josef testet seine Brüder – und diesmal halten sie zusammen. Echte Familie, nicht wie bei den Sith!"],
-  [/Hungersnot|Gosen/, "Josef hat sieben Jahre lang vorgesorgt – der erste Notfallplaner der Weltgeschichte. In Texas hätte er Rinder eingelagert."],
+  [/Hungersnot|Gosen/, "Josef hat sieben Jahre lang vorgesorgt – der erste Notfallplaner der Weltgeschichte. In Iowa hätte er Mais in riesige Silos gefüllt."],
   [/Haran|75 Jahre/, "Mit 75 noch umziehen! Ich hab es nur von Berlin nach Eichstätt geschafft und war danach drei Tage platt."],
   [/Frösche/, "Frösche im Bett und im Backofen (2. Mose 7,28)! Elizas Katze hätte den Spaß ihres Lebens gehabt."],
   [/Stechmücken/, "Bei den Stechmücken gaben die Zauberer auf und sagten: Das ist Gottes Finger (2. Mose 8,15)! Nicht mal Magie kommt gegen Gott an."],
@@ -3559,7 +3578,7 @@ const AARON_THEMA = [
   [/Vater und deine Mutter/, "Ehre deine Eltern – Luke hat sogar bei Vader an das Gute geglaubt. Bei Gott geht es aber um mehr als Filmhelden: um Respekt und Liebe."],
   [/Mandeln|Aarons Stab/, "Ein Stab, der über Nacht blüht – sogar Yoda hätte gestaunt. Das war Gottes Zeichen, nicht die Macht. Übrigens: Ich heiße wie dieser Aaron!"],
   [/Weintraube|Kundschafter/, "Zwölf Kundschafter, zehn hatten Angst, zwei vertrauten Gott (4. Mose 14,6-9). Josua und Kaleb – the real rebels!"],
-  [/Mara|bitteres Wasser/, "Bitteres Wasser wird süß (2. Mose 15,25) – wie Sweet Tea aus Texas, nur gesünder und ohne Zucker."],
+  [/Mara|bitteres Wasser/, "Bitteres Wasser wird süß (2. Mose 15,25) – wie Sweet Tea aus den Südstaaten, nur gesünder und ohne Zucker."],
   [/Elim|Wasserquellen/, "Zwölf Quellen und siebzig Palmen – das klingt nach Urlaub. Fast wie Eichstätt an der Altmühl im Sommer."],
   [/Bezaleel|Kunsthandwerker/, "Bezaleel – ein Handwerker voll Heiligem Geist! Der hätte bestimmt die besten Lego-Modelle gebaut."],
   [/Korah|verschlungen/, "Korah wollte die Macht an sich reißen – eine Rebellion auf der falschen Seite. Das endete nicht gut."],
@@ -3642,7 +3661,7 @@ const AARON_THEMA = [
   [/Otter/, "Eine Otter beißt Paulus – und nichts passiert! Elizas Katze hätte die Schlange vorher erwischt."],
   [/Artemis|Ephesus/, "Zwei Stunden Geschrei für Artemis – lauter als Fans im Stadion. Aber Götzen sind stumm; nur der lebendige Gott antwortet."],
   [/finstere Tal/, "Im finsteren Tal ist der Hirte dabei – näher als Obi-Wan bei Luke."],
-  [/Psalm 103/, "Lobe den HERRN, meine Seele – und vergiss nicht, was er dir Gutes getan hat. Weiter als von Berlin nach Texas reicht seine Gnade."],
+  [/Psalm 103/, "Lobe den HERRN, meine Seele – und vergiss nicht, was er dir Gutes getan hat. Weiter als von Berlin nach Iowa reicht seine Gnade."],
   [/eigenen Verstand/, "Vertraue dem HERRN von ganzem Herzen – nicht dem eigenen Verstand und auch nicht der Macht."],
   [/sanfte Antwort/, "Eine sanfte Antwort – das hätte ich in meiner Online-Gaming-Zeit wissen sollen!"],
   [/Prediger 12,1|Prediger 3,11/, "Gott hat die Ewigkeit in unser Herz gelegt (Prediger 3,11) – darum macht uns kein Highscore der Welt wirklich satt."],
@@ -3684,11 +3703,11 @@ const AARON_THEMA = [
   [/reinen Tiere|Je sieben/, "Sieben von jeder reinen Art – Noah, der erste Tiersammler der Geschichte."],
   [/Lukas 12,24/, "Die Raben säen nicht, und Gott ernährt sie trotzdem. Elizas Katze arbeitet auch nicht – und bekommt trotzdem Futter. Von mir."],
   [/Amalekiter/, "Saul wollte es auf seine Art machen – und Samuel sagte: Gehorsam ist besser als Opfer (1. Samuel 15,22)."],
-  [/Tarsus/, "Paulus aus Tarsus, ich aus Amerika – Gott holt seine Leute von überall her!"],
+  [/Tarsus/, "Paulus aus Tarsus, ich aus Iowa – Gott holt seine Leute von überall her!"],
   [/Bethesda/, "Jesus fragte: Willst du gesund werden? (Johannes 5,6). Manchmal ist das die wichtigste Frage überhaupt."],
   [/\bSilo\b/, "Silo – da wuchs Samuel auf. Sozusagen sein Training: Rede, Herr, dein Knecht hört."],
   [/Kidron/, "Über den Kidron nach Gethsemane – der schwerste Weg der Geschichte. Jesus ging ihn freiwillig."],
-  [/Terebinthen/, "Bei Mamre hat Abraham seinen Gästen ein Festmahl gemacht (1. Mose 18,6-8). Texas-Gastfreundschaft, nur 4000 Jahre früher."],
+  [/Terebinthen/, "Bei Mamre hat Abraham seinen Gästen ein Festmahl gemacht (1. Mose 18,6-8). Gastfreundschaft wie bei uns in Iowa, nur 4000 Jahre früher."],
   [/See von Galiläa/, "Am See ließen die Fischer ihre Netze liegen und folgten Jesus. Ich hab dafür meinen Controller weggelegt – kleinerer Schritt, aber immerhin!"],
   [/Nach Babel/, "An den Strömen Babels saßen sie und weinten (Psalm 137,1). Eliza kennt Heimweh – dann spielt sie russische Lieder. Aber unsere Heimat ist im Himmel."],
   [/Schiffbruch/, "Schiffbruch auf dem Weg nach Rom – epischer als jede Weltraumschlacht. Und alle überlebten!"],
@@ -3706,12 +3725,15 @@ const AARON_THEMA = [
   [/muss abnehmen/, "Johannes wusste, dass er nicht der Held ist – ein Wegbereiter, der auf Jesus zeigt."],
   [/guten Kampf/, "Den guten Kampf gekämpft – der Abschied des Paulus ist bewegender als jedes Serienfinale."],
   [/mehr gehorchen/, "Gott mehr gehorchen als Menschen – die Apostel waren echte Rebellen, aber für die gute Sache."],
-  [/Unglauben/, "Das ehrlichste Gebet der Bibel – und Jesus hat den Vater nicht weggeschickt, sondern geholfen."]
+  [/Unglauben/, "Das ehrlichste Gebet der Bibel – und Jesus hat den Vater nicht weggeschickt, sondern geholfen."],
+  [/Ähren|Boas/, "Rut sammelte Ähren auf dem Feld des Boas (Rut 2,3). In Iowa wären das Maisfelder – da kann man sich glatt verlaufen."],
+  [/Sämann|Saat\b|Samen/, "Das Gleichnis vom Sämann versteht in Iowa jedes Kind – dort wird im Frühling halb Amerika eingesät. Gottes Wort braucht guten Boden!"],
+  [/Missionsbefehl|Gehet hin|alle Völker|Missionsreise|Barnabas/, "Geht hin in alle Welt! Ich bin vom Bible College in Iowa bis nach Eichstätt gegangen – Pastor Willi und Heidi haben denselben Weg genommen."]
 ];
 const AARON_ALLG = [
   "Eliza übt im Nebenzimmer Querflöte – wenn du genau hinhörst: Es ist die Star-Wars-Titelmelodie. Ich hab sie überredet.",
   "Was ich an Eichstätt liebe? Die Gemeinde. Was ich vermisse? Richtiges amerikanisches BBQ.",
-  "Eliza kommt aus Russland, ich aus Amerika, und wir wohnen in Eichstätt – bei uns ist es fast wie in der Cantina von Mos Eisley, nur viel friedlicher.",
+  "Eliza kommt aus Russland, ich aus Iowa, und wir wohnen in Eichstätt – bei uns ist es fast wie in der Cantina von Mos Eisley, nur viel friedlicher.",
   "Wenn du die Million holst, lade ich dich zu Burgern und Spare Ribs ein – American Style!",
   "Möge die Macht mit dir sein – nein, Moment: Der Herr sei mit dir! Das ist viel besser.",
   "Yoda sagt: Tu es oder tu es nicht, es gibt kein Versuchen. Ich sag: Erst beten, dann tippen!",
@@ -3734,7 +3756,12 @@ const AARON_ALLG = [
   "Ich hab Eliza „Wer wird Biblionär?“ gezeigt. Jetzt will sie gegen mich spielen – ich hab ein bisschen Angst.",
   "Ich hab lange in Berlin gewohnt – da war Currywurst mein BBQ-Ersatz. Eichstätt ist ruhiger, aber ich vermisse den Lärm kein bisschen.",
   "In Berlin sagt man „icke“, in Bayern „i“, in Texas „y’all“. Ich sag einfach: Gott segne dich!",
-  "Nach Berlin ist Eichstätt wie ein Planet nach einem Weltraumbahnhof: ruhig, grün und mit viel besseren Leuten."
+  "Nach Berlin ist Eichstätt wie ein Planet nach einem Weltraumbahnhof: ruhig, grün und mit viel besseren Leuten.",
+  "Ich komme aus Iowa – da gibt es mehr Schweine als Menschen und Mais bis zum Horizont. Eichstätt hat dafür die Altmühl.",
+  "Ich hab am Faith Baptist Bible College in Iowa Theologie studiert. Pastor Willi übrigens auch – same school! Iowa-Theologen halten zusammen.",
+  "Fun fact: Heidi, die Frau von Pastor Willi, kommt auch aus Iowa. Wenn wir uns treffen, reden wir nur über Mais und Schneestürme.",
+  "Auf der Iowa State Fair gibt es jedes Jahr eine Kuh aus Butter – in Lebensgröße. Kein Witz! Pancakes dazu, und ich bin glücklich.",
+  "In Iowa sagen alle „Midwest nice“: freundlich, hilfsbereit, ein bisschen zurückhaltend. Klingt fast wie Eichstätt!"
 ];
 const AARON_SW = [
   "Und vergiss nicht: Die helle Seite gewinnt am Ende immer – in Star Wars und erst recht in der Bibel.",
@@ -3746,7 +3773,9 @@ const AARON_SW = [
   "Wie Yoda sagen würde: Stolz du sein kannst, wenn richtig die Antwort ist.",
   "Mein Wecker spielt morgens den Imperialen Marsch. Eliza findet das nicht lustig.",
   "R2-D2 würde jetzt fröhlich piepen. Ich piepe einfach mit: Biep-bup!",
-  "Jedi-Tipp: erst Ruhe, dann Antwort. Christen-Tipp: erst Gebet, dann Antwort. Ich mache beides."
+  "Jedi-Tipp: erst Ruhe, dann Antwort. Christen-Tipp: erst Gebet, dann Antwort. Ich mache beides.",
+  "Iowa im Januar fühlt sich an wie Hoth. Da hätte ich auch gern einen Tauntaun gehabt – oder wenigstens eine Heizdecke.",
+  "Fun fact: Captain Kirk soll mal in Iowa geboren werden – aber das ist die falsche Galaxis. Bei mir zählt nur Star Wars!"
 ];
 const AARON_TSCHUESS = ["Der Herr sei mit dir – always!", "Good luck! Eliza spielt dir einen Tusch auf der Querflöte.", "Okay, ich muss zurück zum Smoker. God bless!", "Bis Sonntag in der Gemeinde – see you!",
   "Möge … äh, der Herr mit dir sein! Bye!",
@@ -3780,12 +3809,12 @@ const WILLI_THEMEN = {
   "Jesu Wirken & Wunder": ["Jesus hat Kranke geheilt, Stürme gestillt und Tausende satt gemacht. Das mit dem Sattmachen beeindruckt mich als Grillmeister besonders.", "Bei Jesus gab es ständig gemeinsames Essen – mit Zöllnern, Sündern und Freunden. Tischgemeinschaft ist Evangelium!"],
   "Gleichnisse & Worte Jesu": ["Jesus hat in Bildern aus dem Alltag gesprochen – Brot, Samen, Schafe. Heute wäre vielleicht ein Grill dabei.", "Gleichnisse sind wie ein Puzzle: Erst sieht man Teile, dann plötzlich das ganze Bild."],
   "Leiden & Auferstehung": ["Das ist das Herz des Evangeliums – da wird selbst ein Grillmeister ganz still.", "Ostern ist das größte Fest – größer als jedes Gemeindefest. Das Grab ist leer!"],
-  "Apostel & erste Gemeinde": ["Die ersten Christen brachen das Brot in den Häusern (Apostelgeschichte 2,46) – Gemeinde fängt am Esstisch an!", "Die Apostelgeschichte ist voller Reisen und Schiffbrüche. Mein größtes Abenteuer war der Umzug von Ingolstadt nach Eichstätt."],
+  "Apostel & erste Gemeinde": ["Paulus war Missionar – Heidi und ich auch: aus Iowa nach Deutschland. Nur ohne Schiffbruch, Gott sei Dank.", "Die ersten Christen brachen das Brot in den Häusern (Apostelgeschichte 2,46) – Gemeinde fängt am Esstisch an!", "Die Apostelgeschichte ist voller Reisen und Schiffbrüche. Mein größtes Abenteuer war der Umzug von Ingolstadt nach Eichstätt."],
   "Psalmen & Weisheit": ["Die Psalmen lese ich gern morgens – Heidi liest dazu in einem ihrer tausend Bücher.", "Weisheit beginnt mit der Furcht des HERRN. Und gutes Grillen mit Geduld."],
   "Propheten": ["Den Propheten wollte oft keiner zuhören. Kenne ich, wenn ich rufe: Das Essen ist fertig!", "Die kleinen Propheten hab ich mit dem Lied aus der App gelernt. Seitdem summe ich sie beim Teigkneten."],
   "Briefe & Offenbarung": ["Paulus schrieb so viele Briefe – ich schreibe höchstens Einkaufszettel. Hauptsache, Fleisch steht drauf.", "Die Briefe sind wie Post von einem guten Freund – nur dass Paulus manche im Gefängnis geschrieben hat."],
   "Bibelkunde": ["66 Bücher – wie ein Puzzle mit 66 Teilen. Wer alle kennt, sieht ein wunderschönes Bild.", "Die Reihenfolge der Bibelbücher hab ich mit dem Lied in unserer App gelernt. Jetzt werde ich es beim Backen nicht mehr los."],
-  "Frauen der Bibel": ["Die Frauen der Bibel waren mutig, klug und treu – wie Heidi. Die ist sogar aus Amerika nach Bayern gezogen!", "Heidi hat ein ganzes Regal voller Bücher über Frauen der Bibel. Ich hab ein Regal mit Grillbüchern. Wir ergänzen uns.", "Ohne die Frauen in der Bibel gäbe es viele Geschichten gar nicht. Ohne Heidi gäbe es bei uns kein Gemüse. Na gut – das wäre mir recht."],
+  "Frauen der Bibel": ["Die Frauen der Bibel waren mutig, klug und treu – wie Heidi. Die ist sogar aus Iowa nach Bayern gezogen!", "Heidi hat ein ganzes Regal voller Bücher über Frauen der Bibel. Ich hab ein Regal mit Grillbüchern. Wir ergänzen uns.", "Ohne die Frauen in der Bibel gäbe es viele Geschichten gar nicht. Ohne Heidi gäbe es bei uns kein Gemüse. Na gut – das wäre mir recht."],
   "Tiere der Bibel": ["Die Bibel ist voller Tiere – Löwen, Raben, Wachteln, Lämmer. Als Grillmeister sage ich zu manchen lieber nichts.", "Meine Töchter fragen, ob es im Himmel Tiere gibt. Ich sage: Jesaja 11 sieht ganz danach aus!", "In der Bibel sind Tiere oft Gottes Boten – Raben, Tauben, sogar eine Eselin. Bei uns ist der Bote meistens das Telefon."],
   "Orte & Reisen": ["Die Bibel ist ein Reisebuch – von Ur bis Rom. Ich bin bisher von Ingolstadt nach Eichstätt gekommen. Immerhin!", "Wenn ich mal ins Heilige Land fahre, will ich am See Genezareth Fisch grillen – genau wie in Johannes 21.", "Abraham ist ohne Navi losgezogen, nur mit Gottes Zusage. Ich verfahre mich mit Navi schon zwischen Ingolstadt und Eichstätt."],
   "Wer sagte das?": ["Zitate erkennen ist wie Stimmen am Telefon erkennen – manche sofort, andere erst beim zweiten Satz.", "Der Satz, den ich zu Hause am häufigsten höre? „Willi, nicht schon wieder Fleisch!“ – Heidi.", "Die Bibel ist voller großer Sätze. Mein Lieblingssatz bleibt: Es ist vollbracht."]
@@ -3800,14 +3829,14 @@ const AARON_THEMEN = {
   "Jesu Wirken & Wunder": ["Jesus heilte Blinde, Lahme und Aussätzige – keine Tricks, echte Wunder.", "Jesu Wunder sind wie ein Trailer für das, was kommt: eine neue Welt ohne Krankheit."],
   "Gleichnisse & Worte Jesu": ["Jesus ist der beste Geschichtenerzähler aller Zeiten – besser als jeder Drehbuchautor in Hollywood.", "Gleichnisse sind wie Easter Eggs: Beim zweiten Lesen entdeckt man immer noch etwas Neues."],
   "Leiden & Auferstehung": ["Das Kreuz sah aus wie eine Niederlage – und war der größte Sieg der Geschichte.", "Ostern ist keine Fan-Theorie, sondern Geschichte: Er ist auferstanden!"],
-  "Apostel & erste Gemeinde": ["Die Apostelgeschichte ist ein Roadtrip mit dem Heiligen Geist als Navigator.", "Die erste Gemeinde war bunt gemischt – wie unsere in Eichstätt mit Amerikanern, Russinnen und Bayern."],
+  "Apostel & erste Gemeinde": ["Die Apostelgeschichte ist ein Roadtrip mit dem Heiligen Geist als Navigator.", "Die erste Gemeinde war bunt gemischt – wie unsere in Eichstätt mit Amerikanern, Russinnen und Bayern.", "Paulus ging auf Missionsreise, Willi und Heidi kamen als Missionare aus Iowa – und ich auch nach Eichstätt. Gute Tradition!"],
   "Psalmen & Weisheit": ["Eliza spielt gern Psalmen auf der Querflöte – das waren ja eigentlich Lieder.", "Die Sprüche sind wie Yoda-Weisheiten – nur in normaler Satzstellung."],
   "Propheten": ["Die Propheten sahen weit voraus – nicht durch die Macht, sondern weil Gott es ihnen gezeigt hat.", "Die kleinen Propheten sind kurz, aber kraftvoll. Wie Yoda."],
   "Briefe & Offenbarung": ["Paulus’ Briefe waren Ermutigung für kleine Gemeinden – wie Nachrichten an versprengte Rebellenbasen.", "Die Offenbarung ist das Finale – und ich hab das Ende schon gelesen: Jesus gewinnt!"],
   "Bibelkunde": ["66 Bücher – eine riesige Saga. Und anders als bei Star Wars gibt es keinen Streit über die richtige Reihenfolge.", "Ich lerne die Bibelbücher mit dieser App. Eliza ist leider schneller – sie ist eben musikalischer."],
   "Frauen der Bibel": ["Die Frauen der Bibel sind echte Heldinnen – mutiger als jede Filmprinzessin.", "Eliza sagt, bei Frauenfragen soll ich besonders gut aufpassen. Smart woman.", "Ruth, Esther, Abigail – starke Frauen. Ich kenne auch eine: Eliza, Querflötistin aus Russland."],
   "Tiere der Bibel": ["Elizas Katze kommt in der Bibel nicht vor – sie findet aber, sie hätte mindestens einen eigenen Psalm verdient.", "Von der Eselin bis zum Löwen – die Tiere der Bibel sind spannender als jedes Wesen auf Tatooine.", "Hatte Noah Katzen in der Arche? Bestimmt – sonst hätte Eliza heute keine."],
-  "Orte & Reisen": ["Ich bin von Amerika über Berlin nach Eichstätt gekommen – Paulus wäre stolz auf diese Reiseroute.", "Die Bibel hat mehr Schauplätze als die ganze Star-Wars-Saga – und alle sind echt!", "In Berlin war die U-Bahn manchmal wie die Wüstenwanderung: lang, und keiner weiß, wann man ankommt."],
+  "Orte & Reisen": ["Ich bin von Iowa über Berlin nach Eichstätt gekommen – Paulus wäre stolz auf diese Reiseroute.", "Die Bibel hat mehr Schauplätze als die ganze Star-Wars-Saga – und alle sind echt!", "In Berlin war die U-Bahn manchmal wie die Wüstenwanderung: lang, und keiner weiß, wann man ankommt."],
   "Wer sagte das?": ["Zitate zuordnen? Bei Star Wars kann ich jeden Satz. Bei der Bibel arbeite ich noch dran.", "Wer sagte das? Bei uns zu Hause meistens Eliza: „Aaron, weniger Star Wars!“", "Die Bibel hat die stärksten Sätze der Geschichte – stärker als „Ich bin dein Vater“."]
 };
 const PASTOREN = {
