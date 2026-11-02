@@ -1221,6 +1221,37 @@ body[data-acc="perle"]::after{-webkit-mask:none;mask:none;background:url("data:i
 .du-laden{display:flex;align-items:center;gap:8px}.du-laden svg{width:22px;height:22px}
 .ar-regel{text-align:center;margin:14px 4px 2px;font:700 .7rem/1.4 var(--body);color:var(--muted)}
 .du-gegner{margin-top:8px}
+/* 6.57: Biblionär – Solo (1 Spieler) und Duell (2 Spieler) als Kacheln nebeneinander, Wochenrunde als goldener Kasten */
+.bq4-paar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.bq4-k{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-height:0;padding:8px 10px 9px;border:0;border-radius:16px;overflow:hidden;cursor:pointer;color:#fff;font:inherit;text-align:left;box-sizing:border-box;min-width:0}
+.bq4-k::after{content:"";position:absolute;right:-18px;bottom:-18px;width:76px;height:76px;border-radius:50%;background:#fff2;pointer-events:none}
+.bq4-k>svg{position:absolute;right:8px;top:9px;width:16px;height:16px;opacity:.9}
+.bq4-solo{background:linear-gradient(150deg,#9ff5e8,#3fc4b4 42%,#2b7fd0);box-shadow:inset 0 1px 0 #fff8,inset 0 0 0 1.5px #fff3,0 4px 0 #1d4f7e,0 12px 24px -12px #66e0d0}
+.bq4-duell{background:linear-gradient(150deg,#ffcf6a,#ff8a5c 46%,#ff5f8f);box-shadow:inset 0 1px 0 #fff8,inset 0 0 0 1.5px #fff3,0 4px 0 #a33a4c,0 12px 24px -12px #ff8a5c}
+.bq4-solo:active{transform:translateY(2px);box-shadow:inset 0 1px 0 #fff8,0 2px 0 #1d4f7e}.bq4-duell:active{transform:translateY(2px);box-shadow:inset 0 1px 0 #fff8,0 2px 0 #a33a4c}
+.bq4-duell[aria-expanded="true"]{box-shadow:inset 0 1px 0 #fff8,inset 0 0 0 2px #fff,0 4px 0 #a33a4c}
+.bq4-k.aus{filter:grayscale(1);opacity:.55;cursor:default}
+.bq4-chip{display:inline-flex;align-items:center;gap:4px;font:900 .6rem/1 var(--body);letter-spacing:.12em;text-transform:uppercase;padding:4px 7px;border-radius:999px;background:#0e122655;color:#fff;box-shadow:inset 0 0 0 1px #fff5;white-space:nowrap}
+.bq4-chip svg{width:12px;height:12px}
+.bq4-bild{display:flex;align-items:center;gap:4px;margin-top:2px}
+.bq4-av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none;font:900 .95rem var(--display);color:#1b2a55;background:radial-gradient(circle at 40% 30%,#fff,#e9fffb 45%,#bfeee7);box-shadow:0 0 0 2px #fff8,0 2px 6px #0005}
+.bq4-av.f{background:radial-gradient(circle at 40% 30%,#fff,#ffe6d6 45%,#ffb39a)}
+.bq4-vs{font:900 .8rem var(--display);color:#fff;text-shadow:0 0 6px #fff,0 1px 2px #a33a4c}
+.bq4-tt{font:800 1.05rem/1.1 var(--display);letter-spacing:.08em;text-transform:uppercase;text-shadow:0 1px 2px #0007}
+.bq4-sub{font:700 .7rem/1.25 var(--body);opacity:.95;text-shadow:0 1px 2px #0005;position:relative;z-index:1}
+.bq4-woche{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;padding:5px 10px 5px 6px;border:0;border-radius:14px;overflow:hidden;cursor:pointer;color:inherit;font:inherit;text-align:left;box-sizing:border-box;
+  background:radial-gradient(ellipse at 0% 50%,#f2c14e40,transparent 60%),linear-gradient(180deg,#2a2550,#1b1e44);box-shadow:inset 0 0 0 1px #f2c14e88,inset 0 0 0 4px #1b1e44,inset 0 0 0 5px #f2c14e33,0 3px 0 #0006}
+.bq4-woche:active{transform:translateY(2px)}
+.bq4-kr{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle,#f2c14e44,transparent 70%);box-shadow:inset 0 0 0 2px #f2c14eaa}
+.bq4-kr svg{width:24px;height:24px;filter:drop-shadow(0 0 6px #f2c14e)}
+.bq4-woche>span:nth-child(2){min-width:0}
+.bq4-woche b{display:block;font:800 .95rem var(--display);letter-spacing:.06em;color:#ffe9a8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bq4-woche small{display:block;font:700 .68rem var(--body);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bq4-uhr{display:flex;flex-direction:column;align-items:center;line-height:1;padding:4px 8px;border-radius:9px;background:#f2c14e;color:#2a1d02;font:900 1rem var(--display)}
+.bq4-uhr small{font:900 .5rem var(--body);letter-spacing:.1em;text-transform:uppercase;color:#2a1d02}.bq4-uhr svg{width:18px;height:18px}
+.bq4-woche.aus{opacity:.6;cursor:default}.bq4-woche.aus .bq4-kr{filter:grayscale(1)}
+/* Abstände kommen jetzt von den Abschnittstiteln – damit der Reiter weiter ohne Scrollen passt */
+.bk-label+.bq2-duell,.bk-label+.bq2-joker{margin-top:0}.bq2-joker>span>svg{width:24px;height:24px}.bq2-fuss{margin-top:2px;padding:4px 6px}
 /* 6.57: Bereichs-Kopf im Arena-Stil für Start, Lernen, Spielen, Biblionär (Medaillon links, goldener Titel, Untertitel in Bereichsfarbe, Ring rechts, Bogen-Trenner, Tafel, Startknopf) */
 .bk-kopf{position:relative;display:grid;grid-template-columns:58px minmax(0,1fr) 58px;gap:10px;align-items:center;padding:2px 2px 16px;margin:0 0 8px}
 .bk-kopf::after{content:"";position:absolute;left:0;right:0;bottom:0;height:11px;background:radial-gradient(circle at 50% 100%,transparent 4.2px,#f2c14e66 4.8px,#f2c14e66 6px,transparent 6.6px) 0 0/15px 11px repeat-x;border-bottom:1.5px solid #f2c14e55}

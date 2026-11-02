@@ -4007,9 +4007,11 @@ VIEWS.bib = () => {
   const rek = S.bibRekord || 0, stufe = BIB_LEITER.filter(p => p <= rek).length;
   const wocheAn = S.lbName && !S.offlineOnly;
   /* 6.49: Wochenrunde als schmale goldene Zeile unter den beiden Startknöpfen */
+  /* 6.57: Biblionär der Woche als goldener Kasten mit Kronen-Medaillon und Resttage-Marke */
   const woche = !wocheAn
-    ? `<div class="bq3-woche aus">${svg("crown")}<span><b>Biblionär der Woche</b><small>nur mit Eintrag in der Rangliste</small></span></div>`
-    : `<button class="bq3-woche" id="bqWoche">${svg("crown")}<span><b>Biblionär der Woche</b><small>${gespielt ? `deine Runde` : `${wk.split("-W")[1]}. KW`}</small></span>${gespielt ? `<b class="bq3-wert">${pkt(S.bwP)}</b>` : `<i class="bw-neu">noch ${n} T.</i>`}</button>`;
+    ? `<div class="bq4-woche aus"><span class="bq4-kr">${svg("crown")}</span><span><b>Biblionär der Woche</b><small>nur mit Eintrag in der Rangliste</small></span><span></span></div>`
+    : `<button class="bq4-woche" id="bqWoche" aria-label="${gespielt ? `Biblionär der Woche: deine Runde ${pkt(S.bwP)} Punkte – Rangliste` : `Biblionär der Woche starten – noch ${n} ${n === 1 ? "Tag" : "Tage"}`}"><span class="bq4-kr">${svg("crown")}</span><span><b>Biblionär der Woche</b><small>${gespielt ? `deine Runde · ${pkt(S.bwP)} Punkte` : `${wk.split("-W")[1]}. KW · gleiche Fragen für alle · 1 Versuch`}</small></span>${gespielt ? `<span class="bq4-uhr">${svg("trophy")}<small>Liste</small></span>` : `<span class="bq4-uhr">${n}<small>${n === 1 ? "Tag" : "Tage"}</small></span>`}</button>`;
+  const ichKurz = esc(duInitialen(S.lbName || "Ich"));
   const dranZeile = d => `<li class="bq2-z"><span class="bq2-av">${esc(duInitialen(d.vonName))}</span><span class="bq2-tx"><b>${esc(d.vonName)}</b><small>fordert dich heraus · noch ${Math.max(0, Math.ceil((d.ablauf - Date.now()) / 864e5))} T.</small></span>
       <span class="bq2-p">${duP(d.vonErg.p)}</span><span class="bq2-kn"><button class="bq2-an" data-bqan="${d.id}">${svg("bolt")}Antreten</button><button class="bq2-x" data-bqab="${d.id}" aria-label="Duell von ${esc(d.vonName)} ablehnen">${svg("nein")}</button></span></li>`;
   const ergKachel = d => { const ich = d.von === S.pid, g = ich ? d.anName : d.vonName, p = ich ? d.vonErg.p : d.anErg.p, q = ich ? d.anErg.p : d.vonErg.p, e = p > q ? "sieg" : p === q ? "remis" : "nieder";
@@ -4028,9 +4030,12 @@ VIEWS.bib = () => {
       zeile: { ic: "crown", t: "Rekord-Leiter", p: stufe / 15 * 100, r: `${stufe}/15` } })}
     ${bkLabel("play", "Spielen")}
     <div class="bq3-start">
-      <button class="bq3-knopf bq3-solo" id="bqSolo"><span class="bq3-ic">${svg("play")}</span><span class="bq3-tx"><b>Solo spielen</b><small>${rek ? `Rekord ${pkt(rek)} · so oft du willst` : "Zufällige Fragen · so oft du willst"}</small></span>${svg("bolt")}</button>
-      ${online ? `<button class="bq3-knopf bq3-duell" id="bqNeu" ${bibDuWahl ? 'aria-expanded="true"' : ""}>${svg("duell")}<span class="bq3-tx"><b>${bibDuWahl ? "Gegner wählen" : "Neues Duell"}</b><small>${bibDuWahl ? "Tippe auf einen Namen" : "Fordere jemanden heraus"}</small></span>${svg(bibDuWahl ? "nein" : "bolt")}</button>
-      ${bibDuWahl ? bibGegnerHtml() : ""}` : ""}
+      <div class="bq4-paar">
+        <button class="bq4-k bq4-solo" id="bqSolo" aria-label="Solo spielen – 1 Spieler"><span class="bq4-chip">${svg("user")}1 Spieler</span><span class="bq4-bild"><span class="bq4-av">${ichKurz}</span></span><b class="bq4-tt">Solo</b><span class="bq4-sub">${rek ? `Rekord ${pkt(rek)}` : "Allein üben"}</span>${svg("play")}</button>
+        ${online ? `<button class="bq4-k bq4-duell" id="bqNeu" aria-label="${bibDuWahl ? "Gegnerwahl schließen" : "Neues Duell – 2 Spieler"}" ${bibDuWahl ? 'aria-expanded="true"' : ""}><span class="bq4-chip">${svg("people")}2 Spieler</span><span class="bq4-bild"><span class="bq4-av">${ichKurz}</span><span class="bq4-vs">VS</span><span class="bq4-av f">?</span></span><b class="bq4-tt">Duell</b><span class="bq4-sub">${bibDuWahl ? "Unten Namen antippen" : "Gegen die Gemeinde"}</span>${svg(bibDuWahl ? "nein" : "bolt")}</button>`
+          : `<div class="bq4-k bq4-duell aus"><span class="bq4-chip">${svg("people")}2 Spieler</span><span class="bq4-bild"><span class="bq4-av">${ichKurz}</span><span class="bq4-vs">VS</span><span class="bq4-av f">?</span></span><b class="bq4-tt">Duell</b><span class="bq4-sub">${window.LB && window.LB.ok ? "Nur mit Eintrag in der Rangliste" : "Nur mit Internet"}</span></div>`}
+      </div>
+      ${online && bibDuWahl ? bibGegnerHtml() : ""}
       ${woche}
     </div>
     ${bkLabel("duell", "Deine Duelle", dran.length)}
@@ -4039,9 +4044,9 @@ VIEWS.bib = () => {
     </section>
     ${bkLabel("star", "Deine Joker")}
     <div class="bq2-joker" aria-label="Deine Joker – je einmal pro Spiel">
-      <span><b class="bq2-j5">50:50</b><span><b>Halbieren</b><small>zwei falsche Antworten weg</small></span></span>
+      <span><b class="bq2-j5">50:50</b><span><b>Halbieren</b><small>2 falsche weg</small></span></span>
       <span>${svg("people")}<span><b>Gemeinde</b><small>alle stimmen ab</small></span></span>
-      <span>${svg("telefon")}<span><b>Telefon</b><small>Pastor Willi oder Aaron</small></span></span>
+      <span>${svg("telefon")}<span><b>Telefon</b><small>Willi oder Aaron</small></span></span>
     </div>
     <button class="bq2-fuss" data-go="rank" data-arg="bibRekord">${svg("trophy")}<span>Joker je 1× pro Spiel · Bestenliste</span><b>Rangliste ›</b></button>`;
   wireGo();
