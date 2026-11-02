@@ -995,6 +995,15 @@ const screen = $("screen");
 const backBtn = (to = "home", txt = "Zurück") => `<button class="back" data-go="${to}">${svg("back")}<span>${txt}</span></button>`;
 /* Seitenkopf der Hauptbereiche: Titel links, kleine Info rechts */
 const seitenKopf = (titel, info = "") => `<div class="seitenkopf"><h1>${titel}</h1>${info ? `<span class="pill sk-info">${info}</span>` : ""}</div>`;
+/* 6.57: Bereichs-Kopf im Arena-Stil – o: {ic | bild, t, sub, ring:[zahl, text], tafel:[[zahl, text]×3], zeile:{ic,t,p,r}, knopf:{ic,t,attr}} */
+const BK_FARBE = { home: "#f2c14e", lernen: "var(--ar-lernen)", spielen: "var(--ar-spielen)", bib: "#66e0d0" };
+const bereichKopf = (m, o) => `<div class="bkopf" style="--bk:${BK_FARBE[m]}">
+  <header class="bk-kopf">${o.bild ? `<span class="bk-med bild"><img src="${o.bild}" alt="" width="480" height="455"></span>` : `<span class="bk-med">${svg(o.ic)}</span>`}
+    <div class="bk-t"><h1>${o.t}</h1><span>${o.sub}</span></div>
+    <div class="bk-ring" aria-label="${o.ring[0]} ${o.ring[1]}"><b>${o.ring[0]}</b><small>${o.ring[1]}</small></div></header>
+  ${o.tafel ? `<div class="bk-tafel">${o.tafel.map(([z, t]) => `<span><b>${z}</b> ${t}</span>`).join("")}${o.zeile ? `<span class="bk-zeile">${svg(o.zeile.ic)}<em>${o.zeile.t}</em><i class="bk-bar"><i style="width:${Math.max(4, Math.round(o.zeile.p))}%"></i></i><small>${o.zeile.r}</small></span>` : ""}</div>` : ""}
+  ${o.knopf ? `<button class="bk-start" ${o.knopf.attr}>${svg(o.knopf.ic)}<b>${o.knopf.t}</b>${svg("bolt")}</button>` : ""}</div>`;
+const bkLabel = (ic, t, n) => `<div class="bk-label">${svg(ic)}<span>${t}</span>${n ? `<i>${n}</i>` : ""}</div>`;
 function wireGo() { screen.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { SFX.tap(); go(b.dataset.go, b.dataset.arg); }); }
 
 /* ---------- Antwortmöglichkeiten ---------- */
@@ -1180,15 +1189,15 @@ VIEWS.home = () => {
     : bereit
     ? `<button class="tz-truhe bereit" id="truheBtn" aria-label="Schatztruhe mit drei Schlüsseln öffnen">${truheZu(3)}<span class="tz-lohn">Öffnen!</span></button>`
     : `<div class="tz-truhe" aria-label="Schatztruhe – ${erledigt} von 3 Schlüsseln">${truheZu(erledigt)}<span class="tz-keys">${[0, 1, 2].map(i => `<i class="${i < erledigt ? "an" : ""}">${SCHLUESSEL}</i>`).join("")}</span><span class="tz-lohn">+${AUFGABE_BONUS_XP} XP · +${AUFGABE_BONUS}${TAL_MUENZE}</span></div>`;
-  const orn = t => `<div class="orn" aria-hidden="true"><i></i>${t ? `<b>${t}</b>` : `<svg viewBox="0 0 20 20"><path d="M10 1v18M3 7h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>`}<i></i></div>`;
   const siegel = (() => { const f = Object.entries(KETTEN).map(([id, k]) => ({ id, k, t: S.meister[id] || [] })).filter(x => x.t.length && siegelRest(x.t) <= 5).sort((a, b) => siegelRest(a.t) - siegelRest(b.t))[0];
       return f ? `<button class="erinnerung" data-go="spielen">${siegelHtml(siegelStufe(f.t), siegelFrisch(f.t), true)}<span><b>${siegelFrisch(f.t) ? `Dein Siegel „${esc(f.k.name)}“ verblasst in ${siegelRest(f.t)} Tag(en)` : `Dein Siegel „${esc(f.k.name)}“ ist verblasst`}</b><span class="small muted">Jetzt die Kette wiederholen und auffrischen${siegelFrisch(f.t) ? "" : ` (+${AUFFRISCH_TAL} Talente)`}</span></span></button>` : ""; })();
+  const serie = streakNow();
   screen.innerHTML = `<div class="stack start start2">
+    ${bereichKopf("home", { ic: "sun", t: "Start", sub: S.lbName ? `Schön, dass du da bist, ${esc(S.lbName)}!` : "Schön, dass du da bist!", ring: [serie, serie === 1 ? "Tag" : "Tage"] })}
     <div class="start-vers">${MONATSVERSE[monatKey()] ? lvKarte(monatKey()) : `<button class="vers-zeile" id="versZeile" aria-expanded="false">${versHtml(vKey, "tag klein")}<span class="vz-mehr">mehr</span></button>`}</div>
     ${siegel}
-    ${orn("")}
     ${weiter}
-    ${orn(S.dq.bonus ? "Heute geschafft!" : bereit ? "Die Truhe wartet!" : "Tagesaufgaben")}
+    ${bkLabel("target", S.dq.bonus ? "Heute geschafft!" : bereit ? "Die Truhe wartet!" : "Tagesaufgaben")}
     <section class="heute3 ${S.dq.bonus ? "fertig" : ""}" aria-label="Tagesaufgaben, ${erledigt} von 3 erledigt"><ul>${aufg}</ul>${truhe}</section>
     ${entwickler && postfachNeu ? `<button class="erinnerung pf-hinweis" data-go="postfach">${svg("chat")}<span><b>${postfachNeu} ${postfachNeu === 1 ? "neue Meldung" : "neue Meldungen"} im Postkasten</b><span class="small muted">Feedback, Status und Datenbank</span></span></button>` : ""}
   </div>`;
@@ -1214,11 +1223,14 @@ VIEWS.lernen = (teil) => {
   const sterne = Object.values(S.stars).reduce((a, b) => a + b, 0);
   const lektion = (g, i) => { const st = S.stars[i] || 0, jetzt = i === ni; return `<button class="lek ${st ? "done" : ""} ${jetzt ? "jetzt" : ""}" data-go="lektion" data-arg="${i}"><span class="lek-nr" aria-label="Lektion ${i + 1}">${svg("lek-" + (i + 1))}</span><span class="lek-tx"><b>${g.name}</b><span>${g.books.length} Bücher · ${g.books[0]} – ${g.books[g.books.length - 1]}</span></span>${jetzt ? `<span class="jetzt-chip">${st ? "Sterne holen" : "Weiter"} ›</span>` : `<span class="stars">${STAR(st >= 1)}${STAR(st >= 2)}${STAR(st >= 3)}</span>`}</button>`; };
   const at = lernTeil === "at", P = at ? atP : ntP, T = at ? AT_TITEL : NT_TITEL;
-  screen.innerHTML = `${seitenKopf("Lernen", `${STAR(true)}${sterne} / ${GROUPS.length * 3}`)}
+  screen.innerHTML = `${bereichKopf("lernen", { ic: "book", t: "Lernen", sub: ni >= 0 ? `Weiter mit: ${esc(GROUPS[ni].name)}` : "Alles geschafft – jetzt wiederholen!", ring: [sterne, sterne === 1 ? "Stern" : "Sterne"],
+    tafel: [[atP + "%", "AT"], [ntP + "%", "NT"], [`${S.songHeard.length}/8`, "Lied"]],
+    knopf: ni >= 0 ? { ic: "book", t: "Weiterlernen", attr: `data-go="lektion" data-arg="${ni}"` } : null })}
+  ${bkLabel("book", "Lektionen")}
   <div class="kb-tabs lern-tabs" role="tablist" aria-label="Testament"><button role="tab" data-teil="at" aria-selected="${at}">${svg("kette-at")}<span>Altes Testament</span></button><button role="tab" data-teil="nt" aria-selected="${!at}">${svg("kette-nt")}<span>Neues Testament</span></button></div>
   <div class="titelzeile"><span class="tag ${lernTeil}">${lernTeil.toUpperCase()}</span> <b>${esc(T[titelIndex(T, P)][1])}</b><span class="tbar"><i style="width:${P}%"></i></span><span class="small muted">${P}%</span></div>
   <div class="stack lek-liste">${(at ? GROUPS.slice(0, 5) : GROUPS.slice(5)).map((g, k) => lektion(g, at ? k : k + 5)).join("")}</div>
-  <p class="small muted lern-hinweis">Jede Lektion: ${svg("eye")} ansehen · ${svg("music")} anhören · ${svg("step")} selbst ordnen</p>
+  ${bkLabel("music", "Lernhilfen")}
   <div class="duo">
     <button class="mini-karte" data-go="lied"><span class="lek-nr">${svg("music")}</span><b>Lied</b><span>${S.songHeard.length}/8 Strophen</span></button>
     <button class="mini-karte" data-go="learn"><span class="lek-nr">${svg("eye")}</span><b>Spickzettel</b><span>Alle 66 Bücher</span></button>
@@ -1242,15 +1254,18 @@ VIEWS.lernverse = (zurueck) => {
 /* ---------- Bereich Spielen ---------- */
 VIEWS.spielen = () => {
   const siegelZahl = Object.keys(KETTEN).filter(id => siegelStufe(S.meister[id] || [])).length;
-  screen.innerHTML = `${seitenKopf("Spielen", `${svg("siegel")}${siegelZahl}/${Object.keys(KETTEN).length}`)}
+  const besteKette = Math.max(0, ...Object.values(KETTEN).map(k => kettenBuecher(k.key)));
+  screen.innerHTML = `${bereichKopf("spielen", { ic: "bolt", t: "Spielen", sub: S.bestBlitz ? `Knackst du heute ${S.bestBlitz}?` : "Wie weit kommst du heute?", ring: [`${siegelZahl}/${Object.keys(KETTEN).length}`, "Siegel"],
+    tafel: [[S.bestBlitz || 0, "Blitz"], [besteKette, "Kette"], [siegelZahl, "Siegel"]],
+    knopf: { ic: "bolt", t: "Blitz-Runde", attr: `data-go="blitz" aria-label="Blitz-Runde: 60 Sekunden – was kommt danach?"` } })}
   <div class="stack">
-    <button class="bereich" data-go="blitz"><span class="b-ic">${svg("bolt")}</span><span class="b-tx"><b>Blitz-Runde</b><span>60 Sekunden: Was kommt danach?</span></span><span class="b-info">${S.bestBlitz ? "Rekord " + S.bestBlitz : ""}</span></button>
-    <details class="erklaer"><summary><span class="label">Die Kette – ein Fehler beendet sie</span><span class="ek-i" aria-label="Erklärung">?</span></summary>
+    <details class="erklaer"><summary>${bkLabel("link", "Die Kette · ein Fehler beendet sie")}<span class="ek-i" aria-label="Erklärung">?</span></summary>
     <p class="small muted">Wer eine Kette komplett schafft, bekommt ein Siegel. Wiederhole sie in verschiedenen Wochen und Monaten für Silber, Gold und Diamant. Nach ${SIEGEL_FRISCH} Tagen verblasst ein Siegel – dann einfach auffrischen.</p></details>
     ${Object.entries(KETTEN).map(([id, k]) => { const max = k.seq.length, rec = kettenBuecher(k.key), voll = rec >= max, t = S.meister[id] || [], st = siegelStufe(t), fr = siegelFrisch(t);
       return `<button class="kette-karte ${voll ? "voll" : ""}" data-k="${id}"><div class="ic">${st ? siegelHtml(st, fr) : svg("kette-" + id)}</div>
         <div class="kk-text"><b>${k.name}</b><span class="small muted">${st ? `${SIEGEL[st].name}-Siegel · ${fr ? "frisch noch " + siegelRest(t) + " Tage" : "verblasst – auffrischen!"}` : k.info}</span><span class="progress kk"><i style="width:${rec / max * 100}%"></i></span></div>
         <div class="kk-rec"><b>${rec}</b><span class="small muted">/ ${max}</span></div></button>`; }).join("")}
+    ${bkLabel("music", "Lied")}
     <button class="bereich klein" data-go="gap" data-arg="alle"><span class="b-ic">${svg("music")}</span><span class="b-tx"><b>Lied-Lückenquiz</b><span>Welches Buch fehlt in der Liedzeile?</span></span></button>
   </div>`;
   wireGo();
@@ -3990,7 +4005,6 @@ VIEWS.bib = () => {
   const warte = liste.filter(d => d.von === S.pid && duStatus(d) === "offen");
   const fertig = liste.filter(d => d.status === "fertig" && d.vonErg && d.anErg).slice(0, 2);
   const rek = S.bibRekord || 0, stufe = BIB_LEITER.filter(p => p <= rek).length;
-  const leiter = `<ol class="bq2-leiter" aria-label="Rekord: Frage ${stufe} von 15">${BIB_LEITER.map((p, k) => `<li class="${k < stufe ? "ok" : ""} ${BIB_SICHER.includes(k) || k === 14 ? "sicher" : ""}"></li>`).join("")}</ol>`;
   const wocheAn = S.lbName && !S.offlineOnly;
   /* 6.49: Wochenrunde als schmale goldene Zeile unter den beiden Startknöpfen */
   const woche = !wocheAn
@@ -4009,19 +4023,21 @@ VIEWS.bib = () => {
       ${!dran.length && !warte.length && !fertig.length && duListe !== null ? `<p class="small muted bq2-leer">Noch keine Duelle – fordere oben jemanden heraus. Ihr bekommt beide dieselben 15 Fragen.</p>` : ""}
       ${andere > 0 ? `<button class="ar-mehr bq2-mehr" data-go="duelle">${andere} ${andere === 1 ? "weiteres Duell wartet" : "weitere Duelle warten"} in der Arena</button>` : ""}`;
   screen.innerHTML = `
-    <header class="bq2-kopf"><img class="bq2-logo" src="icons/biblionaer-logo.webp" width="480" height="455" alt="Wer wird Biblionär?">
-      <div class="bq2-kt"><h1 class="nur-sr">Wer wird Biblionär?</h1><span class="bq2-titel">15 Bibelfragen bis zur Million</span>
-        <span class="bq2-rek">Dein Rekord<b>${pkt(rek)}</b></span>${leiter}<small class="bq2-stand">${stufe ? `Frage ${stufe} von 15 geschafft` : "Noch kein Spiel – los geht's!"} · ${S.bibSpiele || 0} Spiele${S.bibMillion ? ` · ${S.bibMillion}× Million` : ""}</small></div></header>
+    ${bereichKopf("bib", { bild: "icons/biblionaer-logo.webp", t: "Biblionär", sub: "15 Bibelfragen bis zur Million", ring: [stufe, "von 15"],
+      tafel: [[S.bibSpiele || 0, S.bibSpiele === 1 ? "Spiel" : "Spiele"], [pkt(rek), "Rekord"], [S.bibMillion || 0, "Million"]],
+      zeile: { ic: "crown", t: "Rekord-Leiter", p: stufe / 15 * 100, r: `${stufe}/15` } })}
+    ${bkLabel("play", "Spielen")}
     <div class="bq3-start">
       <button class="bq3-knopf bq3-solo" id="bqSolo"><span class="bq3-ic">${svg("play")}</span><span class="bq3-tx"><b>Solo spielen</b><small>${rek ? `Rekord ${pkt(rek)} · so oft du willst` : "Zufällige Fragen · so oft du willst"}</small></span>${svg("bolt")}</button>
       ${online ? `<button class="bq3-knopf bq3-duell" id="bqNeu" ${bibDuWahl ? 'aria-expanded="true"' : ""}>${svg("duell")}<span class="bq3-tx"><b>${bibDuWahl ? "Gegner wählen" : "Neues Duell"}</b><small>${bibDuWahl ? "Tippe auf einen Namen" : "Fordere jemanden heraus"}</small></span>${svg(bibDuWahl ? "nein" : "bolt")}</button>
       ${bibDuWahl ? bibGegnerHtml() : ""}` : ""}
       ${woche}
     </div>
+    ${bkLabel("duell", "Deine Duelle", dran.length)}
     <section class="bq2-duell">
-      <div class="bq2-dk">${svg("duell")}<span>Deine Duelle</span>${dran.length ? `<i>${dran.length}</i>` : ""}</div>
       ${duell}
     </section>
+    ${bkLabel("star", "Deine Joker")}
     <div class="bq2-joker" aria-label="Deine Joker – je einmal pro Spiel">
       <span><b class="bq2-j5">50:50</b><span><b>Halbieren</b><small>zwei falsche Antworten weg</small></span></span>
       <span>${svg("people")}<span><b>Gemeinde</b><small>alle stimmen ab</small></span></span>

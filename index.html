@@ -1221,6 +1221,34 @@ body[data-acc="perle"]::after{-webkit-mask:none;mask:none;background:url("data:i
 .du-laden{display:flex;align-items:center;gap:8px}.du-laden svg{width:22px;height:22px}
 .ar-regel{text-align:center;margin:14px 4px 2px;font:700 .7rem/1.4 var(--body);color:var(--muted)}
 .du-gegner{margin-top:8px}
+/* 6.57: Bereichs-Kopf im Arena-Stil für Start, Lernen, Spielen, Biblionär (Medaillon links, goldener Titel, Untertitel in Bereichsfarbe, Ring rechts, Bogen-Trenner, Tafel, Startknopf) */
+.bk-kopf{position:relative;display:grid;grid-template-columns:58px minmax(0,1fr) 58px;gap:10px;align-items:center;padding:2px 2px 16px;margin:0 0 8px}
+.bk-kopf::after{content:"";position:absolute;left:0;right:0;bottom:0;height:11px;background:radial-gradient(circle at 50% 100%,transparent 4.2px,#f2c14e66 4.8px,#f2c14e66 6px,transparent 6.6px) 0 0/15px 11px repeat-x;border-bottom:1.5px solid #f2c14e55}
+.bk-med{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 40% 32%,color-mix(in srgb,var(--bk) 75%,#fff),color-mix(in srgb,var(--bk) 55%,#0e1226) 55%,#0e1226);box-shadow:inset 0 0 0 3px var(--bk),inset 0 0 0 6px #0e122655,0 0 14px color-mix(in srgb,var(--bk) 55%,transparent)}
+.bk-med svg{width:62%;height:62%;filter:drop-shadow(0 1px 1px #0008)}
+.bk-med.bild{background:none;box-shadow:none}.bk-med.bild img{width:62px;height:auto;display:block;filter:drop-shadow(0 0 10px #4aa8ff77)}
+.bk-t{min-width:0}.bk-t h1{margin:0;font:800 1.65rem/1.05 var(--display);letter-spacing:.1em;text-transform:uppercase;background:linear-gradient(180deg,#fff,#fff1c2 40%,#f2c14e 75%,#c9902a);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 1px 0 #1b2a55);white-space:nowrap}
+.bk-t span{display:block;font:800 .82rem var(--body);color:var(--bk);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bk-ring{width:58px;height:58px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle,#f2c14e24,#f2c14e08 70%);box-shadow:inset 0 0 0 2px #f2c14e88,inset 0 0 0 5px #0e1226,inset 0 0 0 6px #f2c14e44,0 0 14px #f2c14e33}
+.bk-ring b{font:800 1.05rem/1 var(--display);color:#f2c14e;text-shadow:0 0 10px #f2c14e88;font-variant-numeric:tabular-nums}.bk-ring small{font:800 .52rem var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.bk-tafel{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-radius:12px;background:linear-gradient(180deg,#ffffff0d,#ffffff04),var(--surface);box-shadow:inset 0 0 0 1px #f2c14e40,inset 0 0 0 4px var(--surface),inset 0 0 0 5px #f2c14e1f;margin-bottom:10px;overflow:hidden}
+.bk-tafel>span{display:flex;align-items:baseline;justify-content:center;gap:4px;padding:7px 2px;font:800 .72rem var(--body);color:var(--muted);white-space:nowrap;min-width:0}
+.bk-tafel>span+span:not(.bk-zeile){border-left:1px solid #f2c14e26}
+.bk-tafel b{font:800 1rem var(--display);color:#f2c14e;font-variant-numeric:tabular-nums}
+.bk-zeile{grid-column:1/-1;display:grid!important;grid-template-columns:20px auto minmax(0,1fr) auto;align-items:center;gap:8px;padding:6px 12px 8px!important;border-top:1px solid #f2c14e26}
+.bk-zeile svg{width:20px;height:20px}.bk-zeile em{font-style:normal;color:var(--fg);font-weight:800}
+.bk-bar{height:6px;border-radius:3px;background:#ffffff14;overflow:hidden}.bk-bar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#fff1c2,#f2c14e)}
+.bk-start{display:flex;align-items:center;gap:10px;width:100%;height:50px;padding:0 14px 0 10px;border:0;border-radius:14px;cursor:pointer;color:#fff;margin:0 0 4px;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--bk) 55%,#ffcf6a),color-mix(in srgb,var(--bk) 80%,#1b2a55) 50%,color-mix(in srgb,var(--bk) 50%,#3a2a8a));box-shadow:inset 0 1px 0 #fff7,inset 0 0 0 1.5px #fff3,0 4px 0 color-mix(in srgb,var(--bk) 45%,#0e1226),0 10px 22px -10px var(--bk)}
+.bk-start:active{transform:translateY(2px);box-shadow:inset 0 1px 0 #fff7,0 2px 0 color-mix(in srgb,var(--bk) 45%,#0e1226)}
+.bk-start>svg:first-child{width:34px;height:34px;flex:none}.bk-start>svg:last-child{width:18px;height:18px;flex:none;margin-left:auto}
+.bkopf{min-width:0}.bk-start b{min-width:0;font:800 1.02rem var(--display);letter-spacing:.1em;text-transform:uppercase;text-shadow:0 1px 2px #000a,0 0 6px #0005;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bk-label{display:flex;align-items:center;gap:8px;margin:9px 2px 6px;font:800 .74rem var(--display);letter-spacing:.14em;text-transform:uppercase;color:#e9d6a8}
+.bk-label svg{width:16px;height:16px;flex:none}.bk-label::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,#f2c14e66,transparent)}
+.bk-label i{font:900 .66rem/18px var(--body);font-style:normal;letter-spacing:0;min-width:18px;height:18px;padding:0 5px;border-radius:9px;text-align:center;color:#fff;background:var(--bad);box-shadow:0 0 8px #ff6b6b88}
+.erklaer summary .bk-label{flex:1;margin:0}
+.start2>.bk-label{margin:4px 2px 0}
+@media (prefers-reduced-motion:no-preference){.bk-med{animation:bkSchweb 3.4s ease-in-out infinite}@keyframes bkSchweb{50%{transform:translateY(-2px)}}}
 @media (prefers-reduced-motion:no-preference){
   .ar-logo{animation:arSchweb 3.4s ease-in-out infinite}@keyframes arSchweb{50%{transform:translateY(-2px);filter:drop-shadow(0 0 16px #ff8a5caa)}}
   .ar-karte{animation:arPuls 2.8s ease-in-out infinite}@keyframes arPuls{50%{box-shadow:0 0 0 2px color-mix(in srgb,var(--dt) 24%,transparent),0 0 26px color-mix(in srgb,var(--dt) 34%,transparent)}}
