@@ -996,12 +996,12 @@ const backBtn = (to = "home", txt = "Zurück") => `<button class="back" data-go=
 /* Seitenkopf der Hauptbereiche: Titel links, kleine Info rechts */
 const seitenKopf = (titel, info = "") => `<div class="seitenkopf"><h1>${titel}</h1>${info ? `<span class="pill sk-info">${info}</span>` : ""}</div>`;
 /* 6.57: Bereichs-Kopf im Arena-Stil – o: {ic | bild, t, sub, ring:[zahl, text], tafel:[[zahl, text]×3], zeile:{ic,t,p,r}, knopf:{ic,t,attr}} */
-const BK_FARBE = { home: "#f2c14e", lernen: "var(--ar-lernen)", spielen: "var(--ar-spielen)", bib: "#66e0d0" };
+const BK_FARBE = { home: "#f2c14e", lernen: "var(--ar-lernen)", spielen: "var(--ar-spielen)", bib: "#66e0d0", gemeinde: "#5fe0b0", laden: "#b38cff" };
 const bereichKopf = (m, o) => `<div class="bkopf" style="--bk:${BK_FARBE[m]}">
   <header class="bk-kopf">${o.bild ? `<span class="bk-med bild"><img src="${o.bild}" alt="" width="480" height="455"></span>` : `<span class="bk-med">${svg(o.ic)}</span>`}
     <div class="bk-t"><h1>${o.t}</h1><span>${o.sub}</span></div>
-    <div class="bk-ring" aria-label="${o.ring[0]} ${o.ring[1]}"><b>${o.ring[0]}</b><small>${o.ring[1]}</small></div></header>
-  ${o.tafel ? `<div class="bk-tafel">${o.tafel.map(([z, t]) => `<span><b>${z}</b> ${t}</span>`).join("")}${o.zeile ? `<span class="bk-zeile">${svg(o.zeile.ic)}<em>${o.zeile.t}</em><i class="bk-bar"><i style="width:${Math.max(4, Math.round(o.zeile.p))}%"></i></i><small>${o.zeile.r}</small></span>` : ""}</div>` : ""}
+    <div class="bk-ring" aria-label="${o.ring[0]} ${o.ring[1]}"><b${o.ringId ? ` id="${o.ringId}"` : ""}>${o.ring[0]}</b><small>${o.ring[1]}</small></div></header>
+  ${o.tafel ? `<div class="bk-tafel">${o.tafel.map(([z, t, id]) => `<span><b${id ? ` id="${id}"` : ""}>${z}</b> ${t}</span>`).join("")}${o.zeile ? `<span class="bk-zeile">${svg(o.zeile.ic)}<em>${o.zeile.t}</em><i class="bk-bar"><i style="width:${Math.max(4, Math.round(o.zeile.p))}%"></i></i><small>${o.zeile.r}</small></span>` : ""}</div>` : ""}
   ${o.knopf ? `<button class="bk-start" ${o.knopf.attr}>${svg(o.knopf.ic)}<b>${o.knopf.t}</b>${svg("bolt")}</button>` : ""}</div>`;
 const bkLabel = (ic, t, n) => `<div class="bk-label">${svg(ic)}<span>${t}</span>${n ? `<i>${n}</i>` : ""}</div>`;
 function wireGo() { screen.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { SFX.tap(); go(b.dataset.go, b.dataset.arg); }); }
@@ -1686,12 +1686,16 @@ VIEWS.shop = (tab, wahl) => {
     return `<button class="kb-item ${it.id === sel.id ? "gewaehlt" : ""} ${z.art === "zu" ? "gesperrt" : ""}" data-wahl="${it.id}" aria-label="${esc(it.name)}">${z.art === "aktiv" ? `<span class="an-haken">${svg("check")}</span>` : ""}<span class="vor">${bild}</span><small>${esc(it.name)}</small>${marke}</button>`; };
   const ladenZahl = (() => { let h = RUESTUNG.filter(r => S.owned.includes("ar-" + r.id)).length, g = RUESTUNG.length;
     [[AVATARE, "av-"], [RAHMEN, "fr-"], [TITEL, "ti-"], [THEMES, ""]].forEach(([l, p]) => l.filter(i => i.price > 0).forEach(i => { g++; if (S.owned.includes(p + i.id)) h++; })); return `${h}/${g}`; })();
-  screen.innerHTML = `${seitenKopf("Laden", `${svg("gem")}${ladenZahl}`)}
+  const ruestN = RUESTUNG.filter(r => S.owned.includes("ar-" + r.id)).length;
+  screen.innerHTML = `${bereichKopf("laden", { ic: "shop", t: "Laden", sub: kaufbarIn(shopTab) || Object.keys(SHOP_KAT).some(kaufbarIn) ? "Es gibt etwas Neues für dich!" : "Sammle Talente für Neues", ring: [pkt(S.tal), "Talente"],
+    tafel: [[`${ruestN}/${RUESTUNG.length}`, "Rüstung"], [ladenZahl, "Gesammelt"], [`${levelOf(S.xp)}`, "Level"]] })}
+    ${bkLabel("star", "Vorschau")}
     <section class="kb-buehne ${shopTab}">
       <div class="podest">${buehneBild}</div>
       <div class="kb-info"><span class="kb-tag">${shopTab === "ruestung" ? `Teil ${RUESTUNG.indexOf(sel) + 1} von 6` : zs.art === "aktiv" ? "Trägst du gerade" : shopTab === "farbe" ? "Vorschau auf die App" : "Vorschau"}</span><b>${esc(sel.name)}</b>
         ${text ? `<div class="kb-text">${esc(text)}</div>` : ""}${knopf}</div>
     </section>
+    ${bkLabel("shop", "Sortiment")}
     <div class="kb-tabs" role="tablist">${Object.entries(SHOP_KAT).map(([k, [t]]) => `<button role="tab" data-tab="${k}" aria-selected="${shopTab === k}" aria-label="${t}${kaufbarIn(k) ? ", jetzt kaufbar" : ""}">${katIc(k)}${kaufbarIn(k) ? `<i class="kat-punkt" aria-hidden="true"></i>` : ""}<span>${t}</span></button>`).join("")}</div>
     <div class="kb-grid">${liste.map(kachel).join("")}</div>`;
   wireGo();
@@ -2010,7 +2014,9 @@ function rankKind() { if (rankTab === "bibSpiele") return "bibWoche"; return ran
 VIEWS.rank = (tab) => {
   if (tab && RANK_TABS[tab]) rankTab = tab;
   const L = window.LB;
-  let html = seitenKopf("Gemeinde", `<img class="sk-logo" src="logo.png" alt="" onerror="this.remove()">Eichstätt`);
+  /* 6.58: Kopf im Arena-Stil – Ring = eigener Platz in der gewählten Liste, Tafel Level/Abzeichen/Spieler (nach dem Laden nachgetragen) */
+  let html = bereichKopf("gemeinde", { ic: "people", t: "Gemeinde", sub: "Freie Baptisten Eichstätt", ring: ["–", "Platz"], ringId: "bkPlatz",
+    tafel: [[levelOf(S.xp), "Level"], [`${S.badges.length}`, "Abzeichen"], ["–", "Spieler", "bkSpieler"]] }) + bkLabel("trophy", "Ranglisten");
   if (!L) { screen.innerHTML = html + `<div class="card"><p class="muted" style="margin:0">Rangliste wird geladen …</p></div>`; wireGo(); return; }
   if (!L.configured) { screen.innerHTML = html + `<div class="card stack"><b>Noch nicht eingerichtet</b><p class="muted small" style="margin:0">Die Rangliste braucht einen gemeinsamen Online-Speicher. Bis dahin kannst du ganz normal spielen – dein Fortschritt wird später übernommen.</p></div>`; wireGo(); return; }
   if (!L.ok) { screen.innerHTML = html + `<div class="card stack"><b>Keine Verbindung</b><p class="muted small" style="margin:0">Für die Rangliste brauchst du Internet. Deine Punkte werden übertragen, sobald du wieder online bist.</p><button class="btn" id="retry">Neu laden</button></div>`; wireGo(); $("retry").onclick = () => location.reload(); return; }
@@ -2081,6 +2087,8 @@ VIEWS.rank = (tab) => {
     const vor = myIdx > -1 && meinPlatz > 1 ? rows.filter((_, i) => platz[i] === meinPlatz - 1) : [];
     const ahead = vor.length ? rankWert(vor[0]) - mv : 0;
     const ich = myIdx > -1 ? rows[myIdx] : { name: S.lbName, avatar: S.avatar, frame: S.frame, level: levelOf(S.xp) };
+    if ($("bkPlatz")) $("bkPlatz").textContent = meinPlatz || "–";
+    if ($("bkSpieler")) $("bkSpieler").textContent = rows.length;
     $("rme").innerHTML = `${avatarLv(ich, 36)}<div class="du-tx"><b>Platz ${meinPlatz || "–"} · ${pkt(mv)} ${esc(unit || "")}</b><span>${vor.length ? `Noch ${pkt(ahead + 1)} bis Platz ${meinPlatz - 1} (${esc(vor[0].name)}${vor.length > 1 ? " u. a." : ""})` : meinPlatz === 1 ? "Du bist an der Spitze!" : rankTab === "bibWoche" ? (bibWocheGespielt() ? "Deine Runde ist gespielt" : "Spiel die Wochenrunde für deinen Platz") : "Spiel eine Runde für deinen Platz"}</span></div>${meinPlatz === 1 ? `<span class="du-krone">${svg("crown")}</span>` : ""}`;
   }, () => { if ($("rbody")) $("rbody").innerHTML = `<p class="muted" style="margin:0">Rangliste konnte nicht geladen werden. Prüfe die Internetverbindung.</p>`; }));
 };
