@@ -1844,11 +1844,11 @@ function geraetNeuVerbinden(was) {
     try {
       await L.join(pid, {});
       S.ownersSet = true; save(); lbSync(true); cloudSync(true);
-      postkastenMelden("datenbank", `Gerät automatisch neu verbunden – ${wer} (Geräte im Profil jetzt ${(e.owners || []).length + 1}/10).`, "nv-ok-" + pid + "-" + kenn);
+      postkastenMelden("datenbank", `Gerät automatisch neu verbunden – ${wer} (Geräte im Profil jetzt ${(e.owners || []).length + 1}/20).`, "nv-ok-" + pid + "-" + kenn);
       return true;
     } catch (x) {
       const n = (e.owners || []).length, c = (x && x.code) || "unbekannt";
-      postkastenMelden("datenbank", `Neu verbinden fehlgeschlagen (${c}) – ${wer}, Geräte im Profil ${n}/10${n >= 10 ? " (Liste voll)" : ""}.`, "nv-fehler-" + pid + "-" + c);
+      postkastenMelden("datenbank", `Neu verbinden fehlgeschlagen (${c}) – ${wer}, Geräte im Profil ${n}/20${n >= 20 ? " (Liste voll)" : ""}.`, "nv-fehler-" + pid + "-" + c);
       toast(`${svg("people", accent())}<div><b>Online-Sicherung klappt gerade nicht</b><div class="small muted">Dein Fortschritt bleibt auf diesem Gerät. Der Verwalter ist informiert.</div></div>`);
       return false;
     }
