@@ -1818,11 +1818,42 @@ function lbSync(now) {
     });
   }, now ? 0 : 2500);
 }
-/* Datenbankfehler (z. B. abgelehnt durch die Regeln) an den Verwalter melden – Verbindungsprobleme nicht */
+/* Datenbankfehler (z. B. abgelehnt durch die Regeln) an den Verwalter melden – Verbindungsprobleme nicht.
+   6.64: Bei „permission-denied“ zuerst prüfen, ob dieses Gerät noch in der Geräteliste des Profils steht.
+   Hat das Gerät eine neue Kennung bekommen (z. B. weil Safari die Anmeldung gelöscht hat), verbindet es sich selbst neu. */
 function dbFehler(was, e) {
   const code = (e && e.code) || "unbekannt";
   if (["unavailable", "deadline-exceeded", "cancelled"].includes(code) || (typeof navigator !== "undefined" && navigator.onLine === false) || String(e && e.message) === "offline") return;
-  postkastenMelden("datenbank", `${was} fehlgeschlagen (${code}) – Spieler ${S.lbName || "?"}, Profil ${S.pid || "?"}, Version ${APP_VERSION}.`, "dbf-" + was + "-" + code);
+  if (code === "permission-denied" && S.pid && S.ownersSet) { geraetNeuVerbinden(was); return; }
+  postkastenMelden("datenbank", `${was} fehlgeschlagen (${code}) – Spieler ${S.lbName || "?"}, Profil ${S.pid || "?"}, Gerät ${geraetKennung() || "?"}, Version ${APP_VERSION}.`, "dbf-" + was + "-" + code);
+}
+let neuVerbindenLaeuft = null, neuVerbundenPid = "";
+function geraetNeuVerbinden(was) {
+  const L = window.LB, pid = S.pid; if (!L || !L.ok || !L.uid || !pid) return Promise.resolve(false);
+  if (neuVerbindenLaeuft) return neuVerbindenLaeuft;
+  neuVerbindenLaeuft = (async () => {
+    const kenn = L.uid, wer = `Spieler ${S.lbName || "?"}, Profil ${pid}, Gerät ${kenn}, Version ${APP_VERSION}`;
+    let e = null; try { e = await L.holeSpieler(pid); } catch (x) {}
+    if (!e) { postkastenMelden("datenbank", `${was || "Prüfung"}: Profil nicht gefunden – ${wer}.`, "nv-weg-" + pid); return false; }
+    const drin = Array.isArray(e.owners) ? e.owners.includes(kenn) : pid === kenn;
+    if (drin) { /* Gerät ist eingetragen – dann liegt es an etwas anderem (z. B. Größe des Spielstands) */
+      if (was) postkastenMelden("datenbank", `${was} fehlgeschlagen (permission-denied, Gerät ist eingetragen) – ${wer}, Spielstand ${JSON.stringify(spielstandExport()).length} Zeichen.`, "dbf-" + was + "-drin");
+      return false; }
+    if (neuVerbundenPid === pid) return false; /* höchstens einmal pro Sitzung */
+    neuVerbundenPid = pid;
+    try {
+      await L.join(pid, {});
+      S.ownersSet = true; save(); lbSync(true); cloudSync(true);
+      postkastenMelden("datenbank", `Gerät automatisch neu verbunden – ${wer} (Geräte im Profil jetzt ${(e.owners || []).length + 1}/10).`, "nv-ok-" + pid + "-" + kenn);
+      return true;
+    } catch (x) {
+      const n = (e.owners || []).length, c = (x && x.code) || "unbekannt";
+      postkastenMelden("datenbank", `Neu verbinden fehlgeschlagen (${c}) – ${wer}, Geräte im Profil ${n}/10${n >= 10 ? " (Liste voll)" : ""}.`, "nv-fehler-" + pid + "-" + c);
+      toast(`${svg("people", accent())}<div><b>Online-Sicherung klappt gerade nicht</b><div class="small muted">Dein Fortschritt bleibt auf diesem Gerät. Der Verwalter ist informiert.</div></div>`);
+      return false;
+    }
+  })().finally(() => { setTimeout(() => { neuVerbindenLaeuft = null; }, 100); });
+  return neuVerbindenLaeuft;
 }
 /* Kompletten Spielstand online sichern (nur wer in der Rangliste ist) */
 function cloudSync(now) {
@@ -1962,9 +1993,13 @@ async function lbStart() {
     if (eigenerEintrag && !S.lbName) { wiedererkennen(eigenerEintrag); return; }
     if (S.lbName && !S.pid) { await offlineNamePruefen(); return; }
     if (S.lbName) {
+      /* 6.64: Gerät hat eine neue Kennung und steht nicht mehr in der Geräteliste → still neu verbinden (vor dem Laden) */
+      if (S.ownersSet && S.pid !== L.uid && L.holeSpieler) { const e0 = await L.holeSpieler(S.pid).catch(() => null);
+        if (e0 && !e0.zu && Array.isArray(e0.owners) && !e0.owners.includes(L.uid)) await geraetNeuVerbinden(""); }
       if (S.ownersSet || S.pid !== L.uid) { const r = await L.loadState(S.pid).catch(() => null); if (r) { zusammenfuehren(r); save(); renderHud(); } }
       /* Höhere Werte aus dem eigenen Ranglisten-Eintrag übernehmen (z. B. nach automatischem Zusammenführen) */
-      if (L.holeSpieler) { const e = await L.holeSpieler(S.pid).catch(() => null); if (e && !e.zu && (e.xp || 0) > S.xp) { zusammenfuehren(ausRangliste(e)); save(); renderHud(); }
+      if (L.holeSpieler) { const e = await L.holeSpieler(S.pid).catch(() => null);
+        if (e && !e.zu && (e.xp || 0) > S.xp) { zusammenfuehren(ausRangliste(e)); save(); renderHud(); }
         /* Duell-Zahlen aus der Rangliste nie nach unten überschreiben (z. B. vom Verwalter nachgetragen) */
         else if (e && !e.zu && ((e.duS | 0) > (S.duSiege | 0) || (e.duG | 0) > (S.duSpiele | 0))) { S.duSiege = Math.max(S.duSiege | 0, e.duS | 0); S.duSpiele = Math.max(S.duSpiele | 0, e.duG | 0); save(); } }
       lbSync(true); cloudSync();
