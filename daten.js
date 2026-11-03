@@ -1,4 +1,4 @@
-const APP_VERSION = "6.65";
+const APP_VERSION = "6.66";
 /* =====================================================================
    Bibelbuch-Quest – Spieldaten
    Bücher (Schlachter 2000), Lieder, Bibelverse (Schlachter 2000 © Genfer Bibelgesellschaft),
@@ -303,6 +303,7 @@ const BADGES = [
   { id: "xp20000", kat: "wachstum", name: "Guter und treuer Knecht", d: "20.000 XP gesammelt (Matthäus 25,21)", ic: "gem", tal: 40, ok: s => s.xp >= 20000 },
 
   { id: "gemeinschaft", kat: "gemeinschaft", name: "Gemeinschaft", d: "Der Gemeinde-Rangliste beigetreten", ic: "people", ok: s => !!s.lbName },
+  { id: "heimkehr", kat: "gemeinschaft", name: "Heimkehr", d: "Bibel-Quest als App auf dem Startbildschirm", ic: "down", ok: s => !!s.appBonus },
   { id: "podest", kat: "gemeinschaft", name: "Auf dem Podest", d: "Platz 1–3 in der Wochen-Rangliste", ic: "trophy", ok: s => s.podium },
   { id: "wochensieger", kat: "gemeinschaft", name: "Wochensieger", d: "Platz 1 der Woche bei mindestens 5 Spielern", ic: "trophy", tal: 20, ok: s => s.wochensieger },
   { id: "treu1", kat: "gemeinschaft", name: "Treue Woche", d: "An 3 Tagen in einer Woche gespielt", ic: "people", ok: s => (s.treueWochen || []).length >= 1 },

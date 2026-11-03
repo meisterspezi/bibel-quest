@@ -973,6 +973,7 @@ function go(name, arg) {
   if (!S.lbName && name !== "name") name = "name";
   current = name; window.scrollTo(0, 0); document.body.classList.remove("spiel-laeuft");
   tabbarSetzen(name); (VIEWS[name] || VIEWS.home)(arg);
+  try { appBonusPruefen(); appHinweisZeigen(); } catch (e) {} /* beim allerersten go() sind die Konstanten unten noch nicht bereit */
   if (typeof duAufloesQ !== "undefined" && duAufloesQ.length) setTimeout(duAufloesVersuch, 400);
 }
 /* Untere Menüleiste: zu welchem Reiter gehört eine Ansicht? */
@@ -1723,7 +1724,7 @@ function ichMenue() {
   if (!S.lbName) { go("name"); return; }
   const z = (wert, ic, t, info = "") => `<button class="im-zeile" data-close="${wert}">${svg(ic)}<span><b>${t}</b>${info ? `<small>${info}</small>` : ""}</span><i>›</i></button>`;
   const m = modal(`<div class="im-kopf">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName }, 56)}<div><b>${esc(S.lbName)}</b><small>${esc(rangVon())} · Level ${levelOf(S.xp)}</small></div></div>
-    <div class="im-liste">${z("profil", "user", "Mein Profil", "Titel, Siegel, Werte")}${z("badges", "medal", "Abzeichen", `${S.badges.length} von ${BADGES.length}`)}${z("share", "share", "Mit Freunden teilen", "QR-Code")}${z("wer", "people", "Wer spielt?", "Spieler wechseln")}${entwickler ? z("postfach", "post", "Postkasten", postfachNeu ? postfachNeu + " neu" : "") : ""}${deferredInstall ? z("install", "down", "App installieren", "+10 Talente") : ""}${z("feedback", "chat", "Feedback an den Entwickler")}</div>
+    <div class="im-liste">${z("profil", "user", "Mein Profil", "Titel, Siegel, Werte")}${z("badges", "medal", "Abzeichen", `${S.badges.length} von ${BADGES.length}`)}${z("share", "share", "Mit Freunden teilen", "QR-Code")}${z("wer", "people", "Wer spielt?", "Spieler wechseln")}${entwickler ? z("postfach", "post", "Postkasten", postfachNeu ? postfachNeu + " neu" : "") : ""}${deferredInstall && !S.appBonus ? z("install", "down", "App installieren", `+${APP_BONUS} Talente`) : ""}${z("feedback", "chat", "Feedback an den Entwickler")}</div>
     <button class="btn ghost" data-close="">Schließen</button>`, r => {
       if (r === "feedback") feedbackOeffnen();
       else if (r === "install") { deferredInstall.prompt(); deferredInstall.userChoice.catch(() => {}).then(() => { deferredInstall = null; }); }
@@ -1878,7 +1879,7 @@ function zusammenfuehren(r) {
   S.tage = [...new Set([...(S.tage || []), ...(r.tage || [])])].sort((a, b) => a - b).slice(-35);
   S.treueWochen = [...new Set([...(S.treueWochen || []), ...(r.treueWochen || [])])];
   ["bibel", "at", "nt", "rueck"].forEach(k => { S.meister[k] = [...new Set([...((S.meister || {})[k] || []), ...((r.meister || {})[k] || [])])].sort((a, b) => a - b); });
-  ["peeked", "gapPerfect", "earlyBird", "podium", "wochensieger", "wochenziel"].forEach(k => { S[k] = !!(S[k] || r[k]); });
+  ["peeked", "gapPerfect", "earlyBird", "podium", "wochensieger", "wochenziel", "appBonus"].forEach(k => { S[k] = !!(S[k] || r[k]); });
   ["badges", "owned", "songHeard"].forEach(k => { S[k] = [...new Set([...(S[k] || []), ...(r[k] || [])])]; }); badgesBereinigen();
   Object.entries(r.stars || {}).forEach(([k, v]) => { S.stars[k] = Math.max(S.stars[k] || 0, v || 0); });
   if (dayNum(r.lastDay) > dayNum(S.lastDay)) { S.lastDay = r.lastDay; S.streak = r.streak; } else if (r.lastDay === S.lastDay) S.streak = Math.max(S.streak, r.streak || 0);
@@ -4462,7 +4463,7 @@ VIEWS.share = () => {
 /* ---------- PWA ---------- */
 let deferredInstall = null;
 addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredInstall = e; if (current === "ich") go("ich"); });
-addEventListener("appinstalled", () => { deferredInstall = null; S.tal += 10; save(); renderHud(); SFX.badge(); toast(`${svg("down", accent())}<div><b>App installiert!</b><div class="small muted">+10 Talente als Dankeschön</div></div>`); });
+addEventListener("appinstalled", () => { deferredInstall = null; appHinweisZeigen(); }); /* 6.66: Belohnung gibt es beim ersten Start als App (+100) */
 if ("serviceWorker" in navigator && location.protocol === "https:") { addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {})); }
 
 /* ---------- Start ---------- */
@@ -4478,3 +4479,61 @@ neuerTag(); applyTheme(); renderMute(); renderHud(); checkBadges(); geraetSpeich
   m.classList.add("frage");
 })();
 document.addEventListener("pointerdown", () => { ac(); }, { once: true });
+
+/* ---------- 6.66: Hinweis „App installieren“ (Variante 3 „Heimkehr-Karte“) ----------
+   Nur im Browser sichtbar, über der Fußleiste auf den Hauptreitern. Beim ersten Start als App
+   (Startbildschirm) gibt es einmalig 100 Talente und das Abzeichen „Heimkehr“; danach verschwindet der Hinweis. */
+const APP_BONUS = 100;
+const alsApp = () => { try { return matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches || navigator.standalone === true; } catch (e) { return false; } };
+const istIos = () => { const u = navigator.userAgent || ""; return /iPhone|iPad|iPod/.test(u) || (/Macintosh/.test(u) && navigator.maxTouchPoints > 1); };
+const AH_REITER = ["home", "lernen", "spielen", "bib", "duelle", "rank", "ich", "profil", "badges"];
+const ahKey = "bq-app-hinweis-zu";
+function ahZuHeute() { try { return localStorage.getItem(ahKey) === today(); } catch (e) { return false; } }
+function appBonusPruefen() {
+  if (!alsApp() || S.appBonus || !S.lbName) return;
+  S.appBonus = true; S.tal += APP_BONUS;
+  if (!S.badges.includes("heimkehr")) S.badges.push("heimkehr");
+  save(); renderHud(); lbSync(); cloudSync();
+  setTimeout(() => {
+    SFX.level(); rain(80);
+    modal(`<div class="label">Willkommen in der App</div><div class="ah-gross">${svg("down", accent())}</div><h2 style="margin:0">Heimkehr!</h2>
+      <p class="muted" style="margin:0">Danke, dass du die Bibel-Quest auf deinen Startbildschirm geholt hast.</p>
+      <div class="vle-werte"><div><b>+${APP_BONUS}${TAL_MUENZE}</b><span>Talente</span></div><div><b>${svg("medal", accent())}</b><span>Abzeichen „Heimkehr“</span></div></div>
+      <button class="btn primary" data-close="ok">Weiter</button>`);
+  }, 700);
+}
+function appHinweisZeigen() {
+  let el = document.getElementById("appHinweis");
+  const zeigen = !alsApp() && !S.appBonus && !!S.lbName && AH_REITER.includes(current) && !document.body.classList.contains("spiel-laeuft") && !ahZuHeute();
+  document.body.classList.toggle("mit-app-hinweis", zeigen);
+  if (!zeigen) { if (el) el.remove(); return; }
+  const ios = istIos();
+  const teilen = `<svg class="ah-teilen" viewBox="0 0 13 15" aria-hidden="true"><path d="M6.5 1 V9 M3.5 4 L6.5 1 L9.5 4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M2.5 6.5 H1.5 V14 H11.5 V6.5 H10.5" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>`;
+  const html = `<div class="ah-oben"><span class="ah-mini" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="ah-app"><img src="icons/icon-192.png" alt=""></i><i></i></span>
+      <span class="ah-tx"><b>Immer dabei</b><small>Hol dir die Bibel-Quest auf deinen Startbildschirm: ein Tipp, und du bist drin – auch ohne Internet.</small></span></div>
+    <span class="ah-lohn"><i>+${APP_BONUS} Talente</i><i>${svg("medal")} Abzeichen „Heimkehr“</i></span>
+    <div class="ah-unten">${ios ? `<button class="ah-schritte" id="ahInst" aria-label="Anleitung: App aufs iPhone holen"><em>${teilen} Teilen</em><span>→</span><em>Zum Home-Bildschirm</em></button>`
+      : `<button class="btn primary ah-knopf" id="ahInst">${svg("down")} App installieren</button>`}<button class="ah-x" id="ahZu" aria-label="Für heute ausblenden">${svg("nein")}</button></div>`;
+  if (!el) { el = document.createElement("div"); el.id = "appHinweis"; el.className = "ah"; el.setAttribute("role", "region"); el.setAttribute("aria-label", "App installieren"); document.body.appendChild(el); }
+  el.innerHTML = html;
+  $("ahZu").onclick = () => { SFX.tap(); try { localStorage.setItem(ahKey, today()); } catch (e) {} appHinweisZeigen(); };
+  $("ahInst").onclick = () => { SFX.tap();
+    if (deferredInstall) { deferredInstall.prompt(); deferredInstall.userChoice.catch(() => {}).then(c => { deferredInstall = null; if (c && c.outcome === "accepted") appAnleitung(true); }); return; }
+    appAnleitung(false); };
+  const img = el.querySelector(".ah-app img"); if (img) img.onerror = () => { img.replaceWith(Object.assign(document.createElement("span"), { innerHTML: svg("book", accent()) })); };
+}
+function appAnleitung(installiert) {
+  const ios = istIos();
+  const teilen = `<svg class="ah-teilen" viewBox="0 0 13 15" aria-hidden="true"><path d="M6.5 1 V9 M3.5 4 L6.5 1 L9.5 4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M2.5 6.5 H1.5 V14 H11.5 V6.5 H10.5" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>`;
+  const schritte = installiert ? [`Die App ist installiert. Öffne <b>Bibel-Quest</b> jetzt vom Startbildschirm.`]
+    : ios ? [`Unten in Safari auf ${teilen} <b>Teilen</b> tippen`, `<b>Zum Home-Bildschirm</b> wählen und <b>Hinzufügen</b> tippen`]
+    : [`Oben rechts im Browser auf <b>⋮</b> tippen`, `<b>App installieren</b> bzw. <b>Zum Startbildschirm hinzufügen</b> wählen`];
+  if (!installiert) schritte.push(`Bibel-Quest vom Startbildschirm öffnen`);
+  schritte.push(`Dort einmal <b>„Ich spiele schon mit“</b> und deinen Namen antippen – dein Fortschritt kommt mit.`);
+  modal(`<div class="label">So kommt die App aufs ${ios ? "iPhone" : "Handy"}</div><h2 style="margin:0">${installiert ? "Fast geschafft!" : "In wenigen Sekunden"}</h2>
+    <ol class="ah-ol">${schritte.map(x => `<li>${x}</li>`).join("")}</ol>
+    <p class="small muted" style="margin:0">Beim ersten Start als App bekommst du <b>${APP_BONUS} Talente</b> und das Abzeichen „Heimkehr“.</p>
+    <button class="btn primary" data-close="ok">Verstanden</button>`);
+}
+if (window.matchMedia) try { matchMedia("(display-mode: standalone)").addEventListener("change", () => { appBonusPruefen(); appHinweisZeigen(); }); } catch (e) {}
+setTimeout(() => { appBonusPruefen(); appHinweisZeigen(); }, 1200);
