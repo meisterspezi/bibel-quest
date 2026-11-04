@@ -1203,8 +1203,10 @@ VIEWS.home = () => {
     ${bkLabel("target", S.dq.bonus ? "Heute geschafft!" : bereit ? "Die Truhe wartet!" : "Tagesaufgaben")}
     <section class="heute3 ${S.dq.bonus ? "fertig" : ""}" aria-label="Tagesaufgaben, ${erledigt} von 3 erledigt"><ul>${aufg}</ul>${truhe}</section>
     ${entwickler && postfachNeu ? `<button class="erinnerung pf-hinweis" data-go="postfach">${svg("chat")}<span><b>${postfachNeu} ${postfachNeu === 1 ? "neue Meldung" : "neue Meldungen"} im Postkasten</b><span class="small muted">Feedback, Status und Datenbank</span></span></button>` : ""}
+    <button class="feedback-link fb-start" id="fbLinkStart">${svg("chat")} Feedback an den Entwickler</button>
   </div>`;
   wireGo();
+  $("fbLinkStart").onclick = () => { SFX.tap(); feedbackOeffnen(); };
   const tb = $("truheBtn"); if (tb) tb.onclick = () => truheOeffnen(tb);
   const td = $("torDuell"); if (td) td.onclick = () => { SFX.tap(); go("duelle"); };
   lvVerdrahten();
@@ -4283,7 +4285,7 @@ function feedbackOeffnen() {
   modal(`<div class="label">Feedback an den Entwickler</div><h2 style="margin:0">Was möchtest du sagen?</h2>
     <div class="fb-arten" role="radiogroup">${art.map(([k, n], i) => `<label><input type="radio" name="fbArt" value="${k}" ${i === 0 ? "checked" : ""}><span>${n}</span></label>`).join("")}</div>
     <textarea class="field" id="fbText" rows="5" maxlength="2000" placeholder="Was gefällt dir, was fehlt, was klappt nicht?"></textarea>
-    <label class="small fb-name"><input type="checkbox" id="fbMitName" ${S.lbName ? "checked" : "disabled"}> Mit meinem Namen senden${S.lbName ? ` („${esc(S.lbName)}“)` : ""}</label>
+    <p class="small fb-name" style="margin:0">${svg("user")} Gesendet von <b>${esc(S.lbName || "?")}</b></p>
     <p class="small muted" style="margin:0">Mitgesendet wird außerdem: App-Version ${APP_VERSION} · ${esc(geraetBeschreibung())}. Nur der Entwickler kann das Feedback lesen.</p>
     <div class="small" id="fbErr" aria-live="polite"></div>
     <button class="btn primary" id="fbSenden">Senden</button><button class="btn ghost" data-close>Abbrechen</button>`);
@@ -4291,8 +4293,8 @@ function feedbackOeffnen() {
   $("fbSenden").onclick = async () => {
     const text = $("fbText").value.trim();
     if (text.length < 3) { $("fbErr").style.color = "var(--bad)"; $("fbErr").textContent = "Bitte schreib ein paar Worte."; SFX.wrong(); return; }
-    const mitName = $("fbMitName").checked && !!S.lbName;
-    const f = { text, art: (document.querySelector('input[name="fbArt"]:checked') || {}).value || "idee", ver: APP_VERSION, geraet: geraetBeschreibung(), ...(mitName ? { name: S.lbName, pid: S.pid || "" } : {}), wann: new Date().toISOString() };
+    /* Seit 6.67 immer mit Namen (Michaels Wunsch) – der Name ist in der App Pflicht */
+    const f = { text, art: (document.querySelector('input[name="fbArt"]:checked') || {}).value || "idee", ver: APP_VERSION, geraet: geraetBeschreibung(), name: S.lbName || "ohne Namen", pid: S.pid || "", wann: new Date().toISOString() };
     $("fbSenden").disabled = true; $("fbSenden").textContent = "Sende …";
     const L = window.LB; let gesendet = false;
     if (L && L.ok && L.feedback) { try { await L.feedback(f); gesendet = true; } catch (e) {} }
