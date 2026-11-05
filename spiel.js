@@ -15,6 +15,7 @@ const DEF = {
   songHeard: [], gapPerfect: false, peeked: false, earlyBird: false,
   dq: { day: "", items: [], bonus: false }, questBonusCount: 0, lv: {}, duGes: [], duSiege: 0, duSpiele: 0, duTyp: "vers", duGesendet: 0, duAngenommen: 0, duArten: [], duKetteVoll: false,
   mute: false, beat: true, gapSing: false, atTi: 0, ntTi: 0,
+  ruestStufe: {}, wappen: "", stift: {}, stiftGefeiert: [], stiftEingeweiht: false,
   lvLohn: 0, lbName: "", pid: "", ownersSet: false, offlineOnly: false, weekKey: "", weekXp: 0, podium: false, wochensieger: false, wochenziel: false,
   ver: 6
 };
@@ -76,9 +77,11 @@ const dayNum = s => { if (!s) return 0; const p = s.split("-").map(Number); retu
 const datumVon = n => new Date(n * 864e5 + 12 * 3600e3);
 function weekKey(datum) { const d = datum ? new Date(datum) : new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7)); const w1 = new Date(d.getFullYear(), 0, 4); const w = 1 + Math.round(((d - w1) / 864e5 - 3 + ((w1.getDay() + 6) % 7)) / 7); return d.getFullYear() + "-W" + String(w).padStart(2, "0"); }
 const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const cum = n => 25 * (n - 1) * (n + 2);
+const cumAlt = n => 25 * (n - 1) * (n + 2);
+/* 6.68: ab Level 44 steiler (siehe XP_KNICK in daten.js) */
+const cum = n => { if (n <= XP_KNICK) return cumAlt(n); let t = cumAlt(XP_KNICK); for (let k = XP_KNICK + 1; k <= n; k++) t += 50 * k * (1 + 2 * (k - XP_KNICK)); return t; };
 function levelOf(xp) { let n = 1; while (cum(n + 1) <= xp) n++; return n; }
-const titleOf = n => TITLES[Math.min(n, TITLES.length) - 1] + (n > TITLES.length ? " " + (n - TITLES.length + 1) : "");
+const titleOf = n => { const h = RAENGE_HOCH.find(([ab]) => n >= ab); if (h) return h[1]; return TITLES[Math.min(n, TITLES.length) - 1] + (n > TITLES.length ? " " + (n - TITLES.length + 1) : ""); };
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const vibrate = p => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
 const hash = str => { let h = 2166136261; for (const c of str) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
@@ -773,7 +776,7 @@ function skinAnlegen(sk) {
   save(); lbSync(); renderHud();
 }
 /* Nächster Meilenstein mit Gegenstand (für den Ausblick im Fenster) */
-function naechsterSkin(n) { for (let k = n + 1; k <= 30; k++) { const s = skinVon(k); if (s) return s; } return null; }
+function naechsterSkin(n) { for (let k = n + 1; k <= 50; k++) { const s = skinVon(k); if (s) return s; } return null; }
 function lohnKarte(sk, mitKnopf) {
   return `<div class="lv-lohn">${skinBild(sk)}<div><b>${SKIN_ART[sk.kat]} „${esc(sk.it.name)}“</b><span class="lv-nur" title="Gibt es nur durch das Level, nicht im Laden">Level ${sk.n} · exklusiv</span></div>${mitKnopf && !skinTraegt(sk) ? `<button class="btn ghost lv-an" data-lvan="${sk.n}">Anlegen</button>` : ""}</div>`;
 }
@@ -795,6 +798,10 @@ function levelUp(n) {
     ${nx ? `<p class="small muted lv-ausblick">Nächste Sonderbelohnung bei Level ${nx.n}: ${SKIN_ART[nx.kat]} „${esc(nx.it.name)}“ · noch ${fehlt} XP</p>` : ""}
     <button class="btn primary" data-close>Weiter</button>`);
   m.classList.add("lv-modal"); if (meilenstein) m.classList.add("lv-ms"); lohnVerdrahten(m);
+  /* 6.68: Level 50 = Halljahr – große Feier mit Posaunen */
+  if (n >= 50 && von < 50) { m.classList.add("lv-halljahr");
+    m.querySelector(".lvlbig").insertAdjacentHTML("afterend", `<div class="halljahr"><span class="hj-posaune">${svg("posaune")}</span><b>Halljahr!</b><small>„Ihr sollt das fünfzigste Jahr heiligen … Ein Jubeljahr soll es euch sein.“ (3. Mose 25,10)</small></div>`);
+    [600, 1500, 2600].forEach(t => setTimeout(() => { SFX.level(); rain(160); }, t)); }
 }
 /* Einmalig für alle, die schon vor 6.39 gespielt haben: alle Level-Talente nach dem neuen Plan (ohne Abzug des alten Bonus,
    der bei übersprungenen Leveln oft gar nicht gezahlt wurde) und alle erreichten Level-Skins */
@@ -912,7 +919,8 @@ function renderHud() {
 }
 /* Was ist im Laden gerade kaufbar? (je Kategorie, Reihenfolge-Regeln wie im Laden) */
 function kaufbarIn(kat) {
-  if (kat === "ruestung") { const r = RUESTUNG[armorCount()]; return !!r && r.price <= S.tal; }
+  if (kat === "ruestung") { const r = RUESTUNG[armorCount()]; if (r && r.price <= S.tal) return true; return RUESTUNG.some(x => { const p = veredelPreis(x.id); return p && p <= S.tal; }); }
+  if (kat === "staemme") return STAEMME.some(t => !S.owned.includes("st-" + t.id) && t.price <= S.tal);
   if (kat === "avatar" || kat === "rahmen") {
     const [l, p] = kat === "avatar" ? [AVATARE, "av-"] : [RAHMEN, "fr-"];
     const x = l.filter(i => i.price > 0).find(i => !S.owned.includes(p + i.id)); return !!x && x.price <= S.tal;
@@ -952,9 +960,12 @@ function rangVon(r) {
   if (ENTW_PID && r.id === ENTW_PID) return ENTW_RANG;
   return titelName(r.title) || titleOf(r.level || 1);
 }
+/* 6.68: Veredelungs-Stufe eines Rüstungsteils (0 = Grundstufe, 1 = Geläutert, 2 = Im Feuer erprobt) */
+const ruestStufe = id => Math.min(2, (S.ruestStufe || {})[id] | 0);
+const veredelPreis = id => { if (!S.owned.includes("ar-" + id)) return 0; const st = ruestStufe(id); return st >= 2 ? 0 : RUEST_VEREDEL_PREIS[id][st]; };
 function ruestungHtml(n, klein = true) {
   if (!n) return "";
-  return `<span class="ruest ${klein ? "klein" : ""}" title="Waffenrüstung Gottes: ${n} von 6">${RUESTUNG.slice(0, n).map(r => svg("ar-" + r.id)).join("")}</span>`;
+  return `<span class="ruest ${klein ? "klein" : ""}" title="Waffenrüstung Gottes: ${n} von 6">${RUESTUNG.slice(0, n).map(r => `<i class="rst-${ruestStufe(r.id)}">${svg("ar-" + r.id)}</i>`).join("")}</span>`;
 }
 /* Freischalt-Bedingung: "lvN" = ab Level N (Level-Belohnung), sonst ein Abzeichen */
 const needOk = need => /^lv\d+$/.test(need || "") ? levelOf(S.xp) >= +need.slice(2) : S.badges.includes(need);
@@ -978,7 +989,7 @@ function go(name, arg) {
 }
 /* Untere Menüleiste: zu welchem Reiter gehört eine Ansicht? */
 const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Spielen", "bolt"], ["bib", "Biblionär", "biblionaer"], ["duelle", "Arena", "duell"], ["rank", "Gemeinde", "trophy"], ["ich", "Laden", "shop"]];
-const TAB_VON = { duell: "duelle", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen", biblionaer: "bib",
+const TAB_VON = { stift: "rank", duell: "duelle", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen", biblionaer: "bib",
   shop: "ich" };
 /* rote Zahl am Duell-Reiter: wartende Herausforderungen */
 function tbDuSetzen() { const t = $("tbDu"); if (!t) return; const n = typeof duFuerMich === "function" ? duFuerMich().length : 0; t.hidden = !n; t.textContent = n; }
@@ -1638,7 +1649,7 @@ function kaufen(id, preis, el) {
   save(); renderHud(); checkBadges(); lbSync(); return true;
 }
 /* Schatz-Laden als „Umkleide“: oben Vorschau am eigenen Avatar, darunter Kategorien (ohne seitliches Wischen) und ein 3er-Raster */
-const SHOP_KAT = { ruestung: ["Rüstung", "ar-schild"], avatar: ["Avatare", "av-taube"], rahmen: ["Rahmen", ""], titel: ["Titel", "scroll"], farbe: ["Farben", "regenbogen"] };
+const SHOP_KAT = { ruestung: ["Rüstung", "ar-schild"], staemme: ["Stämme", "st-juda"], avatar: ["Avatare", "av-taube"], rahmen: ["Rahmen", ""], titel: ["Titel", "scroll"], farbe: ["Farben", "regenbogen"] };
 let shopWahl = {};
 VIEWS.shop = (tab, wahl) => {
   if (tab && SHOP_KAT[tab]) shopTab = tab;
@@ -1649,9 +1660,13 @@ VIEWS.shop = (tab, wahl) => {
   const zustand = (kat, it, aktiv) => {
     if (kat === "ruestung") {
       const k = RUESTUNG.indexOf(it), hat = S.owned.includes("ar-" + it.id);
-      if (hat) return { art: "aktiv", text: "angelegt" };
+      if (hat) return { art: "aktiv", text: ["angelegt", "geläutert", "Gold"][ruestStufe(it.id)] };
       if (k === n) return { art: "kauf", preis: it.price, buy: "ruestung" };
       return { art: "zu", text: `erst ${RUESTUNG[n] ? RUESTUNG[n].name.split(" ")[0] : ""}` };
+    }
+    if (kat === "staemme") {
+      if (S.owned.includes("st-" + it.id)) return aktiv ? { art: "aktiv", text: "gezeigt" } : { art: "frei", eq: "wp" };
+      return { art: "kauf", preis: it.price, buy: "st" };
     }
     const pre = { avatar: "av", rahmen: "fr", titel: "ti", farbe: "" }[kat];
     if (aktiv) return { art: "aktiv", text: "aktiv" };
@@ -1664,9 +1679,10 @@ VIEWS.shop = (tab, wahl) => {
     }
     return { art: "kauf", preis: it.price, buy: pre || "farbe" };
   };
-  const liste = { ruestung: RUESTUNG, avatar: AVATARE, rahmen: RAHMEN, titel: TITEL, farbe: THEMES }[shopTab];
-  const istAktiv = it => ({ avatar: S.avatar === it.id, rahmen: S.frame === it.id, titel: S.title === it.id, farbe: S.theme === it.id, ruestung: S.owned.includes("ar-" + it.id) })[shopTab];
-  const standard = shopTab === "ruestung" ? (RUESTUNG[n] || RUESTUNG[RUESTUNG.length - 1]).id : (liste.find(istAktiv) || liste[0]).id;
+  const liste = { ruestung: RUESTUNG, staemme: STAEMME, avatar: AVATARE, rahmen: RAHMEN, titel: TITEL, farbe: THEMES }[shopTab];
+  const istAktiv = it => ({ avatar: S.avatar === it.id, rahmen: S.frame === it.id, titel: S.title === it.id, farbe: S.theme === it.id, ruestung: S.owned.includes("ar-" + it.id), staemme: S.wappen === it.id })[shopTab];
+  const standard = shopTab === "ruestung" ? (RUESTUNG[n] || RUESTUNG.find(x => veredelPreis(x.id)) || RUESTUNG[RUESTUNG.length - 1]).id
+    : shopTab === "staemme" ? ((liste.find(istAktiv) || liste.find(x => !S.owned.includes("st-" + x.id)) || liste[0]).id) : (liste.find(istAktiv) || liste[0]).id;
   const sel = liste.find(x => x.id === shopWahl[shopTab]) || liste.find(x => x.id === standard);
   const zs = zustand(shopTab, sel, shopTab !== "ruestung" && istAktiv(sel));
   /* Farben: die gewählte Farbwelt sofort als Vorschau auf die ganze App legen (auch ungekauft); beim Verlassen gilt wieder die eigene */
@@ -1674,30 +1690,33 @@ VIEWS.shop = (tab, wahl) => {
   /* Vorschau: der eigene Avatar mit dem gewählten Gegenstand */
   const vAv = shopTab === "avatar" ? sel.id : S.avatar, vFr = shopTab === "rahmen" ? sel.id : S.frame;
   const buehneBild = shopTab === "ruestung"
-    ? `<span class="kb-ruest">${svg("ar-" + sel.id)}</span>`
+    ? `<span class="kb-ruest rst-${ruestStufe(sel.id)}">${svg("ar-" + sel.id)}</span>`
+    : shopTab === "staemme" ? `<span class="kb-ruest kb-wappen">${svg("st-" + sel.id)}</span>`
     : `<span class="kb-av" ${shopTab === "farbe" ? `style="--glanz:${sel.c}"` : ""}>${avatarHtml({ avatar: vAv, frame: vFr, name: S.lbName || "?" }, 96)}</span>`;
-  const text = shopTab === "ruestung" ? `„${sel.vers}“ – ${sel.ref}` : (sel.bezug || "");
+  const vStufe = shopTab === "ruestung" && S.owned.includes("ar-" + sel.id) ? ruestStufe(sel.id) : 0, vPreis = shopTab === "ruestung" ? veredelPreis(sel.id) : 0;
+  const text = shopTab === "ruestung" ? (vStufe ? RUEST_STUFE[vStufe].bezug : `„${sel.vers}“ – ${sel.ref}`) : (sel.bezug || "");
   const knopf = zs.art === "kauf" ? `<button class="btn gold kb-kauf" data-buy="${zs.buy}" data-id="${sel.id}" data-p="${zs.preis}">Kaufen · ${zs.preis}${muenze}</button>`
     : zs.art === "frei" ? `<button class="btn gold kb-kauf" data-eq="${zs.eq}" data-id="${sel.id}">Anlegen</button>`
+    : zs.art === "aktiv" && vPreis ? `<button class="btn gold kb-kauf" data-veredel="${sel.id}" data-p="${vPreis}">${svg("fire")} Veredeln: ${RUEST_STUFE[vStufe + 1].name} · ${vPreis}${muenze}</button>`
     : zs.art === "aktiv" ? `<span class="pz ok kb-status">${svg("check")} ${zs.text}</span>`
     : `<span class="pz zu kb-status">${svg("lock")} ${zs.need ? esc(needText(zs.need)) : esc(zs.text)}</span>`;
   const katIc = k => k === "rahmen" ? avatarHtml({ avatar: "initial", frame: "gold", name: "M" }, 22) : svg(SHOP_KAT[k][1]);
   const kachel = it => { const z = zustand(shopTab, it, shopTab !== "ruestung" && istAktiv(it));
-    const bild = shopTab === "ruestung" ? svg("ar-" + it.id) : shopTab === "avatar" ? avatarHtml({ avatar: it.id, frame: "none", name: S.lbName || "?" }, 46)
+    const bild = shopTab === "ruestung" ? `<span class="rst-${S.owned.includes("ar-" + it.id) ? ruestStufe(it.id) : 0}">${svg("ar-" + it.id)}</span>` : shopTab === "staemme" ? svg("st-" + it.id) : shopTab === "avatar" ? avatarHtml({ avatar: it.id, frame: "none", name: S.lbName || "?" }, 46)
       : shopTab === "rahmen" ? avatarHtml({ avatar: S.avatar, frame: it.id, name: S.lbName || "?" }, 40)
       : shopTab === "farbe" ? `<span class="swatch" style="background:radial-gradient(circle at 35% 30%,#fff8,${it.c} 45%,#1b2146)"></span>`
       : `<span class="kb-titel-ic">${svg(it.id === "none" ? "user" : "scroll")}</span>`;
     const marke = z.art === "aktiv" ? `<span class="pz ok">${z.text}</span>` : z.art === "frei" ? `<span class="pz ok">${it.price > 0 ? "gekauft" : "frei"}</span>` : z.art === "zu" ? `<span class="pz zu">${svg("lock")}</span>` : `<span class="pz ${S.tal >= z.preis ? "" : "arm"}">${z.preis}${muenze}</span>`;
     return `<button class="kb-item ${it.id === sel.id ? "gewaehlt" : ""} ${z.art === "zu" ? "gesperrt" : ""}" data-wahl="${it.id}" aria-label="${esc(it.name)}">${z.art === "aktiv" ? `<span class="an-haken">${svg("check")}</span>` : ""}<span class="vor">${bild}</span><small>${esc(it.name)}</small>${marke}</button>`; };
   const ladenZahl = (() => { let h = RUESTUNG.filter(r => S.owned.includes("ar-" + r.id)).length, g = RUESTUNG.length;
-    [[AVATARE, "av-"], [RAHMEN, "fr-"], [TITEL, "ti-"], [THEMES, ""]].forEach(([l, p]) => l.filter(i => i.price > 0).forEach(i => { g++; if (S.owned.includes(p + i.id)) h++; })); return `${h}/${g}`; })();
+    [[AVATARE, "av-"], [RAHMEN, "fr-"], [TITEL, "ti-"], [THEMES, ""], [STAEMME, "st-"]].forEach(([l, p]) => l.filter(i => i.price > 0).forEach(i => { g++; if (S.owned.includes(p + i.id)) h++; })); return `${h}/${g}`; })();
   const ruestN = RUESTUNG.filter(r => S.owned.includes("ar-" + r.id)).length;
   screen.innerHTML = `${bereichKopf("laden", { ic: "shop", t: "Laden", sub: kaufbarIn(shopTab) || Object.keys(SHOP_KAT).some(kaufbarIn) ? "Es gibt etwas Neues für dich!" : "Sammle Talente für Neues", ring: [pkt(S.tal), "Talente"],
     tafel: [[`${ruestN}/${RUESTUNG.length}`, "Rüstung"], [ladenZahl, "Gesammelt"], [`${levelOf(S.xp)}`, "Level"]] })}
     ${bkLabel("star", "Vorschau")}
     <section class="kb-buehne ${shopTab}">
       <div class="podest">${buehneBild}</div>
-      <div class="kb-info"><span class="kb-tag">${shopTab === "ruestung" ? `Teil ${RUESTUNG.indexOf(sel) + 1} von 6` : zs.art === "aktiv" ? "Trägst du gerade" : shopTab === "farbe" ? "Vorschau auf die App" : "Vorschau"}</span><b>${esc(sel.name)}</b>
+      <div class="kb-info"><span class="kb-tag">${shopTab === "ruestung" ? `Teil ${RUESTUNG.indexOf(sel) + 1} von 6${vStufe ? " · " + RUEST_STUFE[vStufe].name : ""}` : shopTab === "staemme" ? `${STAEMME.filter(t => S.owned.includes("st-" + t.id)).length} von 12 Stämmen · alle 12 = Titel „Ganz Israel“` : zs.art === "aktiv" ? "Trägst du gerade" : shopTab === "farbe" ? "Vorschau auf die App" : "Vorschau"}</span><b>${esc(sel.name)}</b>
         ${text ? `<div class="kb-text">${esc(text)}</div>` : ""}${knopf}</div>
     </section>
     ${bkLabel("shop", "Sortiment")}
@@ -1708,16 +1727,29 @@ VIEWS.shop = (tab, wahl) => {
   screen.querySelectorAll("[data-wahl]").forEach(b => b.onclick = () => { SFX.tap(); const y = scrollY; VIEWS.shop(null, b.dataset.wahl); scrollTo(0, y); const bh = screen.querySelector(".kb-buehne"); if (bh && bh.getBoundingClientRect().top < 60) bh.scrollIntoView({ behavior: "smooth", block: "center" }); });
   screen.querySelectorAll("[data-buy]").forEach(b => b.onclick = () => {
     const kat = b.dataset.buy, id = b.dataset.id, p = +b.dataset.p;
-    const pre = { ruestung: "ar-", av: "av-", fr: "fr-", ti: "ti-", farbe: "" }[kat];
+    const pre = { ruestung: "ar-", av: "av-", fr: "fr-", ti: "ti-", farbe: "", st: "st-" }[kat];
     if (!kaufen(pre + id, p, b)) return;
+    if (kat === "st") { S.wappen = id; const t = STAEMME.find(x => x.id === id), n12 = STAEMME.filter(x => S.owned.includes("st-" + x.id)).length; rain(50);
+      modal(`<div class="label">Stamm ${n12} von 12</div><div class="ruest-gross wappen-gross">${svg("st-" + id)}</div><h2>${esc(t.name)}</h2><p class="muted small" style="margin:0">${esc(t.bezug)}</p>${n12 === 12 ? `<p class="small" style="margin:0;color:var(--accent)"><b>Alle zwölf Stämme!</b> Titel „Ganz Israel“ und Rahmen „Zwölf Stämme“ sind freigeschaltet.</p>` : ""}<button class="btn primary" data-close>Weiter</button>`); }
     if (kat === "av") S.avatar = id; if (kat === "fr") S.frame = id; if (kat === "ti") S.title = id; if (kat === "farbe") { S.theme = id; applyTheme(); }
     if (kat === "ruestung") { const r = RUESTUNG.find(x => x.id === id); rain(60); delete shopWahl.ruestung; modal(`<div class="label">Angelegt</div><div class="ruest-gross">${svg("ar-" + id)}</div><h2>${esc(r.name)}</h2><figure class="vers klein"><blockquote>${esc(r.vers)}</blockquote><figcaption>${esc(r.ref)} · ${VERS_QUELLE}</figcaption></figure><button class="btn primary" data-close>Amen</button>`); }
     save(); lbSync(); renderHud(); VIEWS.shop();
   });
   screen.querySelectorAll("[data-eq]").forEach(b => b.onclick = () => {
     const kat = b.dataset.eq, id = b.dataset.id; SFX.tap();
-    if (kat === "av") S.avatar = id; if (kat === "fr") S.frame = id; if (kat === "ti") S.title = id; if (kat === "farbe") { S.theme = id; applyTheme(); }
+    if (kat === "av") S.avatar = id; if (kat === "fr") S.frame = id; if (kat === "ti") S.title = id; if (kat === "farbe") { S.theme = id; applyTheme(); } if (kat === "wp") S.wappen = id;
     save(); lbSync(); renderHud(); VIEWS.shop();
+  });
+  /* 6.68: Rüstung veredeln */
+  screen.querySelectorAll("[data-veredel]").forEach(b => b.onclick = () => {
+    const id = b.dataset.veredel, p = +b.dataset.p, st = ruestStufe(id);
+    if (S.tal < p) { SFX.wrong(); shakeScreen(); toast(`${TAL_MUENZE}<div>Dir fehlen noch <b>${p - S.tal}</b> Talente.</div>`); return; }
+    S.tal -= p; S.ruestStufe = Object.assign({}, S.ruestStufe, { [id]: st + 1 }); SFX.badge(); const [x, y] = centerOf(b); burst(x, y, 60, { up: 5 }); rain(st ? 90 : 50);
+    save(); renderHud(); checkBadges(); lbSync();
+    const r = RUESTUNG.find(x => x.id === id), neu = RUEST_STUFE[st + 1];
+    modal(`<div class="label">Veredelt</div><div class="ruest-gross rst-${st + 1}">${svg("ar-" + id)}</div><h2>${esc(r.name)}</h2><span class="pz ok" style="justify-self:center">${esc(neu.name)}</span><p class="muted small" style="margin:0">${esc(neu.bezug)}</p>
+      ${RUESTUNG.every(x => ruestStufe(x.id) >= 2) ? `<p class="small" style="margin:0;color:var(--accent)"><b>Die ganze Rüstung ist im Feuer erprobt!</b> Rahmen „Im Feuer erprobt“ ist freigeschaltet.</p>` : ""}<button class="btn primary" data-close>Amen</button>`);
+    VIEWS.shop();
   });
 };
 
@@ -1754,7 +1786,7 @@ VIEWS.profil = () => {
   const L = window.LB, online = L && L.ok;
   screen.innerHTML = `${backBtn("home", "Start")}<h1>Mein Profil</h1>
   <div class="card profil-kopf">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "Du" }, 84)}
-    <div><h2 style="margin:0">${esc(S.lbName || "Noch ohne Namen")}</h2>${!S.pid && !S.offlineOnly ? `<div class="small muted">Erscheint in der Rangliste, sobald Internet da ist.</div>` : ""}<div class="muted">${esc(rangVon())}</div>${ruestungHtml(armorCount(), false)}</div></div>
+    <div><h2 style="margin:0">${esc(S.lbName || "Noch ohne Namen")}${S.wappen && ICONS["st-" + S.wappen] ? ` <span class="name-wappen" title="Stamm ${esc((STAEMME.find(t => t.id === S.wappen) || {}).name || "")}">${svg("st-" + S.wappen)}</span>` : ""}</h2>${!S.pid && !S.offlineOnly ? `<div class="small muted">Erscheint in der Rangliste, sobald Internet da ist.</div>` : ""}<div class="muted">${esc(rangVon())}</div>${ruestungHtml(armorCount(), false)}</div></div>
   <div class="row-btns" style="margin:10px 0"><button class="btn" data-go="shop">Aussehen ändern</button><button class="btn ghost" data-go="badges">Meine Abzeichen</button></div>
   <div class="card stack">${titelKarte(AT_TITEL, atP, "AT")}${titelKarte(NT_TITEL, ntP, "NT")}
     <p class="small muted" style="margin:0">Die Titel wachsen mit deinen Sternen in den Lektionen und deiner Kette im AT bzw. NT.</p></div>
@@ -1804,6 +1836,7 @@ function lbSync(now) {
   if (!S.pid) S.pid = neuePid();
   clearTimeout(lbTimer);
   lbTimer = setTimeout(() => {
+    try { stiftSenden(); } catch (e) {} /* 6.68: noch nicht gesendete Spenden */
     const opts = {}; if (!S.ownersSet && eigenePid(S.pid)) opts.owners = [L.uid];
     const ok = () => { if (opts.owners) { S.ownersSet = true; try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} geraetSpeichern(); } };
     /* Übergang 6.40: Solange die neuen Firebase-Regeln (Biblionär-Felder) noch nicht veröffentlicht sind, ohne diese Felder speichern */
@@ -1897,7 +1930,10 @@ function zusammenfuehren(r) {
     const sw = Object.assign({}, v.sw || {}); Object.entries(a.sw || {}).forEach(([i, n]) => { sw[i] = Math.max(sw[i] || 0, n); });
     const neuer = (a.auf || "") >= (v.auf || "") ? a : v;
     S.lv[k] = { v: 2, st: Math.max(a.st || 0, v.st || 0), b: !!(a.b || v.b), tage: [...new Set([...(a.tage || []), ...(v.tage || [])])].sort((x, y) => x - y).slice(-40), sw, auf: neuer.auf || "", an: neuer.an || 0, q: (a.qd || "") >= (v.qd || "") ? a.q || 0 : v.q || 0, qd: [a.qd || "", v.qd || ""].sort().pop() }; });
-  ["avatar", "frame", "title", "theme"].forEach(k => { if ((S[k] === DEF[k]) && r[k]) S[k] = r[k]; });
+  ["avatar", "frame", "title", "theme", "wappen"].forEach(k => { if ((S[k] === DEF[k]) && r[k]) S[k] = r[k]; });
+  /* 6.68: Rüstungs-Stufen und Stiftshütten-Spenden: je Schlüssel das Maximum */
+  ["ruestStufe", "stift"].forEach(k => { const a = S[k] = Object.assign({}, S[k] || {}); Object.entries(r[k] || {}).forEach(([i, v]) => { a[i] = Math.max(a[i] | 0, v | 0); }); });
+  S.stiftGefeiert = [...new Set([...(S.stiftGefeiert || []), ...(Array.isArray(r.stiftGefeiert) ? r.stiftGefeiert : [])])]; S.stiftEingeweiht = !!(S.stiftEingeweiht || r.stiftEingeweiht);
   if (r.lbName && !S.lbName) S.lbName = r.lbName;
 }
 /* Diesem Gerät ein bestehendes Spielerprofil zuordnen (Kopplungscode oder Zusammenführung durch den Verwalter) */
@@ -2012,6 +2048,8 @@ async function lbStart() {
         if ((current === "spielen" || current === "duelle") && !document.querySelector(".modal") && !duSpiel) go(current);
       });
       bibSiegerPruefen();
+      /* 6.68: Stiftshütte – offene Spenden senden, fertige Abschnitte feiern */
+      stiftSenden(); stiftLaden().then(() => { if (["home", "rank", "stift"].includes(current)) setTimeout(stiftFeiern, 1500); });
     }
   } catch (e) {}
 }
@@ -2107,7 +2145,8 @@ VIEWS.rank = (tab) => {
   const L = window.LB;
   /* 6.58: Kopf im Arena-Stil – Ring = eigener Platz in der gewählten Liste, Tafel Level/Abzeichen/Spieler (nach dem Laden nachgetragen) */
   let html = bereichKopf("gemeinde", { ic: "people", t: "Gemeinde", sub: "Freie Baptisten Eichstätt", ring: ["–", "Platz"], ringId: "bkPlatz",
-    tafel: [[levelOf(S.xp), "Level"], [`${S.badges.length}`, "Abzeichen"], ["–", "Spieler", "bkSpieler"]] }) + bkLabel("trophy", "Ranglisten");
+    tafel: [[levelOf(S.xp), "Level"], [`${S.badges.length}`, "Abzeichen"], ["–", "Spieler", "bkSpieler"]] }) + `<div id="shMiniBox">${stiftMiniHtml()}</div>` + bkLabel("trophy", "Ranglisten");
+  stiftLaden().then(() => { const b = $("shMiniBox"); if (b && current === "rank") { b.innerHTML = stiftMiniHtml(); wireGo(); } });
   if (!L) { screen.innerHTML = html + `<div class="card"><p class="muted" style="margin:0">Rangliste wird geladen …</p></div>`; wireGo(); return; }
   if (!L.configured) { screen.innerHTML = html + `<div class="card stack"><b>Noch nicht eingerichtet</b><p class="muted small" style="margin:0">Die Rangliste braucht einen gemeinsamen Online-Speicher. Bis dahin kannst du ganz normal spielen – dein Fortschritt wird später übernommen.</p></div>`; wireGo(); return; }
   if (!L.ok) { screen.innerHTML = html + `<div class="card stack"><b>Keine Verbindung</b><p class="muted small" style="margin:0">Für die Rangliste brauchst du Internet. Deine Punkte werden übertragen, sobald du wieder online bist.</p><button class="btn" id="retry">Neu laden</button></div>`; wireGo(); $("retry").onclick = () => location.reload(); return; }
@@ -4539,3 +4578,220 @@ function appAnleitung(installiert) {
 }
 if (window.matchMedia) try { matchMedia("(display-mode: standalone)").addEventListener("change", () => { appBonusPruefen(); appHinweisZeigen(); }); } catch (e) {}
 setTimeout(() => { appBonusPruefen(); appHinweisZeigen(); }, 1200);
+
+/* ---------- 6.68: neue Symbole (vorerst hier; beim nächsten Generator-Lauf in werkzeuge/symbole-erzeugen.js übernehmen) ---------- */
+(function () {
+  const W = (bereich, inner, halo = true) => `<svg x="0" y="0" width="24" height="24" viewBox="0 0 64 64" overflow="visible" class="wr wr-${bereich}">${halo ? `<circle class="wr-halo" cx="32" cy="32" r="31" fill="url(#wrH_${bereich === "avatar" ? "lohn" : bereich})"/>` : ""}<ellipse cx="32" cy="61" rx="17" ry="2.2" fill="#000" opacity=".3"/>${inner}</svg>`;
+  /* Avatar „Brennender Dornbusch“ (Level 35) */
+  ICONS["av-dornbusch"] = W("avatar", `<path d="M32 6c5 7 13 11 12 21c4-3 5-8 4-12c6 7 8 15 4 23c-3 7-11 11-20 11s-17-4-20-11c-4-8-2-16 4-23c-1 4 0 9 4 12c-1-10 7-14 12-21z" fill="url(#wrF)" stroke="#1b2a55" stroke-width="1.4" stroke-linejoin="round"/>
+    <path d="M32 18c3 5 8 8 7 15c-1 5-4 8-7 8s-6-3-7-8c-1-7 4-10 7-15z" fill="#fff6c8" opacity=".9"/>
+    <path d="M14 56c4-6 10-9 18-9s14 3 18 9" fill="none" stroke="#1b2a55" stroke-width="5" stroke-linecap="round"/><path d="M14 56c4-6 10-9 18-9s14 3 18 9" fill="none" stroke="#5fae5a" stroke-width="2.6" stroke-linecap="round"/>
+    <path d="M20 52l-4-5M27 49l-2-6M37 49l2-6M44 52l4-5" stroke="#3f7a3a" stroke-width="2" stroke-linecap="round"/>`, false);
+  /* Posaune / Schofar (Halljahr) */
+  ICONS.posaune = W("lohn", `<path d="M6 48C10 54 24 56 36 48C46 41 52 30 51 16L60 12C64 30 56 46 44 54C30 63 12 60 4 52Z" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1.6" stroke-linejoin="round"/>
+    <ellipse cx="55.5" cy="13.5" rx="5.6" ry="2.8" transform="rotate(-25 55.5 13.5)" fill="#fff6c8" stroke="#1b2a55" stroke-width="1.3"/>
+    <path d="M14 53q4-2 6-6M24 55q4-3 5-8M34 52q4-4 4-9M43 45q3-5 3-10" stroke="#a07c22" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+    <path d="M9 50C16 54 28 53 37 46" stroke="#fff" stroke-width="1.6" fill="none" opacity=".8" stroke-linecap="round"/>
+    <path d="M58 22q4 3 4 8M62 16q2 2 1 6" stroke="#ffe39a" stroke-width="2" fill="none" stroke-linecap="round"/>`);
+  /* Zelt der Stiftshütte (Gemeinde) */
+  ICONS.zelt = W("gemeinde", `<path d="M6 50L22 26H48L58 50Z" fill="#7a2a2a" stroke="#1b2a55" stroke-width="1.5" stroke-linejoin="round"/><path d="M22 26L12 50H34L30 26Z" fill="#9a3a3a" stroke="#1b2a55" stroke-width="1.2" stroke-linejoin="round"/>
+    <path d="M17 40h10v10H17z" fill="#5c8fd6" stroke="#1b2a55" stroke-width="1"/><path d="M22 26H48" stroke="#ffe39a" stroke-width="2"/><path d="M34 6c2 6 6 7 5 12c-1 3-3 5-5 5s-4-2-5-5c-1-5 3-6 5-12z" fill="url(#wrF)" stroke="#1b2a55" stroke-width="1"/>`);
+  /* Wappen-Embleme der zwölf Stämme (weißgold auf Stammesfarbe) */
+  const E = {
+    wasser: `<path d="M18 30q4-4 8 0t8 0t8 0t4 0M18 38q4-4 8 0t8 0t8 0t4 0M18 46q4-4 8 0t8 0t8 0t4 0" fill="none" stroke="url(#wrP)" stroke-width="3" stroke-linecap="round"/>`,
+    schwert: `<path d="M32 16v26" stroke="url(#wrP)" stroke-width="4" stroke-linecap="round"/><path d="M24 40h16" stroke="url(#wrG)" stroke-width="4" stroke-linecap="round"/><path d="M32 42v8" stroke="url(#wrG)" stroke-width="4" stroke-linecap="round"/>`,
+    brustschild: `<rect x="21" y="20" width="22" height="26" rx="3" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1.2"/>${[0, 1, 2, 3].map(y => [0, 1, 2].map(x => `<circle cx="${26 + x * 6}" cy="${25 + y * 6}" r="2" fill="${["#ff6b6b", "#5fe0b0", "#7fc8ff", "#c09bff"][y]}"/>`).join("")).join("")}`,
+    loewe: `<circle cx="32" cy="32" r="12" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1.2"/><circle cx="32" cy="34" r="7" fill="#fff6c8" stroke="#1b2a55" stroke-width="1"/><circle cx="29.5" cy="32.5" r="1" fill="#1b2a55"/><circle cx="34.5" cy="32.5" r="1" fill="#1b2a55"/><path d="M30 37q2 1.5 4 0" stroke="#1b2a55" stroke-width="1" fill="none"/><path d="M24 20l2 5M40 20l-2 5" stroke="url(#wrG)" stroke-width="3" stroke-linecap="round"/>`,
+    schiff: `<path d="M16 38h32l-5 9H21z" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1.2" stroke-linejoin="round"/><path d="M32 14v24" stroke="#fff6c8" stroke-width="2"/><path d="M33 16l11 18H33z" fill="url(#wrP)" stroke="#1b2a55" stroke-width="1"/><path d="M14 51q6-3 12 0t12 0t12 0" stroke="url(#wrP)" stroke-width="2" fill="none"/>`,
+    sterne: `<path d="M38 18a12 12 0 1 0 0 24a9 9 0 1 1 0-24z" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1.2"/>${[[22, 20], [20, 36], [28, 46]].map(([x, y]) => `<path d="M${x} ${y - 4}l1.2 2.8 2.8 1.2-2.8 1.2-1.2 2.8-1.2-2.8-2.8-1.2 2.8-1.2z" fill="#fff6c8"/>`).join("")}`,
+    schlange: `<path d="M20 46c0-6 10-6 12-12s-8-8-6-14c1-4 7-5 10-3" fill="none" stroke="#1b2a55" stroke-width="7" stroke-linecap="round"/><path d="M20 46c0-6 10-6 12-12s-8-8-6-14c1-4 7-5 10-3" fill="none" stroke="url(#wrG)" stroke-width="4.4" stroke-linecap="round"/><circle cx="37" cy="17" r="3.2" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1"/>`,
+    zelt: `<path d="M16 46L32 18L48 46Z" fill="url(#wrP)" stroke="#1b2a55" stroke-width="1.3" stroke-linejoin="round"/><path d="M32 18v28" stroke="#1b2a55" stroke-width="1"/><path d="M28 46l4-12 4 12z" fill="#2a2f4a"/>`,
+    aehre: `<path d="M32 50V18" stroke="url(#wrG)" stroke-width="2.4"/>${[20, 26, 32, 38].map(y => `<ellipse cx="27.5" cy="${y}" rx="4.5" ry="2.4" transform="rotate(-30 27.5 ${y})" fill="url(#wrG)" stroke="#1b2a55" stroke-width=".8"/><ellipse cx="36.5" cy="${y}" rx="4.5" ry="2.4" transform="rotate(30 36.5 ${y})" fill="url(#wrG)" stroke="#1b2a55" stroke-width=".8"/>`).join("")}`,
+    hirsch: `<path d="M26 44c0-6 2-10 6-10s6 4 6 10" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1.2"/><path d="M28 34c-2-4-6-6-8-12M24 27l-5 1M22 23l-2-5M36 34c2-4 6-6 8-12M40 27l5 1M42 23l2-5" stroke="url(#wrP)" stroke-width="2.4" fill="none" stroke-linecap="round"/>`,
+    zweig: `<path d="M20 48C26 38 34 28 46 18" stroke="url(#wrG)" stroke-width="3" fill="none" stroke-linecap="round"/>${[[28, 38], [34, 31], [40, 25]].map(([x, y]) => `<ellipse cx="${x - 5}" cy="${y - 3}" rx="5" ry="2.4" transform="rotate(-50 ${x - 5} ${y - 3})" fill="#7fd08a" stroke="#1b2a55" stroke-width=".8"/><circle cx="${x + 3}" cy="${y + 3}" r="2.6" fill="#ff8a8a" stroke="#1b2a55" stroke-width=".8"/>`).join("")}`,
+    wolf: `<path d="M20 20l6 10h12l6-10-2 16c0 7-5 12-10 12s-10-5-10-12z" fill="url(#wrP)" stroke="#1b2a55" stroke-width="1.3" stroke-linejoin="round"/><circle cx="28" cy="36" r="1.4" fill="#1b2a55"/><circle cx="36" cy="36" r="1.4" fill="#1b2a55"/><path d="M30 43l2 2 2-2" fill="#1b2a55"/>`
+  };
+  STAEMME.forEach(t => {
+    ICONS["st-" + t.id] = `<svg x="0" y="0" width="24" height="24" viewBox="0 0 64 64" overflow="visible" class="wr wr-lohn wappen"><ellipse cx="32" cy="61" rx="15" ry="2" fill="#000" opacity=".3"/>
+      <path d="M32 4L56 10V30C56 45 45 55 32 60C19 55 8 45 8 30V10Z" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M32 9L51 14V30C51 42 42 50 32 55C22 50 13 42 13 30V14Z" fill="${t.f}" stroke="#1b2a55" stroke-width="1"/>
+      <path d="M17 16L32 12L47 16" stroke="#fff" stroke-opacity=".5" stroke-width="1.6" fill="none"/>${E[t.e]}</svg>`;
+  });
+  /* Rahmen (Overlay um den Avatar) */
+  const R = window.RAHMEN_SVG = window.RAHMEN_SVG || {};
+  const ring = (stroke, w = 6) => `<circle cx="50" cy="50" r="38.8" fill="none" stroke="#141a3a" stroke-width="1.4"/><circle cx="50" cy="50" r="35" fill="none" stroke="${stroke}" stroke-width="${w}"/><circle cx="50" cy="50" r="32" fill="none" stroke="#000" stroke-opacity=".45" stroke-width="1"/>`;
+  const glanz = `<path d="M22 38a30 30 0 0 1 18-18" stroke="#fff" stroke-opacity=".75" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
+  const um = (n, f) => Array.from({ length: n }, (_, i) => f(i, (i / n) * Math.PI * 2 - Math.PI / 2)).join("");
+  R.saeule = `<svg class="av-fr" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="frSaeuleL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#c9d6f2"/><stop offset=".5" stop-color="#ffb54a"/><stop offset="1" stop-color="#ff6b3a"/></linearGradient></defs>${ring("url(#frSaeuleL)")}
+    <g fill="#fff" stroke="#c9d6f2" stroke-width=".6"><circle cx="13" cy="44" r="6"/><circle cx="10" cy="54" r="5"/><circle cx="16" cy="63" r="5"/><circle cx="14" cy="34" r="4"/></g>
+    <g fill="url(#wrF)" stroke="#7a2a08" stroke-width=".6"><path d="M87 66c-4-4-5-9-2-14c1 4 3 5 4 5c0-5 2-9 5-12c-1 5 2 8 2 12c0 6-4 9-9 9z"/><path d="M85 40c-3-3-3-7-1-10c1 3 2 4 3 4c0-3 1-6 4-8c-1 4 1 6 1 9c0 4-3 6-7 5z"/></g>${glanz}</svg>`;
+  R.zwoelf = `<svg class="av-fr" viewBox="0 0 100 100" aria-hidden="true">${ring("url(#wrR_gold)")}${um(12, (i, a) => `<circle cx="${(50 + 35 * Math.cos(a)).toFixed(2)}" cy="${(50 + 35 * Math.sin(a)).toFixed(2)}" r="3.6" fill="${STAEMME[i].f}" stroke="#7a5208" stroke-width="1"/><circle cx="${(49 + 35 * Math.cos(a)).toFixed(2)}" cy="${(49 + 35 * Math.sin(a)).toFixed(2)}" r="1" fill="#fff" opacity=".8"/>`)}${glanz}</svg>`;
+  R.feuergold = `<svg class="av-fr" viewBox="0 0 100 100" aria-hidden="true"><circle class="fr-schein" cx="50" cy="50" r="47" fill="url(#wrRschein)"/>${ring("url(#wrR_gold)", 7)}${um(16, (i, a) => `<path d="M${(50 + 40 * Math.cos(a)).toFixed(2)} ${(50 + 40 * Math.sin(a)).toFixed(2)}L${(50 + (i % 2 ? 45 : 48) * Math.cos(a)).toFixed(2)} ${(50 + (i % 2 ? 45 : 48) * Math.sin(a)).toFixed(2)}" stroke="#ffb54a" stroke-width="${i % 2 ? 1.6 : 2.6}" stroke-linecap="round"/>`)}${um(6, (i, a) => `<circle cx="${(50 + 35 * Math.cos(a)).toFixed(2)}" cy="${(50 + 35 * Math.sin(a)).toFixed(2)}" r="2.8" fill="#fff6c8" stroke="#a0520a" stroke-width=".8"/>`)}${glanz}</svg>`;
+  R.wolke = `<svg class="av-fr" viewBox="0 0 100 100" aria-hidden="true"><circle class="fr-schein" cx="50" cy="50" r="47" fill="url(#wrRschein)"/>${ring("url(#wrR_licht)")}
+    <g fill="#fff" stroke="#c9d6f2" stroke-width=".7"><ellipse cx="50" cy="13" rx="20" ry="7"/><circle cx="38" cy="11" r="7"/><circle cx="50" cy="7" r="8"/><circle cx="62" cy="11" r="7"/></g>
+    <path d="M50 20V30" stroke="#ffe39a" stroke-width="2" stroke-linecap="round"/>${glanz}</svg>`;
+})();
+
+/* ---------- 6.68: Gemeinsamer Bau der Stiftshütte ----------
+   Spenden je Spieler in der Sammlung „stiftshuette“ ({pid, name, s: {"1": Talente, …, "8": …}}). Summe = alle Spieler.
+   Ein Abschnitt k ist offen, wenn alle vorigen fertig sind und seine Woche begonnen hat. Ist das Ziel erreicht: „mehr als genug“. */
+let stiftDaten = null, stiftZeit = 0, stiftLaedt = null;
+const stiftWoche = () => Math.floor((dayNum(today()) - dayNum(STIFT_START)) / 7);
+const stiftMontag = k => { const d = datumVon(dayNum(STIFT_START) + 7 * k); return d.toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long" }); };
+function stiftLaden(neu) {
+  const L = window.LB; if (!L || !L.ok || !L.stiftListe) return Promise.resolve(stiftDaten);
+  if (!neu && stiftDaten && Date.now() - stiftZeit < 60e3) return Promise.resolve(stiftDaten);
+  if (stiftLaedt) return stiftLaedt;
+  stiftLaedt = L.stiftListe().then(rows => { stiftDaten = rows; stiftZeit = Date.now(); return rows; }).catch(() => stiftDaten).finally(() => { stiftLaedt = null; });
+  return stiftLaedt;
+}
+function stiftStand() {
+  const sum = STIFT.map(() => 0), spender = STIFT.map(() => []);
+  const zeilen = (stiftDaten || []).filter(r => r.pid !== S.pid);
+  if (S.pid || Object.keys(S.stift || {}).length) { const eig = (stiftDaten || []).find(r => r.pid === S.pid) || { s: {} }; const s = {}; for (let k = 1; k <= 8; k++) s[k] = Math.max((eig.s || {})[k] | 0, (S.stift || {})[k] | 0); zeilen.push({ pid: S.pid, name: S.lbName, s, ich: true }); }
+  zeilen.forEach(r => { for (let k = 1; k <= 8; k++) { const v = (r.s || {})[k] | 0; if (v > 0) { sum[k - 1] += v; spender[k - 1].push(r.ich ? "Du" : r.name); } } });
+  let k = 0; while (k < 8 && sum[k] >= STIFT[k].ziel) k++;
+  const woche = stiftWoche();
+  return { sum, spender, k, fertig: k, eingeweiht: k >= 8, woche, offen: k < 8 && woche >= k, vorStart: woche < 0 };
+}
+/* Schrägansicht von oben: x = Länge 0–100 Ellen, y = Tiefe 0–50, z = Höhe. Die Wohnung ist (künstlerisch) etwas größer
+   gezeichnet als im Maßstab, die vordere Wand und das Dach fehlen – so schaut man hinein. */
+function stiftBild(st) {
+  const P = (x, y, z = 0) => `${(10 + x * 2.6 + y * 0.8).toFixed(1)},${(204 - y * 1.8 - z * 3.6).toFixed(1)}`;
+  const X = (...a) => P(...a).split(",")[0], Y = (...a) => P(...a).split(",")[1];
+  const poly = (pts, attr) => `<polygon points="${pts.map(q => P(...q)).join(" ")}" ${attr}/>`;
+  const linie = (a, b, attr) => `<line x1="${X(...a)}" y1="${Y(...a)}" x2="${X(...b)}" y2="${Y(...b)}" ${attr}/>`;
+  const teil = (k, inner) => `<g class="sh-teil ${st.fertig >= k ? "an" : st.k + 1 === k && st.offen ? "bau" : "aus"}">${inner}</g>`;
+  const pfosten = (x1, y1, x2, y2, n) => Array.from({ length: n + 1 }, (_, i) => { const x = x1 + (x2 - x1) * i / n, y = y1 + (y2 - y1) * i / n; return linie([x, y, 0], [x, y, 5.6], `stroke="#d9b24a" stroke-width="1.5"`) + `<circle cx="${X(x, y, 5.6)}" cy="${Y(x, y, 5.6)}" r="1" fill="#e3e9f6"/>`; }).join("");
+  const zaun = (a, b, extra = "") => poly([[...a, 0.6], [...b, 0.6], [...b, 5], [...a, 5]], `fill="#f1ead6" stroke="#cfc6aa" stroke-width=".5" ${extra}`);
+  const box = (x1, y1, x2, y2, h, oben, vorne, rechts, rand) => poly([[x1, y1, h], [x2, y1, h], [x2, y2, h], [x1, y2, h]], `fill="${oben}" stroke="${rand}" stroke-width=".6"`)
+    + poly([[x1, y1, 0], [x2, y1, 0], [x2, y1, h], [x1, y1, h]], `fill="${vorne}" stroke="${rand}" stroke-width=".6"`) + poly([[x2, y1, 0], [x2, y2, 0], [x2, y2, h], [x2, y1, h]], `fill="${rechts}" stroke="${rand}" stroke-width=".6"`);
+  const glut = (x, y, z, r, id = "shGlut") => `<circle cx="${X(x, y, z)}" cy="${Y(x, y, z)}" r="${r}" fill="url(#${id})"/>`;
+  const sterne = Array.from({ length: 24 }, (_, i) => `<circle cx="${(i * 47) % 320}" cy="${(i * 29) % 64 + 5}" r="${i % 4 ? .8 : 1.4}" fill="#fff" opacity="${i % 3 ? .55 : .9}"/>`).join("");
+  const T = { x1: 52, x2: 92, y1: 15, y2: 35, h: 13, vh: 82 };   /* Wohnung; Vorhang bei x = vh */
+  return `<svg class="sh-bild" viewBox="0 0 320 215" role="img" aria-label="Die Stiftshütte: ${st.fertig} von 8 Bauabschnitten fertig">
+  <defs><linearGradient id="shNacht" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d1636"/><stop offset="1" stop-color="#2a2552"/></linearGradient>
+    <linearGradient id="shSand" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a07a46"/><stop offset="1" stop-color="#6b4f2a"/></linearGradient>
+    <linearGradient id="shHolz" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#c18c45"/><stop offset="1" stop-color="#8a5a24"/></linearGradient>
+    <linearGradient id="shGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3c4"/><stop offset=".6" stop-color="#f2c14e"/><stop offset="1" stop-color="#a07c22"/></linearGradient>
+    <linearGradient id="shVorhang" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3a4fc0"/><stop offset=".5" stop-color="#7a3aa8"/><stop offset="1" stop-color="#c0263a"/></linearGradient>
+    <radialGradient id="shGlut"><stop offset="0" stop-color="#fff6c8"/><stop offset=".45" stop-color="#ffb54a" stop-opacity=".75"/><stop offset="1" stop-color="#ff6b3a" stop-opacity="0"/></radialGradient>
+    <radialGradient id="shHerrl"><stop offset="0" stop-color="#fffbe8"/><stop offset=".5" stop-color="#ffe39a" stop-opacity=".6"/><stop offset="1" stop-color="#ffe39a" stop-opacity="0"/></radialGradient></defs>
+  <rect width="320" height="215" fill="url(#shNacht)"/>${sterne}
+  <path d="M0 120Q70 100 150 110T320 96V215H0Z" fill="#4a3820"/><path d="M0 200Q90 180 190 192T320 182V215H0Z" fill="url(#shSand)" opacity=".7"/>
+  ${poly([[0, 0], [100, 0], [100, 50], [0, 50]], `fill="#c49a5c" opacity=".6"`)}
+  ${teil(1, `${zaun([0, 50], [100, 50])}${zaun([100, 0], [100, 50])}${pfosten(0, 50, 100, 50, 20)}${pfosten(100, 0, 100, 50, 10)}`)}
+  ${poly([[T.x1, T.y1], [T.x2, T.y1], [T.x2, T.y2], [T.x1, T.y2]], `fill="#6b4c2c" opacity=".75"`)}
+  ${teil(4, `${poly([[T.x1, T.y2, 0], [T.x2, T.y2, 0], [T.x2, T.y2, T.h], [T.x1, T.y2, T.h]], `fill="url(#shHolz)" stroke="#4a2c10" stroke-width=".8"`)}
+    ${Array.from({ length: 26 }, (_, i) => linie([T.x1 + 1.5 + i * 1.5, T.y2, 0], [T.x1 + 1.5 + i * 1.5, T.y2, T.h], `stroke="#6b4318" stroke-width=".55"`)).join("")}
+    ${poly([[T.x2, T.y1, 0], [T.x2, T.y2, 0], [T.x2, T.y2, T.h], [T.x2, T.y1, T.h]], `fill="#9a6a30" stroke="#4a2c10" stroke-width=".8"`)}
+    ${Array.from({ length: 27 }, (_, i) => poly([[T.x1 + .2 + i * 1.5, T.y2 - .4, 0], [T.x1 + 1.2 + i * 1.5, T.y2 - .4, 0], [T.x1 + 1.2 + i * 1.5, T.y2 - .4, .6], [T.x1 + .2 + i * 1.5, T.y2 - .4, .6]], `fill="#e3e9f6"`)).join("")}
+    ${Array.from({ length: 27 }, (_, i) => poly([[T.x1 + .2 + i * 1.5, T.y1, 0], [T.x1 + 1.2 + i * 1.5, T.y1, 0], [T.x1 + 1.2 + i * 1.5, T.y1, 1.4], [T.x1 + .2 + i * 1.5, T.y1, 1.4]], `fill="#a8743c" stroke="#e3e9f6" stroke-width=".3"`)).join("")}
+    ${[0, 1, 2, 3, 4].map(i => linie([T.x1, T.y1 + i * 5, 0], [T.x1, T.y1 + i * 5, T.h], `stroke="url(#shGold)" stroke-width="1.8"`)).join("")}`)}
+  ${teil(5, `${poly([[T.x1 - 1, T.y2 + .6, T.h], [T.x2 + 1, T.y2 + .6, T.h], [T.x2 + 1, T.y2 - 5, T.h + 1.6], [T.x1 - 1, T.y2 - 5, T.h + 1.6]], `fill="#3a2a2a" stroke="#1a1010" stroke-width=".6"`)}
+    ${poly([[T.x1 - 1, T.y2 - 5, T.h + 1.6], [T.x2 + 1, T.y2 - 5, T.h + 1.6], [T.x2 + 1, T.y2 - 8, T.h + 1.2], [T.x1 - 1, T.y2 - 8, T.h + 1.2]], `fill="#b03a3a" stroke="#5a1414" stroke-width=".6"`)}
+    ${poly([[T.x2 + .4, T.y1 - .5, 0], [T.x2 + .4, T.y2 + .6, 0], [T.x2 + .4, T.y2 + .6, T.h + .4], [T.x2 + .4, T.y1 - .5, T.h + .4]], `fill="#8a2a2a" opacity=".55"`)}`)}
+  ${teil(6, `${glut(57, 18.5, 5, 16)}${linie([57, 18.5, 0], [57, 18.5, 7], `stroke="url(#shGold)" stroke-width="2"`)}
+    ${[[-3, 4.5], [-2, 5.5], [-1, 6.4], [1, 6.4], [2, 5.5], [3, 4.5]].map(([d, z]) => `<path d="M${P(57, 18.5, 2.5)} Q${P(57 + d, 18.5, 2.5)} ${P(57 + d, 18.5, z)}" stroke="url(#shGold)" stroke-width="1.4" fill="none"/><circle cx="${X(57 + d, 18.5, z + .4)}" cy="${Y(57 + d, 18.5, z + .4)}" r="1.4" fill="#fff6c8"/>`).join("")}<circle cx="${X(57, 18.5, 7.4)}" cy="${Y(57, 18.5, 7.4)}" r="1.5" fill="#fff6c8"/>
+    ${box(60, 29, 68, 32.5, 3, "url(#shGold)", "#d9a640", "#a07c22", "#7a5208")}
+    ${[61.5, 64, 66.5].map(x => `<ellipse cx="${X(x, 30.8, 3.3)}" cy="${Y(x, 30.8, 3.3)}" rx="3" ry="1.3" fill="#f6e2b0" stroke="#a07c22" stroke-width=".4"/>`).join("")}
+    ${box(77, 23.5, 79, 26.5, 3.2, "url(#shGold)", "#d9a640", "#a07c22", "#7a5208")}<path d="M${P(78, 25, 3.4)} q3 -5 0 -9 q-3 -4 1 -8" stroke="#e3e9f6" stroke-width="1.1" fill="none" opacity=".75"/>`)}
+  ${teil(7, `${poly([[T.vh, T.y1, 0], [T.vh, T.y2, 0], [T.vh, T.y2, T.h], [T.vh, T.y1, T.h]], `fill="url(#shVorhang)" opacity=".86" stroke="#2a1a4a" stroke-width=".7"`)}
+    <path d="M${P(T.vh, 20, 7)} q5 -9 11 -4 M${P(T.vh, 30, 7)} q5 -9 11 -4" stroke="#ffe39a" stroke-width="1.3" fill="none"/>`)}
+  ${teil(8, `${glut(87, 25, 3, 26, "shHerrl")}${box(84.5, 23.5, 89.5, 26.5, 2.4, "url(#shGold)", "#e0b04a", "#a07c22", "#7a5208")}
+    <path d="M${P(85.2, 25, 2.6)} q-2 -6 3.4 -5 M${P(88.8, 25, 2.6)} q2 -6 -3.4 -5" stroke="url(#shGold)" stroke-width="1.6" fill="none"/>`)}
+  ${teil(2, `${glut(21.5, 24.5, 4.5, 15)}${box(18, 21, 25, 28, 3.2, "#7a4a24", "#c98a4b", "#a56a32", "#5a3410")}${[[18, 21], [25, 21], [25, 28], [18, 28]].map(([x, y]) => `<circle cx="${X(x, y, 3.4)}" cy="${Y(x, y, 3.4)}" r="1.2" fill="#e8b27a"/>`).join("")}`)}
+  ${teil(3, `<ellipse cx="${X(37, 24.5, 2.2)}" cy="${Y(37, 24.5, 2.2)}" rx="10" ry="4.2" fill="#b8c8e0" stroke="#e3e9f6" stroke-width="1.1"/><ellipse cx="${X(37, 24.5, 2.2)}" cy="${Y(37, 24.5, 2.2)}" rx="6.5" ry="2.4" fill="#7fc8ff" opacity=".75"/>${linie([37, 24.5, 0], [37, 24.5, 1.9], `stroke="#9fb6d8" stroke-width="3.4"`)}`)}
+  ${teil(1, `${zaun([0, 0], [100, 0], `opacity=".5"`)}${zaun([0, 0], [0, 50], `opacity=".45"`)}${poly([[0, 20, 0.6], [0, 30, 0.6], [0, 30, 5], [0, 20, 5]], `fill="url(#shVorhang)" opacity=".9"`)}${pfosten(0, 0, 100, 0, 20)}${pfosten(0, 0, 0, 50, 10)}`)}
+  ${st.eingeweiht ? `<g class="sh-wolke">${glut(72, 25, 22, 70, "shHerrl")}<g fill="#fff" stroke="#dfe6f6" stroke-width=".8"><ellipse cx="${X(72, 25, 23)}" cy="${Y(72, 25, 23)}" rx="62" ry="14"/><circle cx="${X(56, 25, 25)}" cy="${Y(56, 25, 25)}" r="15"/><circle cx="${X(72, 25, 28)}" cy="${Y(72, 25, 28)}" r="18"/><circle cx="${X(88, 25, 25)}" cy="${Y(88, 25, 25)}" r="14"/></g></g>`
+    : `<g class="sh-feuer"><path d="M${P(72, 25, 20)} c-6 -10 4 -14 0 -26 c8 8 10 18 4 26 z" fill="url(#shGlut)"/><ellipse cx="${X(72, 25, 19)}" cy="${Y(72, 25, 19)}" rx="9" ry="20" fill="url(#shGlut)" opacity=".55"/></g>`}
+  </svg>`;
+}
+/* Kompakter Bauweg: 8 Medaillons in einer Reihe */
+function stiftWeg(st) {
+  return `<ol class="sh-weg" aria-label="Bauabschnitte">${STIFT.map((a, i) => { const z = i < st.fertig ? "fertig" : i === st.k && st.offen ? "jetzt" : i === st.k ? "naechst" : "spaeter";
+    return `<li class="${z}" title="${i + 1}. ${esc(a.n)}"><span>${z === "fertig" ? svg("check") : i + 1}</span><small>${esc(a.kurz)}</small></li>`; }).join("")}</ol>`;
+}
+function stiftNamen(liste) {
+  const n = [...new Set(liste)]; if (!n.length) return "";
+  const du = n.includes("Du"), rest = n.filter(x => x !== "Du");
+  const zeig = (du ? ["Du"] : []).concat(rest.slice(0, du ? 3 : 4)), mehr = n.length - zeig.length;
+  return zeig.map(x => `<b>${esc(x)}</b>`).join(", ") + (mehr > 0 ? ` und ${mehr} weitere` : "");
+}
+/* Kleine Karte auf dem Gemeinde-Reiter */
+function stiftMiniHtml() {
+  const st = stiftStand(), a = STIFT[Math.min(st.k, 7)], pz = st.eingeweiht ? 100 : Math.min(100, Math.round(st.sum[st.k] / a.ziel * 100));
+  const zeile = st.eingeweiht ? "Eingeweiht – die Wolke erfüllt die Hütte" : st.vorStart ? `Baustart ${stiftMontag(0)}` : st.offen ? `${st.k + 1}/8 · ${a.n}` : `${st.k}/8 fertig · weiter ${stiftMontag(st.k)}`;
+  return `<button class="sh-mini" data-go="stift" aria-label="Stiftshütte: ${esc(zeile)}">${svg("zelt")}<span class="sh-mini-tx"><b>Stiftshütte</b><small>${esc(zeile)}</small><i class="sh-balken klein"><i style="width:${st.vorStart ? 0 : pz}%"></i></i></span><span class="sh-pfeil">›</span></button>`;
+}
+VIEWS.stift = () => {
+  const st = stiftStand(), a = STIFT[Math.min(st.k, 7)], ist = st.eingeweiht ? 0 : st.sum[st.k], rest = st.eingeweiht ? 0 : Math.max(0, a.ziel - ist);
+  const pz = st.eingeweiht ? 100 : Math.min(100, Math.round(ist / a.ziel * 100)), online = window.LB && LB.ok && LB.stiftSetzen && S.pid && !S.offlineOnly;
+  const tageNoch = 7 - ((dayNum(today()) - dayNum(STIFT_START)) % 7 + 7) % 7;
+  let karte;
+  if (st.eingeweiht) karte = `<div class="sh-karte fertig"><div class="sh-z1"><b>Eingeweiht!</b><small>alle 8 Abschnitte</small></div><p class="sh-vers">„Da bedeckte die Wolke die Stiftshütte, und die Herrlichkeit des HERRN erfüllte die Wohnung.“ (2. Mose 40,34)</p>
+      <p class="sh-geber">Gebaut von ${stiftNamen(st.spender.flat())}</p></div>`;
+  else if (st.vorStart) karte = `<div class="sh-karte"><div class="sh-z1"><b>1 · ${esc(a.n)}</b><small>ab ${esc(stiftMontag(0))}</small></div><p class="sh-vers">${esc(a.k)} (${esc(a.v)})</p>
+      <p class="sh-geber">Am Montag beginnt der Bau. Jede Woche öffnet ein neuer Abschnitt – sammle schon Talente! „Jeder, den sein Herz willig machte, brachte dem HERRN eine Gabe“ (2. Mose 35,21).</p></div>`;
+  else if (!st.offen) karte = `<div class="sh-karte genug"><div class="sh-z1"><b>Es ist mehr als genug!</b><small>${st.k}/8 fertig</small></div><p class="sh-vers">„Das Volk bringt viel mehr, als für den Dienst an dem Werk nötig ist“ (2. Mose 36,5). Der nächste Abschnitt „${esc(a.n)}“ beginnt ${esc(stiftMontag(st.k))}.</p>
+      <p class="sh-geber">Zuletzt gaben ${stiftNamen(st.spender[st.k - 1])}</p></div>`;
+  else karte = `<div class="sh-karte"><div class="sh-z1"><b>${st.k + 1} · ${esc(a.n)}</b><small>${st.woche > st.k ? "läuft weiter" : `noch ${tageNoch} ${tageNoch === 1 ? "Tag" : "Tage"}`}</small></div><p class="sh-vers">${esc(a.k)} (${esc(a.v)})</p>
+      <div class="sh-balken"><i style="width:${pz}%"></i></div><div class="sh-zahlen"><span>${pkt(ist)} von ${pkt(a.ziel)} Talenten</span><span>${pz} %</span></div>
+      ${online ? `<div class="sh-spenden">${[10, 50, 100].map(v => `<button data-sp="${v}" ${S.tal < 1 ? "disabled" : ""}>+${v}</button>`).join("")}<button class="haupt" data-sp="frei">Spenden</button></div>` : `<p class="small muted" style="margin:0">Spenden geht nur mit Internet und Eintrag in der Rangliste.</p>`}
+      <p class="sh-geber">${st.spender[st.k].length ? `Diese Woche gaben ${stiftNamen(st.spender[st.k])}` : "Sei der Erste, der für diesen Abschnitt gibt!"}</p></div>`;
+  screen.innerHTML = `${backBtn("rank", "Gemeinde")}${bereichKopf("gemeinde", { ic: "zelt", t: "Stiftshütte", sub: "Die Gemeinde baut gemeinsam", ring: [st.fertig, "von 8"] })}
+    <div class="sh-buehne">${stiftBild(st)}</div>${stiftWeg(st)}${karte}
+    <p class="small muted sh-fuss">Spender werden mit Namen genannt, Beträge bleiben verborgen (Matthäus 6,3). Du hast ${pkt(S.tal)} Talente.</p>`;
+  wireGo();
+  screen.querySelectorAll("[data-sp]").forEach(b => b.onclick = () => { const v = b.dataset.sp;
+    if (v === "frei") { stiftSpendeWahl(); return; } stiftSpenden(+v, b); });
+  if (!stiftDaten || Date.now() - stiftZeit > 60e3) stiftLaden(true).then(() => { if (current === "stift" && !document.querySelector(".modal")) VIEWS.stift(); stiftFeiern(); });
+  else stiftFeiern();
+};
+function stiftSpendeWahl() {
+  const st = stiftStand(), rest = Math.max(0, STIFT[st.k].ziel - st.sum[st.k]), max = Math.min(S.tal, rest);
+  const m = modal(`<div class="label">Gabe für die Stiftshütte</div><h2 style="margin:0">${esc(STIFT[st.k].n)}</h2><p class="muted small" style="margin:0">Noch ${pkt(rest)} Talente bis zum Ziel · du hast ${pkt(S.tal)}.</p>
+    <input class="field" id="spBetrag" type="number" inputmode="numeric" min="1" max="${max}" value="${Math.min(max, 25)}" aria-label="Talente spenden">
+    <button class="btn primary" id="spOk" ${max < 1 ? "disabled" : ""}>Spenden</button><button class="btn ghost" data-close>Abbrechen</button>`);
+  m.querySelector("#spOk").onclick = () => { const v = Math.floor(+m.querySelector("#spBetrag").value || 0); m.remove(); stiftSpenden(v); };
+}
+function stiftSpenden(v, el) {
+  const st = stiftStand(); if (!st.offen) return;
+  const rest = Math.max(0, STIFT[st.k].ziel - st.sum[st.k]); v = Math.min(v | 0, rest, S.tal);
+  if (v < 1) { SFX.wrong(); toast(`${TAL_MUENZE}<div>${S.tal < 1 ? "Du hast gerade keine Talente." : "Dieser Abschnitt ist schon voll."}</div>`); return; }
+  const k = String(st.k + 1);
+  S.tal -= v; S.stift = Object.assign({}, S.stift, { [k]: ((S.stift || {})[k] | 0) + v }); save(); renderHud();
+  SFX.coin(); if (el) { const [x, y] = centerOf(el); burst(x, y, 40, { up: 5 }); }
+  stiftSenden();
+  const voll = st.sum[st.k] + v >= STIFT[st.k].ziel;
+  VIEWS.stift();
+  if (voll) setTimeout(stiftFeiern, 500);
+  else toast(`${svg("zelt")}<div><b>Danke für deine Gabe!</b><div class="small muted">+${v} für „${esc(STIFT[st.k].n)}“</div></div>`);
+}
+function stiftSenden() {
+  const L = window.LB; if (!L || !L.ok || !L.stiftSetzen || !S.pid || S.offlineOnly) return;
+  const sig = JSON.stringify(S.stift || {}); if (sig === "{}" || S.stiftSync === sig) return;
+  const s = {}; Object.entries(S.stift || {}).forEach(([k, v]) => { if (+k >= 1 && +k <= 8 && v > 0) s[k] = Math.min(v | 0, 20000); });
+  L.stiftSetzen(S.pid, S.lbName, s).then(() => { S.stiftSync = sig; save(); stiftDaten = (stiftDaten || []).filter(r => r.pid !== S.pid).concat([{ pid: S.pid, name: S.lbName, s }]); })
+    .catch(e => dbFehler("Stiftshütte speichern", e));
+}
+/* Feiern: jeder fertige Abschnitt einmal für alle, die dafür gegeben haben; die Einweihung für alle Spender */
+function stiftFeiern() {
+  if (document.querySelector(".modal")) return;
+  const st = stiftStand(); let neu = false;
+  if (st.eingeweiht && !S.stiftEingeweiht) { S.stiftEingeweiht = true; neu = true; save(); checkBadges();
+    if (Object.values(S.stift || {}).some(v => v > 0)) {
+      [0, 900, 2000].forEach(t => setTimeout(() => { SFX.level(); rain(150); }, t));
+      modal(`<div class="label">Einweihung</div><div class="sh-feier">${stiftBild(st)}</div><h2 style="margin:0">Die Stiftshütte ist fertig!</h2><p class="muted small" style="margin:0">„Da bedeckte die Wolke die Stiftshütte, und die Herrlichkeit des HERRN erfüllte die Wohnung“ (2. Mose 40,34). Danke, dass du mitgebaut hast!</p>
+        <div class="vle-werte"><div><b>${avatarHtml({ avatar: S.avatar, frame: "wolke", name: S.lbName }, 44)}</b><span>Rahmen „Wolke der Herrlichkeit“</span></div><div><b>${svg("scroll")}</b><span>Titel „Bezaleel“</span></div></div>
+        <button class="btn primary" data-close>Amen</button>`); return; }
+  }
+  for (let i = 0; i < st.fertig; i++) { const k = String(i + 1);
+    if ((S.stift || {})[k] > 0 && !(S.stiftGefeiert || []).includes(k)) {
+      S.stiftGefeiert = [...(S.stiftGefeiert || []), k]; save(); SFX.badge(); rain(100);
+      modal(`<div class="label">Bauabschnitt ${k} von 8 fertig</div><div class="sh-feier">${stiftBild(Object.assign({}, st, { fertig: Math.max(st.fertig, i + 1) }))}</div><h2 style="margin:0">${esc(STIFT[i].n)}</h2>
+        <p class="muted small" style="margin:0">„Es ist mehr als genug!“ (2. Mose 36,7) – Gebaut von ${stiftNamen(st.spender[i])}.</p><button class="btn primary" data-close="ok">Weiter</button>`, () => setTimeout(stiftFeiern, 300));
+      return; }
+  }
+  return neu;
+}

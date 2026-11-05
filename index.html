@@ -817,7 +817,7 @@ button.tq-preis{font:inherit;color:inherit;cursor:pointer}
 .kb-status{margin-top:6px;font-size:.8rem;padding:6px 11px}
 .ruest-figur.klein{padding:8px;gap:5px;margin-bottom:10px}
 .ruest-figur.klein span{border-radius:10px}
-.kb-tabs{display:grid;grid-template-columns:repeat(5,1fr);border-radius:16px;padding:4px;background:#ffffff0b;border:1px solid #ffffff17;margin-bottom:10px}
+.kb-tabs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border-radius:16px;padding:4px;background:#ffffff0b;border:1px solid #ffffff17;margin-bottom:10px}
 .kb-tabs button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 0 6px;border:0;background:none;border-radius:12px;font:800 .64rem var(--body);color:var(--muted);cursor:pointer}
 .kb-tabs button>svg,.kb-tabs button>.av{width:24px;height:24px}
 .kb-tabs button[aria-selected="true"]{background:linear-gradient(180deg,#ffffff26,#ffffff0e);color:var(--fg);box-shadow:inset 0 1px 0 #ffffff33}
@@ -1624,6 +1624,62 @@ body.mit-app-hinweis .app{padding-bottom:calc(290px + env(safe-area-inset-bottom
 .ah-teilen{width:13px;height:15px;color:#7fc8ff;vertical-align:-2px}
 .ah-ol{margin:0;padding-left:20px;display:grid;gap:6px;text-align:left}
 .ah-gross{display:grid;place-items:center}.ah-gross svg{width:64px;height:64px}
+/* 6.68 Rüstung veredeln, Stämme, Halljahr, Stiftshütte */
+.rst-1 svg,.ruest .rst-1 svg,svg.rst-1,.kb-ruest.rst-1 svg,.ruest-gross.rst-1 svg{filter:drop-shadow(0 0 3px #ffffff) drop-shadow(0 0 8px #c9d6f2)}
+.rst-2 svg,.ruest .rst-2 svg,.kb-ruest.rst-2 svg,.ruest-gross.rst-2 svg{filter:drop-shadow(0 0 3px #fff3c4) drop-shadow(0 0 9px #ff9a2e) saturate(1.3)}
+.ruest i{display:contents;font-style:normal}
+.kb-item .rst-1,.kb-item .rst-2{display:grid;place-items:center}
+.kb-wappen svg{filter:drop-shadow(0 0 14px #f2c14e88)}
+.wappen-gross svg{width:110px;height:110px}
+.name-wappen{display:inline-grid;vertical-align:-4px}.name-wappen svg{width:24px;height:24px}
+.halljahr{display:grid;justify-items:center;gap:4px;text-align:center}
+.halljahr b{font:800 1.5rem var(--display);color:#ffe39a;text-shadow:0 0 20px #f2c14e88}
+.halljahr small{color:var(--muted);font-size:.8rem;max-width:30ch}
+.hj-posaune svg{width:72px;height:72px}
+@media (prefers-reduced-motion:no-preference){.hj-posaune{animation:hjBlasen 1.2s ease-in-out infinite}}
+@keyframes hjBlasen{50%{transform:rotate(-8deg) scale(1.08)}}
+.sh-mini{display:flex;align-items:center;gap:10px;width:100%;margin:2px 0 4px;padding:8px 12px;border-radius:14px;border:1px solid #5fe0b055;background:linear-gradient(170deg,#1f2a5c,#161b3d);color:var(--fg);cursor:pointer;text-align:left}
+.sh-mini>svg{width:32px;height:32px;flex:none}
+.sh-mini-tx{flex:1;min-width:0;display:grid;gap:3px}
+.sh-mini-tx b{font:800 .9rem var(--display);color:#ffe39a}
+.sh-mini-tx small{font:800 .72rem var(--body);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sh-pfeil{font:900 1.3rem var(--body);color:var(--muted)}
+.sh-balken{position:relative;height:12px;border-radius:8px;background:#ffffff12;overflow:hidden;display:block}
+.sh-balken.klein{height:6px}
+.sh-balken>i{position:absolute;inset:0 auto 0 0;border-radius:8px;background:linear-gradient(90deg,#3fa985,#5fe0b0,#c9ffe9);box-shadow:0 0 10px #5fe0b088}
+.sh-buehne{border-radius:18px;overflow:hidden;border:1px solid #ffffff14;margin:4px 0 10px;box-shadow:0 10px 26px #0008}
+.sh-bild{display:block;width:100%;height:auto}
+.sh-teil{transition:opacity .6s}
+.sh-teil.aus{opacity:.1}
+.sh-teil.bau{opacity:.5}
+@media (prefers-reduced-motion:no-preference){.sh-teil.bau{animation:shBau 1.8s ease-in-out infinite}.sh-feuer{animation:shFlacker 1.4s ease-in-out infinite alternate}.sh-wolke{animation:shSchweben 4s ease-in-out infinite}}
+@keyframes shBau{50%{opacity:.85}}
+@keyframes shFlacker{to{opacity:.75;transform:translateY(-2px)}}
+@keyframes shSchweben{50%{transform:translateY(-3px)}}
+.sh-weg{list-style:none;margin:0 0 10px;padding:0;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));position:relative}
+.sh-weg::before{content:"";position:absolute;left:6%;right:6%;top:15px;height:3px;border-radius:2px;background:#ffffff1c}
+.sh-weg li{display:grid;justify-items:center;gap:3px;position:relative;min-width:0}
+.sh-weg li span{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:900 .8rem var(--body);background:#262e5e;color:var(--muted);border:2px solid #1b2a55;position:relative;z-index:1}
+.sh-weg li span svg{width:16px;height:16px}
+.sh-weg li small{font:800 .58rem var(--body);color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sh-weg li.fertig span{background:radial-gradient(circle at 35% 30%,#fff3c4,#f2c14e 60%,#a07c22);color:#2a1d00}
+.sh-weg li.jetzt span{background:radial-gradient(circle at 35% 30%,#c9ffe9,#5fe0b0 60%,#1f7a5a);color:#0b3a2a;border-color:#c9ffe9;box-shadow:0 0 14px #5fe0b0aa}
+.sh-weg li.jetzt small,.sh-weg li.fertig small{color:var(--fg)}
+.sh-weg li.naechst span{border-color:#5fe0b088}
+.sh-karte{border-radius:16px;background:linear-gradient(170deg,#1f2a5c,#161b3d);border:1px solid #5fe0b055;padding:12px 14px;display:grid;gap:8px}
+.sh-karte.genug,.sh-karte.fertig{border-color:#f2c14e88;box-shadow:0 0 22px #f2c14e22}
+.sh-z1{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.sh-z1 b{font:800 1rem var(--display);color:#ffe39a}
+.sh-z1 small{font:800 .72rem var(--body);color:#5fe0b0;white-space:nowrap}
+.sh-vers{margin:0;font-size:.8rem;color:var(--muted);font-style:italic}
+.sh-zahlen{display:flex;justify-content:space-between;font:800 .76rem var(--body);color:var(--muted);font-variant-numeric:tabular-nums}
+.sh-spenden{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,1.4fr);gap:6px}
+.sh-spenden button{font:900 .85rem var(--body);border-radius:12px;padding:9px 0;border:1px solid #f2c14e66;background:#f2c14e1a;color:#ffe39a;cursor:pointer}
+.sh-spenden button.haupt{background:linear-gradient(#ffe39a,#f2c14e);color:#2a1d00;border:0;box-shadow:0 3px 0 #a07c22}
+.sh-spenden button:disabled{opacity:.45}
+.sh-geber{margin:0;font-size:.76rem;color:var(--muted)}.sh-geber b{color:var(--fg);font-weight:800}
+.sh-fuss{margin:10px 0 0;text-align:center}
+.sh-feier{border-radius:14px;overflow:hidden}.sh-feier svg{display:block;width:100%;height:auto}
 </style>
 </head>
 <body>

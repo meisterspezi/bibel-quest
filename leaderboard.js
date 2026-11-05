@@ -163,6 +163,9 @@ if (!configured) {
       if (fertig) felder.push("fertig", fs.serverTimestamp());
       await fs.updateDoc(ref("duelle", id), ...felder);
     };
+    // 6.68: Stiftshütte – Spenden je Spieler {pid, name, s: {"1".."8": Talente}}
+    LB.stiftListe = async () => { const q = await fs.getDocs(fs.collection(db, "stiftshuette")); return q.docs.map(d => ({ pid: d.id, ...d.data() })); };
+    LB.stiftSetzen = async (pid, name, s) => { await LB.signIn(); await fs.setDoc(ref("stiftshuette", pid), { pid, name, s, updated: fs.serverTimestamp() }); };
     LB.duellAblehnen = async (id, pid) => { await LB.signIn(); await fs.updateDoc(ref("duelle", id), { status: "abgelehnt", am: pid }); };
     LB.duellLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("duelle", id)); };
     LB.meineDuelle = async (pid) => {
