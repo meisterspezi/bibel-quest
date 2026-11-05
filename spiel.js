@@ -358,7 +358,22 @@ function vlVerdrahten(a, verdeckt) {
   if (a.typ === "tippen") {
     const felder = [...screen.querySelectorAll(".vl-feld")];
     const pruef = () => { P.disabled = !felder.some(f => f.value.trim()); };
-    felder.forEach((f, j) => { f.oninput = pruef; f.onkeydown = e => { if (e.key === "Enter" || (e.key === " " && f.value.trim())) { e.preventDefault(); if (felder[j + 1]) felder[j + 1].focus(); else if (!P.disabled) P.click(); } }; });
+    /* Handy-Tastaturen melden die Leertaste oft nicht als " " – deshalb am Eingabetext erkennen:
+       Wort + Leerzeichen → Rest in die folgenden (direkt anschließenden) Lücken verteilen und weiterspringen */
+    const verteilen = (j) => {
+      const f = felder[j], v = f.value;
+      if (!/\S\s/.test(v)) return;
+      const teile = v.trim().split(/\s+/).filter(Boolean); f.value = teile[0];
+      let k = j;
+      for (const t of teile.slice(1)) {
+        const nx = felder[k + 1];
+        if (!nx || +nx.dataset.i !== +felder[k].dataset.i + 1) break;
+        nx.value = t; k++;
+      }
+      const ziel = felder[k + 1] && +felder[k + 1].dataset.i === +felder[k].dataset.i + 1 ? felder[k + 1] : felder[k];
+      if (ziel) ziel.focus();
+    };
+    felder.forEach((f, j) => { f.oninput = () => { verteilen(j); pruef(); }; f.onkeydown = e => { if (e.key === "Enter" || (e.key === " " && f.value.trim())) { e.preventDefault(); if (felder[j + 1]) felder[j + 1].focus(); else if (!P.disabled) P.click(); } }; });
     if (felder[0] && !matchMedia("(pointer: coarse)").matches) felder[0].focus();
   }
   if (a.typ === "frei") {
@@ -386,9 +401,10 @@ function vlVerdrahten(a, verdeckt) {
       return vlUrteil(a, ok, a.ziel.join(" "));
     }
     if (a.typ === "tippen") {
-      const w = text.split(" "); let ok = true;
-      screen.querySelectorAll(".vl-feld").forEach(f => { const i = +f.dataset.i, gut = lvGleich(f.value.trim(), w[i]); f.classList.add(gut ? "gut" : "falsch"); f.readOnly = true; if (!gut) { ok = false; vlFehlerWort(a.k, i); f.value = lvKern(w[i]); } });
-      return vlUrteil(a, ok, ok ? null : "Die richtigen Wörter stehen jetzt in den Lücken.");
+      const w = text.split(" "); let ok = true; const falsche = [];
+      screen.querySelectorAll(".vl-feld").forEach(f => { const i = +f.dataset.i, gut = lvGleich(f.value.trim(), w[i]); f.classList.add(gut ? "gut" : "falsch"); f.readOnly = true; if (!gut) { ok = false; falsche.push([f.value.trim(), lvKern(w[i])]); vlFehlerWort(a.k, i); f.value = lvKern(w[i]); } });
+      const liste = falsche.slice(0, 6).map(([d, r]) => `<span class="vu-ersatz">${d ? esc(d) : "<i>leer</i>"} → <b>${esc(r)}</b></span>`).join(" · ") + (falsche.length > 6 ? ` · … +${falsche.length - 6}` : "");
+      return vlUrteil(a, ok, ok ? null : `Nicht alle Wörter stimmten – die roten Felder zeigen die richtigen.<br><small>${liste}</small>`, true);
     }
     if (a.typ === "frei") {
       try { VL.sr && VL.sr.stop(); } catch (e) {}
