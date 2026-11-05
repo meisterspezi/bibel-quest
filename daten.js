@@ -1,4 +1,4 @@
-const APP_VERSION = "6.68";
+const APP_VERSION = "6.69";
 /* =====================================================================
    Bibelbuch-Quest – Spieldaten
    Bücher (Schlachter 2000), Lieder, Bibelverse (Schlachter 2000 © Genfer Bibelgesellschaft),
@@ -176,6 +176,15 @@ const AVATARE = [
   { id: "anker", name: "Anker", price: 140, bezug: "Die Hoffnung auf Gott ist ein sicherer und fester Anker für die Seele (Hebräer 6,19)." },
   { id: "loewe", name: "Löwe aus Juda", price: 200, bezug: "Jesus wird der Löwe aus dem Stamm Juda genannt, der gesiegt hat (Offenbarung 5,5)." },
   { id: "krone", name: "Krone des Lebens", price: 300, bezug: "Wer bis zum Tod treu bleibt, dem verspricht Jesus die Krone des Lebens (Offenbarung 2,10)." },
+  /* 6.69: Avatare für erfahrene Spieler – kaufbar ab dem genannten Level */
+  { id: "hirtenstab", name: "Hirtenstab", price: 250, ab: 32, bezug: "Der HERR ist mein Hirte … dein Stecken und dein Stab, die trösten mich (Psalm 23,1.4)." },
+  { id: "tafeln", name: "Gesetzestafeln", price: 300, ab: 36, bezug: "Gott gab Mose zwei Tafeln des Zeugnisses, steinerne Tafeln, beschrieben mit dem Finger Gottes (2. Mose 31,18)." },
+  { id: "arche", name: "Arche Noah", price: 350, ab: 40, bezug: "Noah tat alles genau so, wie Gott es ihm geboten hatte, und baute die Arche (1. Mose 6,22)." },
+  { id: "weinstock", name: "Weinstock", price: 400, ab: 44, bezug: "Ich bin der Weinstock, ihr seid die Reben. Wer in mir bleibt und ich in ihm, der bringt viel Frucht (Johannes 15,5)." },
+  { id: "brote", name: "Fünf Brote, zwei Fische", price: 450, ab: 48, bezug: "Ein Junge hatte fünf Gerstenbrote und zwei Fische – und Jesus speiste damit fünftausend Menschen (Johannes 6,9-11)." },
+  { id: "menora", name: "Goldener Leuchter", price: 500, ab: 52, bezug: "Mache einen Leuchter aus reinem Gold, mit sieben Lampen, damit er nach vorne hin leuchtet (2. Mose 25,31.37)." },
+  { id: "leiter", name: "Himmelsleiter", price: 600, ab: 56, bezug: "Jakob träumte: Eine Leiter stand auf der Erde, ihre Spitze reichte an den Himmel, und Engel Gottes stiegen auf und nieder (1. Mose 28,12)." },
+  { id: "palme", name: "Siegespalme", price: 700, ab: 60, bezug: "Eine große Schar aus allen Völkern stand vor dem Thron, bekleidet mit weißen Kleidern und mit Palmzweigen in ihren Händen (Offenbarung 7,9)." },
   { id: "stern", name: "Stern von Bethlehem", price: -1, need: "lv15", bezug: "Der Stern ging den Weisen voraus, bis er über dem Ort stehen blieb, wo das Kind war. Da freuten sie sich sehr (Matthäus 2,9-10)." },
   { id: "dornbusch", name: "Brennender Dornbusch", price: -1, need: "lv35", bezug: "Der Engel des HERRN erschien Mose in einer Feuerflamme mitten aus dem Dornbusch, und der Busch brannte und wurde doch nicht verzehrt (2. Mose 3,2)." },
   { id: "adler", name: "Adler", price: -1, need: "lv25", bezug: "Wer auf den HERRN hofft, bekommt neue Kraft und steigt auf mit Flügeln wie ein Adler (Jesaja 40,31)." }
@@ -191,7 +200,6 @@ const RAHMEN = [
   { id: "gewappnet", name: "Gewappnet", price: -1, need: "armor", bezug: "Für alle, die die ganze Waffenrüstung Gottes angelegt haben (Epheser 6,11)." },
   { id: "oelzweig", name: "Ölzweig", price: -1, need: "lv20", bezug: "Am Abend kam die Taube zu Noah zurück, mit einem frischen Ölblatt im Schnabel. Da wusste er: Das Wasser ist gesunken (1. Mose 8,11)." },
   { id: "saeule", name: "Wolken- und Feuersäule", price: -1, need: "lv40", bezug: "Der HERR zog vor ihnen her, bei Tag in einer Wolkensäule und bei Nacht in einer Feuersäule – vierzig Jahre lang durch die Wüste (2. Mose 13,21)." },
-  { id: "zwoelf", name: "Zwölf Stämme", price: -1, need: "ganzisrael", bezug: "Auf dem Brustschild des Hohenpriesters standen zwölf Edelsteine, für jeden Stamm Israels einer (2. Mose 28,21)." },
   { id: "feuergold", name: "Im Feuer erprobt", price: -1, need: "ruestGold", bezug: "Damit die Echtheit eures Glaubens, die viel kostbarer ist als das vergängliche Gold, das durchs Feuer erprobt wird, sich erweist (1. Petrus 1,7)." },
   { id: "wolke", name: "Wolke der Herrlichkeit", price: -1, need: "bezaleel", bezug: "Da bedeckte die Wolke die Stiftshütte, und die Herrlichkeit des HERRN erfüllte die Wohnung (2. Mose 40,34)." },
   { id: "jerusalem", name: "Neues Jerusalem", price: -1, need: "lv30", bezug: "Die Mauern der heiligen Stadt ruhen auf zwölf Edelsteinen, ihre zwölf Tore sind zwölf Perlen und die Straße ist reines Gold (Offenbarung 21,19-21)." }
@@ -208,7 +216,6 @@ const TITEL = [
   { id: "rueckwaerts", name: "Rückwärtsleser", price: -1, need: "chainRueck", bezug: "„Gedenke der Tage der Vorzeit“ – Mose erinnert Israel an Gottes Geschichte (5. Mose 32,7)." },
   { id: "meister", name: "Bibel-Meister", price: -1, need: "chain66", bezug: "Esra war ein kundiger Schriftgelehrter im Gesetz des Mose (Esra 7,6)." },
   { id: "gewappnet", name: "Gewappnet", price: -1, need: "armor", bezug: "Zieht die ganze Waffenrüstung Gottes an (Epheser 6,11)." },
-  { id: "ganzisrael", name: "Ganz Israel", price: -1, need: "ganzisrael", bezug: "Alle diese sind die zwölf Stämme Israels, und das ist es, was ihr Vater zu ihnen redete (1. Mose 49,28)." },
   { id: "jubeljahr", name: "Jubeljahr", price: -1, need: "lv50", bezug: "Ihr sollt das fünfzigste Jahr heiligen und sollt eine Freilassung ausrufen im Land. Ein Jubeljahr soll es euch sein (3. Mose 25,10)." },
   { id: "bezaleel", name: "Bezaleel", price: -1, need: "bezaleel", bezug: "Gott erfüllte Bezaleel mit Weisheit und Kunstfertigkeit für alles Werk an der Stiftshütte (2. Mose 31,2-5)." },
   { id: "treu", name: "Treuer Knecht", price: -1, need: "lv5", bezug: "Wer über wenigem treu gewesen ist, den will der Herr über vieles setzen (Matthäus 25,21)." }
@@ -221,27 +228,12 @@ const LEVEL_MEILENSTEIN = { 5: 100, 10: 200, 15: 300, 20: 400, 25: 500, 30: 750,
 const lvTalente = n => n % 5 === 0 ? (LEVEL_MEILENSTEIN[n] || 750) : 10 + 3 * n;
 const LEVEL_SKIN = { 5: ["titel", "treu"], 10: ["farbe", "saphir"], 15: ["avatar", "stern"], 20: ["rahmen", "oelzweig"], 25: ["avatar", "adler"], 30: ["rahmen", "jerusalem"],
   35: ["avatar", "dornbusch"], 40: ["rahmen", "saeule"], 45: ["farbe", "jaspis"], 50: ["titel", "jubeljahr"] };
-/* 6.68: Ab Level 44 (= über dem damals höchsten Level 43) wird jeder Aufstieg schrittweise teurer: Schritt × (1 + 2 × (Level − 43)).
-   Bis Level 43 bleibt alles wie bisher, niemand verliert ein Level. Level 50 ≈ 198.000 XP. */
-const XP_KNICK = 43;
+/* 6.69: Ab Level 46 wird jeder Aufstieg gleichmäßig teurer: Schritt × (1 + 7/3 × (Level − 45)).
+   Bis Level 45 bleibt alles wie bisher (am 05.11.2026 war das höchste Level 44) – niemand verliert ein Level.
+   Bei Esthers Tempo (≈ 9.000 XP am Tag) dauert Level 60 so etwa 3 Monate. Level 50 ≈ 148.000 XP, Level 60 ≈ 855.000 XP. */
+const XP_KNICK = 45, XP_STEIGUNG = 7 / 3;
 /* Ränge ab Level 31 (vorher „Lebendiges Register N“) */
 const RAENGE_HOCH = [[50, "Jubeljahr"], [46, "Richter in Israel"], [41, "Ältester"], [36, "Schriftgelehrter"], [31, "Levit"]];
-
-/* ---------- 6.68: Die zwölf Stämme Israels (Laden, Sammelset nach 1. Mose 49) ---------- */
-const STAEMME = [
-  { id: "ruben", name: "Ruben", price: 80, f: "#4f8fe0", e: "wasser", bezug: "Ruben, du bist mein Erstgeborener … aufwallend wie Wasser (1. Mose 49,3-4)." },
-  { id: "simeon", name: "Simeon", price: 90, f: "#8a96b8", e: "schwert", bezug: "Simeon und Levi sind Brüder, ihre Schwerter sind Werkzeuge der Gewalt (1. Mose 49,5)." },
-  { id: "levi", name: "Levi", price: 100, f: "#e6e0c8", e: "brustschild", bezug: "Levi bekam kein Land – der HERR selbst ist sein Erbteil; die Leviten dienten an der Stiftshütte (4. Mose 18,20-21)." },
-  { id: "juda", name: "Juda", price: 110, f: "#c0263a", e: "loewe", bezug: "Juda ist ein junger Löwe … Das Zepter wird nicht von Juda weichen (1. Mose 49,9-10)." },
-  { id: "sebulon", name: "Sebulon", price: 120, f: "#3a7bd5", e: "schiff", bezug: "Sebulon wird am Ufer des Meeres wohnen und am Gestade der Schiffe (1. Mose 49,13)." },
-  { id: "issaschar", name: "Issaschar", price: 140, f: "#2f3a7a", e: "sterne", bezug: "Von den Söhnen Issaschars, die Einsicht hatten in die Zeiten, um zu wissen, was Israel tun sollte (1. Chronik 12,33)." },
-  { id: "dan", name: "Dan", price: 150, f: "#3f9a6a", e: "schlange", bezug: "Dan wird eine Schlange sein am Weg (1. Mose 49,17)." },
-  { id: "gad", name: "Gad", price: 160, f: "#6a6f80", e: "zelt", bezug: "Gad – Scharen werden ihn drängen, er aber drängt ihnen nach (1. Mose 49,19). Sein Stamm lagerte in Zelten jenseits des Jordan." },
-  { id: "asser", name: "Asser", price: 180, f: "#d9a640", e: "aehre", bezug: "Von Asser kommt fettes Brot, und er wird königliche Leckerbissen liefern (1. Mose 49,20)." },
-  { id: "naftali", name: "Naftali", price: 200, f: "#9a6a3a", e: "hirsch", bezug: "Naftali ist eine flüchtige Hirschkuh; er gibt schöne Worte (1. Mose 49,21)." },
-  { id: "josef", name: "Josef", price: 220, f: "#2f8a4a", e: "zweig", bezug: "Josef ist ein fruchtbarer Zweig, ein fruchtbarer Zweig an der Quelle (1. Mose 49,22)." },
-  { id: "benjamin", name: "Benjamin", price: 250, f: "#5a4a8a", e: "wolf", bezug: "Benjamin ist ein reißender Wolf (1. Mose 49,27). Aus Benjamin kam später der Apostel Paulus (Philipper 3,5)." }
-];
 
 /* ---------- 6.68: Rüstung veredeln (Psalm 12,7 · 1. Petrus 1,7) ---------- */
 const RUEST_STUFE = [
@@ -358,7 +350,6 @@ const BADGES = [
 
   { id: "gemeinschaft", kat: "gemeinschaft", name: "Gemeinschaft", d: "Der Gemeinde-Rangliste beigetreten", ic: "people", ok: s => !!s.lbName },
   { id: "heimkehr", kat: "gemeinschaft", name: "Heimkehr", d: "Bibel-Quest als App auf dem Startbildschirm", ic: "down", ok: s => !!s.appBonus },
-  { id: "ganzisrael", kat: "gemeinschaft", name: "Ganz Israel", d: "Alle zwölf Stammeswappen gesammelt", ic: "people", ok: s => STAEMME.every(t => (s.owned || []).includes("st-" + t.id)) },
   { id: "ruestGold", kat: "gemeinschaft", name: "Im Feuer erprobt", d: "Die ganze Waffenrüstung in Gold veredelt", ic: "ar-schild", ok: s => RUESTUNG.every(r => ((s.ruestStufe || {})[r.id] | 0) >= 2) },
   { id: "bezaleel", kat: "gemeinschaft", name: "Bezaleel", d: "Beim Bau der Stiftshütte mitgeholfen bis zur Einweihung", ic: "people", ok: s => !!s.stiftEingeweiht && Object.values(s.stift || {}).some(v => v > 0) },
   { id: "halljahr", kat: "ausdauer", name: "Halljahr", d: "Level 50 erreicht (3. Mose 25,10)", ic: "crown", ok: s => (s.lvLohn | 0) >= 50 },

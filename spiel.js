@@ -15,7 +15,7 @@ const DEF = {
   songHeard: [], gapPerfect: false, peeked: false, earlyBird: false,
   dq: { day: "", items: [], bonus: false }, questBonusCount: 0, lv: {}, duGes: [], duSiege: 0, duSpiele: 0, duTyp: "vers", duGesendet: 0, duAngenommen: 0, duArten: [], duKetteVoll: false,
   mute: false, beat: true, gapSing: false, atTi: 0, ntTi: 0,
-  ruestStufe: {}, wappen: "", stift: {}, stiftGefeiert: [], stiftEingeweiht: false,
+  ruestStufe: {}, stift: {}, stiftGefeiert: [], stiftEingeweiht: false,
   lvLohn: 0, lbName: "", pid: "", ownersSet: false, offlineOnly: false, weekKey: "", weekXp: 0, podium: false, wochensieger: false, wochenziel: false,
   ver: 6
 };
@@ -78,8 +78,8 @@ const datumVon = n => new Date(n * 864e5 + 12 * 3600e3);
 function weekKey(datum) { const d = datum ? new Date(datum) : new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7)); const w1 = new Date(d.getFullYear(), 0, 4); const w = 1 + Math.round(((d - w1) / 864e5 - 3 + ((w1.getDay() + 6) % 7)) / 7); return d.getFullYear() + "-W" + String(w).padStart(2, "0"); }
 const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const cumAlt = n => 25 * (n - 1) * (n + 2);
-/* 6.68: ab Level 44 steiler (siehe XP_KNICK in daten.js) */
-const cum = n => { if (n <= XP_KNICK) return cumAlt(n); let t = cumAlt(XP_KNICK); for (let k = XP_KNICK + 1; k <= n; k++) t += 50 * k * (1 + 2 * (k - XP_KNICK)); return t; };
+/* 6.69: ab Level 46 gleichmäßig steiler (siehe XP_KNICK/XP_STEIGUNG in daten.js) */
+const cum = n => { if (n <= XP_KNICK) return cumAlt(n); let t = cumAlt(XP_KNICK); for (let k = XP_KNICK + 1; k <= n; k++) t += Math.round(50 * k * (1 + XP_STEIGUNG * (k - XP_KNICK))); return t; };
 function levelOf(xp) { let n = 1; while (cum(n + 1) <= xp) n++; return n; }
 const titleOf = n => { const h = RAENGE_HOCH.find(([ab]) => n >= ab); if (h) return h[1]; return TITLES[Math.min(n, TITLES.length) - 1] + (n > TITLES.length ? " " + (n - TITLES.length + 1) : ""); };
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -920,10 +920,9 @@ function renderHud() {
 /* Was ist im Laden gerade kaufbar? (je Kategorie, Reihenfolge-Regeln wie im Laden) */
 function kaufbarIn(kat) {
   if (kat === "ruestung") { const r = RUESTUNG[armorCount()]; if (r && r.price <= S.tal) return true; return RUESTUNG.some(x => { const p = veredelPreis(x.id); return p && p <= S.tal; }); }
-  if (kat === "staemme") return STAEMME.some(t => !S.owned.includes("st-" + t.id) && t.price <= S.tal);
   if (kat === "avatar" || kat === "rahmen") {
     const [l, p] = kat === "avatar" ? [AVATARE, "av-"] : [RAHMEN, "fr-"];
-    const x = l.filter(i => i.price > 0).find(i => !S.owned.includes(p + i.id)); return !!x && x.price <= S.tal;
+    const x = l.filter(i => i.price > 0).find(i => !S.owned.includes(p + i.id)); return !!x && x.price <= S.tal && (!x.ab || levelOf(S.xp) >= x.ab);
   }
   const [l, p] = kat === "titel" ? [TITEL, "ti-"] : [THEMES, ""];
   return l.some(i => i.price > 0 && i.price <= S.tal && !S.owned.includes(p + i.id));
@@ -984,7 +983,7 @@ function go(name, arg) {
   if (!S.lbName && name !== "name") name = "name";
   current = name; window.scrollTo(0, 0); document.body.classList.remove("spiel-laeuft");
   tabbarSetzen(name); (VIEWS[name] || VIEWS.home)(arg);
-  try { appBonusPruefen(); appHinweisZeigen(); } catch (e) {} /* beim allerersten go() sind die Konstanten unten noch nicht bereit */
+  try { staemmeErstatten(); appBonusPruefen(); appHinweisZeigen(); } catch (e) {} /* beim allerersten go() sind die Konstanten unten noch nicht bereit */
   if (typeof duAufloesQ !== "undefined" && duAufloesQ.length) setTimeout(duAufloesVersuch, 400);
 }
 /* Untere Menüleiste: zu welchem Reiter gehört eine Ansicht? */
@@ -1649,7 +1648,7 @@ function kaufen(id, preis, el) {
   save(); renderHud(); checkBadges(); lbSync(); return true;
 }
 /* Schatz-Laden als „Umkleide“: oben Vorschau am eigenen Avatar, darunter Kategorien (ohne seitliches Wischen) und ein 3er-Raster */
-const SHOP_KAT = { ruestung: ["Rüstung", "ar-schild"], staemme: ["Stämme", "st-juda"], avatar: ["Avatare", "av-taube"], rahmen: ["Rahmen", ""], titel: ["Titel", "scroll"], farbe: ["Farben", "regenbogen"] };
+const SHOP_KAT = { ruestung: ["Rüstung", "ar-schild"], avatar: ["Avatare", "av-taube"], rahmen: ["Rahmen", ""], titel: ["Titel", "scroll"], farbe: ["Farben", "regenbogen"] };
 let shopWahl = {};
 VIEWS.shop = (tab, wahl) => {
   if (tab && SHOP_KAT[tab]) shopTab = tab;
@@ -1664,14 +1663,11 @@ VIEWS.shop = (tab, wahl) => {
       if (k === n) return { art: "kauf", preis: it.price, buy: "ruestung" };
       return { art: "zu", text: `erst ${RUESTUNG[n] ? RUESTUNG[n].name.split(" ")[0] : ""}` };
     }
-    if (kat === "staemme") {
-      if (S.owned.includes("st-" + it.id)) return aktiv ? { art: "aktiv", text: "gezeigt" } : { art: "frei", eq: "wp" };
-      return { art: "kauf", preis: it.price, buy: "st" };
-    }
     const pre = { avatar: "av", rahmen: "fr", titel: "ti", farbe: "" }[kat];
     if (aktiv) return { art: "aktiv", text: "aktiv" };
     if (it.price < 0) return needOk(it.need) ? { art: "frei", eq: pre || "farbe" } : { art: "zu", text: "Abzeichen", need: it.need };
     if (itemFrei(pre ? pre + "-" : "", it)) return { art: "frei", eq: pre || "farbe" };
+    if (it.ab && levelOf(S.xp) < it.ab) return { art: "zu", text: "ab Level " + it.ab };
     if (kat === "avatar" || kat === "rahmen") {
       const liste = (kat === "avatar" ? AVATARE : RAHMEN).filter(x => x.price > 0);
       const naechstes = liste.find(x => !S.owned.includes(pre + "-" + x.id));
@@ -1679,10 +1675,9 @@ VIEWS.shop = (tab, wahl) => {
     }
     return { art: "kauf", preis: it.price, buy: pre || "farbe" };
   };
-  const liste = { ruestung: RUESTUNG, staemme: STAEMME, avatar: AVATARE, rahmen: RAHMEN, titel: TITEL, farbe: THEMES }[shopTab];
-  const istAktiv = it => ({ avatar: S.avatar === it.id, rahmen: S.frame === it.id, titel: S.title === it.id, farbe: S.theme === it.id, ruestung: S.owned.includes("ar-" + it.id), staemme: S.wappen === it.id })[shopTab];
-  const standard = shopTab === "ruestung" ? (RUESTUNG[n] || RUESTUNG.find(x => veredelPreis(x.id)) || RUESTUNG[RUESTUNG.length - 1]).id
-    : shopTab === "staemme" ? ((liste.find(istAktiv) || liste.find(x => !S.owned.includes("st-" + x.id)) || liste[0]).id) : (liste.find(istAktiv) || liste[0]).id;
+  const liste = { ruestung: RUESTUNG, avatar: AVATARE, rahmen: RAHMEN, titel: TITEL, farbe: THEMES }[shopTab];
+  const istAktiv = it => ({ avatar: S.avatar === it.id, rahmen: S.frame === it.id, titel: S.title === it.id, farbe: S.theme === it.id, ruestung: S.owned.includes("ar-" + it.id) })[shopTab];
+  const standard = shopTab === "ruestung" ? (RUESTUNG[n] || RUESTUNG.find(x => veredelPreis(x.id)) || RUESTUNG[RUESTUNG.length - 1]).id : (liste.find(istAktiv) || liste[0]).id;
   const sel = liste.find(x => x.id === shopWahl[shopTab]) || liste.find(x => x.id === standard);
   const zs = zustand(shopTab, sel, shopTab !== "ruestung" && istAktiv(sel));
   /* Farben: die gewählte Farbwelt sofort als Vorschau auf die ganze App legen (auch ungekauft); beim Verlassen gilt wieder die eigene */
@@ -1691,7 +1686,6 @@ VIEWS.shop = (tab, wahl) => {
   const vAv = shopTab === "avatar" ? sel.id : S.avatar, vFr = shopTab === "rahmen" ? sel.id : S.frame;
   const buehneBild = shopTab === "ruestung"
     ? `<span class="kb-ruest rst-${ruestStufe(sel.id)}">${svg("ar-" + sel.id)}</span>`
-    : shopTab === "staemme" ? `<span class="kb-ruest kb-wappen">${svg("st-" + sel.id)}</span>`
     : `<span class="kb-av" ${shopTab === "farbe" ? `style="--glanz:${sel.c}"` : ""}>${avatarHtml({ avatar: vAv, frame: vFr, name: S.lbName || "?" }, 96)}</span>`;
   const vStufe = shopTab === "ruestung" && S.owned.includes("ar-" + sel.id) ? ruestStufe(sel.id) : 0, vPreis = shopTab === "ruestung" ? veredelPreis(sel.id) : 0;
   const text = shopTab === "ruestung" ? (vStufe ? RUEST_STUFE[vStufe].bezug : `„${sel.vers}“ – ${sel.ref}`) : (sel.bezug || "");
@@ -1702,21 +1696,21 @@ VIEWS.shop = (tab, wahl) => {
     : `<span class="pz zu kb-status">${svg("lock")} ${zs.need ? esc(needText(zs.need)) : esc(zs.text)}</span>`;
   const katIc = k => k === "rahmen" ? avatarHtml({ avatar: "initial", frame: "gold", name: "M" }, 22) : svg(SHOP_KAT[k][1]);
   const kachel = it => { const z = zustand(shopTab, it, shopTab !== "ruestung" && istAktiv(it));
-    const bild = shopTab === "ruestung" ? `<span class="rst-${S.owned.includes("ar-" + it.id) ? ruestStufe(it.id) : 0}">${svg("ar-" + it.id)}</span>` : shopTab === "staemme" ? svg("st-" + it.id) : shopTab === "avatar" ? avatarHtml({ avatar: it.id, frame: "none", name: S.lbName || "?" }, 46)
+    const bild = shopTab === "ruestung" ? `<span class="rst-${S.owned.includes("ar-" + it.id) ? ruestStufe(it.id) : 0}">${svg("ar-" + it.id)}</span>` : shopTab === "avatar" ? avatarHtml({ avatar: it.id, frame: "none", name: S.lbName || "?" }, 46)
       : shopTab === "rahmen" ? avatarHtml({ avatar: S.avatar, frame: it.id, name: S.lbName || "?" }, 40)
       : shopTab === "farbe" ? `<span class="swatch" style="background:radial-gradient(circle at 35% 30%,#fff8,${it.c} 45%,#1b2146)"></span>`
       : `<span class="kb-titel-ic">${svg(it.id === "none" ? "user" : "scroll")}</span>`;
     const marke = z.art === "aktiv" ? `<span class="pz ok">${z.text}</span>` : z.art === "frei" ? `<span class="pz ok">${it.price > 0 ? "gekauft" : "frei"}</span>` : z.art === "zu" ? `<span class="pz zu">${svg("lock")}</span>` : `<span class="pz ${S.tal >= z.preis ? "" : "arm"}">${z.preis}${muenze}</span>`;
     return `<button class="kb-item ${it.id === sel.id ? "gewaehlt" : ""} ${z.art === "zu" ? "gesperrt" : ""}" data-wahl="${it.id}" aria-label="${esc(it.name)}">${z.art === "aktiv" ? `<span class="an-haken">${svg("check")}</span>` : ""}<span class="vor">${bild}</span><small>${esc(it.name)}</small>${marke}</button>`; };
   const ladenZahl = (() => { let h = RUESTUNG.filter(r => S.owned.includes("ar-" + r.id)).length, g = RUESTUNG.length;
-    [[AVATARE, "av-"], [RAHMEN, "fr-"], [TITEL, "ti-"], [THEMES, ""], [STAEMME, "st-"]].forEach(([l, p]) => l.filter(i => i.price > 0).forEach(i => { g++; if (S.owned.includes(p + i.id)) h++; })); return `${h}/${g}`; })();
+    [[AVATARE, "av-"], [RAHMEN, "fr-"], [TITEL, "ti-"], [THEMES, ""]].forEach(([l, p]) => l.filter(i => i.price > 0).forEach(i => { g++; if (S.owned.includes(p + i.id)) h++; })); return `${h}/${g}`; })();
   const ruestN = RUESTUNG.filter(r => S.owned.includes("ar-" + r.id)).length;
   screen.innerHTML = `${bereichKopf("laden", { ic: "shop", t: "Laden", sub: kaufbarIn(shopTab) || Object.keys(SHOP_KAT).some(kaufbarIn) ? "Es gibt etwas Neues für dich!" : "Sammle Talente für Neues", ring: [pkt(S.tal), "Talente"],
     tafel: [[`${ruestN}/${RUESTUNG.length}`, "Rüstung"], [ladenZahl, "Gesammelt"], [`${levelOf(S.xp)}`, "Level"]] })}
     ${bkLabel("star", "Vorschau")}
     <section class="kb-buehne ${shopTab}">
       <div class="podest">${buehneBild}</div>
-      <div class="kb-info"><span class="kb-tag">${shopTab === "ruestung" ? `Teil ${RUESTUNG.indexOf(sel) + 1} von 6${vStufe ? " · " + RUEST_STUFE[vStufe].name : ""}` : shopTab === "staemme" ? `${STAEMME.filter(t => S.owned.includes("st-" + t.id)).length} von 12 Stämmen · alle 12 = Titel „Ganz Israel“` : zs.art === "aktiv" ? "Trägst du gerade" : shopTab === "farbe" ? "Vorschau auf die App" : "Vorschau"}</span><b>${esc(sel.name)}</b>
+      <div class="kb-info"><span class="kb-tag">${shopTab === "ruestung" ? `Teil ${RUESTUNG.indexOf(sel) + 1} von 6${vStufe ? " · " + RUEST_STUFE[vStufe].name : ""}` : zs.art === "aktiv" ? "Trägst du gerade" : shopTab === "farbe" ? "Vorschau auf die App" : "Vorschau"}</span><b>${esc(sel.name)}</b>
         ${text ? `<div class="kb-text">${esc(text)}</div>` : ""}${knopf}</div>
     </section>
     ${bkLabel("shop", "Sortiment")}
@@ -1727,17 +1721,15 @@ VIEWS.shop = (tab, wahl) => {
   screen.querySelectorAll("[data-wahl]").forEach(b => b.onclick = () => { SFX.tap(); const y = scrollY; VIEWS.shop(null, b.dataset.wahl); scrollTo(0, y); const bh = screen.querySelector(".kb-buehne"); if (bh && bh.getBoundingClientRect().top < 60) bh.scrollIntoView({ behavior: "smooth", block: "center" }); });
   screen.querySelectorAll("[data-buy]").forEach(b => b.onclick = () => {
     const kat = b.dataset.buy, id = b.dataset.id, p = +b.dataset.p;
-    const pre = { ruestung: "ar-", av: "av-", fr: "fr-", ti: "ti-", farbe: "", st: "st-" }[kat];
+    const pre = { ruestung: "ar-", av: "av-", fr: "fr-", ti: "ti-", farbe: "" }[kat];
     if (!kaufen(pre + id, p, b)) return;
-    if (kat === "st") { S.wappen = id; const t = STAEMME.find(x => x.id === id), n12 = STAEMME.filter(x => S.owned.includes("st-" + x.id)).length; rain(50);
-      modal(`<div class="label">Stamm ${n12} von 12</div><div class="ruest-gross wappen-gross">${svg("st-" + id)}</div><h2>${esc(t.name)}</h2><p class="muted small" style="margin:0">${esc(t.bezug)}</p>${n12 === 12 ? `<p class="small" style="margin:0;color:var(--accent)"><b>Alle zwölf Stämme!</b> Titel „Ganz Israel“ und Rahmen „Zwölf Stämme“ sind freigeschaltet.</p>` : ""}<button class="btn primary" data-close>Weiter</button>`); }
     if (kat === "av") S.avatar = id; if (kat === "fr") S.frame = id; if (kat === "ti") S.title = id; if (kat === "farbe") { S.theme = id; applyTheme(); }
     if (kat === "ruestung") { const r = RUESTUNG.find(x => x.id === id); rain(60); delete shopWahl.ruestung; modal(`<div class="label">Angelegt</div><div class="ruest-gross">${svg("ar-" + id)}</div><h2>${esc(r.name)}</h2><figure class="vers klein"><blockquote>${esc(r.vers)}</blockquote><figcaption>${esc(r.ref)} · ${VERS_QUELLE}</figcaption></figure><button class="btn primary" data-close>Amen</button>`); }
     save(); lbSync(); renderHud(); VIEWS.shop();
   });
   screen.querySelectorAll("[data-eq]").forEach(b => b.onclick = () => {
     const kat = b.dataset.eq, id = b.dataset.id; SFX.tap();
-    if (kat === "av") S.avatar = id; if (kat === "fr") S.frame = id; if (kat === "ti") S.title = id; if (kat === "farbe") { S.theme = id; applyTheme(); } if (kat === "wp") S.wappen = id;
+    if (kat === "av") S.avatar = id; if (kat === "fr") S.frame = id; if (kat === "ti") S.title = id; if (kat === "farbe") { S.theme = id; applyTheme(); }
     save(); lbSync(); renderHud(); VIEWS.shop();
   });
   /* 6.68: Rüstung veredeln */
@@ -1786,7 +1778,7 @@ VIEWS.profil = () => {
   const L = window.LB, online = L && L.ok;
   screen.innerHTML = `${backBtn("home", "Start")}<h1>Mein Profil</h1>
   <div class="card profil-kopf">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "Du" }, 84)}
-    <div><h2 style="margin:0">${esc(S.lbName || "Noch ohne Namen")}${S.wappen && ICONS["st-" + S.wappen] ? ` <span class="name-wappen" title="Stamm ${esc((STAEMME.find(t => t.id === S.wappen) || {}).name || "")}">${svg("st-" + S.wappen)}</span>` : ""}</h2>${!S.pid && !S.offlineOnly ? `<div class="small muted">Erscheint in der Rangliste, sobald Internet da ist.</div>` : ""}<div class="muted">${esc(rangVon())}</div>${ruestungHtml(armorCount(), false)}</div></div>
+    <div><h2 style="margin:0">${esc(S.lbName || "Noch ohne Namen")}</h2>${!S.pid && !S.offlineOnly ? `<div class="small muted">Erscheint in der Rangliste, sobald Internet da ist.</div>` : ""}<div class="muted">${esc(rangVon())}</div>${ruestungHtml(armorCount(), false)}</div></div>
   <div class="row-btns" style="margin:10px 0"><button class="btn" data-go="shop">Aussehen ändern</button><button class="btn ghost" data-go="badges">Meine Abzeichen</button></div>
   <div class="card stack">${titelKarte(AT_TITEL, atP, "AT")}${titelKarte(NT_TITEL, ntP, "NT")}
     <p class="small muted" style="margin:0">Die Titel wachsen mit deinen Sternen in den Lektionen und deiner Kette im AT bzw. NT.</p></div>
@@ -1930,7 +1922,7 @@ function zusammenfuehren(r) {
     const sw = Object.assign({}, v.sw || {}); Object.entries(a.sw || {}).forEach(([i, n]) => { sw[i] = Math.max(sw[i] || 0, n); });
     const neuer = (a.auf || "") >= (v.auf || "") ? a : v;
     S.lv[k] = { v: 2, st: Math.max(a.st || 0, v.st || 0), b: !!(a.b || v.b), tage: [...new Set([...(a.tage || []), ...(v.tage || [])])].sort((x, y) => x - y).slice(-40), sw, auf: neuer.auf || "", an: neuer.an || 0, q: (a.qd || "") >= (v.qd || "") ? a.q || 0 : v.q || 0, qd: [a.qd || "", v.qd || ""].sort().pop() }; });
-  ["avatar", "frame", "title", "theme", "wappen"].forEach(k => { if ((S[k] === DEF[k]) && r[k]) S[k] = r[k]; });
+  ["avatar", "frame", "title", "theme"].forEach(k => { if ((S[k] === DEF[k]) && r[k]) S[k] = r[k]; });
   /* 6.68: Rüstungs-Stufen und Stiftshütten-Spenden: je Schlüssel das Maximum */
   ["ruestStufe", "stift"].forEach(k => { const a = S[k] = Object.assign({}, S[k] || {}); Object.entries(r[k] || {}).forEach(([i, v]) => { a[i] = Math.max(a[i] | 0, v | 0); }); });
   S.stiftGefeiert = [...new Set([...(S.stiftGefeiert || []), ...(Array.isArray(r.stiftGefeiert) ? r.stiftGefeiert : [])])]; S.stiftEingeweiht = !!(S.stiftEingeweiht || r.stiftEingeweiht);
@@ -4596,27 +4588,6 @@ setTimeout(() => { appBonusPruefen(); appHinweisZeigen(); }, 1200);
   /* Zelt der Stiftshütte (Gemeinde) */
   ICONS.zelt = W("gemeinde", `<path d="M6 50L22 26H48L58 50Z" fill="#7a2a2a" stroke="#1b2a55" stroke-width="1.5" stroke-linejoin="round"/><path d="M22 26L12 50H34L30 26Z" fill="#9a3a3a" stroke="#1b2a55" stroke-width="1.2" stroke-linejoin="round"/>
     <path d="M17 40h10v10H17z" fill="#5c8fd6" stroke="#1b2a55" stroke-width="1"/><path d="M22 26H48" stroke="#ffe39a" stroke-width="2"/><path d="M34 6c2 6 6 7 5 12c-1 3-3 5-5 5s-4-2-5-5c-1-5 3-6 5-12z" fill="url(#wrF)" stroke="#1b2a55" stroke-width="1"/>`);
-  /* Wappen-Embleme der zwölf Stämme (weißgold auf Stammesfarbe) */
-  const E = {
-    wasser: `<path d="M18 30q4-4 8 0t8 0t8 0t4 0M18 38q4-4 8 0t8 0t8 0t4 0M18 46q4-4 8 0t8 0t8 0t4 0" fill="none" stroke="url(#wrP)" stroke-width="3" stroke-linecap="round"/>`,
-    schwert: `<path d="M32 16v26" stroke="url(#wrP)" stroke-width="4" stroke-linecap="round"/><path d="M24 40h16" stroke="url(#wrG)" stroke-width="4" stroke-linecap="round"/><path d="M32 42v8" stroke="url(#wrG)" stroke-width="4" stroke-linecap="round"/>`,
-    brustschild: `<rect x="21" y="20" width="22" height="26" rx="3" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1.2"/>${[0, 1, 2, 3].map(y => [0, 1, 2].map(x => `<circle cx="${26 + x * 6}" cy="${25 + y * 6}" r="2" fill="${["#ff6b6b", "#5fe0b0", "#7fc8ff", "#c09bff"][y]}"/>`).join("")).join("")}`,
-    loewe: `<circle cx="32" cy="32" r="12" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1.2"/><circle cx="32" cy="34" r="7" fill="#fff6c8" stroke="#1b2a55" stroke-width="1"/><circle cx="29.5" cy="32.5" r="1" fill="#1b2a55"/><circle cx="34.5" cy="32.5" r="1" fill="#1b2a55"/><path d="M30 37q2 1.5 4 0" stroke="#1b2a55" stroke-width="1" fill="none"/><path d="M24 20l2 5M40 20l-2 5" stroke="url(#wrG)" stroke-width="3" stroke-linecap="round"/>`,
-    schiff: `<path d="M16 38h32l-5 9H21z" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1.2" stroke-linejoin="round"/><path d="M32 14v24" stroke="#fff6c8" stroke-width="2"/><path d="M33 16l11 18H33z" fill="url(#wrP)" stroke="#1b2a55" stroke-width="1"/><path d="M14 51q6-3 12 0t12 0t12 0" stroke="url(#wrP)" stroke-width="2" fill="none"/>`,
-    sterne: `<path d="M38 18a12 12 0 1 0 0 24a9 9 0 1 1 0-24z" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1.2"/>${[[22, 20], [20, 36], [28, 46]].map(([x, y]) => `<path d="M${x} ${y - 4}l1.2 2.8 2.8 1.2-2.8 1.2-1.2 2.8-1.2-2.8-2.8-1.2 2.8-1.2z" fill="#fff6c8"/>`).join("")}`,
-    schlange: `<path d="M20 46c0-6 10-6 12-12s-8-8-6-14c1-4 7-5 10-3" fill="none" stroke="#1b2a55" stroke-width="7" stroke-linecap="round"/><path d="M20 46c0-6 10-6 12-12s-8-8-6-14c1-4 7-5 10-3" fill="none" stroke="url(#wrG)" stroke-width="4.4" stroke-linecap="round"/><circle cx="37" cy="17" r="3.2" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1"/>`,
-    zelt: `<path d="M16 46L32 18L48 46Z" fill="url(#wrP)" stroke="#1b2a55" stroke-width="1.3" stroke-linejoin="round"/><path d="M32 18v28" stroke="#1b2a55" stroke-width="1"/><path d="M28 46l4-12 4 12z" fill="#2a2f4a"/>`,
-    aehre: `<path d="M32 50V18" stroke="url(#wrG)" stroke-width="2.4"/>${[20, 26, 32, 38].map(y => `<ellipse cx="27.5" cy="${y}" rx="4.5" ry="2.4" transform="rotate(-30 27.5 ${y})" fill="url(#wrG)" stroke="#1b2a55" stroke-width=".8"/><ellipse cx="36.5" cy="${y}" rx="4.5" ry="2.4" transform="rotate(30 36.5 ${y})" fill="url(#wrG)" stroke="#1b2a55" stroke-width=".8"/>`).join("")}`,
-    hirsch: `<path d="M26 44c0-6 2-10 6-10s6 4 6 10" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1.2"/><path d="M28 34c-2-4-6-6-8-12M24 27l-5 1M22 23l-2-5M36 34c2-4 6-6 8-12M40 27l5 1M42 23l2-5" stroke="url(#wrP)" stroke-width="2.4" fill="none" stroke-linecap="round"/>`,
-    zweig: `<path d="M20 48C26 38 34 28 46 18" stroke="url(#wrG)" stroke-width="3" fill="none" stroke-linecap="round"/>${[[28, 38], [34, 31], [40, 25]].map(([x, y]) => `<ellipse cx="${x - 5}" cy="${y - 3}" rx="5" ry="2.4" transform="rotate(-50 ${x - 5} ${y - 3})" fill="#7fd08a" stroke="#1b2a55" stroke-width=".8"/><circle cx="${x + 3}" cy="${y + 3}" r="2.6" fill="#ff8a8a" stroke="#1b2a55" stroke-width=".8"/>`).join("")}`,
-    wolf: `<path d="M20 20l6 10h12l6-10-2 16c0 7-5 12-10 12s-10-5-10-12z" fill="url(#wrP)" stroke="#1b2a55" stroke-width="1.3" stroke-linejoin="round"/><circle cx="28" cy="36" r="1.4" fill="#1b2a55"/><circle cx="36" cy="36" r="1.4" fill="#1b2a55"/><path d="M30 43l2 2 2-2" fill="#1b2a55"/>`
-  };
-  STAEMME.forEach(t => {
-    ICONS["st-" + t.id] = `<svg x="0" y="0" width="24" height="24" viewBox="0 0 64 64" overflow="visible" class="wr wr-lohn wappen"><ellipse cx="32" cy="61" rx="15" ry="2" fill="#000" opacity=".3"/>
-      <path d="M32 4L56 10V30C56 45 45 55 32 60C19 55 8 45 8 30V10Z" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1.6" stroke-linejoin="round"/>
-      <path d="M32 9L51 14V30C51 42 42 50 32 55C22 50 13 42 13 30V14Z" fill="${t.f}" stroke="#1b2a55" stroke-width="1"/>
-      <path d="M17 16L32 12L47 16" stroke="#fff" stroke-opacity=".5" stroke-width="1.6" fill="none"/>${E[t.e]}</svg>`;
-  });
   /* Rahmen (Overlay um den Avatar) */
   const R = window.RAHMEN_SVG = window.RAHMEN_SVG || {};
   const ring = (stroke, w = 6) => `<circle cx="50" cy="50" r="38.8" fill="none" stroke="#141a3a" stroke-width="1.4"/><circle cx="50" cy="50" r="35" fill="none" stroke="${stroke}" stroke-width="${w}"/><circle cx="50" cy="50" r="32" fill="none" stroke="#000" stroke-opacity=".45" stroke-width="1"/>`;
@@ -4625,7 +4596,6 @@ setTimeout(() => { appBonusPruefen(); appHinweisZeigen(); }, 1200);
   R.saeule = `<svg class="av-fr" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="frSaeuleL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#c9d6f2"/><stop offset=".5" stop-color="#ffb54a"/><stop offset="1" stop-color="#ff6b3a"/></linearGradient></defs>${ring("url(#frSaeuleL)")}
     <g fill="#fff" stroke="#c9d6f2" stroke-width=".6"><circle cx="13" cy="44" r="6"/><circle cx="10" cy="54" r="5"/><circle cx="16" cy="63" r="5"/><circle cx="14" cy="34" r="4"/></g>
     <g fill="url(#wrF)" stroke="#7a2a08" stroke-width=".6"><path d="M87 66c-4-4-5-9-2-14c1 4 3 5 4 5c0-5 2-9 5-12c-1 5 2 8 2 12c0 6-4 9-9 9z"/><path d="M85 40c-3-3-3-7-1-10c1 3 2 4 3 4c0-3 1-6 4-8c-1 4 1 6 1 9c0 4-3 6-7 5z"/></g>${glanz}</svg>`;
-  R.zwoelf = `<svg class="av-fr" viewBox="0 0 100 100" aria-hidden="true">${ring("url(#wrR_gold)")}${um(12, (i, a) => `<circle cx="${(50 + 35 * Math.cos(a)).toFixed(2)}" cy="${(50 + 35 * Math.sin(a)).toFixed(2)}" r="3.6" fill="${STAEMME[i].f}" stroke="#7a5208" stroke-width="1"/><circle cx="${(49 + 35 * Math.cos(a)).toFixed(2)}" cy="${(49 + 35 * Math.sin(a)).toFixed(2)}" r="1" fill="#fff" opacity=".8"/>`)}${glanz}</svg>`;
   R.feuergold = `<svg class="av-fr" viewBox="0 0 100 100" aria-hidden="true"><circle class="fr-schein" cx="50" cy="50" r="47" fill="url(#wrRschein)"/>${ring("url(#wrR_gold)", 7)}${um(16, (i, a) => `<path d="M${(50 + 40 * Math.cos(a)).toFixed(2)} ${(50 + 40 * Math.sin(a)).toFixed(2)}L${(50 + (i % 2 ? 45 : 48) * Math.cos(a)).toFixed(2)} ${(50 + (i % 2 ? 45 : 48) * Math.sin(a)).toFixed(2)}" stroke="#ffb54a" stroke-width="${i % 2 ? 1.6 : 2.6}" stroke-linecap="round"/>`)}${um(6, (i, a) => `<circle cx="${(50 + 35 * Math.cos(a)).toFixed(2)}" cy="${(50 + 35 * Math.sin(a)).toFixed(2)}" r="2.8" fill="#fff6c8" stroke="#a0520a" stroke-width=".8"/>`)}${glanz}</svg>`;
   R.wolke = `<svg class="av-fr" viewBox="0 0 100 100" aria-hidden="true"><circle class="fr-schein" cx="50" cy="50" r="47" fill="url(#wrRschein)"/>${ring("url(#wrR_licht)")}
     <g fill="#fff" stroke="#c9d6f2" stroke-width=".7"><ellipse cx="50" cy="13" rx="20" ry="7"/><circle cx="38" cy="11" r="7"/><circle cx="50" cy="7" r="8"/><circle cx="62" cy="11" r="7"/></g>
@@ -4795,3 +4765,27 @@ function stiftFeiern() {
   }
   return neu;
 }
+
+/* 6.69: Die Stammeswappen (6.68) wurden aus dem Laden genommen – gekaufte Wappen werden voll erstattet */
+const STAEMME_ERSTATTUNG = { ruben: 80, simeon: 90, levi: 100, juda: 110, sebulon: 120, issaschar: 140, dan: 150, gad: 160, asser: 180, naftali: 200, josef: 220, benjamin: 250 };
+function staemmeErstatten() {
+  const weg = (S.owned || []).filter(x => /^st-/.test(x)); if (!weg.length && !(S.badges || []).includes("ganzisrael")) return;
+  const tal = weg.reduce((a, x) => a + (STAEMME_ERSTATTUNG[x.slice(3)] || 0), 0);
+  S.owned = S.owned.filter(x => !/^st-/.test(x)); S.badges = (S.badges || []).filter(b => b !== "ganzisrael");
+  if (S.title === "ganzisrael") S.title = "none"; if (S.frame === "zwoelf") S.frame = "none"; delete S.wappen;
+  S.tal += tal; save(); renderHud(); lbSync();
+  if (tal) setTimeout(() => toast(`${TAL_MUENZE}<div><b>+${tal} Talente erstattet</b><div class="small muted">Die Stammeswappen gibt es nicht mehr im Laden – dafür neue Avatare bis Level 60.</div></div>`), 1200);
+}
+/* 6.69: Symbole der neuen Avatare (vorerst hier; beim nächsten Generator-Lauf übernehmen) */
+(function () {
+  const A = inner => `<svg x="0" y="0" width="24" height="24" viewBox="0 0 64 64" overflow="visible" class="wr wr-avatar"><ellipse cx="32" cy="61" rx="17" ry="2.2" fill="#000" opacity=".3"/>${inner}</svg>`;
+  const O = "#1b2a55";
+  ICONS["av-hirtenstab"] = A(`<path d="M30 60V22c0-9 6-15 13-15s12 5 12 11c0 5-4 8-8 8" fill="none" stroke="${O}" stroke-width="8" stroke-linecap="round"/><path d="M30 60V22c0-9 6-15 13-15s12 5 12 11c0 5-4 8-8 8" fill="none" stroke="url(#wrG)" stroke-width="5" stroke-linecap="round"/><path d="M33 52V24c0-6 4-12 10-12" fill="none" stroke="#fff" stroke-width="1.4" opacity=".8" stroke-linecap="round"/><path d="M14 46c4-4 10-4 12 0c-2 4-8 6-12 0z" fill="url(#wrP)" stroke="${O}" stroke-width="1.2"/><circle cx="16" cy="45" r="1.2" fill="${O}"/>`);
+  ICONS["av-tafeln"] = A(`${[[8, -6], [30, 6]].map(([x, r]) => `<path d="M${x} 56V22a13 13 0 0 1 26 0V56Z" transform="rotate(${r} ${x + 13} 40)" fill="url(#wrP)" stroke="${O}" stroke-width="1.6"/>`).join("")}${[30, 37, 44, 51].map(y => `<path d="M13 ${y}h14M36 ${y + 1}h14" stroke="#7a8ab0" stroke-width="1.6" stroke-linecap="round" transform="rotate(0)"/>`).join("")}<path d="M17 22h6M40 23h6" stroke="url(#wrG)" stroke-width="2.4" stroke-linecap="round"/>`);
+  ICONS["av-arche"] = A(`<path d="M10 22a22 22 0 0 1 44 0" fill="none" stroke="#ff8a8a" stroke-width="2.4"/><path d="M13 22a19 19 0 0 1 38 0" fill="none" stroke="#ffe39a" stroke-width="2.4"/><path d="M16 22a16 16 0 0 1 32 0" fill="none" stroke="#7fc8ff" stroke-width="2.4"/><rect x="20" y="28" width="24" height="12" rx="2" fill="#c18c45" stroke="${O}" stroke-width="1.4"/><path d="M18 30L32 22L46 30" fill="#9a6a30" stroke="${O}" stroke-width="1.4" stroke-linejoin="round"/><rect x="29" y="32" width="6" height="8" fill="${O}" opacity=".6"/><path d="M6 40H58L52 52H12Z" fill="url(#wrG)" stroke="${O}" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 44h44" stroke="#a07c22" stroke-width="1.2"/><path d="M4 56q7-4 14 0t14 0t14 0t14 0" fill="none" stroke="#7fc8ff" stroke-width="2.2" stroke-linecap="round"/>`);
+  ICONS["av-weinstock"] = A(`<path d="M32 6c0 6-6 6-6 12" fill="none" stroke="#7a5a2a" stroke-width="3" stroke-linecap="round"/><path d="M33 12c6-6 16-6 20 0c-6 0-8 4-10 8c-4-4-10-4-10-8z" fill="#5fae5a" stroke="${O}" stroke-width="1.3" stroke-linejoin="round"/>${[[26, 22], [34, 22], [22, 30], [30, 30], [38, 30], [26, 38], [34, 38], [30, 46], [22, 38] , [38, 38]].slice(0, 9).map(([x, y]) => `<circle cx="${x}" cy="${y}" r="5.4" fill="#8a5ad6" stroke="${O}" stroke-width="1.2"/><circle cx="${x - 1.6}" cy="${y - 1.8}" r="1.4" fill="#fff" opacity=".7"/>`).join("")}`);
+  ICONS["av-brote"] = A(`<path d="M8 40h48l-6 16H14z" fill="#a8743c" stroke="${O}" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 46h40M16 51h32" stroke="#6b4318" stroke-width="1.2"/>${[[16, 34], [26, 31], [36, 31], [46, 34], [31, 24]].map(([x, y]) => `<ellipse cx="${x}" cy="${y}" rx="7" ry="5" fill="url(#wrG)" stroke="${O}" stroke-width="1.2"/><path d="M${x - 3} ${y - 1}q3-2 6 0" stroke="#a07c22" stroke-width="1" fill="none"/>`).join("")}${[[18, 12, 1], [44, 14, -1]].map(([x, y, d]) => `<path d="M${x - 8 * d} ${y}q${8 * d}-7 ${14 * d} 0q-${6 * d} 7-${14 * d} 0z" fill="#9fc6e8" stroke="${O}" stroke-width="1.2"/><path d="M${x + 6 * d} ${y}l${5 * d}-4v8z" fill="#9fc6e8" stroke="${O}" stroke-width="1.1"/>`).join("")}`);
+  ICONS["av-menora"] = A(`<circle class="wr-halo" cx="32" cy="22" r="22" fill="url(#wrH_lohn)"/><path d="M32 18V54M22 58h20" stroke="${O}" stroke-width="6" stroke-linecap="round"/><path d="M32 18V54M22 58h20" stroke="url(#wrG)" stroke-width="3.6" stroke-linecap="round"/>${[8, 15, 22].map(w => `<path d="M${32 - w} 18v6c0 ${w * .9} ${w} ${w * .9 + 6} ${w} ${w * .9 + 6}s${w}-${0} ${w}-${w * .9 + 6}v-6" fill="none" stroke="${O}" stroke-width="5.4" stroke-linecap="round"/><path d="M${32 - w} 18v6c0 ${w * .9} ${w} ${w * .9 + 6} ${w} ${w * .9 + 6}s${w}-${0} ${w}-${w * .9 + 6}v-6" fill="none" stroke="url(#wrG)" stroke-width="3" stroke-linecap="round"/>`).join("")}${[10, 17, 24, 32, 40, 47, 54].map(x => `<path d="M${x} 16c-2-3 0-6 0-8c2 2 3 5 0 8z" fill="url(#wrF)" stroke="#a0520a" stroke-width=".6"/>`).join("")}`);
+  ICONS["av-leiter"] = A(`<circle class="wr-halo" cx="46" cy="12" r="16" fill="url(#wrH_lohn)"/><path d="M14 60L40 6M28 60L54 6" stroke="${O}" stroke-width="5" stroke-linecap="round"/><path d="M14 60L40 6M28 60L54 6" stroke="url(#wrG)" stroke-width="3" stroke-linecap="round"/>${[0, 1, 2, 3, 4, 5].map(i => { const y = 52 - i * 8.6, x = 18 + i * 4.2; return `<path d="M${x} ${y}h14" stroke="${O}" stroke-width="4.4" stroke-linecap="round"/><path d="M${x} ${y}h14" stroke="url(#wrP)" stroke-width="2.4" stroke-linecap="round"/>`; }).join("")}${[[46, 2], [58, 10], [56, 22]].map(([x, y]) => `<path d="M${x} ${y - 3}l1 2.2 2.4 .8-2.4.8-1 2.2-1-2.2-2.4-.8 2.4-.8z" fill="#fff6c8"/>`).join("")}`);
+  ICONS["av-palme"] = A(`<path d="M18 60C24 44 34 26 50 6" fill="none" stroke="${O}" stroke-width="5" stroke-linecap="round"/><path d="M18 60C24 44 34 26 50 6" fill="none" stroke="#7a9a3a" stroke-width="3" stroke-linecap="round"/>${Array.from({ length: 9 }, (_, i) => { const t = .15 + i * .09, x = 18 + (50 - 18) * t + 2, y = 60 - 54 * t, l = 16 - i * 1.1; return `<path d="M${x} ${y}q-${l * .8}-${l * .2}-${l}-${l * .7}" fill="none" stroke="#3f7a3a" stroke-width="3.2" stroke-linecap="round"/><path d="M${x} ${y}q${l * .3}-${l * .3}${l}-${l * .2}" fill="none" stroke="#5fae5a" stroke-width="3.2" stroke-linecap="round"/>`; }).join("")}<path d="M48 8l4-4" stroke="url(#wrG)" stroke-width="2.4" stroke-linecap="round"/>`);
+})();
