@@ -238,6 +238,7 @@ service cloud.firestore {
         && request.resource.data.pid == pid
         && request.resource.data.name is string && request.resource.data.name.size() >= 2 && request.resource.data.name.size() <= 20
         && request.resource.data.s is map && request.resource.data.s.keys().hasOnly(['1', '2', '3', '4', '5', '6', '7', '8'])
+        && (resource == null || request.resource.data.s.keys().hasAll(resource.data.s.keys()))
         && spende('1') && spende('2') && spende('3') && spende('4') && spende('5') && spende('6') && spende('7') && spende('8');
       allow delete: if false;
     }
