@@ -134,7 +134,7 @@ const lvMonatsTage = k => { const s = lvStand(k), [y, m] = k.split("-").map(Numb
 
 /* ----- Wörter & Vergleich (tolerant: Groß/klein, Satzzeichen, Umlaute, ein Tippfehler bei langen Wörtern) ----- */
 const lvKern = w => w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
-const lvNorm = w => lvKern(String(w)).toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss");
+const lvNorm = w => lvKern(String(w).replace(/[\u00ad\u200b-\u200f\u2060\ufeff]/g, "")).toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss");
 const lvIstWort = w => /[\p{L}\p{N}]/u.test(w);
 function lvAbstand(a, b) {
   if (Math.abs(a.length - b.length) > 1) return 2;
