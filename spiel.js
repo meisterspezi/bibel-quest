@@ -142,7 +142,9 @@ function lvAbstand(a, b) {
   for (let i = 1; i <= a.length; i++) { const q = [i]; for (let j = 1; j <= b.length; j++) q[j] = Math.min(p[j] + 1, q[j - 1] + 1, p[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); p = q; }
   return p[b.length];
 }
-function lvGleich(a, b) { const x = lvNorm(a), y = lvNorm(b); return x === y || (y.length >= 5 && lvAbstand(x, y) <= 1); }
+/* „das“, „dass“ und „daß“ gelten untereinander als gleich (ß wird in lvNorm schon zu ss) */
+const lvDass = t => t === "dass" ? "das" : t;
+function lvGleich(a, b) { const x = lvDass(lvNorm(a)), y = lvDass(lvNorm(b)); return x === y || (y.length >= 5 && lvAbstand(x, y) <= 1); }
 /* Wie viel vom Vers stimmt? Längste gemeinsame Wortfolge → Anteil + welche Zielwörter getroffen wurden */
 function lvVergleich(eingabe, ziel) {
   const a = eingabe.split(/\s+/).filter(lvIstWort), z = ziel.split(" ").map((w, i) => ({ w, i })).filter(x => lvIstWort(x.w));
@@ -401,10 +403,14 @@ function vlVerdrahten(a, verdeckt) {
       return vlUrteil(a, ok, a.ziel.join(" "));
     }
     if (a.typ === "tippen") {
-      const w = text.split(" "); let ok = true; const falsche = [];
-      screen.querySelectorAll(".vl-feld").forEach(f => { const i = +f.dataset.i, gut = lvGleich(f.value.trim(), w[i]); f.classList.add(gut ? "gut" : "falsch"); f.readOnly = true; if (!gut) { ok = false; falsche.push([f.value.trim(), lvKern(w[i])]); vlFehlerWort(a.k, i); f.value = lvKern(w[i]); } });
-      const liste = falsche.slice(0, 6).map(([d, r]) => `<span class="vu-ersatz">${d ? esc(d) : "<i>leer</i>"} → <b>${esc(r)}</b></span>`).join(" · ") + (falsche.length > 6 ? ` · … +${falsche.length - 6}` : "");
-      return vlUrteil(a, ok, ok ? null : `Nicht alle Wörter stimmten – die roten Felder zeigen die richtigen.<br><small>${liste}</small>`, true);
+      const w = text.split(" "); let ok = true; const falsche = [], abweich = [];
+      screen.querySelectorAll(".vl-feld").forEach(f => { const i = +f.dataset.i, eing = f.value.trim(), gut = lvGleich(eing, w[i]); f.classList.add(gut ? "gut" : "falsch"); f.readOnly = true; if (!gut) { ok = false; falsche.push([eing, lvKern(w[i])]); vlFehlerWort(a.k, i); f.value = lvKern(w[i]); } else if (lvKern(eing) !== lvKern(w[i]) && lvNorm(eing) !== lvNorm(w[i]) && lvDass(lvNorm(eing)) === lvDass(lvNorm(w[i]))) abweich.push([eing, lvKern(w[i])]); });
+      const paar = ([d, r]) => `<span class="vu-ersatz">${d ? esc(d) : "<i>leer</i>"} → <b>${esc(r)}</b></span>`;
+      const liste = falsche.slice(0, 6).map(paar).join(" · ") + (falsche.length > 6 ? ` · … +${falsche.length - 6}` : "");
+      /* „dass“ für „das“ (und umgekehrt) zählt als richtig – der Hinweis zeigt aber die Schreibweise im Vers */
+      const hinweis = abweich.length ? `<br><small>Gilt als richtig – im Vers steht: ${abweich.map(paar).join(" · ")}</small>` : "";
+      if (ok) return vlUrteil(a, true, abweich.length ? `Gilt als richtig – im Vers steht: ${abweich.map(paar).join(" · ")}` : null, true);
+      return vlUrteil(a, false, `Nicht alle Wörter stimmten – die roten Felder zeigen die richtigen.<br><small>${liste}</small>${hinweis}`, true);
     }
     if (a.typ === "frei") {
       try { VL.sr && VL.sr.stop(); } catch (e) {}
