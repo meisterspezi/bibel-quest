@@ -108,7 +108,7 @@ const LV_STUFEN = ["Kennenlernen", "Ordnen", "Ergänzen", "Anfangsbuchstaben", "
 const LV_TAL = [5, 5, 5, 5, 10];   /* Talente beim ersten Erreichen von Stufe 1 … 5 – je Vers einmal */
 const LV_BEWAHR_TAL = 15;          /* Monatsprüfung bestanden („Vers bewahrt“) */
 const LV_BEWAHR_TAGE = 7;          /* Monatsprüfung geht in den letzten 7 Tagen des Monats */
-const LV_XP = 10, LV_XP_RICHTIG = 2; /* XP je Lektion + je Aufgabe, die beim ersten Versuch sitzt */
+const LV_XP = 10, LV_XP_RICHTIG = 16; /* XP je Lektion + je Aufgabe, die beim ersten Versuch sitzt */
 const LV_STUFEN_PRO_TAG = 1;       /* neue Stufen pro Tag – danach wird „gefestigt“ (XP, Übungstag) */
 const LV_TURBO_QUOTE = 90;         /* Turbo: wer eine Lektion mit so viel % beim ersten Versuch schafft … */
 const LV_STUFEN_TURBO = 3;         /* … darf am selben Tag bis zu so viele Stufen gehen und bekommt Bonus-Aufgaben */
@@ -768,7 +768,10 @@ function bewaehrtWert(r) {
    Der Verwalter sieht in der „XP-Prüfung“, ob die XP der Rangliste durch Quellen erklärt sind. */
 const XQ_QUELLEN = { vers: "Lernvers", lektion: "Lektion", luecke: "Lückenquiz", blitz: "Blitz", kette: "Kette", duell: "Duell", duelleigen: "Duell (eigenes Profil)", bib: "Biblionär", tagesbonus: "Tagesaufgaben", spickzettel: "Spickzettel", sonst: "Sonstiges", abgleich: "Geräteabgleich" };
 /* höchste XP, die eine einzelne Vergabe je Quelle ehrlich bringen kann (Blitz: 60 Richtige; Kette rückwärts: 65×4+300 …) */
-const XQ_MAX = { vers: 150, lektion: 130, luecke: 250, blitz: 1300, kette: 560, duell: 70, duelleigen: 70, bib: 105, tagesbonus: 100, spickzettel: 20, sonst: 100, abgleich: 10000000 };
+/* bis 6.76 geltende Höchstwerte – für ältere Protokolleinträge und die gesamte „größte Vergabe“ (m), die nie sinkt */
+const XQ_MAX_ALT = { vers: 150, lektion: 130, luecke: 250, blitz: 1300, kette: 560, duell: 70, duelleigen: 70, bib: 105, tagesbonus: 100, spickzettel: 20, sonst: 100, abgleich: 10000000 };
+const xqMaxFuer = (q, ver) => { const neu = XQ_MAX[q] || 100, alt = XQ_MAX_ALT[q] || 100; return parseFloat(ver) >= 6.77 ? neu : Math.max(neu, alt); };
+const XQ_MAX = { vers: 400, lektion: 180, luecke: 600, blitz: 320, kette: 210, duell: 350, duelleigen: 350, bib: 330, tagesbonus: 100, spickzettel: 20, sonst: 100, abgleich: 10000000 };
 /* sortierbarer Tagesschlüssel (dstr() schreibt Monat/Tag ohne führende Null) */
 const xqTagKey = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 function xqZaehlen(n, q) {
@@ -1446,7 +1449,7 @@ VIEWS.lektion = (arg) => {
   };
   function fertig(err) {
     const stars = err === 0 ? 3 : err <= 2 ? 2 : 1, prev = S.stars[gi] || 0; if (stars > prev) S.stars[gi] = stars;
-    const xp = g.books.length * 5 + stars * 10; richtig(g.books.length);
+    const xp = g.books.length * 7 + stars * 12; richtig(g.books.length);
     quest("station", 1); quest("runde", 1);
     SFX.win(); vibrate([20, 30, 20, 30, 60]); rain(70);
     setTimeout(() => {
@@ -1536,7 +1539,7 @@ VIEWS.gap = (arg) => {
     screen.querySelectorAll("#go .opt").forEach(b => b.onclick = () => {
       if (lock) return;
       if (b.dataset.t === L.t) {
-        lock = true; b.classList.add("right"); SFX.right(k % 12); richtig(1); xp += 3; offen.add(L.vi + "-" + L.li + "-" + L.si);
+        lock = true; b.classList.add("right"); SFX.right(k % 12); richtig(1); xp += 7; offen.add(L.vi + "-" + L.li + "-" + L.si);
         const [x, y] = centerOf(b); burst(x, y, 10);
         let weiter = false; const naechste = () => { if (weiter) return; weiter = true; vorlesenStop(); k++; if (k >= luecken.length) ende(); else render(); };
         if (S.gapSing && LIEDZEIT) {
@@ -1578,7 +1581,7 @@ VIEWS.gap = (arg) => {
 VIEWS.blitz = () => {
   screen.innerHTML = `${backBtn("spielen", "Spielen")}<h1>Blitz-Runde</h1>
   <div class="card stack" style="text-align:center">
-    <p class="muted" style="margin:0">60 Sekunden: Was kommt nach dem Buch? Jede 5er-Combo erhöht den Multiplikator. Ein Fehler kostet 3 Sekunden.</p>
+    <p class="muted" style="margin:0">60 Sekunden: Was kommt nach dem Buch? Jede 10er-Combo erhöht den Multiplikator (bis x3). Ein Fehler kostet 3 Sekunden.</p>
     <div class="label">Bereich</div>
     <div class="modes" style="grid-template-columns:repeat(3,1fr)">
       <button class="btn primary" data-s="all">Ganze Bibel</button><button class="btn" data-s="AT">AT</button><button class="btn" data-s="NT">NT</button>
@@ -1604,7 +1607,7 @@ function playBlitz(scope) {
   $("bstop").onclick = end;
   const t = setInterval(() => { time -= 0.1; $("tb").style.width = Math.max(time, 0) / 60 * 100 + "%"; $("bt").textContent = Math.ceil(Math.max(time, 0)) + " s"; if (time <= 10 && Math.abs(time - Math.round(time)) < 0.05) SFX.tick(); if (time <= 0) end(); }, 100); timers.push(t);
   next();
-  function mult() { return Math.min(1 + Math.floor(combo / 5), 5); }
+  function mult() { return Math.min(1 + Math.floor(combo / 10), 3); }
   function next() {
     let i; do { i = idx[Math.floor(Math.random() * idx.length)]; } while (idx.length > 1 && i === cur); cur = i; lock = false;
     $("bq").textContent = ALL[i].b; $("bm").textContent = GROUPS[ALL[i].gi].name;
@@ -1613,7 +1616,7 @@ function playBlitz(scope) {
   function ans(btn, b) {
     if (lock) return; const correct = ALL[cur + 1].b;
     if (b === correct) {
-      lock = true; combo++; right++; maxCombo = Math.max(maxCombo, combo); const g = 5 * mult(); xp += g; richtig(1);
+      lock = true; combo++; right++; maxCombo = Math.max(maxCombo, combo); const g = 2 * mult(); xp += g; richtig(1);
       btn.classList.add("right"); SFX.right(combo); vibrate(10); const [x, y] = centerOf(btn); burst(x, y, 10 + mult() * 6, { speed: 3 + mult() }); floatText("+" + g, x, y);
       $("br").textContent = right; $("bx").textContent = xp + " XP";
       if (combo % 5 === 0) { tone(1568, 0, .15, "sine", .12); shakeScreen(); }
@@ -1647,10 +1650,10 @@ function playBlitz(scope) {
 
 /* ---------- Die Kette ---------- */
 const KETTEN = {
-  bibel: { name: "Ganze Bibel", info: "1. Mose bis Offenbarung", seq: FWD, key: "bestChain", bonus: 200, tal: 20 },
-  at: { name: "Altes Testament", info: "1. Mose bis Maleachi", seq: FWD.slice(0, 39), key: "chainAT", bonus: 80, tal: 8 },
-  nt: { name: "Neues Testament", info: "Matthäus bis Offenbarung", seq: FWD.slice(39), key: "chainNT", bonus: 60, tal: 6 },
-  rueck: { name: "Rückwärts", info: "Offenbarung bis 1. Mose · für Profis", seq: FWD.slice().reverse(), key: "chainRueck", bonus: 300, tal: 30, rueck: true }
+  bibel: { name: "Ganze Bibel", info: "1. Mose bis Offenbarung", seq: FWD, key: "bestChain", bonus: 20, tal: 20 },
+  at: { name: "Altes Testament", info: "1. Mose bis Maleachi", seq: FWD.slice(0, 39), key: "chainAT", bonus: 10, tal: 8 },
+  nt: { name: "Neues Testament", info: "Matthäus bis Offenbarung", seq: FWD.slice(39), key: "chainNT", bonus: 8, tal: 6 },
+  rueck: { name: "Rückwärts", info: "Offenbarung bis 1. Mose · für Profis", seq: FWD.slice().reverse(), key: "chainRueck", bonus: 60, tal: 30, rueck: true }
 };
 const kettenBuecher = (key) => (S[key] ? S[key] + 1 : 0);
 VIEWS.chain = () => { go("spielen"); };
@@ -1683,7 +1686,7 @@ function playChain(mode) {
   function ans(btn, t) {
     if (lock) return; const correct = ALL[seq[i + 1]].b;
     if (t === correct) {
-      lock = true; i++; xp += 4; richtig(1);
+      lock = true; i++; xp += 2; richtig(1);
       btn.classList.add("right"); SFX.right(Math.min(i / 4, 12)); vibrate(10); const [x, y] = centerOf(btn); burst(x, y, 12); $("cx").textContent = xp + " XP";
       if (mode === "bibel" && i === 38) { $("cc").textContent = "Altes Testament geschafft!"; tone(1047, 0, .4, "triangle", .15); rain(50); }
       else $("cc").textContent = "";
@@ -2492,7 +2495,9 @@ function profilVergleich(r) {
    – Blitz: 60 Sekunden „Was kommt danach?“, ein Fehler kostet 3 s. Punkte: 100 je Richtige + 20 je Combo-Stufe.
    Datenmodell (firestore-regeln.txt): art = vers | kette | blitz, k = Lernvers-Monat bzw. Kette (bibel/at/nt/rueck) bzw. Bereich (all). */
 const DU_FRAGEN = 8, DU_SEK = 12, DU_KETTE_SEK = 10, DU_BLITZ_SEK = 60, DU_BLITZ_FRAGEN = 160, DU_MAX_OFFEN = 10, DU_MAX_AUSWAHL = 10, DU_TAGE_HALTEN = 30;
-const DU_XP = 10, DU_XP_RICHTIG = 3, DU_XP_MAX_RICHTIG = 20, DU_SIEG_TAL = 10, DU_REMIS_TAL = 5, DU_FAIR_TAL = 5;
+/* 6.77: XP-Angleichung – Ziel ≈ 50 XP/Min im Einzelspiel, Duelle (soziales Spiel mit Warten/Herausfordern) ≈ 75 XP/Min (+50 %) */
+const DU_XP = 10, DU_PRO = { vers: 11, blitz: 3, kette: 3, quiz: 22 }, DU_MAXR = { vers: 8, blitz: 25, kette: 66, quiz: 15 }, DU_TAGE_VOLL = 6, DU_EIGEN_FAKTOR = 0.67, DU_SPAET_FAKTOR = 0.5;
+const DU_SIEG_TAL = 10, DU_REMIS_TAL = 5, DU_FAIR_TAL = 5;
 const DU_TYPEN = {
   vers: { art: "vers", name: "Lernvers", ic: "scroll", info: "8 Fragen zum Lernvers des Monats · 12 s je Frage" },
   blitz: { art: "blitz", k: "all", name: "Blitz", ic: "bolt", info: "60 Sekunden: Was kommt danach? Ein Fehler kostet 3 s" },
@@ -2935,15 +2940,25 @@ function duZeige() {
       r => { if (r === "ende") { D.abgeschlossen = true; duSpiel = null; go("duelle"); } });
   };
 }
+/* 6.77: Duell-XP je Spielart (Grundwert + XP je Richtige, Obergrenze je Art). Zweitprofile zählen wie Einzelspiel, ab dem
+   DU_TAGE_VOLL-ten Duell am Tag nur noch halb – so lohnt sich Duellieren mit vielen verschiedenen Mitspielern, nicht mit Absprachen. */
+function duXpTagStand() { const t = today(), d = S.duXpTag; return d && d.t === t ? d.n | 0 : 0; }
+function duXpTagZaehlen() { const t = today(); S.duXpTag = { t, n: (S.duXpTag && S.duXpTag.t === t ? S.duXpTag.n | 0 : 0) + 1 }; save(); }
+function duXpWert(D, ziele) {
+  const art = DU_PRO[D.art] ? D.art : "blitz", roh = DU_XP + DU_PRO[art] * Math.min(D.r | 0, DU_MAXR[art]);
+  const eigen = (ziele || []).some(z => eigenePid(z.id)), spaet = duXpTagStand() >= DU_TAGE_VOLL;
+  return Math.max(1, Math.round(roh * (eigen ? DU_EIGEN_FAKTOR : 1) * (spaet ? DU_SPAET_FAKTOR : 1)));
+}
 async function duEnde() {
   const D = duSpiel, L = window.LB, n = D.art === "blitz" ? Math.max(1, D.r + D.f) : D.fragen.length;
   const erg = { p: D.p, r: D.r, n };
-  const xp = DU_XP + DU_XP_RICHTIG * Math.min(D.r, DU_XP_MAX_RICHTIG);
+  let xp = 0;
   if (!D.belohnt) { D.belohnt = true; S.duSpiele = (S.duSpiele || 0) + 1; S.duArten = [...new Set([...(S.duArten || []), D.art])];
     if (D.art === "kette" && D.r === D.fragen.length) S.duKetteVoll = true;
     richtig(D.r); quest("runde", 1); if (D.art === "blitz") quest("blitz", 1); if (D.art === "kette") quest("ketteGespielt", 1); save(); }
   /* zählt erst, wenn Herausforderung bzw. Antwort wirklich angekommen ist */
   const ziele = D.ziele || [{ id: D.an, name: D.gegner }], viele = ziele.length > 1;
+  xp = duXpWert(D, ziele);
   const angekommen = () => { if (D.gezaehlt) return; D.gezaehlt = true; if (D.neu) S.duGesendet = (S.duGesendet || 0) + ziele.length; else S.duAngenommen = (S.duAngenommen || 0) + 1; quest("duell", 1); save(); };
   let titel, zeile, tal = 0, sieg = false, fehler = false, weg = false;
   try {
@@ -2976,7 +2991,7 @@ async function duEnde() {
   const extra = D.art === "blitz" && D.maxCombo >= 2 ? ` · beste Combo ${D.maxCombo}` : D.art === "kette" && D.r === D.fragen.length ? " · ganze Kette!"
     : D.art === "quiz" ? (D.p >= BIB_LEITER[14] ? " · Biblionär!" : D.raus ? " · ausgestiegen" : "") : "";
   const gegnerSpalte = `<div class="du-vs-sp offen"><span>${esc(D.gegner)}</span><b>?</b><small>${viele ? "sind dran" : "ist dran"}</small></div>`;
-  function xpGeben(ms) { if (D.xpGegeben) return; D.xpGegeben = true; setTimeout(() => { addXp(xp, null, ziele.some(z => eigenePid(z.id)) ? "duelleigen" : "duell", { t0: D.t0, f: D.r, fm: (D.fragen || []).length, d: `${(DU_TYPEN[typ] && DU_TYPEN[typ].name) || D.art} · ${D.neu ? "Herausforderung" : "angenommen"}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, ms); }
+  function xpGeben(ms) { if (D.xpGegeben) return; D.xpGegeben = true; duXpTagZaehlen(); setTimeout(() => { addXp(xp, null, ziele.some(z => eigenePid(z.id)) ? "duelleigen" : "duell", { t0: D.t0, f: D.r, fm: (D.fragen || []).length, d: `${(DU_TYPEN[typ] && DU_TYPEN[typ].name) || D.art} · ${D.neu ? "Herausforderung" : "angenommen"}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, ms); }
   /* 6.62: Gegenspieler – Auflösung im Siegelbruch-Stil; Titel, Belohnung und Knöpfe erst danach */
   const aufl = !D.neu && !fehler && !weg;
   if (aufl) {
@@ -3183,7 +3198,7 @@ function bibErgebnis(G, punkte) {
 function bibEnde(G, punkte) {
   bibErgebnis(G, punkte);
   const grund = G.fertigGrund, million = grund === "biblionaer", woche = G.modus === "woche";
-  const xp = 10 + 3 * G.r + (million ? 50 : 0);
+  const xp = 10 + 14 * G.r + (million ? 100 : 0);
   const tal = Math.floor(G.r / 3) + (million ? 25 : 0) + (G.rekord && !woche ? 3 : 0) + (woche ? BIB_WOCHE_TAL : 0);
   if (!G.belohnt) { G.belohnt = true; richtig(G.r); quest("runde", 1); save(); }
   const titel = million ? "Biblionär!" : grund === "raus" ? "Klug ausgestiegen!" : grund === "zeit" ? "Die Zeit ist um" : "Leider falsch";
@@ -4593,7 +4608,7 @@ const XQ_BEREICH = { vers: "Lernen", lektion: "Lernen", spickzettel: "Lernen", l
 const XQ_RATE = { vers: 15, lektion: 20, luecke: 25, blitz: 35, kette: 25, duell: 15, duelleigen: 15, bib: 8, sonst: 10 };
 /* Auffälligkeiten einer einzelnen Vergabe (leer = unauffällig) */
 function xqEvVerdacht(e) {
-  const t = [], max = XQ_MAX[e.q] || 100;
+  const t = [], max = xqMaxFuer(e.q, e.ver);
   if (e.x > max) t.push(`${e.x} XP in einer Vergabe (ehrlich höchstens ${max})`);
   if (e.s != null && e.s >= 0) {
     const rate = XQ_RATE[e.q] || 0;
@@ -4634,7 +4649,7 @@ async function xpPruefDaten(opt) {
     o.anteile = xqAnteile(q, n, o.alt, o.offen, xp);
     if (o.offen > Math.max(500, xp * 0.1)) o.flags.push({ hart: true, t: `${o.offen.toLocaleString("de-DE")} XP ohne erklärende Quelle` });
     if (o.spitze > 15000) o.flags.push({ hart: true, t: `${o.spitze.toLocaleString("de-DE")} XP in einer einzigen Stunde` });
-    Object.entries(m).forEach(([k, v]) => { if ((XQ_MAX[k] || 100) < v) o.flags.push({ hart: true, t: `Einzelvergabe ${v} XP bei „${XQ_QUELLEN[k] || k}“ (ehrlich höchstens ${XQ_MAX[k] || 100})` }); });
+    Object.entries(m).forEach(([k, v]) => { const mx = xqMaxFuer(k, "6.76"); if (mx < v) o.flags.push({ hart: true, t: `Einzelvergabe ${v} XP bei „${XQ_QUELLEN[k] || k}“ (ehrlich höchstens ${mx})` }); });
     if ((q.abgleich | 0) > 0) o.flags.push({ hart: (q.abgleich | 0) > Math.max(1500, xp * 0.1), t: `${(q.abgleich | 0).toLocaleString("de-DE")} XP durch Geräteabgleich (Zuwachs von einem anderen Gerät)` });
     if ((q.duelleigen | 0) > 0) o.flags.push({ hart: false, t: `${(q.duelleigen | 0).toLocaleString("de-DE")} XP aus Duellen mit eigenem Profil` });
     /* Anstieg seit der letzten Prüfung: XP-Plus, das die Quellen nicht erklären */
@@ -4683,6 +4698,17 @@ function xqEreignisHtml(e) {
     <div class="small muted">Spielzeit ${esc(xqDauer(e.s))}${e.f != null ? ` · Fortschritt ${e.f}${e.fm ? " / " + e.fm : ""}` : ""} · Stand ${(+e.v).toLocaleString("de-DE")} → ${(+e.v + +e.x).toLocaleString("de-DE")}${e.ver ? " · v" + esc(e.ver) : ""}${abw}</div>
     ${e.d ? `<div class="small muted">${esc(e.d)}</div>` : ""}${v.map(t => `<div class="small xq-warn">⚠ ${esc(t)}</div>`).join("")}</div>`;
 }
+/* 6.77: gemessene XP pro Minute je Spiel (nur Vergaben ab Version 6.77 mit mindestens 15 s Spielzeit) – Grundlage zum Nachjustieren */
+const XQ_ZIEL_MIN = { solo: 50, duell: 75 };
+function xqRateKarte(z) {
+  const g = {};
+  z.forEach(r => (r.ev || []).forEach(e => { if (!(parseFloat(e.ver) >= 6.77) || !(e.s >= 15) || !XQ_BEREICH[e.q] || e.q === "tagesbonus" || e.q === "spickzettel") return;
+    const o = g[e.q] || (g[e.q] = { x: 0, s: 0, n: 0 }); o.x += e.x; o.s += e.s; o.n++; }));
+  const zeilen = Object.entries(g).map(([q, o]) => ({ q, n: o.n, r: o.x / (o.s / 60) })).sort((a, b) => b.r - a.r);
+  if (!zeilen.length) return `<div class="card small muted">XP pro Minute: Messwerte erscheinen, sobald Spieler die Version 6.77 nutzen und das Protokoll lesbar ist.</div>`;
+  return `<div class="card stack"><div class="topline"><b>XP pro Minute (gemessen)</b><span class="small muted">Ziel: Einzelspiel ≈ ${XQ_ZIEL_MIN.solo} · Duell ≈ ${XQ_ZIEL_MIN.duell}</span></div>${zeilen.map(t => { const ziel = t.q.startsWith("duell") ? XQ_ZIEL_MIN.duell : XQ_ZIEL_MIN.solo, abw = Math.round((t.r / ziel - 1) * 100);
+    return `<div class="xq-zeile"><i class="xq-dot" style="background:${XQ_FARBE[t.q] || XQ_FARBE.sonst}"></i><span class="xq-nm">${esc(XQ_QUELLEN[t.q] || t.q)}</span><span class="xq-xp">${Math.round(t.r)} XP/Min</span><span class="xq-p small muted">${t.n}× · ${abw > 0 ? "+" : ""}${abw} % zum Ziel</span></div>`; }).join("")}</div>`;
+}
 VIEWS.xppruefung = () => {
   const L = window.LB;
   screen.innerHTML = `${backBtn("postfach", "Postkasten")}<h1>XP-Prüfung</h1>
@@ -4700,7 +4726,7 @@ VIEWS.xppruefung = () => {
     const warn = auffaellig.length ? `<div class="card stack xq-karte-bad"><b>⚠ Auffälligkeiten (${auffaellig.length})</b>${auffaellig.map(r => `<div class="small"><b>${esc(r.name)}</b> (${zahl(r.xp)} XP)<br>${r.flags.filter(f => f.hart).map(f => esc(f.t)).join("<br>")}</div>`).join("")}</div>` : `<div class="card small muted">Keine Auffälligkeiten.</div>`;
     const hinweis = z.evOk ? "" : `<div class="card small muted">Das Einzelprotokoll ist noch nicht lesbar – sind die neuen Firebase-Regeln (Version 6.75) veröffentlicht?</div>`;
     const csvAlle = `<button class="btn ghost breit" id="xqCsvAlle" style="width:100%">${svg("scroll")} Alle XP-Vergaben als CSV-Datei (Excel)</button><div class="small muted" id="xqCsvMeld" aria-live="polite"></div>`;
-    $("xpListe").innerHTML = hinweis + warn + gesamt + csvAlle + z.map(r => {
+    $("xpListe").innerHTML = hinweis + warn + gesamt + xqRateKarte(z) + csvAlle + z.map(r => {
       const kopf = `<div class="topline"><b>${esc(r.name)}</b><span class="small muted">Level ${r.level} · ${zahl(r.xp)} XP</span></div>`;
       if (!r.hat) return `<div class="card">${kopf}<div class="small muted">Noch keine Zählung (neue Version noch nicht geöffnet).</div></div>`;
       return `<div class="card stack${r.flags.some(f => f.hart) ? " xq-karte-bad" : ""}">${kopf}
