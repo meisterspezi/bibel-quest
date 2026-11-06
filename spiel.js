@@ -4642,6 +4642,21 @@ async function xpBerichte() {
     S.xpPruef = today(); S.xpPruefZ = Date.now(); save();
   } catch (e) { /* Regeln noch nicht veröffentlicht oder kein Internet – später wieder */ }
 }
+/* 6.75: CSV-Ausgabe des Protokolls (Excel-tauglich: Semikolon, UTF-8 mit BOM). Texte, die mit = + - @ beginnen, bekommen ein ' davor,
+   damit Namen oder Beschreibungen in Tabellenprogrammen nie als Formel laufen. */
+const xqCsvFeld = v => { let t = v == null ? "" : String(v); if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; return /[;"\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+function xqCsv(liste) {
+  const kopf = ["Datum", "Uhrzeit (Geraet)", "Spieler", "Spieler-ID", "Quelle", "XP", "XP vorher", "XP nachher", "Spielzeit (Sek.)", "Fortschritt", "Maximum", "Beschreibung", "Server-Zeit", "App-Version", "Auffaellig"];
+  const zeilen = liste.slice().sort((a, b) => b.z - a.z).map(e => { const d = new Date(+e.z), g = xqMs(e.gebucht), pad = n => String(n).padStart(2, "0");
+    return [`${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`, `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`, e.name || "", e.pid || "", XQ_QUELLEN[e.q] || e.q, e.x, e.v, (+e.v || 0) + (+e.x || 0),
+      e.s == null ? "" : e.s, e.f == null ? "" : e.f, e.fm == null ? "" : e.fm, e.d || "", g ? new Date(g).toISOString() : "", e.ver || "", xqEvVerdacht(e).join(" | ")].map(xqCsvFeld).join(";"); });
+  return "\uFEFF" + [kopf.join(";"), ...zeilen].join("\r\n") + "\r\n";
+}
+function xqCsvLaden(dateiname, liste) {
+  const url = URL.createObjectURL(new Blob([xqCsv(liste)], { type: "text/csv;charset=utf-8" })), a = document.createElement("a");
+  a.href = url; a.download = dateiname; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+const xqDateiTag = () => { const d = new Date(), p = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; };
 const xqAnteilHtml = (zeilen) => `<div class="xq-bar" aria-hidden="true">${zeilen.map(z => `<i style="width:${Math.max(z.p, 0.4)}%;background:${z.farbe}" title="${esc(z.name)} ${xqProzent(z.p)}"></i>`).join("")}</div>
   <div class="xq-zeilen">${zeilen.map(z => `<div class="xq-zeile"><i class="xq-dot" style="background:${z.farbe}"></i><span class="xq-nm">${esc(z.name)}<small>${esc(z.bereich)}${z.n ? (z.bereich ? " · " : "") + z.n.toLocaleString("de-DE") + "×" : ""}</small></span><b class="xq-xp">${(+z.xp).toLocaleString("de-DE")}</b><span class="xq-p">${xqProzent(z.p)}</span></div>`).join("")}</div>`;
 function xqEreignisHtml(e) {
@@ -4667,7 +4682,8 @@ VIEWS.xppruefung = () => {
     const gesamt = gez.length ? `<div class="card stack"><div class="topline"><b>Gemeinde gesamt</b><span class="small muted">${gez.length} von ${z.length} Spielern gezählt · ${zahl(gXp)} XP</span></div>${xqAnteilHtml(xqAnteile(gq, gn, gAlt, gOffen, gXp))}</div>` : "";
     const warn = auffaellig.length ? `<div class="card stack xq-karte-bad"><b>⚠ Auffälligkeiten (${auffaellig.length})</b>${auffaellig.map(r => `<div class="small"><b>${esc(r.name)}</b> (${zahl(r.xp)} XP)<br>${r.flags.filter(f => f.hart).map(f => esc(f.t)).join("<br>")}</div>`).join("")}</div>` : `<div class="card small muted">Keine Auffälligkeiten.</div>`;
     const hinweis = z.evOk ? "" : `<div class="card small muted">Das Einzelprotokoll ist noch nicht lesbar – sind die neuen Firebase-Regeln (Version 6.75) veröffentlicht?</div>`;
-    $("xpListe").innerHTML = hinweis + warn + gesamt + z.map(r => {
+    const csvAlle = `<button class="btn ghost breit" id="xqCsvAlle" style="width:100%">${svg("scroll")} Alle XP-Vergaben als CSV-Datei (Excel)</button><div class="small muted" id="xqCsvMeld" aria-live="polite"></div>`;
+    $("xpListe").innerHTML = hinweis + warn + gesamt + csvAlle + z.map(r => {
       const kopf = `<div class="topline"><b>${esc(r.name)}</b><span class="small muted">Level ${r.level} · ${zahl(r.xp)} XP</span></div>`;
       if (!r.hat) return `<div class="card">${kopf}<div class="small muted">Noch keine Zählung (neue Version noch nicht geöffnet).</div></div>`;
       return `<div class="card stack${r.flags.some(f => f.hart) ? " xq-karte-bad" : ""}">${kopf}
@@ -4677,9 +4693,16 @@ VIEWS.xppruefung = () => {
         ${r.bel.length ? `<details><summary class="small">Tägliche Belohnung: ${r.bel.length}× erhalten · zuletzt ${esc(xqZeit(r.bel[r.bel.length - 1].z))} (+${r.bel[r.bel.length - 1].x} XP)</summary><div class="small muted" style="margin-top:6px">${r.bel.slice(-14).reverse().map(e => `${esc(xqZeit(e.z))} · +${e.x} XP · +${e.t} Talente · Truhe vom ${esc(xqDatum(e.d || "?"))}${e.a === "gestern" ? " (am Folgetag automatisch geöffnet)" : ""}`).join("<br>")}<br><i>Uhrzeit laut Gerät des Spielers</i></div></details>` : ""}
         ${r.flags.map(f => `<div class="small" style="color:${f.hart ? "var(--bad,#ff8a5c)" : "var(--muted,#9aa)"}">${f.hart ? "⚠ " : "ℹ "}${esc(f.t)}</div>`).join("")}</div>`;
     }).join("") || `<p class="muted">Keine Einträge.</p>`;
+    if ($("xqCsvAlle")) $("xqCsvAlle").onclick = async () => {
+      SFX.tap(); const k = $("xqCsvAlle"), m = $("xqCsvMeld"); k.disabled = true; m.textContent = "Lade das Protokoll …";
+      try { const l = await L.xpProtokollNeu(0, 10000); if (!l.length) m.textContent = "Noch keine protokollierten Vergaben."; else { xqCsvLaden(`xp-protokoll-gemeinde-${xqDateiTag()}.csv`, l); m.textContent = `${l.length.toLocaleString("de-DE")} Vergaben exportiert${l.length >= 10000 ? " (die neuesten 10.000)" : ""}.`; } }
+      catch (e) { m.textContent = "Export fehlgeschlagen (" + ((e && e.code) || "Fehler") + ")."; }
+      k.disabled = false;
+    };
     screen.querySelectorAll("details[data-xpev]").forEach(d => d.addEventListener("toggle", () => {
       if (!d.open || d.dataset.geladen) return; d.dataset.geladen = "1"; const box = d.querySelector(".xq-evliste");
-      L.xpProtokoll(d.dataset.xpev, 100).then(l => { box.innerHTML = l.length ? `<div class="small muted" style="margin-bottom:6px">Die letzten ${l.length} Vergaben, neueste zuerst · Uhrzeit laut Gerät des Spielers</div>${l.map(xqEreignisHtml).join("")}` : "Noch keine protokollierten Vergaben."; })
+      L.xpProtokoll(d.dataset.xpev, 100).then(l => { box.innerHTML = l.length ? `<div class="small muted" style="margin-bottom:6px">Die letzten ${l.length} Vergaben, neueste zuerst · Uhrzeit laut Gerät des Spielers</div>${l.map(xqEreignisHtml).join("")}<button class="btn ghost mini" data-xqcsv style="margin-top:4px">${svg("scroll")} Dieses Protokoll als CSV</button>` : "Noch keine protokollierten Vergaben.";
+        const kn = box.querySelector("[data-xqcsv]"); if (kn) kn.onclick = async () => { SFX.tap(); kn.disabled = true; try { const alle = await L.xpProtokoll(d.dataset.xpev, 5000); xqCsvLaden(`xp-protokoll-${String(((z.find(r => r.id === d.dataset.xpev) || {}).name) || "spieler").replace(/[^\w-]+/g, "_")}-${xqDateiTag()}.csv`, alle); } catch (e) { toast("<div>Export fehlgeschlagen.</div>"); } kn.disabled = false; }; })
         .catch(e => { d.dataset.geladen = ""; box.textContent = "Konnte nicht geladen werden (" + ((e && e.code) || "Fehler") + ")."; });
     }));
   }).catch(e => { $("xpListe").innerHTML = `<p class="muted">Konnte nicht geladen werden (${esc((e && e.code) || "Fehler")}). Sind die neuen Firebase-Regeln veröffentlicht?</p>`; });
