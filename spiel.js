@@ -843,7 +843,7 @@ async function xqLogSenden() {
 }
 function xqSenden() {
   const L = window.LB; if (!L || !L.ok || !L.xpSetzen || !S.pid || S.offlineOnly || !S.xq || !S.lbName) return;
-  xqLogSenden();
+  xqLogSenden(); truheNachholen();
   const sig = JSON.stringify(S.xq); if (S.xqSync === sig) return;
   /* bewusst still: solange die Regeln für „xpquellen“ nicht veröffentlicht sind, darf das Spiel nichts melden oder neu verbinden */
   L.xpSetzen(S.pid, S.lbName, S.xq).then(() => { S.xqSync = sig; save(); }).catch(() => {});
@@ -974,11 +974,43 @@ function aufgabenAuslosen(t) {
   for (const a of verfuegbar) if (gew.length < 3 && !gew.includes(a) && !gew.some(x => x.ev === a.ev)) gew.push(a);
   return gew;
 }
+/* ---------- Schatztruhe: Tagesbuchung auf dem Server (6.78) ----------
+   Die Truhe gilt je Spieler und Serverdatum höchstens einmal: Dokument „tagestruhe/<pid>_<JJJJMMTT>“ wird nur angelegt, die Regeln
+   prüfen das Datum gegen die Serverzeit (heute oder gestern). Uhr umstellen, App-Daten löschen oder ein zweites Gerät helfen nicht mehr.
+   Ergebnis: ok (gebucht) · schon (heute bereits geholt) · regeln (Server-Regeln noch nicht veröffentlicht oder Spieler nicht in der
+   Rangliste → wie früher auszahlen) · netz (offline/Fehler → später) · tag (Datum passt nicht → Uhr des Geräts prüfen). */
+async function serverMs() {
+  try { const r = await fetch(location.pathname, { method: "HEAD", cache: "no-store" }); const d = Date.parse(r.headers.get("date") || ""); if (d > 0) return d; } catch (e) {}
+  return Date.now();
+}
+const berlinTagZahl = ms => +new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Berlin" }).format(new Date(ms)).replace(/-/g, "");
+let truheLaeuft = false;
+async function truheBuchen(vorTagen) {
+  const L = window.LB; if (!L || !L.ok || !L.truheBuchen || !S.pid || !S.lbName || S.offlineOnly) return "regeln";
+  try { const tag = berlinTagZahl((await serverMs()) - (vorTagen | 0) * 864e5); return await L.truheBuchen(S.pid, S.lbName, tag, APP_VERSION); }
+  catch (e) { return "netz"; }
+}
+/* Truhe von gestern, die wegen fehlender Verbindung noch nicht gebucht werden konnte – wird bei der nächsten Synchronisation nachgeholt */
+async function truheNachholen() {
+  if (!S.truheNach || truheLaeuft) return; truheLaeuft = true;
+  try { const e = await truheBuchen(1); if (e === "netz") return;
+    const tag = S.truheNach; S.truheNach = ""; save();
+    if (e === "ok" || e === "regeln") truheGestern(tag);
+  } finally { truheLaeuft = false; }
+}
+function truheGestern(truhenTag) {
+  addXp(AUFGABE_BONUS_XP, null, "tagesbonus", { d: "Schatztruhe von gestern" }); xqBelohnung("gestern", AUFGABE_BONUS_XP, AUFGABE_BONUS, truhenTag); addTal(AUFGABE_BONUS);
+  toast(`${TAL_MUENZE}<div><b>Deine Schatztruhe von gestern</b><div class="small muted">wurde für dich geöffnet: +${AUFGABE_BONUS_XP} XP und +${AUFGABE_BONUS} Talente</div></div>`);
+}
 function aufgabenSicherstellen() {
   const t = today(); if (S.dq && S.dq.day === t && S.dq.items.every(it => AUFGABEN.some(a => a.id === it.id))) return;
   const alteTruhe = S.dq && S.dq.geschafft && !S.dq.bonus, truhenTag = S.dq ? S.dq.day : "";
   const gew = aufgabenAuslosen(t);
-  if (alteTruhe) setTimeout(() => { addXp(AUFGABE_BONUS_XP, null, "tagesbonus", { d: "Schatztruhe von gestern" }); xqBelohnung("gestern", AUFGABE_BONUS_XP, AUFGABE_BONUS, truhenTag); addTal(AUFGABE_BONUS); toast(`${TAL_MUENZE}<div><b>Deine Schatztruhe von gestern</b><div class="small muted">wurde für dich geöffnet: +${AUFGABE_BONUS_XP} XP und +${AUFGABE_BONUS} Talente</div></div>`); }, 1500);
+  if (alteTruhe) setTimeout(async () => {
+    const e = await truheBuchen(1);
+    if (e === "ok" || e === "regeln") truheGestern(truhenTag);
+    else if (e === "netz") { S.truheNach = truhenTag; save(); }
+  }, 1500);
   S.dq = { day: t, items: gew.map(a => ({ id: a.id, prog: 0, done: false })), bonus: false };
 }
 function quest(ev, val = 1) {
@@ -1244,7 +1276,18 @@ const TAL_MUENZE = svg("tal"); /* das eine Talente-Symbol (Licht-Münze, definie
 
 /* Schatztruhe öffnen: Truhe fliegt in die Mitte, wackelt, springt auf – Licht, Münzen, Belohnung */
 function truheOeffnen(von) {
-  if (S.dq.bonus || document.querySelector(".truhe-fx")) return;
+  if (S.dq.bonus || document.querySelector(".truhe-fx") || truheLaeuft) return;
+  truheLaeuft = true;
+  truheBuchen(0).then(e => {
+    truheLaeuft = false;
+    if (S.dq.bonus || document.querySelector(".truhe-fx")) return;
+    if (e === "schon") { S.dq.geschafft = true; S.dq.bonus = true; save(); toast(`${TAL_MUENZE}<div><b>Schatztruhe schon geöffnet</b><div class="small muted">Für heute wurde sie bereits abgeholt – morgen gibt es die nächste.</div></div>`); if (current === "home") go("home"); return; }
+    if (e === "netz") { toast(`${TAL_MUENZE}<div><b>Keine Verbindung</b><div class="small muted">Die Truhe öffnet sich, sobald du wieder online bist.</div></div>`); return; }
+    if (e === "tag") { toast(`${TAL_MUENZE}<div><b>Datum passt nicht</b><div class="small muted">Bitte Datum und Uhrzeit deines Geräts prüfen (automatisch einstellen).</div></div>`); return; }
+    truheAnimation(von);
+  });
+}
+function truheAnimation(von) {
   S.dq.geschafft = true; S.dq.bonus = true; save();
   const ov = document.createElement("div"); ov.className = "truhe-fx"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-label", "Schatztruhe");
   const muenzen = Array.from({ length: 22 }, (_, i) => { const w = (i / 22) * Math.PI * 2 + Math.random() * .3, d = 110 + Math.random() * 90;

@@ -184,6 +184,14 @@ if (!configured) {
     // Verwalter: alle Einträge der letzten Zeit (seitMs) bzw. die letzten n Einträge eines Spielers (Dokument-ID beginnt mit der Spieler-ID)
     LB.xpProtokollNeu = async (seitMs, n = 3000) => { const q = await fs.getDocs(fs.query(fs.collection(db, "xpprotokoll"), fs.where("z", ">", seitMs), fs.orderBy("z", "desc"), fs.limit(n))); return q.docs.map(d => ({ id: d.id, ...d.data() })); };
     LB.xpProtokoll = async (pid, n = 200) => { const q = await fs.getDocs(fs.query(fs.collection(db, "xpprotokoll"), fs.where(fs.documentId(), ">=", pid + "_"), fs.where(fs.documentId(), "<", pid + "`"), fs.orderBy(fs.documentId(), "desc"), fs.limit(n))); return q.docs.map(d => ({ id: d.id, ...d.data() })).sort((x, y) => y.z - x.z); };
+    // 6.78: Schatztruhe – höchstens einmal je Spieler und Serverdatum (Dokument-ID <pid>_<JJJJMMTT>, nur anlegen)
+    LB.truheBuchen = async (pid, name, tag, ver) => {
+      await LB.signIn(); const id = pid + "_" + tag;
+      try { const g = await fs.getDoc(ref("tagestruhe", id)); if (g.exists()) return "schon"; }
+      catch (e) { return e && e.code === "permission-denied" ? "regeln" : "netz"; }
+      try { await fs.setDoc(ref("tagestruhe", id), { pid, name, tag, z: Date.now(), ver: String(ver || "").slice(0, 12), gebucht: fs.serverTimestamp() }); return "ok"; }
+      catch (e) { return e && e.code === "permission-denied" ? "tag" : "netz"; }
+    };
     LB.duellAblehnen = async (id, pid) => { await LB.signIn(); await fs.updateDoc(ref("duelle", id), { status: "abgelehnt", am: pid }); };
     LB.duellLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("duelle", id)); };
     LB.meineDuelle = async (pid) => {

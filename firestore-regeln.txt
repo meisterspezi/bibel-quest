@@ -1,5 +1,5 @@
 rules_version = '2';
-// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.76 – xpquellen: neue Quelle abgleich; 6.75 – Sammlung xpprotokoll (Einzelprotokoll der XP-Vergaben, nur anlegen); 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.78 – Sammlung tagestruhe (Schatztruhe einmal je Serverdatum); 6.76 – xpquellen: neue Quelle abgleich; 6.75 – Sammlung xpprotokoll (Einzelprotokoll der XP-Vergaben, nur anlegen); 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -302,6 +302,33 @@ service cloud.firestore {
     }
 
     // Zusammenführungen legt nur der Verwalter in der Konsole an; jedes Gerät darf nur seine eigene lesen
+    // 6.78: Schatztruhe – je Spieler und Serverdatum höchstens ein Dokument <pid>_<JJJJMMTT> (nur anlegen, nie ändern/löschen).
+    // Das Datum muss zur Serverzeit passen (heute oder gestern, Deutschland = UTC+1/+2) – Uhr am Gerät umstellen hilft nicht.
+    // Lesen darf jeder Angemeldete einzeln (Prüfung „schon geholt?“), Auflisten nur der Verwalter.
+    function truheTag(t) { return t.year() * 10000 + t.month() * 100 + t.day(); }
+    function truheTagOk(tag) {
+      let a = request.time + duration.value(1, 'h');
+      let b = request.time + duration.value(2, 'h');
+      return tag in [truheTag(a), truheTag(b), truheTag(a - duration.value(1, 'd')), truheTag(b - duration.value(1, 'd'))];
+    }
+    match /tagestruhe/{id} {
+      allow get: if angemeldet();
+      allow list: if istEntwickler();
+      allow create: if angemeldet()
+        && request.resource.data.keys().hasOnly(['pid', 'name', 'tag', 'z', 'ver', 'gebucht'])
+        && request.resource.data.keys().hasAll(['pid', 'tag', 'gebucht'])
+        && request.resource.data.pid is string && request.resource.data.pid.size() >= 4 && request.resource.data.pid.size() <= 64
+        && request.resource.data.tag is int
+        && id == request.resource.data.pid + '_' + string(request.resource.data.tag)
+        && truheTagOk(request.resource.data.tag)
+        && besitzer(request.resource.data.pid)
+        && request.resource.data.gebucht == request.time
+        && (!('name' in request.resource.data) || (request.resource.data.name is string && request.resource.data.name.size() <= 20))
+        && (!('z' in request.resource.data) || request.resource.data.z is int)
+        && (!('ver' in request.resource.data) || (request.resource.data.ver is string && request.resource.data.ver.size() <= 12));
+      allow update, delete: if false;
+    }
+
     match /zusammenfuehren/{uid} {
       allow get: if angemeldet() && (ich() == uid || istEntwickler());
       // Der Verwalter (Entwickler) legt Zusammenführungen automatisch aus der App an
