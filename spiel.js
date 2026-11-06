@@ -5069,16 +5069,16 @@ const XQ_ZIEL_MIN = { solo: 150, duell: 225 };
 function xqRateKarte(z) {
   const g = {};
   z.forEach(r => (r.ev || []).forEach(e => { if (!(parseFloat(e.ver) >= 6.79) || !(e.s > 0) || !XQ_BEREICH[e.q] || e.q === "tagesbonus" || e.q === "spickzettel" || e.q === "spende") return;
-    const o = g[e.q] || (g[e.q] = { x: 0, s: 0, n: 0 }); o.x += e.x; o.s += e.s; o.n++; }));
-  const ALLE = ["vers", "lektion", "luecke", "blitz", "kette", "duell", "duelleigen", "bib"];
-  const zeilen = ALLE.map(q => { const o = g[q]; return { q, n: o ? o.n : 0, s: o ? o.s : 0, r: o ? o.x / (o.s / 60) : null }; }).sort((a, b) => (b.r == null ? -1 : b.r) - (a.r == null ? -1 : a.r) || 0);
+    const q = e.q === "duelleigen" ? "duell" : e.q;   // 6.90: Duelle auf dem eigenen Profil zählen als Duell
+    const o = g[q] || (g[q] = { x: 0, s: 0, n: 0 }); o.x += e.x; o.s += e.s; o.n++; }));
+  const ALLE = ["vers", "lektion", "luecke", "blitz", "kette", "duell", "bib"];
+  const zeilen = ALLE.map(q => { const o = g[q]; return { q, n: o ? o.n : 0, s: o ? o.s : 0, r: o ? o.x / (o.s / 60) : null }; });
   if (!zeilen.some(t => t.n)) return `<div class="card small muted">XP pro Minute: Messwerte erscheinen, sobald Spieler die Version 6.79 nutzen und das Protokoll lesbar ist.</div>`;
   const dauer = sek => sek >= 120 ? Math.round(sek / 60) + " Min" : Math.round(sek) + " s";
-  return `<div class="card stack"><div class="topline"><b>XP pro Minute (gemessen, 30 Tage)</b><span class="small muted">Ziel: Einzelspiel ≈ ${XQ_ZIEL_MIN.solo} · Duell ≈ ${XQ_ZIEL_MIN.duell}</span></div>${zeilen.map(t => {
-    const nm = esc(XQ_QUELLEN[t.q] || t.q), dot = `<i class="xq-dot" style="background:${XQ_FARBE[t.q] || XQ_FARBE.sonst}"></i>`;
-    if (t.r == null) return `<div class="xq-zeile">${dot}<span class="xq-nm">${nm}</span><span class="xq-xp small muted">noch keine Messung</span><span class="xq-p small muted">0×</span></div>`;
-    const ziel = t.q.startsWith("duell") ? XQ_ZIEL_MIN.duell : XQ_ZIEL_MIN.solo, abw = Math.round((t.r / ziel - 1) * 100);
-    return `<div class="xq-zeile">${dot}<span class="xq-nm">${nm}</span><span class="xq-xp">${Math.round(t.r)} XP/Min</span><span class="xq-p small muted">${t.n}× · ${dauer(t.s)} · ${abw > 0 ? "+" : ""}${abw} % zum Ziel${t.n < 3 ? " · <b>wenig Daten</b>" : ""}</span></div>`; }).join("")}</div>`;
+  const mit = zeilen.filter(t => t.r != null).sort((a, b) => b.r - a.r), ohne = zeilen.filter(t => t.r == null);
+  return `<div class="card stack"><div class="topline"><b>XP pro Minute</b><span class="small muted">30 Tage · Ziel ${XQ_ZIEL_MIN.solo} (Duell ${XQ_ZIEL_MIN.duell})</span></div>${mit.map(t => {
+    const ziel = t.q === "duell" ? XQ_ZIEL_MIN.duell : XQ_ZIEL_MIN.solo, abw = Math.round((t.r / ziel - 1) * 100);
+    return `<div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:2px 8px;align-items:baseline"><i class="xq-dot" style="background:${XQ_FARBE[t.q] || XQ_FARBE.sonst}"></i><span class="xq-nm">${esc(XQ_QUELLEN[t.q] || t.q)}</span><b>${Math.round(t.r)}</b><span class="small" style="min-width:3.2em;text-align:right;color:${abw >= 0 ? "var(--good,#7fd99a)" : "var(--muted,#9aa)"}">${abw > 0 ? "+" : ""}${abw} %</span><span></span><span class="small muted" style="grid-column:2/5">${t.n}× · ${dauer(t.s)}${t.n < 3 ? " · wenig Daten" : ""}</span></div>`; }).join("")}${ohne.length ? `<div class="small muted">Noch keine Messung: ${ohne.map(t => esc(XQ_QUELLEN[t.q] || t.q)).join(", ")}</div>` : ""}</div>`;
 }
 VIEWS.xppruefung = () => {
   const L = window.LB;
