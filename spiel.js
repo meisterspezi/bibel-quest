@@ -5174,12 +5174,12 @@ function talPrognose(z, stift) {
   const rest = k < 8 ? STIFT[k].ziel - sum[k] : 0, restAlle = STIFT.reduce((a, x, i) => i >= k ? a + Math.max(0, x.ziel - sum[i]) : a, 0);
   const guth = z.reduce((a, r) => a + r.tal, 0), fluss = z.reduce((a, r) => a + r.pro7, 0), gespendet = sum.reduce((a, v) => a + v, 0);
   const tage = (need, q) => { const vorrat = guth * q, f = fluss * q; return need <= vorrat ? 0 : f > 0 ? Math.ceil((need - vorrat) / f) : null; };
-  return { k, rest, restAlle, guth, fluss, gespendet, tage };
+  return { k, rest, restAlle, guth, fluss, gespendet, tage, sum };
 }
 VIEWS.talente = () => {
   const L = window.LB;
   screen.innerHTML = `${backBtn("postfach", "Postkasten")}<h1>Talente-Planung</h1>
-  <details class="small muted tp-hinweis"><summary>Hinweis zur Zählung</summary><p style="margin:6px 0 0">Gezählt wird ab Version 6.95, je Spieler ab dem Tag, an dem seine App die neue Version zum ersten Mal öffnet. Davor gibt es keine Daten. Die Durchschnitte werden mit jedem Tag verlässlicher.</p><p style="margin:6px 0 0">Prognose: „Spenden“ ist der Anteil der Spieler, der sein Guthaben und alle neu verdienten Talente spendet (Richtwert nach dem Zufluss der letzten 7 Tage). Ø/Spieltag zählt nur Tage, an denen gespielt wurde, Ø 7 Tage jeden Kalendertag.</p></details>
+  <details class="small muted tp-hinweis"><summary>Hinweis zur Zählung</summary><p style="margin:6px 0 0">Gezählt wird ab Version 6.95, je Spieler ab dem Tag, an dem seine App die neue Version zum ersten Mal öffnet. Davor gibt es keine Daten. Die Durchschnitte werden mit jedem Tag verlässlicher.</p><p style="margin:6px 0 0">Prognose: Die Spalten zeigen, wie viel Prozent der Spieler ihr Guthaben und alle neu verdienten Talente spenden. Die Abschnitte werden nacheinander gefüllt und öffnen frühestens am angegebenen Montag; das Datum ist ein Richtwert nach dem Zufluss der letzten 7 Tage. Ø/Spieltag zählt nur Tage, an denen gespielt wurde, Ø 7 Tage jeden Kalendertag.</p></details>
   <div class="stack" id="talListe"><p class="muted small">Lade …</p></div>`;
   wireGo();
   if (!entwickler || !L || !L.ok || !L.talListe) { $("talListe").innerHTML = `<p class="muted">Die Talente-Planung braucht Internet und Verwalter-Rechte.</p>`; return; }
@@ -5187,13 +5187,22 @@ VIEWS.talente = () => {
     const z = talAuswerten(tz, stift).sort((a, b) => b.tal - a.tal), pr = talPrognose(z, stift), hat = new Set(z.map(r => r.pid));
     const ohne = (sp || []).filter(r => r.name && !hat.has(r.id)).map(r => r.name).sort((a, b) => a.localeCompare(b, "de"));
     const st = pr.k < 8 ? STIFT[pr.k] : null, ziel = STIFT.reduce((a, x) => a + x.ziel, 0);
-    const tage = v => v === null ? "–" : v === 0 ? "sofort" : v + (v === 1 ? " Tag" : " Tage");
     const kachel = (zahl, text) => `<div class="tp-k"><b>${zahl}</b><span>${text}</span></div>`;
-    const szen = q => `<div class="tp-z"><span>${Math.round(q * 100)} %</span><span>${st ? tage(pr.tage(pr.rest, q)) : "–"}</span><span>${pr.restAlle ? tage(pr.tage(pr.restAlle, q)) : "–"}</span></div>`;
     const kopf = `<div class="tp-kacheln">${kachel(pkt(pr.guth), "Guthaben")}${kachel(talZ1(pr.fluss) + "/Tag", "Zufluss · Ø 7 Tage")}${kachel(pkt(pr.gespendet), "gespendet von " + pkt(ziel))}</div>`;
-    const prog = `<div class="card tp-prog"><div class="topline"><b>Prognose Stiftshütte</b><span class="small muted">${pkt(Math.round(pr.fluss * 7))} Talente pro Woche</span></div>
-      <div class="tp-z tp-zk"><span>Spenden</span><span>${st ? esc(st.kurz) + " voll" : "Abschnitte"}</span><span>Bundeslade</span></div>${[1, 0.5, 0.25].map(szen).join("")}
-      <div class="small muted" style="margin-top:4px">${st ? `Offen: ${esc(st.n)}, noch ${pkt(pr.rest)} · bis zur Bundeslade noch ${pkt(pr.restAlle)}.` : "Alle Abschnitte sind erreicht."}</div></div>`;
+    /* Prognose je Abschnitt: voraussichtlicher Tag, an dem der Abschnitt voll ist. Die Abschnitte werden nacheinander gefüllt, deshalb zählt der Bedarf
+       aller Abschnitte bis dahin (noch fehlende Talente). Frühestens am Montag, an dem der Abschnitt öffnet; das Guthaben darf vorher gespart werden. */
+    const heute = dayNum(today()), jahr = new Date().getFullYear(), q3 = [1, 0.5, 0.25];
+    const dat = tag => { const d = datumVon(tag); return d.toLocaleDateString("de-DE", d.getFullYear() === jahr ? { day: "numeric", month: "numeric" } : { day: "numeric", month: "numeric", year: "2-digit" }); };
+    let cum = 0;
+    const abschnitte = STIFT.map((a, i) => {
+      const rest = Math.max(0, a.ziel - pr.sum[i]), offen = dayNum(STIFT_START) + 7 * i; cum += rest;
+      const zelle = q => { if (!rest) return "✓"; const t = pr.tage(cum, q); return t === null ? "–" : dat(Math.max(heute + t, offen)); };
+      return `<div class="tp-s"><div class="tp-zeile"><b>${i + 1}. ${esc(a.kurz)}</b>${q3.map(q => `<span>${zelle(q)}</span>`).join("")}</div>
+        <div class="tp-d">Ziel ${pkt(a.ziel)} · ${rest ? "noch " + pkt(rest) : "voll"} · öffnet ${esc(dat(offen))}${i === pr.k ? " · jetzt offen" : ""}</div></div>`;
+    }).join("");
+    const prog = `<div class="card tp-prog"><div class="topline"><b>Prognose je Abschnitt</b><span class="small muted">≈ ${pkt(Math.round(pr.fluss * 7))} pro Woche</span></div>
+      <div class="tp-zeile tp-zk"><span>Voll am</span>${q3.map(q => `<span>${Math.round(q * 100)} %</span>`).join("")}</div>${abschnitte}
+      <div class="small muted" style="margin-top:4px">${pr.restAlle ? `Bis zur Bundeslade fehlen noch ${pkt(pr.restAlle)} Talente.` : "Alle Abschnitte sind erreicht."}</div></div>`;
     const zeile = r => `<div class="tp-s"><div class="tp-zeile"><b>${esc(r.name)}</b><span>${pkt(r.tal)}</span><span>${r.proSpiel === null ? "–" : talZ1(r.proSpiel)}</span><span>${talZ1(r.pro7)}</span></div>
       <div class="tp-d">seit ${esc(datumVon(r.s).toLocaleDateString("de-DE", { day: "numeric", month: "numeric" }))} verdient ${pkt(r.v)} · Laden ${pkt(r.a)} · gespendet ${pkt(r.p)} · ${r.spiel} Spieltage</div></div>`;
     const liste = `<div class="card tp-liste"><div class="tp-zeile tp-zk"><span>Spieler</span><span>Guthaben</span><span>Ø/Spieltag</span><span>Ø 7 Tage</span></div>${z.map(zeile).join("") || `<p class="small muted">Noch keine Zählung.</p>`}</div>`;
