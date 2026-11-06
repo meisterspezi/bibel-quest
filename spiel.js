@@ -24,8 +24,17 @@ let S = JSON.parse(JSON.stringify(DEF));
    Der erste (bisherige) Spieler behält den alten Speicherplatz "bibelquest-v1". */
 const LS_SPIELER = "bibelquest-spieler";
 const lsKey = key => (key === "haupt" ? "bibelquest-v1" : "bibelquest-v1:" + key);
-let GERAET = { aktiv: "haupt", liste: [] };
-try { const g = JSON.parse(localStorage.getItem(LS_SPIELER) || "null"); if (g && Array.isArray(g.liste)) GERAET = g; } catch (e) {}
+/* 6.83: GERAET.aktiv = der Spieler DIESES Fensters (sessionStorage „bq-aktiv“). Im gemeinsamen Speicher steht nur, wer zuletzt
+   gewählt wurde (Vorgabe für neue Fenster). Früher schrieb jedes Fenster bei jedem Speichern seinen Spieler als „aktiv“ zurück –
+   ein zweites Fenster (z. B. im Hintergrund) konnte so den Spieler umstellen. */
+const geraetLesen = () => { try { const g = JSON.parse(localStorage.getItem(LS_SPIELER) || "null"); if (g && Array.isArray(g.liste)) return g; } catch (e) {} return { aktiv: "haupt", liste: [] }; };
+function geraetSchreiben(fn) {
+  const g = geraetLesen(); fn(g); GERAET.liste = g.liste;
+  try { localStorage.setItem(LS_SPIELER, JSON.stringify(g)); } catch (e) {}
+}
+let GERAET = geraetLesen();
+try { const a = sessionStorage.getItem("bq-aktiv"); if (a && (a === "haupt" || /^s[a-z0-9]{5}$/.test(a))) GERAET.aktiv = a; } catch (e) {}
+try { sessionStorage.setItem("bq-aktiv", GERAET.aktiv); } catch (e) {}
 const LS = lsKey(GERAET.aktiv);
 try { const v = JSON.parse(localStorage.getItem(LS) || "null"); if (v) S = Object.assign(JSON.parse(JSON.stringify(DEF)), v); } catch (e) {}
 /* Umzug von Version 5: Rekord-Serie nachtragen */
@@ -34,23 +43,60 @@ if (!S.bestStreak) S.bestStreak = S.streak || 0;
 function badgesBereinigen() { S.badges = (S.badges || []).filter(id => BADGES.some(b => b.id === id)); }
 badgesBereinigen();
 function geraetSpeichern() {
+  if (gesperrt) return;
   const eintrag = { key: GERAET.aktiv, name: S.lbName, avatar: S.avatar, frame: S.frame, xp: Math.round(S.xp), pid: S.pid };
-  const i = GERAET.liste.findIndex(p => p.key === GERAET.aktiv);
-  if (i > -1) GERAET.liste[i] = eintrag; else if (S.lbName || S.xp > 0) GERAET.liste.push(eintrag);
-  try { localStorage.setItem(LS_SPIELER, JSON.stringify(GERAET)); } catch (e) {}
+  geraetSchreiben(g => { const i = g.liste.findIndex(p => p.key === GERAET.aktiv); if (i > -1) g.liste[i] = eintrag; else if (S.lbName || S.xp > 0) g.liste.push(eintrag); });
+}
+/* 6.83 (D): Jeder gespeicherte Spielstand trägt eine laufende Nummer „rev“. Hat ein anderes Fenster desselben Spielers inzwischen
+   einen neueren Stand gespeichert, überschreibt dieses Fenster ihn nicht, sondern pausiert (sperren) – sonst würde ein alter Stand
+   (weniger XP, ältere Zählung) den neuen ersetzen. */
+let gesperrt = false;
+function lsSchreiben() {
+  if (gesperrt) return false;
+  try {
+    const alt = JSON.parse(localStorage.getItem(LS) || "null");
+    if (alt && (alt.rev | 0) > (S.rev | 0)) { sperren(alt.lbName || S.lbName); return false; }
+    S.rev = (S.rev | 0) + 1; localStorage.setItem(LS, JSON.stringify(S));
+  } catch (e) {}
+  return true;
 }
 function save() {
-  try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {}
+  if (!lsSchreiben()) return;
   geraetSpeichern(); cloudSync();
 }
+/* Dieses Fenster anhalten: ein anderes Fenster spielt mit demselben Spieler weiter */
+function sperren(name) {
+  if (gesperrt) return; gesperrt = true;
+  try { clearTimeout(lbTimer); clearTimeout(cloudTimer); } catch (e) {}
+  document.querySelectorAll(".modal").forEach(m => m.remove());
+  const m = modal(`<div class="label">Pausiert</div><h2>${esc(name || "Dieser Spieler")} spielt in einem anderen Fenster weiter</h2>
+    <p class="muted small">Damit keine Punkte doppelt oder beim falschen Spieler gezählt werden, ist dieses Fenster angehalten. „Hier weiterspielen“ lädt den neuesten Stand.</p>
+    <button class="btn primary" data-close="neu">Hier weiterspielen</button>`, () => location.reload());
+  m.classList.add("frage");
+}
+addEventListener("storage", e => {
+  if (e.key !== LS || !e.newValue || gesperrt) return;
+  try { const v = JSON.parse(e.newValue); if ((v.rev | 0) > (S.rev | 0)) sperren(v.lbName || S.lbName); } catch (x) {}
+});
 /* Spieler wechseln: offene Übertragungen abschließen, dann mit dem anderen Spielstand neu starten */
+/* 6.83 (A): Bis 6.82 wurden hier nur Rangliste und Spielstand abgeschickt – XP-Quellen und Protokoll blieben auf dem Gerät liegen,
+   bis derselbe Spieler die App wieder öffnete. In der XP-Prüfung standen diese XP dann „ohne Quelle“. Jetzt geht alles mit. */
+async function allesSenden() {
+  const L = window.LB; if (!S.lbName || !S.pid || !L || !L.ok || S.offlineOnly) return;
+  const auf = [L.push(S.pid, lbPayload(), {}).catch(() => {})];
+  if (S.ownersSet && L.saveState) auf.push(L.saveState(S.pid, spielstandExport()).catch(() => {}));
+  try { stiftSenden(); } catch (e) {}
+  if (S.xq && L.xpSetzen) auf.push(L.xpSetzen(S.pid, S.lbName, xqKuerzen(S.xq)).then(() => { S.xqSync = JSON.stringify(S.xq); lsSchreiben(); }).catch(e => xqNachholen(e)));
+  auf.push(xqLogLeeren(S.pid, S.lbName, XQ_LOGKEY()));
+  await Promise.all(auf);
+}
 async function spielerWechseln(key) {
-  const L = window.LB; clearTimeout(lbTimer); clearTimeout(cloudTimer); save();
-  if (S.lbName && S.pid && L && L.ok) {
-    const fertig = Promise.all([L.push(S.pid, lbPayload(), {}).catch(() => {}), S.ownersSet && L.saveState ? L.saveState(S.pid, spielstandExport()).catch(() => {}) : null]);
-    await Promise.race([fertig, new Promise(r => setTimeout(r, 2500))]);
-  }
-  GERAET.aktiv = key; try { localStorage.setItem(LS_SPIELER, JSON.stringify(GERAET)); sessionStorage.setItem("bq-gewaehlt", "1"); } catch (e) {}
+  if (gesperrt) { location.reload(); return; }
+  clearTimeout(lbTimer); clearTimeout(cloudTimer); save();
+  if (S.lbName && window.LB && window.LB.ok) toast(`${svg("people")}<div><b>Speichere den Fortschritt von ${esc(S.lbName)} …</b></div>`);
+  await Promise.race([allesSenden().catch(() => {}), new Promise(r => setTimeout(r, 6000))]);
+  geraetSchreiben(g => { g.aktiv = key; });
+  try { sessionStorage.setItem("bq-aktiv", key); sessionStorage.setItem("bq-gewaehlt", "1"); } catch (e) {}
   location.reload();
 }
 function neuerSpielerAufGeraet() {
@@ -849,6 +895,38 @@ async function xqLogSenden() {
     if (fertig && fertig.length === 25 && xqLogLesen().length) setTimeout(xqLogSenden, 500);
   } catch (e) { xqLogLaeuft = false; /* bewusst still, siehe xqSenden */ }
 }
+/* 6.83: Protokoll eines Spielers (Schlüssel key) vollständig abschicken – in 25er-Paketen, gesendete Einträge werden entfernt */
+async function xqLogLeeren(pid, name, key) {
+  const L = window.LB; if (!L || !L.ok || !L.xpEreignisse || !pid || !name) return;
+  const lies = () => { try { const l = JSON.parse(localStorage.getItem(key) || "[]"); return Array.isArray(l) ? l : []; } catch (e) { return []; } };
+  for (let runde = 0; runde < 12; runde++) {
+    const l = lies(); if (!l.length) return;
+    let fertig = []; try { fertig = await L.xpEreignisse(pid, name, l.slice(0, 25)); } catch (e) { return; }
+    if (!fertig || !fertig.length) return;
+    const ids = new Set(fertig.map(e => e.z + "_" + e.n));
+    try { localStorage.setItem(key, JSON.stringify(lies().filter(e => !ids.has(e.z + "_" + e.n)))); } catch (e) {}
+    if (fertig.length < 25) return;
+  }
+}
+/* 6.83 (B): Liegengebliebene Zählung der ANDEREN Spieler auf diesem Gerät abschicken (XP-Quellen + Protokoll). Ihr Spielstand selbst
+   wird dabei nicht verändert – gesendet wird nur, was sie gespielt haben. Das Gerät besitzt ihre Profile, die Regeln erlauben es. */
+let andereGesendet = false;
+async function andereSpielerNachsenden() {
+  const L = window.LB; if (andereGesendet || gesperrt || !L || !L.ok || !L.xpSetzen) return; andereGesendet = true;
+  for (const p of geraetLesen().liste) {
+    if (!p || p.key === GERAET.aktiv || !p.pid || !p.name) continue;
+    let st = null; try { st = JSON.parse(localStorage.getItem(lsKey(p.key)) || "null"); } catch (e) {}
+    if (!st || !st.pid || !st.lbName || st.offlineOnly || st.pid !== p.pid) continue;
+    try { await xqLogLeeren(st.pid, st.lbName, lsKey(p.key) + ":xlog"); } catch (e) {}
+    if (st.xq && st.xq.q) {
+      const sig = JSON.stringify(st.xq), sk = lsKey(p.key) + ":xqsent";
+      let alt = ""; try { alt = localStorage.getItem(sk) || ""; } catch (e) {}
+      if (alt !== String(hash(sig)) && st.xqSync !== sig) {
+        try { await L.xpSetzen(st.pid, st.lbName, xqKuerzen(JSON.parse(sig))); localStorage.setItem(sk, String(hash(sig))); } catch (e) { /* z. B. ein anderes Gerät ist schon weiter – holt der Spieler selbst nach */ }
+      }
+    }
+  }
+}
 function xqSenden() {
   const L = window.LB; if (!L || !L.ok || !L.xpSetzen || !S.pid || S.offlineOnly || !S.xq || !S.lbName) return;
   xqLogSenden(); truheNachholen();
@@ -862,7 +940,7 @@ function xqSenden() {
    Jetzt holt sich das Gerät den Stand aus der Datenbank, mischt ihn ein (je Quelle der höhere Wert) und sendet einmal erneut. */
 let xqNachLaeuft = 0;
 async function xqNachholen(e) {
-  const L = window.LB; if (!L || !L.xpHolen || !S.xq || !S.pid || Date.now() - xqNachLaeuft < 6e4) return;
+  const L = window.LB; if (gesperrt || !L || !L.xpHolen || !S.xq || !S.pid || Date.now() - xqNachLaeuft < 6e4) return;
   if (!String((e && e.code) || "").includes("permission-denied")) return;
   xqNachLaeuft = Date.now();
   try {
@@ -873,6 +951,7 @@ async function xqNachholen(e) {
   } catch (e2) { /* still – nächster Versuch frühestens in einer Minute */ }
 }
 function addXp(n, el, quelle, info) {
+  if (gesperrt) return;
   neuerTag(); serieZaehlen(); tagMerken();
   xqEreignis(n, quelle, info, S.xp);
   xqZaehlen(n, quelle);
@@ -1069,7 +1148,7 @@ function titelCheck() {
   const { atP, ntP } = fortschritt();
   const ai = titelIndex(AT_TITEL, atP), ni = titelIndex(NT_TITEL, ntP);
   [[ai, "atTi", AT_TITEL, "Alten Testament"], [ni, "ntTi", NT_TITEL, "Neuen Testament"]].forEach(([i, k, L, name]) => {
-    if (i > (S[k] || 0)) { S[k] = i; try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} setTimeout(() => { SFX.badge(); toast(`${svg("crown", accent())}<div><b>Neuer Titel im ${name}: ${esc(L[i][1])}</b><div class="small muted">${esc(L[i][2])}</div></div>`); }, 1500); }
+    if (i > (S[k] || 0)) { S[k] = i; lsSchreiben(); setTimeout(() => { SFX.badge(); toast(`${svg("crown", accent())}<div><b>Neuer Titel im ${name}: ${esc(L[i][1])}</b><div class="small muted">${esc(L[i][2])}</div></div>`); }, 1500); }
   });
 }
 
@@ -2002,14 +2081,14 @@ function lbPayload() {
 }
 let lbTimer = null, cloudTimer = null;
 function lbSync(now) {
-  const L = window.LB; if (!S.lbName || S.offlineOnly || !L || !L.ok || !L.uid || namePruefungLaeuft) return;
+  const L = window.LB; if (gesperrt || !S.lbName || S.offlineOnly || !L || !L.ok || !L.uid || namePruefungLaeuft) return;
   if (!S.pid) S.pid = neuePid();
   clearTimeout(lbTimer);
   lbTimer = setTimeout(() => {
     try { stiftSenden(); } catch (e) {} /* 6.68: noch nicht gesendete Spenden */
     try { xqSenden(); } catch (e) {} /* 6.73: XP-Quellen */
     const opts = {}; if (!S.ownersSet && eigenePid(S.pid)) opts.owners = [L.uid];
-    const ok = () => { if (opts.owners) { S.ownersSet = true; try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} geraetSpeichern(); } };
+    const ok = () => { if (opts.owners) { S.ownersSet = true; lsSchreiben(); geraetSpeichern(); } };
     /* Übergang 6.40: Solange die neuen Firebase-Regeln (Biblionär-Felder) noch nicht veröffentlicht sind, ohne diese Felder speichern */
     const ohneBib = () => { const d = lbPayload(); delete d.bib; return d; };
     /* Wochenrunde „Biblionär“ steht in einer eigenen Sammlung (die Ranglisten-Regel ist an ihrer Rechengrenze) */
@@ -2064,7 +2143,7 @@ function geraetNeuVerbinden(was) {
 }
 /* Kompletten Spielstand online sichern (nur wer in der Rangliste ist) */
 function cloudSync(now) {
-  const L = window.LB; if (!S.lbName || S.offlineOnly || !S.pid || !S.ownersSet || !L || !L.ok || !L.saveState) return;
+  const L = window.LB; if (gesperrt || !S.lbName || S.offlineOnly || !S.pid || !S.ownersSet || !L || !L.ok || !L.saveState) return;
   clearTimeout(cloudTimer);
   cloudTimer = setTimeout(() => { L.saveState(S.pid, spielstandExport()).catch(e => dbFehler("Spielstand sichern", e)); }, now ? 0 : 4000);
 }
@@ -2270,6 +2349,7 @@ document.addEventListener("visibilitychange", async () => {
 });
 addEventListener("lb-ready", () => {
   lbStart();
+  setTimeout(() => andereSpielerNachsenden().catch(() => {}), 3000);  /* 6.83 (B) */
   aufnahmenPruefen();
   if (current === "name") { const e = $("bAltSub"); if (e && window.LB && window.LB.ok) e.textContent = "Meinen Namen aus der Rangliste auswählen"; return; }
   if (["rank", "home", "profil"].includes(current) && !document.querySelector(".modal")) go(current);
@@ -2407,7 +2487,8 @@ VIEWS.name = (modus) => {
 /* leerer, gerade angelegter Spieler ohne Namen: verwerfen und zur Auswahl */
 function verwerfenUndWaehlen() {
   if (!S.lbName && S.xp === 0) { try { if (GERAET.aktiv !== "haupt") localStorage.removeItem(LS); } catch (e) {} GERAET.liste = GERAET.liste.filter(p => p.key !== GERAET.aktiv); }
-  const z = GERAET.liste.find(p => p.key !== GERAET.aktiv && p.name); if (z) { GERAET.aktiv = z.key; try { localStorage.setItem(LS_SPIELER, JSON.stringify(GERAET)); sessionStorage.removeItem("bq-gewaehlt"); } catch (e) {} location.reload(); }
+  const z = GERAET.liste.find(p => p.key !== GERAET.aktiv && p.name); if (z) { const weg = !S.lbName && S.xp === 0 ? GERAET.aktiv : null; gesperrt = true;
+    geraetSchreiben(g => { if (weg) g.liste = g.liste.filter(p => p.key !== weg); g.aktiv = z.key; }); try { sessionStorage.setItem("bq-aktiv", z.key); sessionStorage.removeItem("bq-gewaehlt"); } catch (e) {} location.reload(); }
 }
 function beitrittAnzeigen(html, modus = "") {
   let L = window.LB; const online = !!(L && L.ok); const jetztOnline = () => { L = window.LB; return !!(L && L.ok); };
@@ -2504,7 +2585,7 @@ function spielerUmbenennen(key) {
     if (key === GERAET.aktiv) { S.lbName = n; save(); renderHud(); lbSync(true); }
     else {
       try { const k = lsKey(key), st = JSON.parse(localStorage.getItem(k) || "{}"); st.lbName = n; localStorage.setItem(k, JSON.stringify(st)); } catch (e) {}
-      p.name = n; try { localStorage.setItem(LS_SPIELER, JSON.stringify(GERAET)); } catch (e) {}
+      p.name = n; geraetSchreiben(g => { const q = g.liste.find(x => x.key === key); if (q) q.name = n; });
     }
     document.querySelectorAll(".modal").forEach(m => m.remove()); SFX.coin(); go("wer");
   };
@@ -2528,7 +2609,7 @@ VIEWS.wer = () => {
     modal(`<div class="label">Entfernen</div>${avatarHtml(p, 56)}<h2>${esc(p.name)} von diesem Gerät entfernen?</h2><p class="muted small">${p.pid ? "Der Spielstand bleibt online gesichert – mit „Ich spiele schon mit“ kommt er zurück." : "Achtung: Dieser Spieler ist nicht in der Rangliste. Sein Fortschritt geht verloren."}</p><button class="btn primary" data-close="ja">Entfernen</button><button class="btn ghost" data-close="nein">Abbrechen</button>`, a => {
       if (a !== "ja") return;
       try { if (p.key !== "haupt") localStorage.removeItem(lsKey(p.key)); else localStorage.removeItem("bibelquest-v1"); } catch (e) {}
-      GERAET.liste = GERAET.liste.filter(x => x.key !== p.key); try { localStorage.setItem(LS_SPIELER, JSON.stringify(GERAET)); } catch (e) {} go("wer");
+      geraetSchreiben(g => { g.liste = g.liste.filter(x => x.key !== p.key); }); go("wer");
     });
   });
 };
@@ -4769,8 +4850,12 @@ async function xpPruefDaten(opt) {
   const xm = new Map(xl.map(r => [r.pid, r])), ab24 = (() => { const d = new Date(jetzt - 864e5); return xqTagKey(d) + "-" + String(d.getHours()).padStart(2, "0"); })();
   const evVon = new Map(); (ev || []).forEach(e => { if (!evVon.has(e.pid)) evVon.set(e.pid, []); evVon.get(e.pid).push(e); });
   const seen = S.xpSeen || {};
+  /* 6.83: Spieler, deren Besitzerlisten sich überschneiden, spielen auf demselben Gerät */
+  const besitzer = new Map(sp.filter(r => r.name).map(r => [r.id, new Set(Array.isArray(r.owners) ? r.owners : [])]));
+  const teilt = id => sp.filter(r => r.name && r.id !== id && [...(besitzer.get(r.id) || [])].some(u => (besitzer.get(id) || new Set()).has(u))).map(r => r.name);
   const liste = sp.filter(r => r.name).map(r => {
-    const x = xm.get(r.id) || null, xp = +r.xp || 0, o = { id: r.id, name: r.name, xp, level: r.level || levelOf(xp), hat: !!x, flags: [], ev: (evVon.get(r.id) || []).sort((a, b) => b.z - a.z) };
+    const x = xm.get(r.id) || null, xp = +r.xp || 0, o = { id: r.id, name: r.name, xp, level: r.level || levelOf(xp), hat: !!x, flags: [], ev: (evVon.get(r.id) || []).sort((a, b) => b.z - a.z), geteilt: teilt(r.id) };
+    if (o.geteilt.length) o.flags.push({ hart: false, t: `Teilt ein Gerät mit ${o.geteilt.join(", ")}` });
     if (!x) return o;
     const q = x.q || {}, n = x.n || {}, m = x.m || {}, std = x.std || {};
     o.bel = (Array.isArray(x.bel) ? x.bel : []).filter(e => e && +e.z > 0).sort((a, b) => a.z - b.z);
@@ -4844,6 +4929,7 @@ function xqLueckeHtml(a) {
   const sp = a.spruenge.filter(s => s.k === "sprung" || s.k === "zweit").slice(0, 8);
   return `${a.zeilen.map(z => `<div class="xq-zeile"><i class="xq-dot" style="background:${z.farbe}"></i><span class="xq-nm">${esc(z.name)}<small>${esc(erkl[z.k] || "")}</small></span><b class="xq-xp">${zahl(z.xp)}</b></div>`).join("")}
     ${sp.length ? `<div style="margin-top:6px"><b>Sprünge im Protokoll</b><br>${sp.map(s => `${esc(xqUhr(s.von))} → ${esc(xqUhr(s.bis))}: +${zahl(s.xp)} XP · ${esc(XQ_LUECKE[s.k].name)}${s.ver ? " · v" + esc(s.ver) : ""}`).join("<br>")}</div>` : ""}
+    ${a.geteilt && a.geteilt.length && a.zeilen.some(z => z.k === "wartet" || z.k === "ohneprot") ? `<div style="margin-top:6px">ℹ Teilt ein Gerät mit ${esc(a.geteilt.join(", "))}: Bis 6.82 blieben XP-Quellen und Protokoll beim Spielerwechsel auf dem Gerät liegen, bis derselbe Spieler die App wieder öffnete. Seit 6.83 werden sie beim Wechsel und beim Start für alle Spieler des Geräts nachgeschickt – diese Lücke sollte dann kleiner werden.</div>` : ""}
     <div style="margin-top:4px"><i>${zahl(a.eintraege)} Protokoll-Einträge ausgewertet${a.vollst ? "" : " · Protokoll reicht nicht bis zum Beginn der Zählung zurück"}</i></div>`;
 }
 /* 6.77: gemessene XP pro Minute je Spiel (nur Vergaben ab Version 6.79 mit mindestens 15 s Spielzeit) – Grundlage zum Nachjustieren */
@@ -4878,7 +4964,7 @@ VIEWS.xppruefung = () => {
     const hinweis = z.evOk ? "" : `<div class="card small muted">Das Einzelprotokoll ist noch nicht lesbar – sind die neuen Firebase-Regeln (Version 6.75) veröffentlicht?</div>`;
     const csvAlle = `<button class="btn ghost breit" id="xqCsvAlle" style="width:100%">${svg("scroll")} Alle XP-Vergaben als CSV-Datei (Excel)</button><div class="small muted" id="xqCsvMeld" aria-live="polite"></div>`;
     $("xpListe").innerHTML = hinweis + warn + gesamt + xqRateKarte(z) + csvAlle + z.map(r => {
-      const kopf = `<div class="topline"><b>${esc(r.name)}</b><span class="small muted">Level ${r.level} · ${ohne && r.hat ? zahl(r.xp - r.alt) + " gezählt · " + zahl(r.xp) + " gesamt" : zahl(r.xp) + " XP"}</span></div>`;
+      const kopf = `<div class="topline"><b>${esc(r.name)}${r.geteilt && r.geteilt.length ? ` <span class="xq-teilt" title="Spielt auf demselben Gerät wie ${esc(r.geteilt.join(", "))}">${svg("people")} ${esc(r.geteilt.join(", "))}</span>` : ""}</b><span class="small muted">Level ${r.level} · ${ohne && r.hat ? zahl(r.xp - r.alt) + " gezählt · " + zahl(r.xp) + " gesamt" : zahl(r.xp) + " XP"}</span></div>`;
       if (!r.hat) return `<div class="card">${kopf}<div class="small muted">Noch keine Zählung (neue Version noch nicht geöffnet).</div></div>`;
       return `<div class="card stack${r.flags.some(f => f.hart) ? " xq-karte-bad" : ""}">${kopf}
         <div id="xqBar-${esc(r.id)}">${xqAnteilHtml(r.luecke ? xqAnteileLuecke(r, r.luecke, ohne) : ohne ? xqAnteile(r.q, r.n, 0, r.offen, Math.max(0, r.xp - r.alt)) : r.anteile)}</div>
@@ -4896,7 +4982,7 @@ VIEWS.xppruefung = () => {
     };
     screen.querySelectorAll("details[data-xqlu]").forEach(d => d.addEventListener("toggle", () => {
       const r = z.find(x => x.id === d.dataset.xqlu); if (!d.open || !r || r.luecke || d.dataset.laedt) return; d.dataset.laedt = "1"; const box = d.querySelector(".xq-luliste");
-      L.xpProtokoll(r.id, 2000).then(l => { r.luecke = xqLueckenAnalyse(r, l, l.length < 2000); box.innerHTML = xqLueckeHtml(r.luecke);
+      L.xpProtokoll(r.id, 2000).then(l => { r.luecke = xqLueckenAnalyse(r, l, l.length < 2000); r.luecke.geteilt = r.geteilt || []; box.innerHTML = xqLueckeHtml(r.luecke);
         const bar = $("xqBar-" + r.id); if (bar) bar.innerHTML = xqAnteilHtml(xqAnteileLuecke(r, r.luecke, !!S.xqOhneAlt)); })
         .catch(e => { d.dataset.laedt = ""; box.textContent = "Konnte nicht geladen werden (" + ((e && e.code) || "Fehler") + ")."; });
     }));
@@ -4953,13 +5039,30 @@ try { const von = new URLSearchParams(location.search).get("von"); if (von && /^
 $("hWer").onclick = () => { SFX.tap(); ichMenue(); };
 neuerTag(); applyTheme(); renderMute(); renderHud(); checkBadges(); geraetSpeichern(); go("home");
 /* Mehrere Spieler auf dem Gerät? Dann beim Start fragen, wer spielt */
+/* 6.83 (E): Auf gemeinsamen Geräten beim Start und nach mehr als 10 Minuten Pause fragen, wer spielt – mit einem Knopf je Spieler,
+   damit niemand unbemerkt im Profil des anderen weiterspielt. */
+const WER_PAUSE = 10 * 60000;
+function werSpieltFrage(nachPause) {
+  if (gesperrt || !S.lbName || document.querySelector(".modal.wer-frage")) return;
+  const andere = geraetLesen().liste.filter(p => p.name && p.key !== GERAET.aktiv);
+  if (!andere.length) return;
+  const m = modal(`${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName }, 72)}<h2>${nachPause ? `Spielt noch ${esc(S.lbName)}?` : `Bist du ${esc(S.lbName)}?`}</h2><p class="muted small" style="margin:0">Auf diesem Gerät spielen mehrere Personen – so landen die Punkte beim Richtigen.</p>
+    <button class="btn primary" data-close="ja">Ja, ${nachPause ? `${esc(S.lbName)} spielt weiter` : `ich bin ${esc(S.lbName)}`}</button>
+    ${andere.slice(0, 4).map(p => `<button class="btn ghost wer-knopf" data-close="k:${esc(p.key)}">${avatarHtml(p, 28)}<span>Ich bin ${esc(p.name)}</span></button>`).join("")}
+    ${andere.length > 4 ? `<button class="btn ghost" data-close="liste">Jemand anderes …</button>` : ""}`, a => {
+      if (a && a.startsWith("k:")) spielerWechseln(a.slice(2)); else if (a === "liste") go("wer"); });
+  m.classList.add("frage", "wer-frage");
+}
 (() => {
   let gewaehlt = false; try { gewaehlt = sessionStorage.getItem("bq-gewaehlt") === "1"; sessionStorage.removeItem("bq-gewaehlt"); } catch (e) {}
-  if (gewaehlt || !S.lbName || GERAET.liste.filter(p => p.name).length < 2) return;
-  const m = modal(`${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName }, 72)}<h2>Bist du ${esc(S.lbName)}?</h2><p class="muted small" style="margin:0">Auf diesem Gerät spielen mehrere Personen.</p>
-    <button class="btn primary" data-close="ja">Ja, ich bin ${esc(S.lbName)}</button><button class="btn ghost" data-close="nein">Nein, jemand anderes</button>`, a => { if (a === "nein") go("wer"); });
-  m.classList.add("frage");
+  if (!gewaehlt) werSpieltFrage(false);
 })();
+let verstecktSeit = 0;
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") { verstecktSeit = Date.now(); return; }
+  if (verstecktSeit && Date.now() - verstecktSeit > WER_PAUSE) werSpieltFrage(true);
+  verstecktSeit = 0;
+});
 document.addEventListener("pointerdown", () => { ac(); }, { once: true });
 
 /* ---------- 6.66: Hinweis „App installieren“ (Variante 3 „Heimkehr-Karte“) ----------
