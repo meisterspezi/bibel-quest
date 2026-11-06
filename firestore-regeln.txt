@@ -1,5 +1,5 @@
 rules_version = '2';
-// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.75 – Sammlung xpprotokoll (Einzelprotokoll der XP-Vergaben, nur anlegen); 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -274,6 +274,31 @@ service cloud.firestore {
         && xqW('vers') && xqW('lektion') && xqW('luecke') && xqW('blitz') && xqW('kette') && xqW('duell')
         && xqW('duelleigen') && xqW('bib') && xqW('tagesbonus') && xqW('spickzettel') && xqW('sonst');
       allow delete: if false;
+    }
+
+    // 6.75: XP-Protokoll – jede XP-Vergabe ein Dokument <pid>_<Zeit>_<Nr>. Nur anlegen: Ändern und Löschen ist niemandem erlaubt, auch dem
+    // Verwalter nicht – so bleibt das Protokoll nachprüfbar. Die Werte dürfen bewusst groß sein (auch Auffälliges soll sichtbar bleiben);
+    // „gebucht“ ist die Uhrzeit des Servers, „z“ die der Geräteuhr. Lesen darf nur der Verwalter.
+    match /xpprotokoll/{id} {
+      allow read: if istEntwickler();
+      allow create: if angemeldet()
+        && request.resource.data.keys().hasOnly(['pid', 'name', 'z', 'q', 'x', 'v', 's', 'f', 'fm', 'd', 'ver', 'gebucht'])
+        && request.resource.data.keys().hasAll(['pid', 'z', 'q', 'x', 'v', 'gebucht'])
+        && request.resource.data.pid is string && request.resource.data.pid.size() >= 4 && request.resource.data.pid.size() <= 64
+        && id.matches(request.resource.data.pid + '_[0-9]+_[0-9]+')
+        && besitzer(request.resource.data.pid)
+        && request.resource.data.q in xqKeys()
+        && request.resource.data.z is int && request.resource.data.z <= request.time.toMillis() + 600000
+        && request.resource.data.x is int && request.resource.data.x > 0 && request.resource.data.x <= 10000000
+        && request.resource.data.v is int && request.resource.data.v >= 0 && request.resource.data.v <= 100000000
+        && request.resource.data.gebucht == request.time
+        && (!('name' in request.resource.data) || (request.resource.data.name is string && request.resource.data.name.size() <= 20))
+        && (!('s' in request.resource.data) || (request.resource.data.s is int && request.resource.data.s >= 0 && request.resource.data.s <= 86400))
+        && (!('f' in request.resource.data) || (request.resource.data.f is int && request.resource.data.f >= 0 && request.resource.data.f <= 100000))
+        && (!('fm' in request.resource.data) || (request.resource.data.fm is int && request.resource.data.fm >= 0 && request.resource.data.fm <= 100000))
+        && (!('d' in request.resource.data) || (request.resource.data.d is string && request.resource.data.d.size() <= 60))
+        && (!('ver' in request.resource.data) || (request.resource.data.ver is string && request.resource.data.ver.size() <= 12));
+      allow update, delete: if false;
     }
 
     // Zusammenführungen legt nur der Verwalter in der Konsole an; jedes Gerät darf nur seine eigene lesen

@@ -1680,6 +1680,19 @@ body.mit-app-hinweis .app{padding-bottom:calc(290px + env(safe-area-inset-bottom
 .sh-geber{margin:0;font-size:.76rem;color:var(--muted)}.sh-geber b{color:var(--fg);font-weight:800}
 .sh-fuss{margin:10px 0 0;text-align:center}
 .sh-feier{border-radius:14px;overflow:hidden}.sh-feier svg{display:block;width:100%;height:auto}
+
+/* 6.75: XP-Prüfung – Anteile je Spiel, Protokoll */
+.xq-bar{display:flex;gap:2px;height:12px;border-radius:7px;overflow:hidden;background:var(--surface2)}
+.xq-bar i{display:block;height:100%;min-width:3px;border-radius:2px}
+.xq-zeilen{display:flex;flex-direction:column;gap:5px;margin-top:2px}
+.xq-zeile{display:grid;grid-template-columns:12px minmax(0,1fr) auto 58px;align-items:center;gap:8px;font-size:.84rem}
+.xq-dot{width:10px;height:10px;border-radius:50%;display:block;box-shadow:0 0 6px -1px currentColor}
+.xq-nm{min-width:0;display:flex;flex-direction:column;line-height:1.15}.xq-nm small{color:var(--muted);font-size:.7rem}
+.xq-xp{font-variant-numeric:tabular-nums;text-align:right}.xq-p{font-variant-numeric:tabular-nums;text-align:right;color:var(--muted)}
+.xq-karte-bad{border:1px solid #ff8a5c}
+.xq-ev{border-left:3px solid var(--line);padding:4px 0 4px 8px;margin-bottom:6px}.xq-ev.bad{border-left-color:#ff5c5c;background:color-mix(in srgb,#ff5c5c 8%,transparent)}
+.xq-ev1{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;color:var(--fg)}.xq-evz{font-variant-numeric:tabular-nums;color:var(--muted);font-size:.78rem}.xq-evq{font-weight:700;font-size:.82rem}
+.xq-warn{color:#ff8a5c}
 </style>
 </head>
 <body>
