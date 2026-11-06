@@ -2170,6 +2170,9 @@ function zusammenfuehren(r) {
   Object.entries(r.stars || {}).forEach(([k, v]) => { S.stars[k] = Math.max(S.stars[k] || 0, v || 0); });
   if (dayNum(r.lastDay) > dayNum(S.lastDay)) { S.lastDay = r.lastDay; S.streak = r.streak; } else if (r.lastDay === S.lastDay) S.streak = Math.max(S.streak, r.streak || 0);
   if (r.xq) S.xq = xqMischen(S.xq, r.xq);
+  /* 6.83: Duelle gegen denselben Gegner heute – je Gegner der höhere Zählerstand; gekürzte Duelle vereinigen */
+  if (r.duGT && r.duGT.t === today()) { const n = duGleichStand(); Object.entries(r.duGT.n || {}).forEach(([k, v]) => { n[k] = Math.max(n[k] | 0, v | 0); }); }
+  if (r.duKurz && typeof r.duKurz === "object") S.duKurz = Object.assign({}, r.duKurz, S.duKurz || {});
   try { xqAbgleich(xpVorher); } catch (e) {}
   if (r.weekKey === S.weekKey) S.weekXp = Math.max(S.weekXp, r.weekXp || 0); else if ((r.weekKey || "") > (S.weekKey || "")) { S.weekKey = r.weekKey; S.weekXp = r.weekXp; }
   if (r.todayDay === S.todayDay) { S.todayXp = Math.max(S.todayXp, r.todayXp || 0); S.todayRight = Math.max(S.todayRight || 0, r.todayRight || 0); }
@@ -2718,7 +2721,7 @@ let duAufloesQ = [];
 function duAufloesVersuch() {
   if (!duAufloesQ.length || duSpiel || document.querySelector(".modal, .sb-ov") || !["home", "duelle", "bib", "spielen", "rank", "profil", "lernen", "ich"].includes(current)) return;
   const d = duAufloesQ.shift(), du = d.vonErg, er = d.anErg, typ = duTypVon(d) || "vers", art = DU_TYPEN[typ].art || d.art;
-  const sieg0 = du.p > er.p, remis0 = du.p === er.p, tal = sieg0 ? DU_SIEG_TAL : remis0 ? DU_REMIS_TAL : 0;
+  const kf = (S.duKurz && S.duKurz[d.id]) || 1, sieg0 = du.p > er.p, remis0 = du.p === er.p, tal = Math.round((sieg0 ? DU_SIEG_TAL : remis0 ? DU_REMIS_TAL : 0) * kf);
   const ov = document.createElement("div"); ov.className = "sb-ov"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");
   ov.innerHTML = `<div class="vl vl-ende du-ende sb-ende">
     <div class="sb-kopf"><small>Ergebnis ist da</small><b>${esc(duTypText(d))}-Duell gegen ${esc(d.anName)}</b></div>
@@ -2849,7 +2852,8 @@ function duBelohnen() {
   neu.forEach(d => {
     S.duGes = [...(S.duGes || []), d.id].slice(-60);
     const p = d.vonErg.p, q = d.anErg.p;
-    if (p > q) tal += DU_SIEG_TAL; else if (p === q) tal += DU_REMIS_TAL; /* der Sieg selbst wird in duZaehlen() aus den Duellen gezählt */
+    const kf = (S.duKurz && S.duKurz[d.id]) || 1;  /* 6.83: gekürzt, wenn es am Tag das 5.+ Duell gegen diesen Gegner war */
+    if (p > q) tal += Math.round(DU_SIEG_TAL * kf); else if (p === q) tal += Math.round(DU_REMIS_TAL * kf); /* der Sieg selbst wird in duZaehlen() aus den Duellen gezählt */
     duAufloesQ.push(d); /* 6.62: statt Hinweis eine Auflösung im Siegelbruch-Stil */
   });
   setTimeout(duAufloesVersuch, 600);
@@ -3091,11 +3095,20 @@ function duZeige() {
 /* 6.77: Duell-XP je Spielart (Grundwert + XP je Richtige, Obergrenze je Art). Zweitprofile zählen wie Einzelspiel, ab dem
    DU_TAGE_VOLL-ten Duell am Tag nur noch halb – so lohnt sich Duellieren mit vielen verschiedenen Mitspielern, nicht mit Absprachen. */
 function duXpTagStand() { const t = today(), d = S.duXpTag; return d && d.t === t ? d.n | 0 : 0; }
+/* 6.83: Gleicher Gegner – ab dem 5. Duell am selben Tag gegen dieselbe Person (egal, wer herausfordert) gibt es nur noch die halbe
+   Belohnung (XP und Talente). Gezählt wird je gespielter Runde; bei einer Mehrfach-Herausforderung je Gegner, die XP werden dann
+   anteilig gekürzt (z. B. 1 von 4 Gegnern schon 4× heute → 1/8 weniger). */
+const DU_GLEICH_VOLL = 4, DU_GLEICH_FAKTOR = 0.5;
+function duGleichStand() { const t = today(); if (!S.duGT || S.duGT.t !== t) S.duGT = { t, n: {} }; return S.duGT.n; }
+const duGleichEinzel = id => ((duGleichStand()[id] | 0) >= DU_GLEICH_VOLL ? DU_GLEICH_FAKTOR : 1);
+function duGleichFaktor(ids) { ids = (ids || []).filter(Boolean); if (!ids.length) return 1; return ids.reduce((a, id) => a + duGleichEinzel(id), 0) / ids.length; }
+function duGleichZaehlen(ids) { const n = duGleichStand(); (ids || []).filter(Boolean).forEach(id => { n[id] = (n[id] | 0) + 1; }); save(); }
 function duXpTagZaehlen() { const t = today(); S.duXpTag = { t, n: (S.duXpTag && S.duXpTag.t === t ? S.duXpTag.n | 0 : 0) + 1 }; save(); }
 function duXpWert(D, ziele) {
   const art = DU_PRO[D.art] ? D.art : "blitz", roh = DU_XP + DU_PRO[art] * Math.min(D.r | 0, DU_MAXR[art]);
   const eigen = (ziele || []).some(z => eigenePid(z.id)), spaet = duXpTagStand() >= DU_TAGE_VOLL;
-  return Math.max(1, Math.round(roh * (eigen ? DU_EIGEN_FAKTOR : 1) * (spaet ? DU_SPAET_FAKTOR : 1)));
+  const gleich = D.gleichF != null ? D.gleichF : 1;
+  return Math.max(1, Math.round(roh * (eigen ? DU_EIGEN_FAKTOR : 1) * (spaet ? DU_SPAET_FAKTOR : 1) * gleich));
 }
 async function duEnde() {
   const D = duSpiel, L = window.LB, n = D.art === "blitz" ? Math.max(1, D.r + D.f) : D.fragen.length;
@@ -3106,6 +3119,9 @@ async function duEnde() {
     richtig(D.r); quest("runde", 1); if (D.art === "blitz") quest("blitz", 1); if (D.art === "kette") quest("ketteGespielt", 1); save(); }
   /* zählt erst, wenn Herausforderung bzw. Antwort wirklich angekommen ist */
   const ziele = D.ziele || [{ id: D.an, name: D.gegner }], viele = ziele.length > 1;
+  /* 6.83: Kürzung beim gleichen Gegner – einmal je Runde festlegen und zählen (auch bei „Nochmal senden“ nur einmal) */
+  const gegnerIds = D.neu ? ziele.map(z => z.id) : [D.vonPid];
+  if (D.gleichF == null) { D.gleichF = duGleichFaktor(gegnerIds); D.gleichEinzel = D.neu ? Object.fromEntries(ziele.map(z => [z.id, duGleichEinzel(z.id)])) : null; duGleichZaehlen(gegnerIds); }
   xp = duXpWert(D, ziele);
   const angekommen = () => { if (D.gezaehlt) return; D.gezaehlt = true; if (D.neu) S.duGesendet = (S.duGesendet || 0) + ziele.length; else S.duAngenommen = (S.duAngenommen || 0) + 1; quest("duell", 1); save(); };
   let titel, zeile, tal = 0, sieg = false, fehler = false, weg = false;
@@ -3113,7 +3129,9 @@ async function duEnde() {
     if (D.neu) {
       /* je Gegner ein eigenes Duell mit demselben Startwert; bei einem Fehler werden beim nächsten Versuch nur die fehlenden gesendet */
       D.ok = D.ok || [];
-      for (const g of ziele) if (!D.ok.includes(g.id)) { D.id = await L.duellAnlegen({ art: D.art, von: S.pid, an: g.id, vonName: S.lbName, anName: g.name, k: D.k, seed: D.seed, vonErg: erg }); D.ok.push(g.id); duListe = null; }
+      for (const g of ziele) if (!D.ok.includes(g.id)) { D.id = await L.duellAnlegen({ art: D.art, von: S.pid, an: g.id, vonName: S.lbName, anName: g.name, k: D.k, seed: D.seed, vonErg: erg }); D.ok.push(g.id); duListe = null;
+        /* späterer Sieg-/Remis-Lohn für dieses Duell ebenfalls gekürzt, wenn es heute schon das 5.+ gegen diesen Gegner war */
+        const f = D.gleichEinzel ? D.gleichEinzel[g.id] : 1; if (f < 1 && D.id) { S.duKurz = Object.assign({}, S.duKurz || {}); S.duKurz[D.id] = f; const ks = Object.keys(S.duKurz); while (ks.length > 60) delete S.duKurz[ks.shift()]; save(); } }
       D.gesendet = true;
       angekommen();
       titel = viele ? `${ziele.length} Herausforderungen gesendet!` : "Herausforderung gesendet!";
@@ -3124,7 +3142,7 @@ async function duEnde() {
       angekommen();
       const q = D.gegnerErg.p; sieg = D.p > q;
       /* Fairplay: wer eine Herausforderung annimmt, bekommt immer etwas – dazu Sieg/Remis */
-      if (!D.talGegeben) { D.talGegeben = true; tal = DU_FAIR_TAL + (sieg ? DU_SIEG_TAL : D.p === q ? DU_REMIS_TAL : 0); if (sieg) S.duSiege = (S.duSiege || 0) + 1; save(); }
+      if (!D.talGegeben) { D.talGegeben = true; tal = Math.round((DU_FAIR_TAL + (sieg ? DU_SIEG_TAL : D.p === q ? DU_REMIS_TAL : 0)) * (D.gleichF != null ? D.gleichF : 1)); if (sieg) S.duSiege = (S.duSiege || 0) + 1; save(); }
       titel = sieg ? "Gewonnen!" : D.p === q ? "Unentschieden!" : "Knapp vorbei!";
       zeile = sieg ? `Du hast ${esc(D.gegner)} besiegt.` : D.p === q ? "Genau gleich viele Punkte!" : `${esc(D.gegner)} war diesmal besser – fordere eine Revanche!`;
     }
@@ -3135,11 +3153,12 @@ async function duEnde() {
     else { fehler = true; titel = "Nicht gesendet";
       zeile = D.neu && D.ok && D.ok.length ? `${D.ok.length} von ${ziele.length} Herausforderungen sind angekommen. Prüfe dein Internet und sende den Rest nochmal.` : "Die Verbindung hat nicht geklappt. Prüfe dein Internet und versuche es nochmal."; }
   }
+  if (D.gleichF < 1 && !fehler && !weg) zeile += `<br><span class="small">Halbe Belohnung: ${viele ? "gegen einige von ihnen" : "gegen " + esc(D.gegner)} heute schon ${DU_GLEICH_VOLL}× gespielt.</span>`;
   const typ = D.art === "kette" ? "kette-" + D.k : D.art, ich = { r: D.r, n };
   const extra = D.art === "blitz" && D.maxCombo >= 2 ? ` · beste Combo ${D.maxCombo}` : D.art === "kette" && D.r === D.fragen.length ? " · ganze Kette!"
     : D.art === "quiz" ? (D.p >= BIB_LEITER[14] ? " · Biblionär!" : D.raus ? " · ausgestiegen" : "") : "";
   const gegnerSpalte = `<div class="du-vs-sp offen"><span>${esc(D.gegner)}</span><b>?</b><small>${viele ? "sind dran" : "ist dran"}</small></div>`;
-  function xpGeben(ms) { if (D.xpGegeben) return; D.xpGegeben = true; duXpTagZaehlen(); setTimeout(() => { addXp(xp, null, ziele.some(z => eigenePid(z.id)) ? "duelleigen" : "duell", { t0: D.t0, f: D.r, fm: (D.fragen || []).length, d: `${(DU_TYPEN[typ] && DU_TYPEN[typ].name) || D.art} · ${D.neu ? "Herausforderung" : "angenommen"}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, ms); }
+  function xpGeben(ms) { if (D.xpGegeben) return; D.xpGegeben = true; duXpTagZaehlen(); setTimeout(() => { addXp(xp, null, ziele.some(z => eigenePid(z.id)) ? "duelleigen" : "duell", { t0: D.t0, f: D.r, fm: (D.fragen || []).length, d: `${(DU_TYPEN[typ] && DU_TYPEN[typ].name) || D.art} · ${D.neu ? "Herausforderung" : "angenommen"}${D.gleichF < 1 ? " · gleicher Gegner ×" + (Math.round(D.gleichF * 100) / 100) : ""}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, ms); }
   /* 6.62: Gegenspieler – Auflösung im Siegelbruch-Stil; Titel, Belohnung und Knöpfe erst danach */
   const aufl = !D.neu && !fehler && !weg;
   if (aufl) {
