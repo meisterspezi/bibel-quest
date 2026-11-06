@@ -1595,14 +1595,14 @@ VIEWS.lektion = (arg) => {
   };
   function fertig(err) {
     const stars = err === 0 ? 3 : err <= 2 ? 2 : 1, prev = S.stars[gi] || 0; if (stars > prev) S.stars[gi] = stars;
-    const xp = g.books.length * 21 + stars * 36; richtig(g.books.length);
+    const W = spielWdh("lektion-" + gi), xp = wdhMal(g.books.length * 21 + stars * 36, W), ltal = wdhMal(Math.max(0, stars - prev) * 2, W); richtig(g.books.length);
     quest("station", 1); quest("runde", 1);
     SFX.win(); vibrate([20, 30, 20, 30, 60]); rain(70);
     setTimeout(() => {
-      addXp(xp, null, "lektion", { t0, f: g.books.length, fm: g.books.length, d: `Lektion ${gi + 1} · ${stars} ${stars === 1 ? "Stern" : "Sterne"} · ${err} Fehler` }); addTal(Math.max(0, stars - prev) * 2);
+      addXp(xp, null, "lektion", { t0, f: g.books.length, fm: g.books.length, d: `Lektion ${gi + 1} · ${stars} ${stars === 1 ? "Stern" : "Sterne"} · ${err} Fehler${W.d}` }); addTal(ltal);
       const next = gi + 1 < GROUPS.length;
       const m = modal(`<div class="label">Lektion geschafft</div><div class="stars" style="justify-content:center;gap:8px">${[1, 2, 3].map(k => `<span style="display:inline-block;width:44px;animation:pop .4s ${k * 0.15}s both">${STAR(stars >= k)}</span>`).join("")}</div>
-      <h2>${err === 0 ? "Fehlerfrei!" : err + " Fehler"}</h2><div class="rewards"><span class="pill">+${xp} XP</span>${stars > prev ? `<span class="pill">+${(stars - prev) * 2} Talente</span>` : ""}</div>
+      <h2>${err === 0 ? "Fehlerfrei!" : err + " Fehler"}</h2><div class="rewards"><span class="pill">+${xp} XP</span>${ltal ? `<span class="pill">+${ltal} Talente</span>` : ""}</div>${W.hinweis}
       ${LIEDZEIT ? `<div class="hilfe belohnung"><div class="label">${svg("music")} Liedbelohnung – freiwillig</div>${singBox(strophenVonGruppe(gi).map(vi => `<div class="lied-mini">${LIED[vi].lines.map((_, li) => zeileHtml(vi, li)).join("<br>")}</div>`).join(""))}</div>` : ""}
       <button class="btn primary" data-close="${next ? "next" : "lernen"}">${next ? "Nächste Lektion" : "Zur Übersicht"}</button><button class="btn ghost" data-close="again">Nochmal ordnen</button>`,
         r => { vorlesenStop(); if (r === "next") go("lektion", gi + 1); else if (r === "again") { schritt = 3; zeige(); } else go("lernen"); });
@@ -1709,16 +1709,17 @@ VIEWS.gap = (arg) => {
     const perfekt = fehler === 0;
     if (alle && perfekt) S.gapPerfect = true;
     quest("luecke", 1); quest("runde", 1);
+    const W = spielWdh("luecke"); xp = wdhMal(xp, W);
     screen.innerHTML = `<div class="card result stack"><div class="label">Lückenquiz geschafft</div><div class="big">${luecken.length - Math.min(fehler, luecken.length)} / ${luecken.length}</div>
       <div class="muted">${perfekt ? "Ohne Fehler – stark!" : fehler + " Fehler"}</div>
-      <div class="rewards"><span class="pill">+${xp} XP</span></div>
+      <div class="rewards"><span class="pill">+${xp} XP</span></div>${W.hinweis}
       <div class="hilfe" style="text-align:left"><div class="label">${alle ? "Jetzt das ganze Lied am Stück" : "Jetzt die Strophe am Stück"}</div>${alle
         ? `<details class="lied-det"><summary>${svg("music")} Liedtext zeigen</summary>${singBox(LIED.map((v, vi) => `<div class="lied-mini">${v.lines.map((_, li) => zeileHtml(vi, li)).join("<br>")}</div>`).join(""))}</details>`
         : singBox(`<div class="lied-mini">${LIED[strophen[0]].lines.map((_, li) => zeileHtml(strophen[0], li)).join("<br>")}</div>`)}</div>
       <button class="btn primary" id="again">Nochmal</button><button class="btn ghost" data-go="${alle ? "spielen" : "lied"}">Zurück</button></div>`;
     wireGo(); wireSing(); $("again").onclick = () => { SFX.tap(); vorlesenStop(); VIEWS.gap(arg); };
     SFX.win(); if (perfekt) rain(80);
-    if (xp) addXp(xp, null, "luecke", { t0, f: luecken.length - Math.min(fehler, luecken.length), fm: luecken.length, d: `${alle ? "Ganzes Lied" : "Strophe " + (strophen[0] + 1)} · ${fehler} Fehler` }); save(); checkBadges();
+    if (xp) addXp(xp, null, "luecke", { t0, f: luecken.length - Math.min(fehler, luecken.length), fm: luecken.length, d: `${alle ? "Ganzes Lied" : "Strophe " + (strophen[0] + 1)} · ${fehler} Fehler${W.d}` }); save(); checkBadges();
   };
   render();
 };
@@ -1783,14 +1784,15 @@ function playBlitz(scope) {
     clearTimers(); const rec = right > S.bestBlitz;
     if (rec) S.bestBlitz = right; if (maxCombo > S.bestCombo) S.bestCombo = maxCombo;
     quest("blitz", 1); quest("runde", 1);
-    const tal = Math.floor(right / 5) + (rec ? 3 : 0);
+    const W = spielWdh("blitz"); xp = wdhMal(xp, W);
+    const tal = wdhMal(Math.floor(right / 5) + (rec ? 3 : 0), W);
     screen.innerHTML = `<div class="card result stack"><div class="label">Zeit abgelaufen</div><div class="big">${right}</div><div class="muted">Richtige · ${wrong} Fehler · beste Combo ${maxCombo}</div>${rec && right > 0 ? '<h2>Neuer Rekord!</h2>' : ''}
-      <div class="rewards"><span class="pill">+${xp} XP</span><span class="pill">+${tal} Talente</span></div>
+      <div class="rewards"><span class="pill">+${xp} XP</span><span class="pill">+${tal} Talente</span></div>${W.hinweis}
       ${blitzLiedHilfe()}
       <button class="btn primary" id="again">Nochmal</button><button class="btn ghost" data-go="spielen">Zurück</button></div>`; wireGo(); wireSing();
     $("again").onclick = () => { SFX.tap(); vorlesenStop(); VIEWS.blitz(); };
     if (right > 0) { SFX.win(); if (rec) rain(90); }
-    if (xp) addXp(xp, null, "blitz", { t0, f: right, fm: right + wrong, d: `${scope === "all" ? "Ganze Bibel" : scope} · ${wrong} Fehler · Combo ${maxCombo}` }); addTal(tal); save(); checkBadges(); lbSync();
+    if (xp) addXp(xp, null, "blitz", { t0, f: right, fm: right + wrong, d: `${scope === "all" ? "Ganze Bibel" : scope} · ${wrong} Fehler · Combo ${maxCombo}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
   }
 }
 
@@ -1847,6 +1849,7 @@ function playChain(mode) {
   function done(full, correct) {
     const rec = i > (S[K.key] || 0); if (rec) S[K.key] = i;
     let tal = Math.floor(i / 10) + (full ? K.tal : 0); if (full) xp += K.bonus;
+    const W = spielWdh("kette-" + mode); xp = wdhMal(xp, W); tal = wdhMal(tal, W);
     quest("ketteGespielt", 1); quest("runde", 1);
     const sieg = full ? meisterErfolg(mode) : null;
     const vorher = ALL[seq[i]].b;
@@ -1854,11 +1857,11 @@ function playChain(mode) {
       <div class="muted">${full ? `${esc(K.name)} komplett in der richtigen Reihenfolge!` : `${K.rueck ? "Vor" : "Nach"} „${esc(vorher)}“ ${K.rueck ? "steht" : "kommt"} „${esc(correct)}“.`}</div>${rec && !full ? '<h2>Neuer Rekord!</h2>' : ''}
       ${!full && BUCH_IM_LIED[seq[i + 1]] ? `<div class="hilfe"><div class="label">So geht's im Lied</div>${singBox(zeileHtml(BUCH_IM_LIED[seq[i + 1]].v, BUCH_IM_LIED[seq[i + 1]].l))}</div>` : ""}
       ${sieg ? `<div class="siegel-box">${siegelHtml(sieg.nachher, true, true)}<div><b>${SIEGEL[sieg.nachher].name}-Siegel</b><div class="small muted">${sieg.nachher < 4 ? "Nächstes: " + SIEGEL[sieg.nachher + 1].name + " – " + SIEGEL[sieg.nachher + 1].text : "Höchste Stufe!"}<br>Bleibt ${SIEGEL_FRISCH} Tage frisch – danach einfach wiederholen.</div></div></div>` : ""}
-      <div class="rewards"><span class="pill">+${xp} XP</span><span class="pill">+${tal + (sieg ? sieg.tal : 0)} Talente</span></div>
+      <div class="rewards"><span class="pill">+${xp} XP</span><span class="pill">+${tal + (sieg ? sieg.tal : 0)} Talente</span></div>${W.hinweis}
       <button class="btn primary" id="cagain">Nochmal</button><button class="btn ghost" data-go="spielen">Andere Kette</button></div>`; wireGo(); wireSing();
     $("cagain").onclick = () => { SFX.tap(); vorlesenStop(); countdown(() => playChain(mode)); };
     if (full) { SFX.level(); rain(200); } else if (rec) SFX.win();
-    if (xp) addXp(xp, null, "kette", { t0, f: i, fm: seq.length - 1, d: `${K.name}${full ? " · komplett" : " · gerissen"}` }); addTal(tal); save(); checkBadges(); lbSync();
+    if (xp) addXp(xp, null, "kette", { t0, f: i, fm: seq.length - 1, d: `${K.name}${full ? " · komplett" : " · gerissen"}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
   }
 }
 
@@ -2172,6 +2175,7 @@ function zusammenfuehren(r) {
   if (r.xq) S.xq = xqMischen(S.xq, r.xq);
   /* 6.83: Duelle gegen denselben Gegner heute – je Gegner der höhere Zählerstand; gekürzte Duelle vereinigen */
   if (r.duGT && r.duGT.t === today()) { const n = duGleichStand(); Object.entries(r.duGT.n || {}).forEach(([k, v]) => { n[k] = Math.max(n[k] | 0, v | 0); }); }
+  if (r.spWdh && r.spWdh.t === today()) { const n = wdhStand(); Object.entries(r.spWdh.n || {}).forEach(([k, v]) => { n[k] = Math.max(n[k] | 0, v | 0); }); }
   if (r.duKurz && typeof r.duKurz === "object") S.duKurz = Object.assign({}, r.duKurz, S.duKurz || {});
   try { xqAbgleich(xpVorher); } catch (e) {}
   if (r.weekKey === S.weekKey) S.weekXp = Math.max(S.weekXp, r.weekXp || 0); else if ((r.weekKey || "") > (S.weekKey || "")) { S.weekKey = r.weekKey; S.weekXp = r.weekXp; }
@@ -3095,12 +3099,26 @@ function duZeige() {
 /* 6.77: Duell-XP je Spielart (Grundwert + XP je Richtige, Obergrenze je Art). Zweitprofile zählen wie Einzelspiel, ab dem
    DU_TAGE_VOLL-ten Duell am Tag nur noch halb – so lohnt sich Duellieren mit vielen verschiedenen Mitspielern, nicht mit Absprachen. */
 function duXpTagStand() { const t = today(), d = S.duXpTag; return d && d.t === t ? d.n | 0 : 0; }
+/* 6.83: Wiederholungen am selben Tag – milde Stufen: 1.–4. Runde voll, ab der 5. Runde 75 %, ab der 10. Runde 50 % (XP und Talente).
+   Gezählt wird je Spielart: Blitz, jede Kette einzeln (Bibel, AT, NT, Rückwärts), Lückenquiz, jede Lektion einzeln, Biblionär solo –
+   und bei Duellen je Gegner (egal welche Duell-Art). Neuer Tag = wieder volle Belohnung. */
+const WDH_STUFEN = [[10, 0.5], [5, 0.75]];
+const wdhFaktorBei = nr => { for (const [ab, f] of WDH_STUFEN) if (nr >= ab) return f; return 1; };
+function wdhStand() { const t = today(); if (!S.spWdh || S.spWdh.t !== t) S.spWdh = { t, n: {} }; return S.spWdh.n; }
+/* zählt eine Runde der Spielart key und gibt Faktor, Nummer und Hinweis zurück */
+function spielWdh(key) {
+  const n = wdhStand(), nr = (n[key] | 0) + 1; n[key] = nr;
+  const f = wdhFaktorBei(nr);
+  return { f, nr, d: f < 1 ? ` · ${nr}. Runde heute ×${f}` : "",
+    hinweis: f < 1 ? `<div class="small muted wdh-hinw">Heute schon ${nr - 1}× gespielt – ${Math.round(f * 100)} % der Belohnung. Morgen gibt es wieder die volle.</div>` : "" };
+}
+const wdhMal = (v, w) => (w && w.f < 1 ? Math.round(v * w.f) : v);
 /* 6.83: Gleicher Gegner – ab dem 5. Duell am selben Tag gegen dieselbe Person (egal, wer herausfordert) gibt es nur noch die halbe
    Belohnung (XP und Talente). Gezählt wird je gespielter Runde; bei einer Mehrfach-Herausforderung je Gegner, die XP werden dann
    anteilig gekürzt (z. B. 1 von 4 Gegnern schon 4× heute → 1/8 weniger). */
-const DU_GLEICH_VOLL = 4, DU_GLEICH_FAKTOR = 0.5;
+const DU_GLEICH_VOLL = 4;
 function duGleichStand() { const t = today(); if (!S.duGT || S.duGT.t !== t) S.duGT = { t, n: {} }; return S.duGT.n; }
-const duGleichEinzel = id => ((duGleichStand()[id] | 0) >= DU_GLEICH_VOLL ? DU_GLEICH_FAKTOR : 1);
+const duGleichEinzel = id => wdhFaktorBei((duGleichStand()[id] | 0) + 1);
 function duGleichFaktor(ids) { ids = (ids || []).filter(Boolean); if (!ids.length) return 1; return ids.reduce((a, id) => a + duGleichEinzel(id), 0) / ids.length; }
 function duGleichZaehlen(ids) { const n = duGleichStand(); (ids || []).filter(Boolean).forEach(id => { n[id] = (n[id] | 0) + 1; }); save(); }
 function duXpTagZaehlen() { const t = today(); S.duXpTag = { t, n: (S.duXpTag && S.duXpTag.t === t ? S.duXpTag.n | 0 : 0) + 1 }; save(); }
@@ -3153,7 +3171,7 @@ async function duEnde() {
     else { fehler = true; titel = "Nicht gesendet";
       zeile = D.neu && D.ok && D.ok.length ? `${D.ok.length} von ${ziele.length} Herausforderungen sind angekommen. Prüfe dein Internet und sende den Rest nochmal.` : "Die Verbindung hat nicht geklappt. Prüfe dein Internet und versuche es nochmal."; }
   }
-  if (D.gleichF < 1 && !fehler && !weg) zeile += `<br><span class="small">Halbe Belohnung: ${viele ? "gegen einige von ihnen" : "gegen " + esc(D.gegner)} heute schon ${DU_GLEICH_VOLL}× gespielt.</span>`;
+  if (D.gleichF < 1 && !fehler && !weg) zeile += `<br><span class="small">${Math.round(D.gleichF * 100)} % der Belohnung: ${viele ? "gegen einige von ihnen" : "gegen " + esc(D.gegner)} heute schon ${DU_GLEICH_VOLL}× oder öfter gespielt.</span>`;
   const typ = D.art === "kette" ? "kette-" + D.k : D.art, ich = { r: D.r, n };
   const extra = D.art === "blitz" && D.maxCombo >= 2 ? ` · beste Combo ${D.maxCombo}` : D.art === "kette" && D.r === D.fragen.length ? " · ganze Kette!"
     : D.art === "quiz" ? (D.p >= BIB_LEITER[14] ? " · Biblionär!" : D.raus ? " · ausgestiegen" : "") : "";
@@ -3365,8 +3383,10 @@ function bibErgebnis(G, punkte) {
 function bibEnde(G, punkte) {
   bibErgebnis(G, punkte);
   const grund = G.fertigGrund, million = grund === "biblionaer", woche = G.modus === "woche";
-  const xp = 30 + 42 * G.r + (million ? 300 : 0);
-  const tal = Math.floor(G.r / 3) + (million ? 25 : 0) + (G.rekord && !woche ? 3 : 0) + (woche ? BIB_WOCHE_TAL : 0);
+  if (!woche && !G.wdh) G.wdh = spielWdh("bib-solo");
+  const W = woche ? null : G.wdh;
+  const xp = wdhMal(30 + 42 * G.r + (million ? 300 : 0), W);
+  const tal = wdhMal(Math.floor(G.r / 3) + (million ? 25 : 0) + (G.rekord && !woche ? 3 : 0), W) + (woche ? BIB_WOCHE_TAL : 0);
   if (!G.belohnt) { G.belohnt = true; richtig(G.r); quest("runde", 1); save(); }
   const titel = million ? "Biblionär!" : grund === "raus" ? "Klug ausgestiegen!" : grund === "zeit" ? "Die Zeit ist um" : "Leider falsch";
   const zeile = million ? "Alle 15 Fragen richtig – du hast die Million!" : grund === "raus" ? `Du nimmst ${pkt(punkte)} Punkte mit.` : `Du fällst auf die Sicherheitsstufe zurück: ${pkt(punkte)} Punkte.`;
@@ -3385,7 +3405,7 @@ function bibEnde(G, punkte) {
   if ($("bibNochmal")) $("bibNochmal").onclick = () => { SFX.tap(); bibSolo(); };
   if ($("bibRang")) $("bibRang").onclick = () => { SFX.tap(); go("rank", "bibWoche"); };
   SFX.win(); if (million) rain(140); else if (punkte >= 16000) rain(60);
-  setTimeout(() => { addXp(xp, null, "bib", { t0: G.t0, f: G.r, fm: 15, d: `${woche ? "Wochenrunde" : "Solo"} · ${pkt(punkte)} Punkte` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350);
+  setTimeout(() => { addXp(xp, null, "bib", { t0: G.t0, f: G.r, fm: 15, d: `${woche ? "Wochenrunde" : "Solo"} · ${pkt(punkte)} Punkte${W ? W.d : ""}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350);
 }
 /* Solo-Übung (Spielen): zufällige Fragen */
 VIEWS.biblionaer = () => { screen.innerHTML = ""; };
