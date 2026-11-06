@@ -932,23 +932,81 @@ function xqSenden() {
   xqLogSenden(); truheNachholen();
   const sig = JSON.stringify(S.xq); if (S.xqSync === sig) return;
   /* bewusst still: solange die Regeln für „xpquellen“ nicht veröffentlicht sind, darf das Spiel nichts melden oder neu verbinden */
-  L.xpSetzen(S.pid, S.lbName, xqKuerzen(S.xq)).then(() => { S.xqSync = sig; save(); }).catch(e => xqNachholen(e));
+  L.xpSetzen(S.pid, S.lbName, xqKuerzen(S.xq)).then(() => { S.xqSync = sig; xqFehler = null; save(); }).catch(e => xqNachholen(e));
 }
 /* 6.81: Ein anderes Gerät desselben Spielers hat die Zählung schon weitergeschrieben (Regeln: Summen nur steigend, Anfangsbestand nur
    sinkend, Belohnungs-Protokoll nie kürzer). Dann lehnt die Datenbank den älteren Stand dieses Geräts ab – bis 6.80 still und so lange,
    bis die App neu startete. Die Rangliste bekam die XP trotzdem, und in der XP-Prüfung standen sie als „ohne Quelle“.
    Jetzt holt sich das Gerät den Stand aus der Datenbank, mischt ihn ein (je Quelle der höhere Wert) und sendet einmal erneut. */
-let xqNachLaeuft = 0;
-async function xqNachholen(e) {
-  const L = window.LB; if (gesperrt || !L || !L.xpHolen || !S.xq || !S.pid || Date.now() - xqNachLaeuft < 6e4) return;
-  if (!String((e && e.code) || "").includes("permission-denied")) return;
-  xqNachLaeuft = Date.now();
+let xqNachLaeuft = 0, xqFehler = null;
+/* 6.85: Bildet die Firebase-Regeln für „xpquellen“ nach und nennt jede Regel, die dieser Stand gegenüber dem Stand in der Datenbank (a) verletzen würde.
+   Die Datenbank selbst meldet nur „permission-denied“ – so wird sichtbar, WARUM sie ablehnt. */
+const xqPayload = x => ({ name: S.lbName || "", alt: (x && x.alt) | 0, q: (x && x.q) || {}, n: (x && x.n) || {}, m: (x && x.m) || {}, tag: (x && x.tag) || {}, std: (x && x.std) || {}, bel: Array.isArray(x && x.bel) ? x.bel.slice(-100) : [] });
+function xqRegelFehler(d, a) {
+  const f = [], ganz = v => Number.isInteger(v), nm = k => XQ_QUELLEN[k] || k;
+  if (!d || !d.q) return ["Zählung leer"];
+  if (!(String(d.name).length >= 2 && String(d.name).length <= 20)) f.push("Name nicht 2–20 Zeichen");
+  if (!ganz(d.alt) || d.alt < 0 || d.alt > 1e7) f.push("Anfangsbestand ungültig");
+  if (a && ganz(d.alt) && d.alt > ((a.alt | 0))) f.push(`Anfangsbestand ${d.alt} höher als in der Datenbank (${a.alt | 0}) – er darf nur sinken`);
+  [["q", "XP"], ["n", "Anzahl"], ["m", "größte Vergabe"]].forEach(([m, t]) => Object.entries(d[m] || {}).forEach(([k, v]) => {
+    if (!XQ_QUELLEN[k]) f.push(`unbekannte Quelle „${k}“ (${t})`);
+    else if (!ganz(v) || v < 0) f.push(`${nm(k)}: ${t} keine ganze Zahl`);
+    else if (m === "m" && v > 100000) f.push(`${nm(k)}: größte Vergabe über 100.000`);
+    else if (m !== "m" && v > 1e7) f.push(`${nm(k)}: ${t} über 10.000.000`);
+  }));
+  if (a && a.q) Object.entries(d.q || {}).forEach(([k, v]) => { if (k in a.q && v < (a.q[k] | 0)) f.push(`${nm(k)}: ${v} XP auf dem Gerät, aber ${a.q[k]} in der Datenbank – Summen dürfen nur steigen`); });
+  if (Object.keys(d.tag || {}).length > 12) f.push(`Tageswerte: ${Object.keys(d.tag).length} statt höchstens 12`);
+  if (Object.keys(d.std || {}).length > 50) f.push(`Stundenwerte: ${Object.keys(d.std).length} statt höchstens 50`);
+  if (d.bel.length > 100) f.push("Belohnungs-Protokoll über 100 Einträge");
+  if (a && Array.isArray(a.bel) && d.bel.length < a.bel.length) f.push(`Belohnungs-Protokoll kürzer als in der Datenbank (${d.bel.length} statt ${a.bel.length})`);
+  return f;
+}
+/* 6.85: Zählung dieses Spielers mit dem Stand in der Datenbank abgleichen: lesen, Unterschiede benennen, mischen (je Quelle der höhere Wert),
+   erneut speichern und zur Kontrolle noch einmal lesen. Ergebnis { ok, code, msg, srv, nachher, vorher[], diffs[], neu[] } – Anzeige in der XP-Prüfung. */
+async function xqAbgleichen() {
+  const L = window.LB, r = { ok: false, code: "", msg: "", srv: null, nachher: null, vorher: [], diffs: [], neu: [] };
+  if (gesperrt || !L || !L.ok || !L.xpHolen || !L.xpSetzen || !S.xq || !S.xq.q || !S.pid || !S.lbName || S.offlineOnly) { r.code = "nicht-bereit"; return r; }
+  try { await L.signIn(); r.srv = await L.xpHolen(S.pid); } catch (e) { r.code = (e && e.code) || "lesen"; r.msg = String((e && e.message) || "").slice(0, 160); return r; }
+  xqKuerzen(S.xq);
+  r.vorher = xqRegelFehler(xqPayload(S.xq), r.srv);
+  const gem = r.srv && r.srv.q ? xqMischen(S.xq, r.srv) : S.xq;
+  r.diffs = xqRegelFehler(xqPayload(gem), r.srv);
+  r.neu = Object.entries(gem.q || {}).filter(([k, v]) => (+v || 0) > (((r.srv && r.srv.q) || {})[k] | 0)).map(([k, v]) => ({ k, vorher: ((r.srv && r.srv.q) || {})[k] | 0, jetzt: +v || 0 }));
   try {
-    const r = await L.xpHolen(S.pid); if (!r || !r.q) return;
-    S.xq = xqMischen(S.xq, r); save();
-    const sig = JSON.stringify(S.xq);
-    await L.xpSetzen(S.pid, S.lbName, S.xq); S.xqSync = sig; save();
-  } catch (e2) { /* still – nächster Versuch frühestens in einer Minute */ }
+    await L.xpSetzen(S.pid, S.lbName, gem);
+    S.xq = gem; S.xqSync = JSON.stringify(S.xq); save(); xqFehler = null; r.ok = true;
+    try { r.nachher = await L.xpHolen(S.pid); } catch (e) {}
+  } catch (e) { r.code = (e && e.code) || "unbekannt"; r.msg = String((e && e.message) || "").slice(0, 160); xqFehler = { z: Date.now(), code: r.code, msg: r.msg }; }
+  return r;
+}
+const xqUnterschiedText = l => (l && l.length ? l.join("; ") : "kein Regelverstoß erkennbar").slice(0, 900);
+/* Abgleich mit Meldung an den Verwalter (Postkasten, höchstens einmal je Tag und Art) */
+async function xqAbgleichMitMeldung(grund) {
+  const r = await xqAbgleichen(); if (r.code === "nicht-bereit") return r;
+  const wer = `Spieler ${S.lbName || "?"}, Profil ${S.pid || "?"}, Version ${APP_VERSION}`;
+  if (!r.ok) postkastenMelden("datenbank", `XP-Zählung speichern fehlgeschlagen (${r.code}${r.msg ? ": " + r.msg : ""}) – ${wer}. Verletzt: ${xqUnterschiedText(r.vorher)}. Nach dem Mischen: ${xqUnterschiedText(r.diffs)}.`, "xqz-fehl-" + r.code + "-" + S.pid);
+  else if (r.neu.length || r.vorher.length) postkastenMelden("datenbank", `XP-Zählung nachgeholt (${grund}) – ${wer}. Neu in der Datenbank: ${r.neu.map(x => `${XQ_QUELLEN[x.k] || x.k} ${x.vorher}→${x.jetzt}`).join(", ") || "–"}. Der alte Stand hätte verletzt: ${xqUnterschiedText(r.vorher)}.`, "xqz-ok-" + S.pid);
+  return r;
+}
+/* 6.81: Ein anderes Gerät desselben Spielers hat die Zählung schon weitergeschrieben (Regeln: Summen nur steigend, Anfangsbestand nur
+   sinkend, Belohnungs-Protokoll nie kürzer). Dann lehnt die Datenbank den älteren Stand dieses Geräts ab – bis 6.80 still und so lange,
+   bis die App neu startete. Die Rangliste bekam die XP trotzdem, und in der XP-Prüfung standen sie als „ohne Quelle“.
+   Jetzt holt sich das Gerät den Stand aus der Datenbank, mischt ihn ein (je Quelle der höhere Wert) und sendet einmal erneut.
+   6.85: bei JEDEM Fehler außer Verbindungsproblemen (nicht nur permission-denied), Wiederholung frühestens nach 20 s, Fehler wird gemerkt und gemeldet. */
+async function xqNachholen(e) {
+  const code = String((e && e.code) || "");
+  xqFehler = { z: Date.now(), code: code || "unbekannt", msg: String((e && e.message) || "").slice(0, 160) };
+  if (gesperrt || Date.now() - xqNachLaeuft < 2e4) return;
+  if (["unavailable", "deadline-exceeded", "cancelled"].includes(code) || (typeof navigator !== "undefined" && navigator.onLine === false)) return;
+  xqNachLaeuft = Date.now();
+  try { await xqAbgleichMitMeldung("nach abgelehnter Speicherung"); } catch (e2) { /* still – nächster Versuch beim nächsten Senden */ }
+}
+/* 6.85: Beim Start einmal prüfen, ob die Datenbank alles hat, was dieses Gerät gezählt hat – sonst nachholen */
+async function xqStartPruefung() {
+  const L = window.LB; if (gesperrt || !L || !L.ok || !L.xpHolen || !S.xq || !S.xq.q || !S.pid || !S.lbName || S.offlineOnly) return;
+  let srv = null; try { await L.signIn(); srv = await L.xpHolen(S.pid); } catch (e) { return; }
+  const fehlt = !srv || !srv.q || Object.entries(S.xq.q).some(([k, v]) => (+v || 0) > ((srv.q[k]) | 0));
+  if (fehlt) await xqAbgleichMitMeldung("beim Start");
 }
 function addXp(n, el, quelle, info) {
   if (gesperrt) return;
@@ -2357,6 +2415,7 @@ document.addEventListener("visibilitychange", async () => {
 addEventListener("lb-ready", () => {
   lbStart();
   setTimeout(() => andereSpielerNachsenden().catch(() => {}), 3000);  /* 6.83 (B) */
+  setTimeout(() => xqStartPruefung().catch(() => {}), 6000);  /* 6.85 */
   aufnahmenPruefen();
   if (current === "name") { const e = $("bAltSub"); if (e && window.LB && window.LB.ok) e.textContent = "Meinen Namen aus der Rangliste auswählen"; return; }
   if (["rank", "home", "profil"].includes(current) && !document.querySelector(".modal")) go(current);
@@ -5011,6 +5070,7 @@ VIEWS.xppruefung = () => {
         <div class="small muted">Letzte 24 Stunden: ${zahl(r.h24)} XP · stärkste Stunde: ${zahl(r.spitze)} XP</div>
         <details data-xpev="${esc(r.id)}"><summary class="small">Protokoll aller XP-Vergaben (Zeit, Spielzeit, Fortschritt)</summary><div class="xq-evliste small muted" style="margin-top:6px">Wird beim Öffnen geladen …</div></details>
         ${r.bel.length ? `<details><summary class="small">Tägliche Belohnung: ${r.bel.length}× erhalten · zuletzt ${esc(xqZeit(r.bel[r.bel.length - 1].z))} (+${r.bel[r.bel.length - 1].x} XP)</summary><div class="small muted" style="margin-top:6px">${r.bel.slice(-14).reverse().map(e => `${esc(xqZeit(e.z))} · +${e.x} XP · +${e.t} Talente · Truhe vom ${esc(xqDatum(e.d || "?"))}${e.a === "gestern" ? " (am Folgetag automatisch geöffnet)" : ""}`).join("<br>")}<br><i>Uhrzeit laut Gerät des Spielers</i></div></details>` : ""}
+        ${r.id === S.pid ? `<div><button class="btn ghost mini" data-xqab>${svg("check")} Zählung jetzt abgleichen</button><div class="small muted" data-xqabm aria-live="polite" style="margin-top:4px">${xqFehler ? "Letzter Fehler auf diesem Gerät: " + esc(xqFehler.code) + (xqFehler.msg ? " – " + esc(xqFehler.msg) : "") : ""}</div></div>` : ""}
         ${r.flags.map(f => `<div class="small" style="color:${f.hart ? "var(--bad,#ff8a5c)" : "var(--muted,#9aa)"}">${f.hart ? "⚠ " : "ℹ "}${esc(f.t)}</div>`).join("")}</div>`;
     }).join("") || `<p class="muted">Keine Einträge.</p>`;
     if ($("xqCsvAlle")) $("xqCsvAlle").onclick = async () => {
@@ -5019,6 +5079,17 @@ VIEWS.xppruefung = () => {
       catch (e) { m.textContent = "Export fehlgeschlagen (" + ((e && e.code) || "Fehler") + ")."; }
       k.disabled = false;
     };
+    screen.querySelectorAll("[data-xqab]").forEach(b => b.onclick = async () => {
+      SFX.tap(); const m = b.parentNode.querySelector("[data-xqabm]"); b.disabled = true; m.textContent = "Gleiche ab …";
+      try {
+        const r = await xqAbgleichen(), nm = k => XQ_QUELLEN[k] || k;
+        const alt = r.srv ? `In der Datenbank standen: ${Object.entries(r.srv.q || {}).map(([k, v]) => nm(k) + " " + v).join(", ") || "–"}.` : "In der Datenbank gab es noch keine Zählung.";
+        if (r.code === "nicht-bereit") m.textContent = "Nicht möglich (Internet, Anmeldung oder gesperrtes Fenster).";
+        else if (r.ok) m.innerHTML = `✓ Gespeichert. ${esc(alt)}<br>${r.neu.length ? "Neu eingetragen: " + r.neu.map(x => esc(nm(x.k)) + " " + x.vorher + " → " + x.jetzt).join(", ") : "Nichts nachzutragen – die Datenbank war schon aktuell."}<br>Der alte Stand hätte verletzt: ${esc(xqUnterschiedText(r.vorher))}.<br>Öffne die XP-Prüfung neu, um die Zahlen zu aktualisieren.`;
+        else m.innerHTML = `✗ Abgelehnt (${esc(r.code)}${r.msg ? ": " + esc(r.msg) : ""}).<br>${esc(alt)}<br>Verletzt (alter Stand): ${esc(xqUnterschiedText(r.vorher))}<br>Verletzt (nach Mischen): ${esc(xqUnterschiedText(r.diffs))}`;
+      } catch (e) { m.textContent = "Abgleich fehlgeschlagen (" + ((e && e.code) || "Fehler") + ")."; }
+      b.disabled = false;
+    });
     screen.querySelectorAll("details[data-xqlu]").forEach(d => d.addEventListener("toggle", () => {
       const r = z.find(x => x.id === d.dataset.xqlu); if (!d.open || !r || r.luecke || d.dataset.laedt) return; d.dataset.laedt = "1"; const box = d.querySelector(".xq-luliste");
       L.xpProtokoll(r.id, 2000).then(l => { r.luecke = xqLueckenAnalyse(r, l, l.length < 2000); r.luecke.geteilt = r.geteilt || []; box.innerHTML = xqLueckeHtml(r.luecke);
