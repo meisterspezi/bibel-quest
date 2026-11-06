@@ -766,9 +766,9 @@ function bewaehrtWert(r) {
    Jede XP-Vergabe läuft über addXp(n, el, quelle). S.xq = { alt: XP vor der Zählung, q: {Quelle: XP}, n: {Quelle: Anzahl},
    m: {Quelle: größte einzelne Vergabe}, tag: {Tag: XP}, std: {"Tag-Stunde": XP} } – wird in die Sammlung „xpquellen“ gespiegelt.
    Der Verwalter sieht in der „XP-Prüfung“, ob die XP der Rangliste durch Quellen erklärt sind. */
-const XQ_QUELLEN = { vers: "Lernvers", lektion: "Lektion", luecke: "Lückenquiz", blitz: "Blitz", kette: "Kette", duell: "Duell", duelleigen: "Duell (eigenes Profil)", bib: "Biblionär", tagesbonus: "Tagesaufgaben", spickzettel: "Spickzettel", sonst: "Sonstiges" };
+const XQ_QUELLEN = { vers: "Lernvers", lektion: "Lektion", luecke: "Lückenquiz", blitz: "Blitz", kette: "Kette", duell: "Duell", duelleigen: "Duell (eigenes Profil)", bib: "Biblionär", tagesbonus: "Tagesaufgaben", spickzettel: "Spickzettel", sonst: "Sonstiges", abgleich: "Geräteabgleich" };
 /* höchste XP, die eine einzelne Vergabe je Quelle ehrlich bringen kann (Blitz: 60 Richtige; Kette rückwärts: 65×4+300 …) */
-const XQ_MAX = { vers: 150, lektion: 130, luecke: 250, blitz: 1300, kette: 560, duell: 70, duelleigen: 70, bib: 105, tagesbonus: 100, spickzettel: 20, sonst: 100 };
+const XQ_MAX = { vers: 150, lektion: 130, luecke: 250, blitz: 1300, kette: 560, duell: 70, duelleigen: 70, bib: 105, tagesbonus: 100, spickzettel: 20, sonst: 100, abgleich: 10000000 };
 /* sortierbarer Tagesschlüssel (dstr() schreibt Monat/Tag ohne führende Null) */
 const xqTagKey = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 function xqZaehlen(n, q) {
@@ -794,6 +794,18 @@ function xqMischen(a, b) {
   const mx = (o1, o2) => { const r = Object.assign({}, o1 || {}); Object.entries(o2 || {}).forEach(([k, v]) => { r[k] = Math.max(r[k] | 0, v | 0); }); return r; };
   const bel = [...(Array.isArray(a.bel) ? a.bel : []), ...(Array.isArray(b.bel) ? b.bel : [])].filter((e, i, l) => l.findIndex(f => f.z === e.z && f.a === e.a) === i).sort((p, q) => p.z - q.z).slice(-100);
   return { alt: Math.min(a.alt | 0, b.alt | 0), q: mx(a.q, b.q), n: mx(a.n, b.n), m: mx(a.m, b.m), tag: mx(a.tag, b.tag), std: mx(a.std, b.std), bel };
+}
+/* 6.76: Geräteabgleich – bringt das Zusammenführen XP von einem anderen Gerät mit (höherer Wert gewinnt) und stehen diese XP in keiner
+   Quelle. Genau dieser Zuwachs wird als eigene Quelle „Geräteabgleich“ gebucht (mit Protokolleintrag), damit er nicht als „ohne Quelle“
+   gilt. Gebucht wird höchstens der Zuwachs durch den Abgleich selbst – XP, die auf diesem Gerät ohne Quelle entstehen, bleiben sichtbar. */
+function xqAbgleich(xpVorher) {
+  const x = S.xq; if (!x || !x.q) return;
+  const zuwachs = Math.round(S.xp) - Math.round(xpVorher || 0); if (!(zuwachs > 0)) return;
+  const erklaert = (x.alt | 0) + Object.values(x.q).reduce((a, v) => a + (+v || 0), 0);
+  const luecke = Math.round(S.xp) - erklaert, n = Math.min(zuwachs, luecke); if (!(n > 0)) return;
+  xqEreignis(n, "abgleich", { d: "Zuwachs von anderem Gerät" }, S.xp - n);
+  x.n = x.n || {}; x.m = x.m || {};
+  x.q.abgleich = (x.q.abgleich | 0) + n; x.n.abgleich = (x.n.abgleich | 0) + 1; x.m.abgleich = Math.min(100000, Math.max(x.m.abgleich | 0, n));
 }
 /* 6.75: Einzelprotokoll – jede XP-Vergabe wird mit Zeit (Uhr des Geräts), Quelle, XP, XP-Stand vorher, Spielzeit und Fortschritt
    in der Sammlung „xpprotokoll“ abgelegt. Die Einträge lassen sich nur anlegen, nie ändern oder löschen (Regeln), und der Server
@@ -1991,6 +2003,7 @@ function spielstandExport() { const c = JSON.parse(JSON.stringify(S)); delete c.
 function zusammenfuehren(r) {
   if (!r || typeof r !== "object") return;
   const max = k => { S[k] = Math.max(+S[k] || 0, +r[k] || 0); };
+  const xpVorher = +S.xp || 0;
   ["xp", "tal", "right", "bestStreak", "bestChain", "chainAT", "chainNT", "chainRueck", "bestBlitz", "bestCombo", "questBonusCount", "bestGoalStreak", "bestDayRight", "duSiege", "duSpiele", "duGesendet", "duAngenommen", "lvLohn", "bibRekord", "bibSpiele", "bibMillion"].forEach(max);
   /* Wochenrunde: die neuere Woche gewinnt; in derselben Woche zählt der höhere Wert (ein Versuch wird nie zurückgesetzt) */
   if ((r.bwK || "") > (S.bwK || "")) { if (S.bwK && S.bwK !== r.bwK) { S.bwVK = S.bwK; S.bwVP = S.bwP | 0; } S.bwK = r.bwK; S.bwP = r.bwP | 0; S.bwFertig = !!r.bwFertig; }
@@ -2008,6 +2021,7 @@ function zusammenfuehren(r) {
   Object.entries(r.stars || {}).forEach(([k, v]) => { S.stars[k] = Math.max(S.stars[k] || 0, v || 0); });
   if (dayNum(r.lastDay) > dayNum(S.lastDay)) { S.lastDay = r.lastDay; S.streak = r.streak; } else if (r.lastDay === S.lastDay) S.streak = Math.max(S.streak, r.streak || 0);
   if (r.xq) S.xq = xqMischen(S.xq, r.xq);
+  try { xqAbgleich(xpVorher); } catch (e) {}
   if (r.weekKey === S.weekKey) S.weekXp = Math.max(S.weekXp, r.weekXp || 0); else if ((r.weekKey || "") > (S.weekKey || "")) { S.weekKey = r.weekKey; S.weekXp = r.weekXp; }
   if (r.todayDay === S.todayDay) { S.todayXp = Math.max(S.todayXp, r.todayXp || 0); S.todayRight = Math.max(S.todayRight || 0, r.todayRight || 0); }
   if (r.lastGoalDay && dayNum(r.lastGoalDay) > dayNum(S.lastGoalDay)) { S.lastGoalDay = r.lastGoalDay; S.goalStreak = r.goalStreak; }
@@ -4573,8 +4587,8 @@ const xqDauer = s => (s == null || !Number.isFinite(+s)) ? "–" : Math.floor(s 
 const xqMs = t => (t && t.toMillis) ? t.toMillis() : (t && t.seconds ? t.seconds * 1000 : 0);
 const xqProzent = p => (+p || 0).toLocaleString("de-DE", { maximumFractionDigits: 1 }) + " %";
 /* Farben wie in der App: Lernen = Saphir, Spielen = Bernstein, Arena (Duell) = Koralle, Biblionär = Türkis, Belohnungen = Gold */
-const XQ_FARBE = { vers: "#7fc8ff", lektion: "#7fc8ff", spickzettel: "#7fc8ff", luecke: "#ffb54a", blitz: "#ffb54a", kette: "#ffb54a", duell: "#ff8a5c", duelleigen: "#ff8a5c", bib: "#66e0d0", tagesbonus: "#f2c14e", sonst: "#b8c0d8", alt: "#6b7399", offen: "#ff5c5c" };
-const XQ_BEREICH = { vers: "Lernen", lektion: "Lernen", spickzettel: "Lernen", luecke: "Spielen", blitz: "Spielen", kette: "Spielen", duell: "Arena", duelleigen: "Arena", bib: "Biblionär", tagesbonus: "Belohnung" };
+const XQ_FARBE = { vers: "#7fc8ff", lektion: "#7fc8ff", spickzettel: "#7fc8ff", luecke: "#ffb54a", blitz: "#ffb54a", kette: "#ffb54a", duell: "#ff8a5c", duelleigen: "#ff8a5c", bib: "#66e0d0", tagesbonus: "#f2c14e", abgleich: "#b39ddb", sonst: "#b8c0d8", alt: "#6b7399", offen: "#ff5c5c" };
+const XQ_BEREICH = { vers: "Lernen", lektion: "Lernen", spickzettel: "Lernen", luecke: "Spielen", blitz: "Spielen", kette: "Spielen", duell: "Arena", duelleigen: "Arena", bib: "Biblionär", tagesbonus: "Belohnung", abgleich: "anderes Gerät" };
 /* höchste ehrliche XP je Sekunde und Quelle (Richtwerte, absichtlich großzügig) – und kürzeste Zeit je Antwort (0,3 s) */
 const XQ_RATE = { vers: 15, lektion: 20, luecke: 25, blitz: 35, kette: 25, duell: 15, duelleigen: 15, bib: 8, sonst: 10 };
 /* Auffälligkeiten einer einzelnen Vergabe (leer = unauffällig) */
@@ -4621,6 +4635,7 @@ async function xpPruefDaten(opt) {
     if (o.offen > Math.max(500, xp * 0.1)) o.flags.push({ hart: true, t: `${o.offen.toLocaleString("de-DE")} XP ohne erklärende Quelle` });
     if (o.spitze > 15000) o.flags.push({ hart: true, t: `${o.spitze.toLocaleString("de-DE")} XP in einer einzigen Stunde` });
     Object.entries(m).forEach(([k, v]) => { if ((XQ_MAX[k] || 100) < v) o.flags.push({ hart: true, t: `Einzelvergabe ${v} XP bei „${XQ_QUELLEN[k] || k}“ (ehrlich höchstens ${XQ_MAX[k] || 100})` }); });
+    if ((q.abgleich | 0) > 0) o.flags.push({ hart: (q.abgleich | 0) > Math.max(1500, xp * 0.1), t: `${(q.abgleich | 0).toLocaleString("de-DE")} XP durch Geräteabgleich (Zuwachs von einem anderen Gerät)` });
     if ((q.duelleigen | 0) > 0) o.flags.push({ hart: false, t: `${(q.duelleigen | 0).toLocaleString("de-DE")} XP aus Duellen mit eigenem Profil` });
     /* Anstieg seit der letzten Prüfung: XP-Plus, das die Quellen nicht erklären */
     const sv = seen[r.id];
