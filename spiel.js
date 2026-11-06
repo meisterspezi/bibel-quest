@@ -961,9 +961,32 @@ function xqRegelFehler(d, a) {
   if (a && Array.isArray(a.bel) && d.bel.length < a.bel.length) f.push(`Belohnungs-Protokoll kürzer als in der Datenbank (${d.bel.length} statt ${a.bel.length})`);
   return f;
 }
+/* 6.87: Lehnt die Datenbank den kompletten Stand ab, ohne dass ein Regelverstoß erkennbar ist (z. B. weil die veröffentlichten Firebase-Regeln
+   älter sind als die der App), wird er in Teilen gespeichert: erst der Stand der Datenbank mit den höheren Summen der vorhandenen Quellen,
+   dann jede neue Quelle einzeln, dann Tages-/Stundenwerte, Belohnungs-Protokoll und Anfangsbestand. Was angenommen wird, bleibt gespeichert,
+   was abgelehnt wird, wird benannt. Auf dem Gerät bleibt die Zählung vollständig. */
+async function xqEinkreisen(r, gem) {
+  const L = window.LB, nm = k => XQ_QUELLEN[k] || k, kopie = o => JSON.parse(JSON.stringify(o));
+  const srv = r.srv && r.srv.q ? r.srv : null, sq = (srv && srv.q) || {};
+  let cur = srv ? { alt: srv.alt | 0, q: kopie(srv.q || {}), n: kopie(srv.n || {}), m: kopie(srv.m || {}), tag: kopie(srv.tag || {}), std: kopie(srv.std || {}), bel: Array.isArray(srv.bel) ? kopie(srv.bel) : [] }
+    : { alt: gem.alt | 0, q: {}, n: {}, m: {}, tag: {}, std: {}, bel: [] };
+  r.ok_teile = []; r.abgelehnt = [];
+  const versuch = async (label, aend) => {
+    const neu = kopie(cur); aend(neu); if (JSON.stringify(neu) === JSON.stringify(cur)) return;
+    try { await L.xpSetzen(S.pid, S.lbName, neu); cur = neu; r.ok_teile.push(label); }
+    catch (e) { r.abgelehnt.push(label + " (" + ((e && e.code) || "Fehler") + ")"); }
+  };
+  const vorhanden = Object.keys(gem.q || {}).filter(k => k in sq), neuK = Object.keys(gem.q || {}).filter(k => !(k in sq));
+  await versuch("höhere Summen vorhandener Quellen", c => vorhanden.forEach(k => { c.q[k] = gem.q[k]; if (k in (gem.n || {})) c.n[k] = gem.n[k]; if (k in (gem.m || {})) c.m[k] = gem.m[k]; }));
+  for (const k of neuK) await versuch("Quelle „" + nm(k) + "“", c => { c.q[k] = gem.q[k]; if (k in (gem.n || {})) c.n[k] = gem.n[k]; if (k in (gem.m || {})) c.m[k] = gem.m[k]; });
+  await versuch("Tages-/Stundenwerte", c => { c.tag = kopie(gem.tag || {}); c.std = kopie(gem.std || {}); });
+  await versuch("Belohnungs-Protokoll", c => { c.bel = kopie(Array.isArray(gem.bel) ? gem.bel.slice(-100) : []); });
+  await versuch("Anfangsbestand", c => { c.alt = Math.min(c.alt | 0, gem.alt | 0); });
+  r.teil = r.ok_teile.length > 0;
+}
 /* 6.85: Zählung dieses Spielers mit dem Stand in der Datenbank abgleichen: lesen, Unterschiede benennen, mischen (je Quelle der höhere Wert),
    erneut speichern und zur Kontrolle noch einmal lesen. Ergebnis { ok, code, msg, srv, nachher, vorher[], diffs[], neu[] } – Anzeige in der XP-Prüfung. */
-async function xqAbgleichen() {
+async function xqAbgleichen(manuell) {
   const L = window.LB, r = { ok: false, code: "", msg: "", srv: null, nachher: null, vorher: [], diffs: [], neu: [] };
   if (gesperrt || !L || !L.ok || !L.xpHolen || !L.xpSetzen || !S.xq || !S.xq.q || !S.pid || !S.lbName || S.offlineOnly) { r.code = "nicht-bereit"; return r; }
   try { await L.signIn(); r.srv = await L.xpHolen(S.pid); } catch (e) { r.code = (e && e.code) || "lesen"; r.msg = String((e && e.message) || "").slice(0, 160); return r; }
@@ -976,15 +999,18 @@ async function xqAbgleichen() {
     await L.xpSetzen(S.pid, S.lbName, gem);
     S.xq = gem; S.xqSync = JSON.stringify(S.xq); save(); xqFehler = null; r.ok = true;
     try { r.nachher = await L.xpHolen(S.pid); } catch (e) {}
-  } catch (e) { r.code = (e && e.code) || "unbekannt"; r.msg = String((e && e.message) || "").slice(0, 160); xqFehler = { z: Date.now(), code: r.code, msg: r.msg }; }
+  } catch (e) { r.code = (e && e.code) || "unbekannt"; r.msg = String((e && e.message) || "").slice(0, 160); xqFehler = { z: Date.now(), code: r.code, msg: r.msg };
+    if (!r.diffs.length && (manuell || xqEinkreisenFrei())) { try { await xqEinkreisen(r, gem); } catch (e2) {} } }
   return r;
 }
+/* automatische Eingrenzung höchstens einmal je Stunde (jeder Versuch sind einige Schreibzugriffe) */
+function xqEinkreisenFrei() { const k = "bq-xq-ek", t = Date.now(); try { if (t - (+localStorage.getItem(k) || 0) < 36e5) return false; localStorage.setItem(k, String(t)); } catch (e) {} return true; }
 const xqUnterschiedText = l => (l && l.length ? l.join("; ") : "kein Regelverstoß erkennbar").slice(0, 900);
 /* Abgleich mit Meldung an den Verwalter (Postkasten, höchstens einmal je Tag und Art) */
 async function xqAbgleichMitMeldung(grund) {
   const r = await xqAbgleichen(); if (r.code === "nicht-bereit") return r;
   const wer = `Spieler ${S.lbName || "?"}, Profil ${S.pid || "?"}, Version ${APP_VERSION}`;
-  if (!r.ok) postkastenMelden("datenbank", `XP-Zählung speichern fehlgeschlagen (${r.code}${r.msg ? ": " + r.msg : ""}) – ${wer}. Verletzt: ${xqUnterschiedText(r.vorher)}. Nach dem Mischen: ${xqUnterschiedText(r.diffs)}.`, "xqz-fehl-" + r.code + "-" + S.pid);
+  if (!r.ok) postkastenMelden("datenbank", `XP-Zählung speichern fehlgeschlagen (${r.code}${r.msg ? ": " + r.msg : ""}) – ${wer}. Verletzt: ${xqUnterschiedText(r.vorher)}. Nach dem Mischen: ${xqUnterschiedText(r.diffs)}.${r.ok_teile ? ` Einzeln gespeichert: ${r.ok_teile.join(", ") || "nichts"}. Abgelehnt: ${r.abgelehnt.join(", ") || "nichts"}.` : ""}`, "xqz-fehl-" + r.code + "-" + S.pid);
   else if (r.neu.length || r.vorher.length) postkastenMelden("datenbank", `XP-Zählung nachgeholt (${grund}) – ${wer}. Neu in der Datenbank: ${r.neu.map(x => `${XQ_QUELLEN[x.k] || x.k} ${x.vorher}→${x.jetzt}`).join(", ") || "–"}. Der alte Stand hätte verletzt: ${xqUnterschiedText(r.vorher)}.`, "xqz-ok-" + S.pid);
   return r;
 }
@@ -5082,11 +5108,11 @@ VIEWS.xppruefung = () => {
     screen.querySelectorAll("[data-xqab]").forEach(b => b.onclick = async () => {
       SFX.tap(); const m = b.parentNode.querySelector("[data-xqabm]"); b.disabled = true; m.textContent = "Gleiche ab …";
       try {
-        const r = await xqAbgleichen(), nm = k => XQ_QUELLEN[k] || k;
+        const r = await xqAbgleichen(true), nm = k => XQ_QUELLEN[k] || k;
         const alt = r.srv ? `In der Datenbank standen: ${Object.entries(r.srv.q || {}).map(([k, v]) => nm(k) + " " + v).join(", ") || "–"}.` : "In der Datenbank gab es noch keine Zählung.";
         if (r.code === "nicht-bereit") m.textContent = "Nicht möglich (Internet, Anmeldung oder gesperrtes Fenster).";
         else if (r.ok) m.innerHTML = `✓ Gespeichert. ${esc(alt)}<br>${r.neu.length ? "Neu eingetragen: " + r.neu.map(x => esc(nm(x.k)) + " " + x.vorher + " → " + x.jetzt).join(", ") : "Nichts nachzutragen – die Datenbank war schon aktuell."}<br>Der alte Stand hätte verletzt: ${esc(xqUnterschiedText(r.vorher))}.<br>Öffne die XP-Prüfung neu, um die Zahlen zu aktualisieren.`;
-        else m.innerHTML = `✗ Abgelehnt (${esc(r.code)}${r.msg ? ": " + esc(r.msg) : ""}).<br>${esc(alt)}<br>Verletzt (alter Stand): ${esc(xqUnterschiedText(r.vorher))}<br>Verletzt (nach Mischen): ${esc(xqUnterschiedText(r.diffs))}`;
+        else m.innerHTML = `✗ Abgelehnt (${esc(r.code)}${r.msg ? ": " + esc(r.msg) : ""}).<br>${esc(alt)}<br>Verletzt (alter Stand): ${esc(xqUnterschiedText(r.vorher))}<br>Verletzt (nach Mischen): ${esc(xqUnterschiedText(r.diffs))}${r.ok_teile ? `<br><b>Einzeln gespeichert:</b> ${esc(r.ok_teile.join(", ") || "nichts")}<br><b>Von der Datenbank abgelehnt:</b> ${esc(r.abgelehnt.join(", ") || "nichts")}` : ""}`;
       } catch (e) { m.textContent = "Abgleich fehlgeschlagen (" + ((e && e.code) || "Fehler") + ")."; }
       b.disabled = false;
     });
