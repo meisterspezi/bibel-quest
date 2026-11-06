@@ -5064,16 +5064,21 @@ function xqLueckeHtml(a) {
     ${a.geteilt && a.geteilt.length && a.zeilen.some(z => z.k === "wartet" || z.k === "ohneprot") ? `<div style="margin-top:6px">ℹ Teilt ein Gerät mit ${esc(a.geteilt.join(", "))}: Bis 6.82 blieben XP-Quellen und Protokoll beim Spielerwechsel auf dem Gerät liegen, bis derselbe Spieler die App wieder öffnete. Seit 6.83 werden sie beim Wechsel und beim Start für alle Spieler des Geräts nachgeschickt – diese Lücke sollte dann kleiner werden.</div>` : ""}
     <div style="margin-top:4px"><i>${zahl(a.eintraege)} Protokoll-Einträge ausgewertet${a.vollst ? "" : " · Protokoll reicht nicht bis zum Beginn der Zählung zurück"}</i></div>`;
 }
-/* 6.77: gemessene XP pro Minute je Spiel (nur Vergaben ab Version 6.79 mit mindestens 15 s Spielzeit) – Grundlage zum Nachjustieren */
+/* 6.77: gemessene XP pro Minute je Spiel (nur Vergaben ab Version 6.79 mit Spielzeit; 6.89: keine Mindestzeit, alle Spiele immer gelistet, 30 Tage) – Grundlage zum Nachjustieren */
 const XQ_ZIEL_MIN = { solo: 150, duell: 225 };
 function xqRateKarte(z) {
   const g = {};
-  z.forEach(r => (r.ev || []).forEach(e => { if (!(parseFloat(e.ver) >= 6.79) || !(e.s >= 15) || !XQ_BEREICH[e.q] || e.q === "tagesbonus" || e.q === "spickzettel" || e.q === "spende") return;
+  z.forEach(r => (r.ev || []).forEach(e => { if (!(parseFloat(e.ver) >= 6.79) || !(e.s > 0) || !XQ_BEREICH[e.q] || e.q === "tagesbonus" || e.q === "spickzettel" || e.q === "spende") return;
     const o = g[e.q] || (g[e.q] = { x: 0, s: 0, n: 0 }); o.x += e.x; o.s += e.s; o.n++; }));
-  const zeilen = Object.entries(g).map(([q, o]) => ({ q, n: o.n, r: o.x / (o.s / 60) })).sort((a, b) => b.r - a.r);
-  if (!zeilen.length) return `<div class="card small muted">XP pro Minute: Messwerte erscheinen, sobald Spieler die Version 6.79 nutzen und das Protokoll lesbar ist.</div>`;
-  return `<div class="card stack"><div class="topline"><b>XP pro Minute (gemessen)</b><span class="small muted">Ziel: Einzelspiel ≈ ${XQ_ZIEL_MIN.solo} · Duell ≈ ${XQ_ZIEL_MIN.duell}</span></div>${zeilen.map(t => { const ziel = t.q.startsWith("duell") ? XQ_ZIEL_MIN.duell : XQ_ZIEL_MIN.solo, abw = Math.round((t.r / ziel - 1) * 100);
-    return `<div class="xq-zeile"><i class="xq-dot" style="background:${XQ_FARBE[t.q] || XQ_FARBE.sonst}"></i><span class="xq-nm">${esc(XQ_QUELLEN[t.q] || t.q)}</span><span class="xq-xp">${Math.round(t.r)} XP/Min</span><span class="xq-p small muted">${t.n}× · ${abw > 0 ? "+" : ""}${abw} % zum Ziel</span></div>`; }).join("")}</div>`;
+  const ALLE = ["vers", "lektion", "luecke", "blitz", "kette", "duell", "duelleigen", "bib"];
+  const zeilen = ALLE.map(q => { const o = g[q]; return { q, n: o ? o.n : 0, s: o ? o.s : 0, r: o ? o.x / (o.s / 60) : null }; }).sort((a, b) => (b.r == null ? -1 : b.r) - (a.r == null ? -1 : a.r) || 0);
+  if (!zeilen.some(t => t.n)) return `<div class="card small muted">XP pro Minute: Messwerte erscheinen, sobald Spieler die Version 6.79 nutzen und das Protokoll lesbar ist.</div>`;
+  const dauer = sek => sek >= 120 ? Math.round(sek / 60) + " Min" : Math.round(sek) + " s";
+  return `<div class="card stack"><div class="topline"><b>XP pro Minute (gemessen, 30 Tage)</b><span class="small muted">Ziel: Einzelspiel ≈ ${XQ_ZIEL_MIN.solo} · Duell ≈ ${XQ_ZIEL_MIN.duell}</span></div>${zeilen.map(t => {
+    const nm = esc(XQ_QUELLEN[t.q] || t.q), dot = `<i class="xq-dot" style="background:${XQ_FARBE[t.q] || XQ_FARBE.sonst}"></i>`;
+    if (t.r == null) return `<div class="xq-zeile">${dot}<span class="xq-nm">${nm}</span><span class="xq-xp small muted">noch keine Messung</span><span class="xq-p small muted">0×</span></div>`;
+    const ziel = t.q.startsWith("duell") ? XQ_ZIEL_MIN.duell : XQ_ZIEL_MIN.solo, abw = Math.round((t.r / ziel - 1) * 100);
+    return `<div class="xq-zeile">${dot}<span class="xq-nm">${nm}</span><span class="xq-xp">${Math.round(t.r)} XP/Min</span><span class="xq-p small muted">${t.n}× · ${dauer(t.s)} · ${abw > 0 ? "+" : ""}${abw} % zum Ziel${t.n < 3 ? " · <b>wenig Daten</b>" : ""}</span></div>`; }).join("")}</div>`;
 }
 VIEWS.xppruefung = () => {
   const L = window.LB;
@@ -5084,7 +5089,7 @@ VIEWS.xppruefung = () => {
   wireGo();
   if (!entwickler || !L || !L.ok || !L.xpListe) { $("xpListe").innerHTML = `<p class="muted">Die XP-Prüfung braucht Internet und Verwalter-Rechte.</p>`; return; }
   const zahl = v => (+v || 0).toLocaleString("de-DE");
-  xpPruefDaten().then(z => {
+  xpPruefDaten({ seit: Date.now() - 30 * 864e5, limit: 4000 }).then(z => {
    const zeichnen = () => {
     const ohne = !!S.xqOhneAlt;   // 6.80: „Vor der Zählung“ ausblenden → nur gezählte XP, danach sortiert
     z.sort((a, b) => ohne ? (b.xp - b.alt) - (a.xp - a.alt) : b.xp - a.xp);   // höchste XP oben
