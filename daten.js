@@ -1,4 +1,4 @@
-const APP_VERSION = "6.78";
+const APP_VERSION = "6.79";
 /* =====================================================================
    Bibelbuch-Quest – Spieldaten
    Bücher (Schlachter 2000), Lieder, Bibelverse (Schlachter 2000 © Genfer Bibelgesellschaft),
@@ -395,7 +395,7 @@ const kaufAnzahl = s => (s.owned || []).filter(id => !["gold", "av-initial", "fr
 const AUFGABEN = [
   { id: "runde1", ev: "runde", ziel: 1, min: 1, text: "1 Runde spielen" },
   { id: "runden2", ev: "runde", ziel: 2, min: 2, text: "2 Runden spielen" },
-  { id: "xp30", ev: "xp", ziel: 30, min: 2, text: "30 XP sammeln" },
+  { id: "xp30", ev: "xp", ziel: 90, min: 2, text: "90 XP sammeln" },
   { id: "right10", ev: "right", ziel: 10, min: 1, text: "10 richtige Antworten" },
   { id: "blitz1", ev: "blitz", ziel: 1, min: 1, text: "1 Blitz-Runde" },
   { id: "blitz2", ev: "blitz", ziel: 2, min: 2, text: "2 Blitz-Runden" },
@@ -411,4 +411,4 @@ const AUFGABEN_MAX_MIN = 5;
 const AUFGABE_TAL = 5;          // pro Aufgabe
 // Tagesbonus für alle drei – mehr als alle Einzelbelohnungen zusammen (3 × 5 Talente, größte XP-Aufgabe 30 XP)
 const AUFGABE_BONUS = 25;       // Talente
-const AUFGABE_BONUS_XP = 100;   // XP
+const AUFGABE_BONUS_XP = 300;   // XP

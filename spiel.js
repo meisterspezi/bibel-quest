@@ -108,7 +108,7 @@ const LV_STUFEN = ["Kennenlernen", "Ordnen", "Ergänzen", "Anfangsbuchstaben", "
 const LV_TAL = [5, 5, 5, 5, 10];   /* Talente beim ersten Erreichen von Stufe 1 … 5 – je Vers einmal */
 const LV_BEWAHR_TAL = 15;          /* Monatsprüfung bestanden („Vers bewahrt“) */
 const LV_BEWAHR_TAGE = 7;          /* Monatsprüfung geht in den letzten 7 Tagen des Monats */
-const LV_XP = 10, LV_XP_RICHTIG = 16; /* XP je Lektion + je Aufgabe, die beim ersten Versuch sitzt */
+const LV_XP = 30, LV_XP_RICHTIG = 48; /* XP je Lektion + je Aufgabe, die beim ersten Versuch sitzt */
 const LV_STUFEN_PRO_TAG = 1;       /* neue Stufen pro Tag – danach wird „gefestigt“ (XP, Übungstag) */
 const LV_TURBO_QUOTE = 90;         /* Turbo: wer eine Lektion mit so viel % beim ersten Versuch schafft … */
 const LV_STUFEN_TURBO = 3;         /* … darf am selben Tag bis zu so viele Stufen gehen und bekommt Bonus-Aufgaben */
@@ -766,12 +766,13 @@ function bewaehrtWert(r) {
    Jede XP-Vergabe läuft über addXp(n, el, quelle). S.xq = { alt: XP vor der Zählung, q: {Quelle: XP}, n: {Quelle: Anzahl},
    m: {Quelle: größte einzelne Vergabe}, tag: {Tag: XP}, std: {"Tag-Stunde": XP} } – wird in die Sammlung „xpquellen“ gespiegelt.
    Der Verwalter sieht in der „XP-Prüfung“, ob die XP der Rangliste durch Quellen erklärt sind. */
-const XQ_QUELLEN = { vers: "Lernvers", lektion: "Lektion", luecke: "Lückenquiz", blitz: "Blitz", kette: "Kette", duell: "Duell", duelleigen: "Duell (eigenes Profil)", bib: "Biblionär", tagesbonus: "Tagesaufgaben", spickzettel: "Spickzettel", sonst: "Sonstiges", abgleich: "Geräteabgleich" };
+const XQ_QUELLEN = { vers: "Lernvers", lektion: "Lektion", luecke: "Lückenquiz", blitz: "Blitz", kette: "Kette", duell: "Duell", duelleigen: "Duell (eigenes Profil)", bib: "Biblionär", tagesbonus: "Tagesaufgaben", spickzettel: "Spickzettel", sonst: "Sonstiges", abgleich: "Geräteabgleich", spende: "Spende (Stiftshütte)" };
 /* höchste XP, die eine einzelne Vergabe je Quelle ehrlich bringen kann (Blitz: 60 Richtige; Kette rückwärts: 65×4+300 …) */
-/* bis 6.76 geltende Höchstwerte – für ältere Protokolleinträge und die gesamte „größte Vergabe“ (m), die nie sinkt */
-const XQ_MAX_ALT = { vers: 150, lektion: 130, luecke: 250, blitz: 1300, kette: 560, duell: 70, duelleigen: 70, bib: 105, tagesbonus: 100, spickzettel: 20, sonst: 100, abgleich: 10000000 };
-const xqMaxFuer = (q, ver) => { const neu = XQ_MAX[q] || 100, alt = XQ_MAX_ALT[q] || 100; return parseFloat(ver) >= 6.77 ? neu : Math.max(neu, alt); };
-const XQ_MAX = { vers: 400, lektion: 180, luecke: 600, blitz: 320, kette: 210, duell: 350, duelleigen: 350, bib: 330, tagesbonus: 100, spickzettel: 20, sonst: 100, abgleich: 10000000 };
+/* bis 6.78 geltende Höchstwerte – für ältere Protokolleinträge und die gesamte „größte Vergabe“ (m), die nie sinkt */
+const XQ_MAX_ALT = { vers: 400, lektion: 180, luecke: 600, blitz: 1300, kette: 560, duell: 350, duelleigen: 350, bib: 330, tagesbonus: 100, spickzettel: 20, sonst: 100, abgleich: 10000000, spende: 30000 };
+const xqMaxFuer = (q, ver) => { const neu = XQ_MAX[q] || 300, alt = XQ_MAX_ALT[q] || 100; return parseFloat(ver) >= 6.79 ? neu : Math.max(neu, alt); };
+/* höchste XP, die eine einzelne Vergabe je Quelle ehrlich bringen kann (ab 6.79: Blitz 60 Richtige mit Combo-Stufe 3, Kette rückwärts 66×6+180 …) */
+const XQ_MAX = { vers: 1200, lektion: 540, luecke: 1800, blitz: 960, kette: 630, duell: 1050, duelleigen: 1050, bib: 990, tagesbonus: 300, spickzettel: 60, sonst: 300, abgleich: 10000000, spende: 30000 };
 /* sortierbarer Tagesschlüssel (dstr() schreibt Monat/Tag ohne führende Null) */
 const xqTagKey = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 function xqZaehlen(n, q) {
@@ -1492,7 +1493,7 @@ VIEWS.lektion = (arg) => {
   };
   function fertig(err) {
     const stars = err === 0 ? 3 : err <= 2 ? 2 : 1, prev = S.stars[gi] || 0; if (stars > prev) S.stars[gi] = stars;
-    const xp = g.books.length * 7 + stars * 12; richtig(g.books.length);
+    const xp = g.books.length * 21 + stars * 36; richtig(g.books.length);
     quest("station", 1); quest("runde", 1);
     SFX.win(); vibrate([20, 30, 20, 30, 60]); rain(70);
     setTimeout(() => {
@@ -1582,7 +1583,7 @@ VIEWS.gap = (arg) => {
     screen.querySelectorAll("#go .opt").forEach(b => b.onclick = () => {
       if (lock) return;
       if (b.dataset.t === L.t) {
-        lock = true; b.classList.add("right"); SFX.right(k % 12); richtig(1); xp += 7; offen.add(L.vi + "-" + L.li + "-" + L.si);
+        lock = true; b.classList.add("right"); SFX.right(k % 12); richtig(1); xp += 21; offen.add(L.vi + "-" + L.li + "-" + L.si);
         const [x, y] = centerOf(b); burst(x, y, 10);
         let weiter = false; const naechste = () => { if (weiter) return; weiter = true; vorlesenStop(); k++; if (k >= luecken.length) ende(); else render(); };
         if (S.gapSing && LIEDZEIT) {
@@ -1659,7 +1660,7 @@ function playBlitz(scope) {
   function ans(btn, b) {
     if (lock) return; const correct = ALL[cur + 1].b;
     if (b === correct) {
-      lock = true; combo++; right++; maxCombo = Math.max(maxCombo, combo); const g = 2 * mult(); xp += g; richtig(1);
+      lock = true; combo++; right++; maxCombo = Math.max(maxCombo, combo); const g = 6 * mult(); xp += g; richtig(1);
       btn.classList.add("right"); SFX.right(combo); vibrate(10); const [x, y] = centerOf(btn); burst(x, y, 10 + mult() * 6, { speed: 3 + mult() }); floatText("+" + g, x, y);
       $("br").textContent = right; $("bx").textContent = xp + " XP";
       if (combo % 5 === 0) { tone(1568, 0, .15, "sine", .12); shakeScreen(); }
@@ -1693,10 +1694,10 @@ function playBlitz(scope) {
 
 /* ---------- Die Kette ---------- */
 const KETTEN = {
-  bibel: { name: "Ganze Bibel", info: "1. Mose bis Offenbarung", seq: FWD, key: "bestChain", bonus: 20, tal: 20 },
-  at: { name: "Altes Testament", info: "1. Mose bis Maleachi", seq: FWD.slice(0, 39), key: "chainAT", bonus: 10, tal: 8 },
-  nt: { name: "Neues Testament", info: "Matthäus bis Offenbarung", seq: FWD.slice(39), key: "chainNT", bonus: 8, tal: 6 },
-  rueck: { name: "Rückwärts", info: "Offenbarung bis 1. Mose · für Profis", seq: FWD.slice().reverse(), key: "chainRueck", bonus: 60, tal: 30, rueck: true }
+  bibel: { name: "Ganze Bibel", info: "1. Mose bis Offenbarung", seq: FWD, key: "bestChain", bonus: 60, tal: 20 },
+  at: { name: "Altes Testament", info: "1. Mose bis Maleachi", seq: FWD.slice(0, 39), key: "chainAT", bonus: 30, tal: 8 },
+  nt: { name: "Neues Testament", info: "Matthäus bis Offenbarung", seq: FWD.slice(39), key: "chainNT", bonus: 24, tal: 6 },
+  rueck: { name: "Rückwärts", info: "Offenbarung bis 1. Mose · für Profis", seq: FWD.slice().reverse(), key: "chainRueck", bonus: 180, tal: 30, rueck: true }
 };
 const kettenBuecher = (key) => (S[key] ? S[key] + 1 : 0);
 VIEWS.chain = () => { go("spielen"); };
@@ -1729,7 +1730,7 @@ function playChain(mode) {
   function ans(btn, t) {
     if (lock) return; const correct = ALL[seq[i + 1]].b;
     if (t === correct) {
-      lock = true; i++; xp += 2; richtig(1);
+      lock = true; i++; xp += 6; richtig(1);
       btn.classList.add("right"); SFX.right(Math.min(i / 4, 12)); vibrate(10); const [x, y] = centerOf(btn); burst(x, y, 12); $("cx").textContent = xp + " XP";
       if (mode === "bibel" && i === 38) { $("cc").textContent = "Altes Testament geschafft!"; tone(1047, 0, .4, "triangle", .15); rain(50); }
       else $("cc").textContent = "";
@@ -1774,7 +1775,7 @@ VIEWS.learn = () => {
   bks.forEach(b => b.onclick = () => { b.classList.toggle("hid"); SFX.tap(); });
   $("hideAll").onclick = () => { bks.forEach(b => b.classList.add("hid")); SFX.tap(); screen.dataset.all = "1"; };
   $("showAll").onclick = () => { bks.forEach(b => b.classList.remove("hid")); SFX.tap(); };
-  bks.forEach(b => b.addEventListener("click", () => { if (screen.dataset.all === "1" && !S.peeked && bks.every(x => !x.classList.contains("hid"))) { S.peeked = true; save(); addXp(20, null, "spickzettel", { d: "Spickzettel entdeckt" }); checkBadges(); } }));
+  bks.forEach(b => b.addEventListener("click", () => { if (screen.dataset.all === "1" && !S.peeked && bks.every(x => !x.classList.contains("hid"))) { S.peeked = true; save(); addXp(60, null, "spickzettel", { d: "Spickzettel entdeckt" }); checkBadges(); } }));
 };
 
 /* ---------- Abzeichen ---------- */
@@ -2538,8 +2539,8 @@ function profilVergleich(r) {
    – Blitz: 60 Sekunden „Was kommt danach?“, ein Fehler kostet 3 s. Punkte: 100 je Richtige + 20 je Combo-Stufe.
    Datenmodell (firestore-regeln.txt): art = vers | kette | blitz, k = Lernvers-Monat bzw. Kette (bibel/at/nt/rueck) bzw. Bereich (all). */
 const DU_FRAGEN = 8, DU_SEK = 12, DU_KETTE_SEK = 10, DU_BLITZ_SEK = 60, DU_BLITZ_FRAGEN = 160, DU_MAX_OFFEN = 10, DU_MAX_AUSWAHL = 10, DU_TAGE_HALTEN = 30;
-/* 6.77: XP-Angleichung – Ziel ≈ 50 XP/Min im Einzelspiel, Duelle (soziales Spiel mit Warten/Herausfordern) ≈ 75 XP/Min (+50 %) */
-const DU_XP = 10, DU_PRO = { vers: 11, blitz: 3, kette: 3, quiz: 22 }, DU_MAXR = { vers: 8, blitz: 25, kette: 66, quiz: 15 }, DU_TAGE_VOLL = 6, DU_EIGEN_FAKTOR = 0.67, DU_SPAET_FAKTOR = 0.5;
+/* 6.77/6.79: XP-Angleichung – Ziel ≈ 150 XP/Min im Einzelspiel (≈ Esthers Tagestempo von ~9.000 XP bei rund 1 Std. Spielzeit), Duelle (soziales Spiel mit Warten/Herausfordern) ≈ 225 XP/Min (+50 %) */
+const DU_XP = 30, DU_PRO = { vers: 33, blitz: 9, kette: 9, quiz: 66 }, DU_MAXR = { vers: 8, blitz: 25, kette: 66, quiz: 15 }, DU_TAGE_VOLL = 6, DU_EIGEN_FAKTOR = 0.67, DU_SPAET_FAKTOR = 0.5;
 const DU_SIEG_TAL = 10, DU_REMIS_TAL = 5, DU_FAIR_TAL = 5;
 const DU_TYPEN = {
   vers: { art: "vers", name: "Lernvers", ic: "scroll", info: "8 Fragen zum Lernvers des Monats · 12 s je Frage" },
@@ -3241,7 +3242,7 @@ function bibErgebnis(G, punkte) {
 function bibEnde(G, punkte) {
   bibErgebnis(G, punkte);
   const grund = G.fertigGrund, million = grund === "biblionaer", woche = G.modus === "woche";
-  const xp = 10 + 14 * G.r + (million ? 100 : 0);
+  const xp = 30 + 42 * G.r + (million ? 300 : 0);
   const tal = Math.floor(G.r / 3) + (million ? 25 : 0) + (G.rekord && !woche ? 3 : 0) + (woche ? BIB_WOCHE_TAL : 0);
   if (!G.belohnt) { G.belohnt = true; richtig(G.r); quest("runde", 1); save(); }
   const titel = million ? "Biblionär!" : grund === "raus" ? "Klug ausgestiegen!" : grund === "zeit" ? "Die Zeit ist um" : "Leider falsch";
@@ -4645,10 +4646,10 @@ const xqDauer = s => (s == null || !Number.isFinite(+s)) ? "–" : Math.floor(s 
 const xqMs = t => (t && t.toMillis) ? t.toMillis() : (t && t.seconds ? t.seconds * 1000 : 0);
 const xqProzent = p => (+p || 0).toLocaleString("de-DE", { maximumFractionDigits: 1 }) + " %";
 /* Farben wie in der App: Lernen = Saphir, Spielen = Bernstein, Arena (Duell) = Koralle, Biblionär = Türkis, Belohnungen = Gold */
-const XQ_FARBE = { vers: "#7fc8ff", lektion: "#7fc8ff", spickzettel: "#7fc8ff", luecke: "#ffb54a", blitz: "#ffb54a", kette: "#ffb54a", duell: "#ff8a5c", duelleigen: "#ff8a5c", bib: "#66e0d0", tagesbonus: "#f2c14e", abgleich: "#b39ddb", sonst: "#b8c0d8", alt: "#6b7399", offen: "#ff5c5c" };
-const XQ_BEREICH = { vers: "Lernen", lektion: "Lernen", spickzettel: "Lernen", luecke: "Spielen", blitz: "Spielen", kette: "Spielen", duell: "Arena", duelleigen: "Arena", bib: "Biblionär", tagesbonus: "Belohnung", abgleich: "anderes Gerät" };
+const XQ_FARBE = { vers: "#7fc8ff", lektion: "#7fc8ff", spickzettel: "#7fc8ff", luecke: "#ffb54a", blitz: "#ffb54a", kette: "#ffb54a", duell: "#ff8a5c", duelleigen: "#ff8a5c", bib: "#66e0d0", tagesbonus: "#f2c14e", spende: "#f4a6c8", abgleich: "#b39ddb", sonst: "#b8c0d8", alt: "#6b7399", offen: "#ff5c5c" };
+const XQ_BEREICH = { spende: "Gemeinschaft", vers: "Lernen", lektion: "Lernen", spickzettel: "Lernen", luecke: "Spielen", blitz: "Spielen", kette: "Spielen", duell: "Arena", duelleigen: "Arena", bib: "Biblionär", tagesbonus: "Belohnung", abgleich: "anderes Gerät" };
 /* höchste ehrliche XP je Sekunde und Quelle (Richtwerte, absichtlich großzügig) – und kürzeste Zeit je Antwort (0,3 s) */
-const XQ_RATE = { vers: 15, lektion: 20, luecke: 25, blitz: 35, kette: 25, duell: 15, duelleigen: 15, bib: 8, sonst: 10 };
+const XQ_RATE = { vers: 45, lektion: 60, luecke: 75, blitz: 105, kette: 75, duell: 45, duelleigen: 45, bib: 24, sonst: 30 };
 /* Auffälligkeiten einer einzelnen Vergabe (leer = unauffällig) */
 function xqEvVerdacht(e) {
   const t = [], max = xqMaxFuer(e.q, e.ver);
@@ -4684,14 +4685,14 @@ async function xpPruefDaten(opt) {
     o.bel = (Array.isArray(x.bel) ? x.bel : []).filter(e => e && +e.z > 0).sort((a, b) => a.z - b.z);
     { const gesehen = {}; o.bel.forEach(e => { const k = e.d || "?"; gesehen[k] = (gesehen[k] | 0) + 1; });
       Object.entries(gesehen).forEach(([k, c]) => { if (k !== "?" && c > 1) o.flags.push({ hart: true, t: `Tägliche Belohnung für den Truhen-Tag ${xqDatum(k)} ${c}× erhalten` }); });
-      o.bel.forEach(e => { if (e.x !== AUFGABE_BONUS_XP) o.flags.push({ hart: true, t: `Tägliche Belohnung ${xqZeit(e.z)} mit ${e.x} XP statt ${AUFGABE_BONUS_XP}` }); }); }
+      o.bel.forEach(e => { if (e.x !== AUFGABE_BONUS_XP && e.x !== 100) o.flags.push({ hart: true, t: `Tägliche Belohnung ${xqZeit(e.z)} mit ${e.x} XP statt ${AUFGABE_BONUS_XP}` }); }); }
     o.q = q; o.n = n; o.alt = x.alt | 0; o.summe = Object.values(q).reduce((a, v) => a + (+v || 0), 0);
     o.offen = Math.max(0, xp - o.alt - o.summe);
     o.spitze = Math.max(0, ...Object.values(std).map(v => +v || 0));
     o.h24 = Object.entries(std).filter(([k]) => k >= ab24).reduce((a, [, v]) => a + (+v || 0), 0);
     o.anteile = xqAnteile(q, n, o.alt, o.offen, xp);
     if (o.offen > Math.max(500, xp * 0.1)) o.flags.push({ hart: true, t: `${o.offen.toLocaleString("de-DE")} XP ohne erklärende Quelle` });
-    if (o.spitze > 15000) o.flags.push({ hart: true, t: `${o.spitze.toLocaleString("de-DE")} XP in einer einzigen Stunde` });
+    if (o.spitze > 30000) o.flags.push({ hart: true, t: `${o.spitze.toLocaleString("de-DE")} XP in einer einzigen Stunde` });
     Object.entries(m).forEach(([k, v]) => { const mx = xqMaxFuer(k, "6.76"); if (mx < v) o.flags.push({ hart: true, t: `Einzelvergabe ${v} XP bei „${XQ_QUELLEN[k] || k}“ (ehrlich höchstens ${mx})` }); });
     if ((q.abgleich | 0) > 0) o.flags.push({ hart: (q.abgleich | 0) > Math.max(1500, xp * 0.1), t: `${(q.abgleich | 0).toLocaleString("de-DE")} XP durch Geräteabgleich (Zuwachs von einem anderen Gerät)` });
     if ((q.duelleigen | 0) > 0) o.flags.push({ hart: false, t: `${(q.duelleigen | 0).toLocaleString("de-DE")} XP aus Duellen mit eigenem Profil` });
@@ -4741,14 +4742,14 @@ function xqEreignisHtml(e) {
     <div class="small muted">Spielzeit ${esc(xqDauer(e.s))}${e.f != null ? ` · Fortschritt ${e.f}${e.fm ? " / " + e.fm : ""}` : ""} · Stand ${(+e.v).toLocaleString("de-DE")} → ${(+e.v + +e.x).toLocaleString("de-DE")}${e.ver ? " · v" + esc(e.ver) : ""}${abw}</div>
     ${e.d ? `<div class="small muted">${esc(e.d)}</div>` : ""}${v.map(t => `<div class="small xq-warn">⚠ ${esc(t)}</div>`).join("")}</div>`;
 }
-/* 6.77: gemessene XP pro Minute je Spiel (nur Vergaben ab Version 6.77 mit mindestens 15 s Spielzeit) – Grundlage zum Nachjustieren */
-const XQ_ZIEL_MIN = { solo: 50, duell: 75 };
+/* 6.77: gemessene XP pro Minute je Spiel (nur Vergaben ab Version 6.79 mit mindestens 15 s Spielzeit) – Grundlage zum Nachjustieren */
+const XQ_ZIEL_MIN = { solo: 150, duell: 225 };
 function xqRateKarte(z) {
   const g = {};
-  z.forEach(r => (r.ev || []).forEach(e => { if (!(parseFloat(e.ver) >= 6.77) || !(e.s >= 15) || !XQ_BEREICH[e.q] || e.q === "tagesbonus" || e.q === "spickzettel") return;
+  z.forEach(r => (r.ev || []).forEach(e => { if (!(parseFloat(e.ver) >= 6.79) || !(e.s >= 15) || !XQ_BEREICH[e.q] || e.q === "tagesbonus" || e.q === "spickzettel" || e.q === "spende") return;
     const o = g[e.q] || (g[e.q] = { x: 0, s: 0, n: 0 }); o.x += e.x; o.s += e.s; o.n++; }));
   const zeilen = Object.entries(g).map(([q, o]) => ({ q, n: o.n, r: o.x / (o.s / 60) })).sort((a, b) => b.r - a.r);
-  if (!zeilen.length) return `<div class="card small muted">XP pro Minute: Messwerte erscheinen, sobald Spieler die Version 6.77 nutzen und das Protokoll lesbar ist.</div>`;
+  if (!zeilen.length) return `<div class="card small muted">XP pro Minute: Messwerte erscheinen, sobald Spieler die Version 6.79 nutzen und das Protokoll lesbar ist.</div>`;
   return `<div class="card stack"><div class="topline"><b>XP pro Minute (gemessen)</b><span class="small muted">Ziel: Einzelspiel ≈ ${XQ_ZIEL_MIN.solo} · Duell ≈ ${XQ_ZIEL_MIN.duell}</span></div>${zeilen.map(t => { const ziel = t.q.startsWith("duell") ? XQ_ZIEL_MIN.duell : XQ_ZIEL_MIN.solo, abw = Math.round((t.r / ziel - 1) * 100);
     return `<div class="xq-zeile"><i class="xq-dot" style="background:${XQ_FARBE[t.q] || XQ_FARBE.sonst}"></i><span class="xq-nm">${esc(XQ_QUELLEN[t.q] || t.q)}</span><span class="xq-xp">${Math.round(t.r)} XP/Min</span><span class="xq-p small muted">${t.n}× · ${abw > 0 ? "+" : ""}${abw} % zum Ziel</span></div>`; }).join("")}</div>`;
 }
@@ -5051,23 +5052,26 @@ VIEWS.stift = () => {
 };
 function stiftSpendeWahl() {
   const st = stiftStand(), rest = Math.max(0, STIFT[st.k].ziel - st.sum[st.k]), max = Math.min(S.tal, rest);
-  const m = modal(`<div class="label">Gabe für die Stiftshütte</div><h2 style="margin:0">${esc(STIFT[st.k].n)}</h2><p class="muted small" style="margin:0">Noch ${pkt(rest)} Talente bis zum Ziel · du hast ${pkt(S.tal)}.</p>
+  const m = modal(`<div class="label">Gabe für die Stiftshütte</div><h2 style="margin:0">${esc(STIFT[st.k].n)}</h2><p class="muted small" style="margin:0">Noch ${pkt(rest)} Talente bis zum Ziel · du hast ${pkt(S.tal)}.<br>Für jedes gespendete Talent bekommst du ${STIFT_XP_PRO_TAL} XP.</p>
     <input class="field" id="spBetrag" type="number" inputmode="numeric" min="1" max="${max}" value="${Math.min(max, 25)}" aria-label="Talente spenden">
     <button class="btn primary" id="spOk" ${max < 1 ? "disabled" : ""}>Spenden</button><button class="btn ghost" data-close>Abbrechen</button>`);
   m.querySelector("#spOk").onclick = () => { const v = Math.floor(+m.querySelector("#spBetrag").value || 0); m.remove(); stiftSpenden(v); };
 }
+/* 6.79: Wer für die Stiftshütte gibt, bekommt XP – 12 XP je gespendetem Talent (ein Talent kostet beim Spielen etwa 30 XP Aufwand, die Gabe ist ein Opfer für alle) */
+const STIFT_XP_PRO_TAL = 12;
 function stiftSpenden(v, el) {
   const st = stiftStand(); if (!st.offen) return;
   const rest = Math.max(0, STIFT[st.k].ziel - st.sum[st.k]); v = Math.min(v | 0, rest, S.tal);
   if (v < 1) { SFX.wrong(); toast(`${TAL_MUENZE}<div>${S.tal < 1 ? "Du hast gerade keine Talente." : "Dieser Abschnitt ist schon voll."}</div>`); return; }
-  const k = String(st.k + 1);
+  const k = String(st.k + 1), xpLohn = v * STIFT_XP_PRO_TAL;
   S.tal -= v; S.stift = Object.assign({}, S.stift, { [k]: ((S.stift || {})[k] | 0) + v }); save(); renderHud();
   SFX.coin(); if (el) { const [x, y] = centerOf(el); burst(x, y, 40, { up: 5 }); }
+  addXp(xpLohn, null, "spende", { d: `Stiftshütte · ${STIFT[st.k].kurz} · ${v} Talente` });
   stiftSenden();
   const voll = st.sum[st.k] + v >= STIFT[st.k].ziel;
   VIEWS.stift();
   if (voll) setTimeout(stiftFeiern, 500);
-  else toast(`${svg("zelt")}<div><b>Danke für deine Gabe!</b><div class="small muted">+${v} für „${esc(STIFT[st.k].n)}“</div></div>`);
+  else toast(`${svg("zelt")}<div><b>Danke für deine Gabe!</b><div class="small muted">+${v} für „${esc(STIFT[st.k].n)}“ · +${xpLohn} XP</div></div>`);
 }
 function stiftSenden() {
   const L = window.LB; if (!L || !L.ok || !L.stiftSetzen || !S.pid || S.offlineOnly) return;

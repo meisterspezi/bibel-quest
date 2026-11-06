@@ -1,5 +1,5 @@
 rules_version = '2';
-// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.78 – Sammlung tagestruhe (Schatztruhe einmal je Serverdatum); 6.76 – xpquellen: neue Quelle abgleich; 6.75 – Sammlung xpprotokoll (Einzelprotokoll der XP-Vergaben, nur anlegen); 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.79 – xpquellen: neue Quelle spende (Stiftshütte); 6.78 – Sammlung tagestruhe (Schatztruhe einmal je Serverdatum); 6.76 – xpquellen: neue Quelle abgleich; 6.75 – Sammlung xpprotokoll (Einzelprotokoll der XP-Vergaben, nur anlegen); 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -246,7 +246,7 @@ service cloud.firestore {
     // 6.73: XP-Quellen – je Spieler ein Dokument, das zeigt, woher die XP kommen (Quelle → XP/Anzahl, größte Einzelvergabe,
     // XP je Tag und je Stunde). Summen können nur steigen, der Anfangsbestand „alt“ nur sinken – so lässt sich die Zählung
     // nicht nachträglich „glätten“. Lesen darf jeder angemeldete Spieler wie die Rangliste; ausgewertet wird sie in der XP-Prüfung des Verwalters.
-    function xqKeys() { return ['vers','lektion','luecke','blitz','kette','duell','duelleigen','bib','tagesbonus','spickzettel','sonst','abgleich']; }
+    function xqKeys() { return ['vers','lektion','luecke','blitz','kette','duell','duelleigen','bib','tagesbonus','spickzettel','sonst','abgleich','spende']; }
     function xqW(k) {
       let d = request.resource.data;
       return (!(k in d.q) || (d.q[k] is int && d.q[k] >= 0 && d.q[k] <= 10000000
@@ -272,7 +272,7 @@ service cloud.firestore {
         && (resource == null || !('bel' in resource.data)
             || ('bel' in request.resource.data && request.resource.data.bel.size() >= resource.data.bel.size()))
         && xqW('vers') && xqW('lektion') && xqW('luecke') && xqW('blitz') && xqW('kette') && xqW('duell')
-        && xqW('duelleigen') && xqW('bib') && xqW('tagesbonus') && xqW('spickzettel') && xqW('sonst') && xqW('abgleich');
+        && xqW('duelleigen') && xqW('bib') && xqW('tagesbonus') && xqW('spickzettel') && xqW('sonst') && xqW('abgleich') && xqW('spende');
       allow delete: if false;
     }
 
