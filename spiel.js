@@ -1031,6 +1031,14 @@ async function xqNachholen(e) {
 async function xqStartPruefung() {
   const L = window.LB; if (gesperrt || !L || !L.ok || !L.xpHolen || !S.xq || !S.xq.q || !S.pid || !S.lbName || S.offlineOnly) return;
   let srv = null; try { await L.signIn(); srv = await L.xpHolen(S.pid); } catch (e) { return; }
+  // 6.88: Der Verwalter hat einen Abgleich angefordert (für diesen Spieler oder alle) – einmal je Anforderung ausführen
+  try {
+    const ts = L.abgleichHolen ? await L.abgleichHolen(S.pid) : 0, key = "bq-abg-" + S.pid;
+    if (ts && ts > (+localStorage.getItem(key) || 0)) {
+      const r = await xqAbgleichMitMeldung("auf Anforderung des Verwalters");
+      if (r && r.ok) { localStorage.setItem(key, String(ts)); return; }
+    }
+  } catch (e) {}
   const fehlt = !srv || !srv.q || Object.entries(S.xq.q).some(([k, v]) => (+v || 0) > ((srv.q[k]) | 0));
   if (fehlt) await xqAbgleichMitMeldung("beim Start");
 }
@@ -5087,7 +5095,7 @@ VIEWS.xppruefung = () => {
     const warn = auffaellig.length ? `<div class="card stack xq-karte-bad"><b>⚠ Auffälligkeiten (${auffaellig.length})</b>${auffaellig.map(r => `<div class="small"><b>${esc(r.name)}</b> (${zahl(r.xp)} XP)<br>${r.flags.filter(f => f.hart).map(f => esc(f.t)).join("<br>")}</div>`).join("")}</div>` : `<div class="card small muted">Keine Auffälligkeiten.</div>`;
     const hinweis = z.evOk ? "" : `<div class="card small muted">Das Einzelprotokoll ist noch nicht lesbar – sind die neuen Firebase-Regeln (Version 6.75) veröffentlicht?</div>`;
     const csvAlle = `<button class="btn ghost breit" id="xqCsvAlle" style="width:100%">${svg("scroll")} Alle XP-Vergaben als CSV-Datei (Excel)</button><div class="small muted" id="xqCsvMeld" aria-live="polite"></div>`;
-    $("xpListe").innerHTML = hinweis + warn + gesamt + xqRateKarte(z) + csvAlle + z.map(r => {
+    $("xpListe").innerHTML = hinweis + warn + gesamt + xqRateKarte(z) + csvAlle + `<div class="card stack"><button class="btn ghost breit" id="xqAnAlle" style="width:100%">${svg("check")} Zählung für alle Spieler anfordern</button><div class="small muted" id="xqAnAlleM" aria-live="polite">Jede App gleicht beim nächsten Start ihre XP-Zählung mit der Datenbank ab.</div></div>` + z.map(r => {
       const kopf = `<div class="topline"><b>${esc(r.name)}${r.geteilt && r.geteilt.length ? ` <span class="xq-teilt" title="Spielt auf demselben Gerät wie ${esc(r.geteilt.join(", "))}">${svg("people")} ${esc(r.geteilt.join(", "))}</span>` : ""}</b><span class="small muted">Level ${r.level} · ${ohne && r.hat ? zahl(r.xp - r.alt) + " gezählt · " + zahl(r.xp) + " gesamt" : zahl(r.xp) + " XP"}</span></div>`;
       if (!r.hat) return `<div class="card">${kopf}<div class="small muted">Noch keine Zählung (neue Version noch nicht geöffnet).</div></div>`;
       return `<div class="card stack${r.flags.some(f => f.hart) ? " xq-karte-bad" : ""}">${kopf}
@@ -5097,6 +5105,7 @@ VIEWS.xppruefung = () => {
         <details data-xpev="${esc(r.id)}"><summary class="small">Protokoll aller XP-Vergaben (Zeit, Spielzeit, Fortschritt)</summary><div class="xq-evliste small muted" style="margin-top:6px">Wird beim Öffnen geladen …</div></details>
         ${r.bel.length ? `<details><summary class="small">Tägliche Belohnung: ${r.bel.length}× erhalten · zuletzt ${esc(xqZeit(r.bel[r.bel.length - 1].z))} (+${r.bel[r.bel.length - 1].x} XP)</summary><div class="small muted" style="margin-top:6px">${r.bel.slice(-14).reverse().map(e => `${esc(xqZeit(e.z))} · +${e.x} XP · +${e.t} Talente · Truhe vom ${esc(xqDatum(e.d || "?"))}${e.a === "gestern" ? " (am Folgetag automatisch geöffnet)" : ""}`).join("<br>")}<br><i>Uhrzeit laut Gerät des Spielers</i></div></details>` : ""}
         ${r.id === S.pid ? `<div><button class="btn ghost mini" data-xqab>${svg("check")} Zählung jetzt abgleichen</button><div class="small muted" data-xqabm aria-live="polite" style="margin-top:4px">${xqFehler ? "Letzter Fehler auf diesem Gerät: " + esc(xqFehler.code) + (xqFehler.msg ? " – " + esc(xqFehler.msg) : "") : ""}</div></div>` : ""}
+        ${r.id !== S.pid ? `<div><button class="btn ghost mini" data-xqan="${esc(r.id)}">${svg("check")} Zählung jetzt anfordern</button><div class="small muted" data-xqanm aria-live="polite" style="margin-top:4px">Der Spieler gleicht beim nächsten Start der App ab.</div></div>` : ""}
         ${r.flags.map(f => `<div class="small" style="color:${f.hart ? "var(--bad,#ff8a5c)" : "var(--muted,#9aa)"}">${f.hart ? "⚠ " : "ℹ "}${esc(f.t)}</div>`).join("")}</div>`;
     }).join("") || `<p class="muted">Keine Einträge.</p>`;
     if ($("xqCsvAlle")) $("xqCsvAlle").onclick = async () => {
@@ -5105,6 +5114,12 @@ VIEWS.xppruefung = () => {
       catch (e) { m.textContent = "Export fehlgeschlagen (" + ((e && e.code) || "Fehler") + ")."; }
       k.disabled = false;
     };
+    const anfordern = async (id, b, m) => { SFX.tap(); b.disabled = true; m.textContent = "Fordere an …";
+      try { await L.abgleichAnfordern(id); m.textContent = "✓ Angefordert – wird beim nächsten Start der App des Spielers ausgeführt."; }
+      catch (e) { m.textContent = "✗ Nicht möglich (" + ((e && e.code) || "Fehler") + ") – sind die neuen Firebase-Regeln (6.88) veröffentlicht und ist dieses Gerät als Verwalter eingetragen?"; }
+      b.disabled = false; };
+    if ($("xqAnAlle")) $("xqAnAlle").onclick = () => anfordern("_alle", $("xqAnAlle"), $("xqAnAlleM"));
+    screen.querySelectorAll("[data-xqan]").forEach(b => b.onclick = () => anfordern(b.dataset.xqan, b, b.parentNode.querySelector("[data-xqanm]")));
     screen.querySelectorAll("[data-xqab]").forEach(b => b.onclick = async () => {
       SFX.tap(); const m = b.parentNode.querySelector("[data-xqabm]"); b.disabled = true; m.textContent = "Gleiche ab …";
       try {

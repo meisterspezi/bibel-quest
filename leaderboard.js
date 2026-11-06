@@ -169,6 +169,8 @@ if (!configured) {
     // 6.73: XP-Quellen je Spieler {pid, name, alt, q:{Quelle:XP}, n:{Quelle:Anzahl}, m:{Quelle:größte Vergabe}, tag:{Tag:XP}, std:{"Tag-Std":XP}, bel:[{z:Zeit(ms), x:XP, t:Talente, a:truhe|gestern, d:Truhen-Tag}]}
     LB.xpListe = async () => { const q = await fs.getDocs(fs.collection(db, "xpquellen")); return q.docs.map(d => ({ pid: d.id, ...d.data() })); };
     LB.xpHolen = async (pid) => { await LB.signIn(); const s = await fs.getDoc(ref("xpquellen", pid)); return s.exists() ? s.data() : null; };  // 6.81
+    LB.abgleichAnfordern = async (id) => { await LB.signIn(); await fs.setDoc(ref("abgleich", id), { ts: Date.now() }); };  // 6.88 (nur Verwalter)
+    LB.abgleichHolen = async (pid) => { await LB.signIn(); let t = 0; for (const id of [pid, "_alle"]) { try { const d = await fs.getDoc(ref("abgleich", id)); if (d.exists()) t = Math.max(t, +d.data().ts || 0); } catch (e) {} } return t; };  // 6.88
     LB.xpSetzen = async (pid, name, x) => { await LB.signIn(); await fs.setDoc(ref("xpquellen", pid), { pid, name, alt: x.alt | 0, q: x.q || {}, n: x.n || {}, m: x.m || {}, tag: x.tag || {}, std: x.std || {}, bel: Array.isArray(x.bel) ? x.bel.slice(-100) : [], updated: fs.serverTimestamp() }); };
     // 6.75: XP-Protokoll – je XP-Vergabe ein Dokument (nur anlegen, nie ändern): {pid, name, z:Zeit(ms, Uhr des Geräts), q:Quelle, x:XP, v:XP-Stand vorher,
     //       s:Spielzeit(Sek.), f:Fortschritt, fm:möglicher Höchstwert, d:Kurztext, ver:App-Version, gebucht:Serverzeit}. Dokument-ID: <pid>_<z>_<n>

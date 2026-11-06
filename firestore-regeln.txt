@@ -274,6 +274,13 @@ service cloud.firestore {
         && xqSumme('duell', q, rq) && xqSumme('duelleigen', q, rq) && xqSumme('bib', q, rq) && xqSumme('tagesbonus', q, rq)
         && xqSumme('spickzettel', q, rq) && xqSumme('sonst', q, rq) && xqSumme('abgleich', q, rq) && xqSumme('spende', q, rq);
     }
+    // 6.88: „Zählung anfordern“ – nur der Verwalter legt hier eine Markierung {ts} an (Dokument <Spieler-ID> oder _alle).
+    // Die App des Spielers gleicht dann beim nächsten Start seine XP-Zählung ab. Lesen darf jedes angemeldete Gerät.
+    match /abgleich/{id} {
+      allow read: if angemeldet();
+      allow create, update: if istEntwickler() && request.resource.data.keys().hasOnly(['ts']) && request.resource.data.ts is int;
+      allow delete: if false;
+    }
     match /xpquellen/{pid} {
       allow read: if angemeldet();
       allow create, update: if angemeldet() && besitzer(pid) && xqGueltig(pid);
