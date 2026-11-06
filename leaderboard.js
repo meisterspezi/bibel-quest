@@ -168,6 +168,10 @@ if (!configured) {
     LB.stiftSetzen = async (pid, name, s) => { await LB.signIn(); await fs.setDoc(ref("stiftshuette", pid), { pid, name, s, updated: fs.serverTimestamp() }); };
     // 6.73: XP-Quellen je Spieler {pid, name, alt, q:{Quelle:XP}, n:{Quelle:Anzahl}, m:{Quelle:größte Vergabe}, tag:{Tag:XP}, std:{"Tag-Std":XP}, bel:[{z:Zeit(ms), x:XP, t:Talente, a:truhe|gestern, d:Truhen-Tag}]}
     LB.xpListe = async () => { const q = await fs.getDocs(fs.collection(db, "xpquellen")); return q.docs.map(d => ({ pid: d.id, ...d.data() })); };
+    // 6.95: Talente-Zählung – talente/<pid> = { pid, name, tal (Guthaben), s (Zählbeginn, Tagesnummer), v (verdient), a (im Laden ausgegeben), p (gespendet),
+    //       t (verdiente Talente je Tag, letzte 40 Tage), sd (Spieltage), updated }. Schreiben nur der Besitzer, lesen nur der Verwalter.
+    LB.talSetzen = async (pid, name, x) => { await LB.signIn(); await fs.setDoc(ref("talente", pid), { pid, name, tal: x.tal | 0, s: x.s | 0, v: x.v | 0, a: x.a | 0, p: x.p | 0, t: x.t || {}, sd: x.sd || [], updated: fs.serverTimestamp() }); };
+    LB.talListe = async () => { const q = await fs.getDocs(fs.collection(db, "talente")); return q.docs.map(d => ({ pid: d.id, ...d.data() })); };
     LB.xpHolen = async (pid) => { await LB.signIn(); const s = await fs.getDoc(ref("xpquellen", pid)); return s.exists() ? s.data() : null; };  // 6.81
     LB.abgleichAnfordern = async (id) => { await LB.signIn(); await fs.setDoc(ref("abgleich", id), { ts: Date.now() }); };  // 6.88 (nur Verwalter)
     LB.abgleichHolen = async (pid) => { await LB.signIn(); let t = 0; for (const id of [pid, "_alle"]) { try { const d = await fs.getDoc(ref("abgleich", id)); if (d.exists()) t = Math.max(t, +d.data().ts || 0); } catch (e) {} } return t; };  // 6.88
