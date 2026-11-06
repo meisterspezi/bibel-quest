@@ -1,5 +1,5 @@
 rules_version = '2';
-// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.79 – xpquellen: neue Quelle spende (Stiftshütte); 6.78 – Sammlung tagestruhe (Schatztruhe einmal je Serverdatum); 6.76 – xpquellen: neue Quelle abgleich; 6.75 – Sammlung xpprotokoll (Einzelprotokoll der XP-Vergaben, nur anlegen); 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.80 – Sammlungen bibversuch (Biblionär-Wochenrunde einmal je Serverwoche) und spendenxp (XP für Spenden einmal je Talent); 6.79 – xpquellen: neue Quelle spende (Stiftshütte); 6.78 – Sammlung tagestruhe (Schatztruhe einmal je Serverdatum); 6.76 – xpquellen: neue Quelle abgleich; 6.75 – Sammlung xpprotokoll (Einzelprotokoll der XP-Vergaben, nur anlegen); 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -327,6 +327,52 @@ service cloud.firestore {
         && (!('z' in request.resource.data) || request.resource.data.z is int)
         && (!('ver' in request.resource.data) || (request.resource.data.ver is string && request.resource.data.ver.size() <= 12));
       allow update, delete: if false;
+    }
+
+    // 6.80: Wochen-Sicherung „Biblionär der Woche“ – je Spieler und Serverwoche höchstens ein Dokument <pid>_<Wochennummer> (nur anlegen).
+    // Wochennummer = Wochen seit Montag, 5.1.2026 (Deutschland = UTC+1/+2, daher beide Werte erlaubt); die Serverzeit entscheidet.
+    function wochenNr(h) { return math.floor((request.time.toMillis() + h * 3600000 - 1767571200000) / 604800000); }
+    match /bibversuch/{id} {
+      allow get: if angemeldet();
+      allow list: if istEntwickler();
+      allow create: if angemeldet()
+        && request.resource.data.keys().hasOnly(['pid', 'name', 'w', 'wk', 'z', 'ver', 'gebucht'])
+        && request.resource.data.keys().hasAll(['pid', 'w', 'gebucht'])
+        && request.resource.data.pid is string && request.resource.data.pid.size() >= 4 && request.resource.data.pid.size() <= 64
+        && request.resource.data.w is int
+        && id == request.resource.data.pid + '_' + string(request.resource.data.w)
+        && (request.resource.data.w == wochenNr(1) || request.resource.data.w == wochenNr(2))
+        && besitzer(request.resource.data.pid)
+        && request.resource.data.gebucht == request.time
+        && (!('name' in request.resource.data) || (request.resource.data.name is string && request.resource.data.name.size() <= 20))
+        && (!('wk' in request.resource.data) || (request.resource.data.wk is string && request.resource.data.wk.size() <= 10))
+        && (!('z' in request.resource.data) || request.resource.data.z is int)
+        && (!('ver' in request.resource.data) || (request.resource.data.ver is string && request.resource.data.ver.size() <= 12));
+      allow update, delete: if false;
+    }
+
+    // 6.80: XP für Spenden an Events (Stiftshütte) – je Spieler und Abschnitt ein Dokument <pid>_stift<1-8> mit den Talenten, für die schon
+    // XP gezahlt wurden. Nur steigend, nie mehr als in der Stiftshütte wirklich gespendet ist – jedes Talent bringt so nur einmal XP.
+    function stiftGabe(pid, k) { return get(/databases/$(database)/documents/stiftshuette/$(pid)).data.s.get(k, 0); }
+    function spendenXpOk(id) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['pid', 'name', 'k', 'tal', 'z', 'ver', 'updated'])
+        && d.keys().hasAll(['pid', 'k', 'tal', 'updated'])
+        && d.pid is string && d.pid.size() >= 4 && d.pid.size() <= 64
+        && d.k in ['1', '2', '3', '4', '5', '6', '7', '8']
+        && id == d.pid + '_stift' + d.k
+        && d.tal is int && d.tal > 0 && d.tal <= 20000 && d.tal <= stiftGabe(d.pid, d.k)
+        && besitzer(d.pid) && d.updated == request.time
+        && (!('name' in d) || (d.name is string && d.name.size() <= 20))
+        && (!('z' in d) || d.z is int)
+        && (!('ver' in d) || (d.ver is string && d.ver.size() <= 12));
+    }
+    match /spendenxp/{id} {
+      allow get: if angemeldet();
+      allow list: if istEntwickler();
+      allow create: if angemeldet() && spendenXpOk(id);
+      allow update: if angemeldet() && spendenXpOk(id) && request.resource.data.tal >= resource.data.tal && request.resource.data.pid == resource.data.pid;
+      allow delete: if false;
     }
 
     match /zusammenfuehren/{uid} {

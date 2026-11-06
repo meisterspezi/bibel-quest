@@ -192,6 +192,23 @@ if (!configured) {
       try { await fs.setDoc(ref("tagestruhe", id), { pid, name, tag, z: Date.now(), ver: String(ver || "").slice(0, 12), gebucht: fs.serverTimestamp() }); return "ok"; }
       catch (e) { return e && e.code === "permission-denied" ? "tag" : "netz"; }
     };
+    // 6.80: Wochen-Sicherung Biblionär – je Spieler und Serverwoche ein Dokument bibversuch/<pid>_<Wochennummer> (nur anlegen)
+    LB.bibVersuch = async (pid, name, w, wk, ver) => {
+      await LB.signIn(); const id = pid + "_" + w;
+      try { const g = await fs.getDoc(ref("bibversuch", id)); if (g.exists()) return "schon"; }
+      catch (e) { return e && e.code === "permission-denied" ? "regeln" : "netz"; }
+      try { await fs.setDoc(ref("bibversuch", id), { pid, name, w, wk: String(wk || "").slice(0, 10), z: Date.now(), ver: String(ver || "").slice(0, 12), gebucht: fs.serverTimestamp() }); return "ok"; }
+      catch (e) { return e && e.code === "permission-denied" ? "tag" : "netz"; }
+    };
+    // 6.80: XP für Spenden – spendenxp/<pid>_stift<Abschnitt> = { pid, name, k, tal } (Talente, für die XP gezahlt wurden; nur steigend)
+    LB.spendeXpBuchen = async (pid, name, k, tal, ver) => {
+      await LB.signIn(); const id = pid + "_stift" + k; let vorher = 0;
+      try { const g = await fs.getDoc(ref("spendenxp", id)); if (g.exists()) vorher = g.data().tal | 0; }
+      catch (e) { return e && e.code === "permission-denied" ? "regeln" : "netz"; }
+      if (tal <= vorher) return { vorher, neu: vorher };
+      try { await fs.setDoc(ref("spendenxp", id), { pid, name, k: String(k), tal: tal | 0, z: Date.now(), ver: String(ver || "").slice(0, 12), updated: fs.serverTimestamp() }); return { vorher, neu: tal | 0 }; }
+      catch (e) { return "netz"; }
+    };
     LB.duellAblehnen = async (id, pid) => { await LB.signIn(); await fs.updateDoc(ref("duelle", id), { status: "abgelehnt", am: pid }); };
     LB.duellLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("duelle", id)); };
     LB.meineDuelle = async (pid) => {

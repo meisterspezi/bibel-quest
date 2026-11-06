@@ -15,7 +15,7 @@ const DEF = {
   songHeard: [], gapPerfect: false, peeked: false, earlyBird: false,
   dq: { day: "", items: [], bonus: false }, questBonusCount: 0, lv: {}, duGes: [], duSiege: 0, duSpiele: 0, duTyp: "vers", duGesendet: 0, duAngenommen: 0, duArten: [], duKetteVoll: false,
   mute: false, beat: true, gapSing: false, atTi: 0, ntTi: 0,
-  ruestStufe: {}, stift: {}, stiftGefeiert: [], stiftEingeweiht: false,
+  ruestStufe: {}, stift: {}, spendeXp: {}, stiftGefeiert: [], stiftEingeweiht: false,
   xq: null, lvLohn: 0, lbName: "", pid: "", ownersSet: false, offlineOnly: false, weekKey: "", weekXp: 0, podium: false, wochensieger: false, wochenziel: false,
   ver: 6
 };
@@ -766,7 +766,7 @@ function bewaehrtWert(r) {
    Jede XP-Vergabe läuft über addXp(n, el, quelle). S.xq = { alt: XP vor der Zählung, q: {Quelle: XP}, n: {Quelle: Anzahl},
    m: {Quelle: größte einzelne Vergabe}, tag: {Tag: XP}, std: {"Tag-Stunde": XP} } – wird in die Sammlung „xpquellen“ gespiegelt.
    Der Verwalter sieht in der „XP-Prüfung“, ob die XP der Rangliste durch Quellen erklärt sind. */
-const XQ_QUELLEN = { vers: "Lernvers", lektion: "Lektion", luecke: "Lückenquiz", blitz: "Blitz", kette: "Kette", duell: "Duell", duelleigen: "Duell (eigenes Profil)", bib: "Biblionär", tagesbonus: "Tagesaufgaben", spickzettel: "Spickzettel", sonst: "Sonstiges", abgleich: "Geräteabgleich", spende: "Spende (Stiftshütte)" };
+const XQ_QUELLEN = { vers: "Lernvers", lektion: "Lektion", luecke: "Lückenquiz", blitz: "Blitz", kette: "Kette", duell: "Duell", duelleigen: "Duell (eigenes Profil)", bib: "Biblionär", tagesbonus: "Tagesaufgaben", spickzettel: "Spickzettel", sonst: "Sonstiges", abgleich: "Geräteabgleich", spende: "Spenden-Events" };
 /* höchste XP, die eine einzelne Vergabe je Quelle ehrlich bringen kann (Blitz: 60 Richtige; Kette rückwärts: 65×4+300 …) */
 /* bis 6.78 geltende Höchstwerte – für ältere Protokolleinträge und die gesamte „größte Vergabe“ (m), die nie sinkt */
 const XQ_MAX_ALT = { vers: 400, lektion: 180, luecke: 600, blitz: 1300, kette: 560, duell: 350, duelleigen: 350, bib: 330, tagesbonus: 100, spickzettel: 20, sonst: 100, abgleich: 10000000, spende: 30000 };
@@ -2083,7 +2083,7 @@ function zusammenfuehren(r) {
     S.lv[k] = { v: 2, st: Math.max(a.st || 0, v.st || 0), b: !!(a.b || v.b), tage: [...new Set([...(a.tage || []), ...(v.tage || [])])].sort((x, y) => x - y).slice(-40), sw, auf: neuer.auf || "", an: neuer.an || 0, q: (a.qd || "") >= (v.qd || "") ? a.q || 0 : v.q || 0, qd: [a.qd || "", v.qd || ""].sort().pop() }; });
   ["avatar", "frame", "title", "theme"].forEach(k => { if ((S[k] === DEF[k]) && r[k]) S[k] = r[k]; });
   /* 6.68: Rüstungs-Stufen und Stiftshütten-Spenden: je Schlüssel das Maximum */
-  ["ruestStufe", "stift"].forEach(k => { const a = S[k] = Object.assign({}, S[k] || {}); Object.entries(r[k] || {}).forEach(([i, v]) => { a[i] = Math.max(a[i] | 0, v | 0); }); });
+  ["ruestStufe", "stift", "spendeXp"].forEach(k => { const a = S[k] = Object.assign({}, S[k] || {}); Object.entries(r[k] || {}).forEach(([i, v]) => { a[i] = Math.max(a[i] | 0, v | 0); }); });
   S.stiftGefeiert = [...new Set([...(S.stiftGefeiert || []), ...(Array.isArray(r.stiftGefeiert) ? r.stiftGefeiert : [])])]; S.stiftEingeweiht = !!(S.stiftEingeweiht || r.stiftEingeweiht);
   if (r.lbName && !S.lbName) S.lbName = r.lbName;
 }
@@ -3271,8 +3271,22 @@ function bibSolo() {
   const G = { modus: "solo", fragen: bibFragen(crypto.getRandomValues(new Uint32Array(1))[0] % 2147483647) };
   countdown(() => bibStart(G));
 }
+/* ---------- 6.80: Wochen-Sicherung (Biblionär der Woche) ----------
+   Wie bei der Schatztruhe: je Spieler und Serverwoche entsteht genau ein Dokument „bibversuch/<pid>_<Wochennummer>“ (nur anlegen).
+   Wochennummer = Wochen seit Montag, 5.1.2026 (Mitteleuropäische Zeit); die Regeln rechnen mit der Serverzeit gegen. Das Dokument
+   entsteht beim Start der Runde – wer abbricht, hat den Versuch verbraucht (wie bisher: 0 Punkte). */
+const WOCHE_MS = 604800000, WOCHE_NULL = 1767571200000;   /* Montag 05.01.2026 00:00 UTC */
+function berlinOffsetMs(ms) {
+  const p = {}; new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Berlin", hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).formatToParts(new Date(ms)).forEach(x => { p[x.type] = +x.value; });
+  return Math.round((Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute) - Math.floor(ms / 6e4) * 6e4) / 36e5) * 36e5;
+}
+const serverWochenNr = ms => Math.floor((ms + berlinOffsetMs(ms) - WOCHE_NULL) / WOCHE_MS);
+async function bibVersuchBuchen(ms) {
+  const L = window.LB; if (!L || !L.ok || !L.bibVersuch || !S.pid || !S.lbName || S.offlineOnly) return "regeln";
+  try { return await L.bibVersuch(S.pid, S.lbName, serverWochenNr(ms), weekKey(ms), APP_VERSION); } catch (e) { return "netz"; }
+}
 /* Wochenrunde: ein Versuch je Kalenderwoche; der Versuch zählt ab dem Start (Abbrechen = 0 Punkte) */
-const bibWocheGespielt = () => S.bwK === weekKey();
+const bibWocheGespielt = () => S.bwK === weekKey() || S.bwGesperrt === weekKey();
 function bibWocheStarten() {
   if (bibWocheGespielt()) { go("rank", "bibWoche"); return; }
   const wk = weekKey();
@@ -3280,12 +3294,23 @@ function bibWocheStarten() {
     <p class="muted">Alle in der Gemeinde bekommen dieselben 15 Fragen. Du hast <b>einen Versuch</b> – wer abbricht, bekommt 0 Punkte. Am Montag kommt die Siegerin oder der Sieger aufs Podest.</p>
     <button class="btn primary" data-close="los">${svg("biblionaer")} Los geht's</button><button class="btn ghost" data-close>Später</button>`, r => {
     if (r !== "los") return;
+    bibWocheAnfang();
+  });
+}
+let bibWocheLaeuft = false;
+async function bibWocheAnfang() {
+  if (bibWocheLaeuft) return; bibWocheLaeuft = true;
+  try {
+    const ms = await serverMs(), wk = weekKey(ms), e = await bibVersuchBuchen(ms);
+    if (e === "schon") { S.bwGesperrt = wk; save(); toast(`${svg("biblionaer")}<div><b>Diese Woche schon gespielt</b><div class="small muted">Die Wochenrunde gibt es nur einmal – am Montag kommen neue Fragen.</div></div>`); go("rank", "bibWoche"); return; }
+    if (e === "netz") { toast(`${svg("biblionaer")}<div><b>Keine Verbindung</b><div class="small muted">Die Wochenrunde braucht Internet, damit niemand sie doppelt spielt.</div></div>`); return; }
+    if (e === "tag") { toast(`${svg("biblionaer")}<div><b>Datum passt nicht</b><div class="small muted">Bitte Datum und Uhrzeit deines Geräts prüfen (automatisch einstellen).</div></div>`); return; }
     if (S.bwK && S.bwK !== wk) { S.bwVK = S.bwK; S.bwVP = S.bwP | 0; }
     S.bwK = wk; S.bwP = 0; S.bwFertig = false; save(); lbSync(true);
     go("biblionaer");
     const G = { modus: "woche", fragen: bibFragen(bibWocheSeed(wk), wk) };
     countdown(() => bibStart(G));
-  });
+  } finally { bibWocheLaeuft = false; }
 }
 /* Sieger der Vorwoche: Platz 1 bekommt Krone (Abzeichen) und Talente – einmal pro Woche geprüft */
 let bibVorwocheListe = null;
@@ -4756,25 +4781,28 @@ function xqRateKarte(z) {
 VIEWS.xppruefung = () => {
   const L = window.LB;
   screen.innerHTML = `${backBtn("postfach", "Postkasten")}<h1>XP-Prüfung</h1>
-  <p class="muted small" style="margin:0 0 10px">Jede XP-Vergabe wird mit Quelle, Uhrzeit, Spielzeit und Fortschritt protokolliert und kann später in der Datenbank nachgeprüft werden (Einträge lassen sich nicht mehr ändern oder löschen). Die Spiele sind nach XP sortiert, die Farben entsprechen den Bereichen der App: <span style="color:${XQ_FARBE.vers}">Lernen</span> · <span style="color:${XQ_FARBE.blitz}">Spielen</span> · <span style="color:${XQ_FARBE.duell}">Arena</span> · <span style="color:${XQ_FARBE.bib}">Biblionär</span> · <span style="color:${XQ_FARBE.tagesbonus}">Belohnung</span>. „Ohne Quelle“ sind XP, die weder zum Anfangsbestand noch zu einer Quelle passen – das kann auf Veränderungen am Spielstand hindeuten (oder auf ein Gerät mit alter App-Version). Die Zählung beginnt für jeden Spieler erst, wenn er die neue Version öffnet.</p>
+  <p class="muted small" style="margin:0 0 10px">Jede XP-Vergabe wird mit Quelle, Uhrzeit, Spielzeit und Fortschritt protokolliert und kann später in der Datenbank nachgeprüft werden (Einträge lassen sich nicht mehr ändern oder löschen). Die Spiele sind nach XP sortiert, die Farben entsprechen den Bereichen der App: <span style="color:${XQ_FARBE.vers}">Lernen</span> · <span style="color:${XQ_FARBE.blitz}">Spielen</span> · <span style="color:${XQ_FARBE.duell}">Arena</span> · <span style="color:${XQ_FARBE.bib}">Biblionär</span> · <span style="color:${XQ_FARBE.tagesbonus}">Belohnung</span> · <span style="color:${XQ_FARBE.spende}">Spenden-Events</span>. „Ohne Quelle“ sind XP, die weder zum Anfangsbestand noch zu einer Quelle passen – das kann auf Veränderungen am Spielstand hindeuten (oder auf ein Gerät mit alter App-Version). Die Zählung beginnt für jeden Spieler erst, wenn er die neue Version öffnet.</p>
+  <label class="small" style="display:flex;gap:8px;align-items:center;margin:0 0 10px"><input type="checkbox" id="xqOhneAlt" ${S.xqOhneAlt ? "checked" : ""}> „Vor der Zählung“ ausblenden – nur gezählte XP zeigen und danach sortieren</label>
   <div class="stack" id="xpListe"><p class="muted small">Lade …</p></div>`;
   wireGo();
   if (!entwickler || !L || !L.ok || !L.xpListe) { $("xpListe").innerHTML = `<p class="muted">Die XP-Prüfung braucht Internet und Verwalter-Rechte.</p>`; return; }
   const zahl = v => (+v || 0).toLocaleString("de-DE");
   xpPruefDaten().then(z => {
-    z.sort((a, b) => b.xp - a.xp);   // höchste XP oben
+   const zeichnen = () => {
+    const ohne = !!S.xqOhneAlt;   // 6.80: „Vor der Zählung“ ausblenden → nur gezählte XP, danach sortiert
+    z.sort((a, b) => ohne ? (b.xp - b.alt) - (a.xp - a.alt) : b.xp - a.xp);   // höchste XP oben
     const auffaellig = z.filter(r => r.flags.some(f => f.hart));
     const gez = z.filter(r => r.hat), gq = {}, gn = {}; let gXp = 0, gAlt = 0, gOffen = 0;
     gez.forEach(r => { gXp += r.xp; gAlt += r.alt; gOffen += r.offen; Object.entries(r.q).forEach(([k, v]) => { gq[k] = (gq[k] | 0) + (+v || 0); gn[k] = (gn[k] | 0) + (+(r.n[k]) || 0); }); });
-    const gesamt = gez.length ? `<div class="card stack"><div class="topline"><b>Gemeinde gesamt</b><span class="small muted">${gez.length} von ${z.length} Spielern gezählt · ${zahl(gXp)} XP</span></div>${xqAnteilHtml(xqAnteile(gq, gn, gAlt, gOffen, gXp))}</div>` : "";
+    const gesamt = gez.length ? `<div class="card stack"><div class="topline"><b>Gemeinde gesamt</b><span class="small muted">${gez.length} von ${z.length} Spielern gezählt · ${ohne ? zahl(gXp - gAlt) + " gezählte XP (ohne Anfangsbestand)" : zahl(gXp) + " XP"}</span></div>${xqAnteilHtml(xqAnteile(gq, gn, ohne ? 0 : gAlt, gOffen, ohne ? Math.max(0, gXp - gAlt) : gXp))}</div>` : "";
     const warn = auffaellig.length ? `<div class="card stack xq-karte-bad"><b>⚠ Auffälligkeiten (${auffaellig.length})</b>${auffaellig.map(r => `<div class="small"><b>${esc(r.name)}</b> (${zahl(r.xp)} XP)<br>${r.flags.filter(f => f.hart).map(f => esc(f.t)).join("<br>")}</div>`).join("")}</div>` : `<div class="card small muted">Keine Auffälligkeiten.</div>`;
     const hinweis = z.evOk ? "" : `<div class="card small muted">Das Einzelprotokoll ist noch nicht lesbar – sind die neuen Firebase-Regeln (Version 6.75) veröffentlicht?</div>`;
     const csvAlle = `<button class="btn ghost breit" id="xqCsvAlle" style="width:100%">${svg("scroll")} Alle XP-Vergaben als CSV-Datei (Excel)</button><div class="small muted" id="xqCsvMeld" aria-live="polite"></div>`;
     $("xpListe").innerHTML = hinweis + warn + gesamt + xqRateKarte(z) + csvAlle + z.map(r => {
-      const kopf = `<div class="topline"><b>${esc(r.name)}</b><span class="small muted">Level ${r.level} · ${zahl(r.xp)} XP</span></div>`;
+      const kopf = `<div class="topline"><b>${esc(r.name)}</b><span class="small muted">Level ${r.level} · ${ohne && r.hat ? zahl(r.xp - r.alt) + " gezählt · " + zahl(r.xp) + " gesamt" : zahl(r.xp) + " XP"}</span></div>`;
       if (!r.hat) return `<div class="card">${kopf}<div class="small muted">Noch keine Zählung (neue Version noch nicht geöffnet).</div></div>`;
       return `<div class="card stack${r.flags.some(f => f.hart) ? " xq-karte-bad" : ""}">${kopf}
-        ${xqAnteilHtml(r.anteile)}
+        ${xqAnteilHtml(ohne ? xqAnteile(r.q, r.n, 0, r.offen, Math.max(0, r.xp - r.alt)) : r.anteile)}
         <div class="small muted">Letzte 24 Stunden: ${zahl(r.h24)} XP · stärkste Stunde: ${zahl(r.spitze)} XP</div>
         <details data-xpev="${esc(r.id)}"><summary class="small">Protokoll aller XP-Vergaben (Zeit, Spielzeit, Fortschritt)</summary><div class="xq-evliste small muted" style="margin-top:6px">Wird beim Öffnen geladen …</div></details>
         ${r.bel.length ? `<details><summary class="small">Tägliche Belohnung: ${r.bel.length}× erhalten · zuletzt ${esc(xqZeit(r.bel[r.bel.length - 1].z))} (+${r.bel[r.bel.length - 1].x} XP)</summary><div class="small muted" style="margin-top:6px">${r.bel.slice(-14).reverse().map(e => `${esc(xqZeit(e.z))} · +${e.x} XP · +${e.t} Talente · Truhe vom ${esc(xqDatum(e.d || "?"))}${e.a === "gestern" ? " (am Folgetag automatisch geöffnet)" : ""}`).join("<br>")}<br><i>Uhrzeit laut Gerät des Spielers</i></div></details>` : ""}
@@ -4792,6 +4820,9 @@ VIEWS.xppruefung = () => {
         const kn = box.querySelector("[data-xqcsv]"); if (kn) kn.onclick = async () => { SFX.tap(); kn.disabled = true; try { const alle = await L.xpProtokoll(d.dataset.xpev, 5000); xqCsvLaden(`xp-protokoll-${String(((z.find(r => r.id === d.dataset.xpev) || {}).name) || "spieler").replace(/[^\w-]+/g, "_")}-${xqDateiTag()}.csv`, alle); } catch (e) { toast("<div>Export fehlgeschlagen.</div>"); } kn.disabled = false; }; })
         .catch(e => { d.dataset.geladen = ""; box.textContent = "Konnte nicht geladen werden (" + ((e && e.code) || "Fehler") + ")."; });
     }));
+   };
+   zeichnen();
+   if ($("xqOhneAlt")) $("xqOhneAlt").onchange = e => { S.xqOhneAlt = e.target.checked; save(); zeichnen(); };
   }).catch(e => { $("xpListe").innerHTML = `<p class="muted">Konnte nicht geladen werden (${esc((e && e.code) || "Fehler")}). Sind die neuen Firebase-Regeln veröffentlicht?</p>`; });
 };
 
@@ -5066,18 +5097,36 @@ function stiftSpenden(v, el) {
   const k = String(st.k + 1), xpLohn = v * STIFT_XP_PRO_TAL;
   S.tal -= v; S.stift = Object.assign({}, S.stift, { [k]: ((S.stift || {})[k] | 0) + v }); save(); renderHud();
   SFX.coin(); if (el) { const [x, y] = centerOf(el); burst(x, y, 40, { up: 5 }); }
-  addXp(xpLohn, null, "spende", { d: `Stiftshütte · ${STIFT[st.k].kurz} · ${v} Talente` });
   stiftSenden();
   const voll = st.sum[st.k] + v >= STIFT[st.k].ziel;
   VIEWS.stift();
   if (voll) setTimeout(stiftFeiern, 500);
   else toast(`${svg("zelt")}<div><b>Danke für deine Gabe!</b><div class="small muted">+${v} für „${esc(STIFT[st.k].n)}“ · +${xpLohn} XP</div></div>`);
 }
+/* 6.80: XP für Spenden werden auf dem Server gegengebucht: Dokument „spendenxp/<pid>_stift<Abschnitt>“ merkt, für wie viele Talente
+   schon XP gezahlt wurden (nur steigend, höchstens so viel wie in der Stiftshütte wirklich gespendet ist). So zählt jedes gespendete
+   Talent nur einmal – auch bei zurückgesetzten App-Daten oder mehreren Geräten. Ohne Server-Regeln wird wie bisher direkt gutgeschrieben. */
+let spendeXpLaeuft = false;
+async function spendeXpAbgleichen() {
+  if (spendeXpLaeuft) return; spendeXpLaeuft = true;
+  try {
+    const L = window.LB; S.spendeXp = S.spendeXp || {};
+    for (const k of Object.keys(S.stift || {})) {
+      const total = S.stift[k] | 0, schuld = total - (S.spendeXp[k] | 0); if (schuld < 1) continue;
+      let tal = 0;
+      if (!L || !L.ok || !L.spendeXpBuchen || !S.pid || !S.lbName || S.offlineOnly) tal = schuld;
+      else { let r; try { r = await L.spendeXpBuchen(S.pid, S.lbName, k, total, APP_VERSION); } catch (e) { r = "netz"; }
+        if (r === "netz") break; tal = r === "regeln" ? schuld : Math.max(0, r.neu - r.vorher); }
+      S.spendeXp[k] = total; save();
+      if (tal > 0) { const a = STIFT[+k - 1]; addXp(tal * STIFT_XP_PRO_TAL, null, "spende", { d: `Stiftshütte · ${a ? a.kurz : k} · ${tal} Talente` }); }
+    }
+  } finally { spendeXpLaeuft = false; }
+}
 function stiftSenden() {
   const L = window.LB; if (!L || !L.ok || !L.stiftSetzen || !S.pid || S.offlineOnly) return;
-  const sig = JSON.stringify(S.stift || {}); if (sig === "{}" || S.stiftSync === sig) return;
+  const sig = JSON.stringify(S.stift || {}); if (sig === "{}") return; if (S.stiftSync === sig) { spendeXpAbgleichen(); return; }
   const s = {}; Object.entries(S.stift || {}).forEach(([k, v]) => { if (+k >= 1 && +k <= 8 && v > 0) s[k] = Math.min(v | 0, 20000); });
-  L.stiftSetzen(S.pid, S.lbName, s).then(() => { S.stiftSync = sig; save(); stiftDaten = (stiftDaten || []).filter(r => r.pid !== S.pid).concat([{ pid: S.pid, name: S.lbName, s }]); })
+  L.stiftSetzen(S.pid, S.lbName, s).then(() => { S.stiftSync = sig; save(); stiftDaten = (stiftDaten || []).filter(r => r.pid !== S.pid).concat([{ pid: S.pid, name: S.lbName, s }]); spendeXpAbgleichen(); })
     .catch(e => dbFehler("Stiftshütte speichern", e));
 }
 /* Feiern: jeder fertige Abschnitt einmal für alle, die dafür gegeben haben; die Einweihung für alle Spender */
