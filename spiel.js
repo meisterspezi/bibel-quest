@@ -781,10 +781,18 @@ function xqZaehlen(n, q) {
   const tk = Object.keys(x.tag).sort(); while (tk.length > 10) delete x.tag[tk.shift()];
   const sk = Object.keys(x.std).sort(); while (sk.length > 48) delete x.std[sk.shift()];
 }
+/* 6.74: Protokoll der täglichen Belohnung (Schatztruhe): wann (Uhrzeit laut Gerät), wie viel XP/Talente, welcher Truhen-Tag, direkt geöffnet oder „von gestern“ */
+function xqBelohnung(art, xp, tal, tag) {
+  const x = S.xq; if (!x) return;
+  x.bel = Array.isArray(x.bel) ? x.bel : [];
+  x.bel.push({ z: Date.now(), x: Math.round(xp), t: Math.round(tal), a: art === "gestern" ? "gestern" : "truhe", d: String(tag || "").slice(0, 10) });
+  while (x.bel.length > 100) x.bel.shift();
+}
 function xqMischen(a, b) {
   if (!b || !b.q) return a; if (!a || !a.q) return JSON.parse(JSON.stringify(b));
   const mx = (o1, o2) => { const r = Object.assign({}, o1 || {}); Object.entries(o2 || {}).forEach(([k, v]) => { r[k] = Math.max(r[k] | 0, v | 0); }); return r; };
-  return { alt: Math.min(a.alt | 0, b.alt | 0), q: mx(a.q, b.q), n: mx(a.n, b.n), m: mx(a.m, b.m), tag: mx(a.tag, b.tag), std: mx(a.std, b.std) };
+  const bel = [...(Array.isArray(a.bel) ? a.bel : []), ...(Array.isArray(b.bel) ? b.bel : [])].filter((e, i, l) => l.findIndex(f => f.z === e.z && f.a === e.a) === i).sort((p, q) => p.z - q.z).slice(-100);
+  return { alt: Math.min(a.alt | 0, b.alt | 0), q: mx(a.q, b.q), n: mx(a.n, b.n), m: mx(a.m, b.m), tag: mx(a.tag, b.tag), std: mx(a.std, b.std), bel };
 }
 function xqSenden() {
   const L = window.LB; if (!L || !L.ok || !L.xpSetzen || !S.pid || S.offlineOnly || !S.xq || !S.lbName) return;
@@ -919,9 +927,9 @@ function aufgabenAuslosen(t) {
 }
 function aufgabenSicherstellen() {
   const t = today(); if (S.dq && S.dq.day === t && S.dq.items.every(it => AUFGABEN.some(a => a.id === it.id))) return;
-  const alteTruhe = S.dq && S.dq.geschafft && !S.dq.bonus;
+  const alteTruhe = S.dq && S.dq.geschafft && !S.dq.bonus, truhenTag = S.dq ? S.dq.day : "";
   const gew = aufgabenAuslosen(t);
-  if (alteTruhe) setTimeout(() => { addXp(AUFGABE_BONUS_XP, null, "tagesbonus"); addTal(AUFGABE_BONUS); toast(`${TAL_MUENZE}<div><b>Deine Schatztruhe von gestern</b><div class="small muted">wurde für dich geöffnet: +${AUFGABE_BONUS_XP} XP und +${AUFGABE_BONUS} Talente</div></div>`); }, 1500);
+  if (alteTruhe) setTimeout(() => { addXp(AUFGABE_BONUS_XP, null, "tagesbonus"); xqBelohnung("gestern", AUFGABE_BONUS_XP, AUFGABE_BONUS, truhenTag); addTal(AUFGABE_BONUS); toast(`${TAL_MUENZE}<div><b>Deine Schatztruhe von gestern</b><div class="small muted">wurde für dich geöffnet: +${AUFGABE_BONUS_XP} XP und +${AUFGABE_BONUS} Talente</div></div>`); }, 1500);
   S.dq = { day: t, items: gew.map(a => ({ id: a.id, prog: 0, done: false })), bonus: false };
 }
 function quest(ev, val = 1) {
@@ -1216,7 +1224,7 @@ function truheOeffnen(von) {
   t(2850, () => SFX.tick());
   t(3150, () => {
     ov.classList.remove("wackeln"); ov.classList.add("offen"); truhe.innerHTML = TRUHE_AUF; SFX.win(); vibrate([30, 40, 80]);
-    addXp(AUFGABE_BONUS_XP, null, "tagesbonus"); addTal(AUFGABE_BONUS);
+    addXp(AUFGABE_BONUS_XP, null, "tagesbonus"); xqBelohnung("truhe", AUFGABE_BONUS_XP, AUFGABE_BONUS, S.dq && S.dq.day); addTal(AUFGABE_BONUS);
   });
   t(3600, () => { ov.classList.add("lohn"); SFX.coin(); });
   t(3950, () => SFX.coin());
@@ -4523,6 +4531,8 @@ VIEWS.postfach = (kat) => {
 
 /* ---------- XP-Prüfung (6.73) ----------
    Vergleicht die XP der Rangliste mit der Zählung je Quelle (Sammlung „xpquellen“). „Ohne Quelle“ = XP − Anfangsbestand − Summe der Quellen. */
+const xqZeit = z => new Date(+z).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+const xqDatum = d => { const p = String(d).split("-"); return p.length === 3 ? `${p[2].padStart(2, "0")}.${p[1].padStart(2, "0")}.` : String(d); };
 async function xpPruefDaten() {
   const L = window.LB, [sp, xl] = await Promise.all([L.alleSpieler(), L.xpListe()]);
   const xm = new Map(xl.map(r => [r.pid, r])), jetzt = Date.now(), ab24 = (() => { const d = new Date(jetzt - 864e5); return xqTagKey(d) + "-" + String(d.getHours()).padStart(2, "0"); })();
@@ -4530,6 +4540,10 @@ async function xpPruefDaten() {
     const x = xm.get(r.id) || null, xp = +r.xp || 0, o = { id: r.id, name: r.name, xp, level: r.level || levelOf(xp), hat: !!x, flags: [] };
     if (!x) return o;
     const q = x.q || {}, n = x.n || {}, m = x.m || {}, std = x.std || {};
+    o.bel = (Array.isArray(x.bel) ? x.bel : []).filter(e => e && +e.z > 0).sort((a, b) => a.z - b.z);
+    { const gesehen = {}; o.bel.forEach(e => { const k = e.d || "?"; gesehen[k] = (gesehen[k] | 0) + 1; });
+      Object.entries(gesehen).forEach(([k, c]) => { if (k !== "?" && c > 1) o.flags.push({ hart: true, t: `Tägliche Belohnung für den Truhen-Tag ${xqDatum(k)} ${c}× erhalten` }); });
+      o.bel.forEach(e => { if (e.x !== AUFGABE_BONUS_XP) o.flags.push({ hart: true, t: `Tägliche Belohnung ${xqZeit(e.z)} mit ${e.x} XP statt ${AUFGABE_BONUS_XP}` }); }); }
     o.q = q; o.n = n; o.alt = x.alt | 0; o.summe = Object.values(q).reduce((a, v) => a + (+v || 0), 0);
     o.offen = Math.max(0, xp - o.alt - o.summe);
     o.spitze = Math.max(0, ...Object.values(std).map(v => +v || 0));
@@ -4568,6 +4582,7 @@ VIEWS.xppruefung = () => {
         <div class="small">Nachgewiesen <b>${zahl(r.summe)}</b> · Anfangsbestand ${zahl(r.alt)} · Ohne Quelle <b>${zahl(r.offen)}</b></div>
         <div class="small muted">Letzte 24 Stunden: ${zahl(r.h24)} XP · stärkste Stunde: ${zahl(r.spitze)} XP</div>
         ${teile ? `<div style="display:flex;flex-wrap:wrap;gap:6px">${teile}</div>` : ""}
+        ${r.bel.length ? `<details><summary class="small">Tägliche Belohnung: ${r.bel.length}× erhalten · zuletzt ${esc(xqZeit(r.bel[r.bel.length - 1].z))} (+${r.bel[r.bel.length - 1].x} XP)</summary><div class="small muted" style="margin-top:6px">${r.bel.slice(-14).reverse().map(e => `${esc(xqZeit(e.z))} · +${e.x} XP · +${e.t} Talente · Truhe vom ${esc(xqDatum(e.d || "?"))}${e.a === "gestern" ? " (am Folgetag automatisch geöffnet)" : ""}`).join("<br>")}<br><i>Uhrzeit laut Gerät des Spielers</i></div></details>` : ""}
         ${r.flags.map(f => `<div class="small" style="color:${f.hart ? "var(--bad,#ff8a5c)" : "var(--muted,#9aa)"}">${f.hart ? "⚠ " : "ℹ "}${esc(f.t)}</div>`).join("")}</div>`;
     }).join("") || `<p class="muted">Keine Einträge.</p>`;
   }).catch(e => { $("xpListe").innerHTML = `<p class="muted">Konnte nicht geladen werden (${esc((e && e.code) || "Fehler")}). Sind die neuen Firebase-Regeln veröffentlicht?</p>`; });

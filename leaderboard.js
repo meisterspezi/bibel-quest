@@ -166,9 +166,9 @@ if (!configured) {
     // 6.68: Stiftshütte – Spenden je Spieler {pid, name, s: {"1".."8": Talente}}
     LB.stiftListe = async () => { const q = await fs.getDocs(fs.collection(db, "stiftshuette")); return q.docs.map(d => ({ pid: d.id, ...d.data() })); };
     LB.stiftSetzen = async (pid, name, s) => { await LB.signIn(); await fs.setDoc(ref("stiftshuette", pid), { pid, name, s, updated: fs.serverTimestamp() }); };
-    // 6.73: XP-Quellen je Spieler {pid, name, alt, q:{Quelle:XP}, n:{Quelle:Anzahl}, m:{Quelle:größte Vergabe}, tag:{Tag:XP}, std:{"Tag-Std":XP}}
+    // 6.73: XP-Quellen je Spieler {pid, name, alt, q:{Quelle:XP}, n:{Quelle:Anzahl}, m:{Quelle:größte Vergabe}, tag:{Tag:XP}, std:{"Tag-Std":XP}, bel:[{z:Zeit(ms), x:XP, t:Talente, a:truhe|gestern, d:Truhen-Tag}]}
     LB.xpListe = async () => { const q = await fs.getDocs(fs.collection(db, "xpquellen")); return q.docs.map(d => ({ pid: d.id, ...d.data() })); };
-    LB.xpSetzen = async (pid, name, x) => { await LB.signIn(); await fs.setDoc(ref("xpquellen", pid), { pid, name, alt: x.alt | 0, q: x.q || {}, n: x.n || {}, m: x.m || {}, tag: x.tag || {}, std: x.std || {}, updated: fs.serverTimestamp() }); };
+    LB.xpSetzen = async (pid, name, x) => { await LB.signIn(); await fs.setDoc(ref("xpquellen", pid), { pid, name, alt: x.alt | 0, q: x.q || {}, n: x.n || {}, m: x.m || {}, tag: x.tag || {}, std: x.std || {}, bel: Array.isArray(x.bel) ? x.bel.slice(-100) : [], updated: fs.serverTimestamp() }); };
     LB.duellAblehnen = async (id, pid) => { await LB.signIn(); await fs.updateDoc(ref("duelle", id), { status: "abgelehnt", am: pid }); };
     LB.duellLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("duelle", id)); };
     LB.meineDuelle = async (pid) => {

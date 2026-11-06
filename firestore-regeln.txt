@@ -1,5 +1,5 @@
 rules_version = '2';
-// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -257,7 +257,7 @@ service cloud.firestore {
     match /xpquellen/{pid} {
       allow read: if angemeldet();
       allow create, update: if angemeldet() && besitzer(pid)
-        && request.resource.data.keys().hasOnly(['pid', 'name', 'alt', 'q', 'n', 'm', 'tag', 'std', 'updated'])
+        && request.resource.data.keys().hasOnly(['pid', 'name', 'alt', 'q', 'n', 'm', 'tag', 'std', 'bel', 'updated'])
         && request.resource.data.pid == pid
         && request.resource.data.name is string && request.resource.data.name.size() >= 2 && request.resource.data.name.size() <= 20
         && request.resource.data.alt is int && request.resource.data.alt >= 0 && request.resource.data.alt <= 10000000
@@ -267,6 +267,10 @@ service cloud.firestore {
         && request.resource.data.m is map && request.resource.data.m.keys().hasOnly(xqKeys())
         && request.resource.data.tag is map && request.resource.data.tag.size() <= 12
         && request.resource.data.std is map && request.resource.data.std.size() <= 50
+        // Protokoll der täglichen Belohnung: höchstens 100 Einträge, es darf nie kürzer werden, bis die 100 erreicht sind
+        && (!('bel' in request.resource.data) || (request.resource.data.bel is list && request.resource.data.bel.size() <= 100))
+        && (resource == null || !('bel' in resource.data)
+            || ('bel' in request.resource.data && request.resource.data.bel.size() >= resource.data.bel.size()))
         && xqW('vers') && xqW('lektion') && xqW('luecke') && xqW('blitz') && xqW('kette') && xqW('duell')
         && xqW('duelleigen') && xqW('bib') && xqW('tagesbonus') && xqW('spickzettel') && xqW('sonst');
       allow delete: if false;
