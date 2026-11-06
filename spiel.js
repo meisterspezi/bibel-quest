@@ -5179,28 +5179,30 @@ function talPrognose(z, stift) {
 VIEWS.talente = () => {
   const L = window.LB;
   screen.innerHTML = `${backBtn("postfach", "Postkasten")}<h1>Talente-Planung</h1>
-  <p class="muted small" style="margin:0 0 10px">Guthaben je Spieler und verdiente Talente pro Tag – als Grundlage, wie viel die Gemeinde für Events wie die Stiftshütte spenden kann. Gezählt wird ab Version 6.95 (je Spieler ab dem Tag, an dem seine App die neue Version zum ersten Mal öffnet); davor gibt es keine Daten. Die Durchschnitte werden mit jedem Tag verlässlicher.</p>
+  <details class="small muted tp-hinweis"><summary>Hinweis zur Zählung</summary><p style="margin:6px 0 0">Gezählt wird ab Version 6.95, je Spieler ab dem Tag, an dem seine App die neue Version zum ersten Mal öffnet. Davor gibt es keine Daten. Die Durchschnitte werden mit jedem Tag verlässlicher.</p><p style="margin:6px 0 0">Prognose: „Spenden“ ist der Anteil der Spieler, der sein Guthaben und alle neu verdienten Talente spendet (Richtwert nach dem Zufluss der letzten 7 Tage). Ø/Spieltag zählt nur Tage, an denen gespielt wurde, Ø 7 Tage jeden Kalendertag.</p></details>
   <div class="stack" id="talListe"><p class="muted small">Lade …</p></div>`;
   wireGo();
   if (!entwickler || !L || !L.ok || !L.talListe) { $("talListe").innerHTML = `<p class="muted">Die Talente-Planung braucht Internet und Verwalter-Rechte.</p>`; return; }
   Promise.all([L.talListe(), L.stiftListe ? L.stiftListe() : Promise.resolve([]), L.alleSpieler ? L.alleSpieler() : Promise.resolve([])]).then(([tz, stift, sp]) => {
     const z = talAuswerten(tz, stift).sort((a, b) => b.tal - a.tal), pr = talPrognose(z, stift), hat = new Set(z.map(r => r.pid));
     const ohne = (sp || []).filter(r => r.name && !hat.has(r.id)).map(r => r.name).sort((a, b) => a.localeCompare(b, "de"));
-    const beginn = z.length ? Math.min(...z.map(r => r.s)) : 0, st = pr.k < 8 ? STIFT[pr.k] : null;
-    const spkt = q => { const a = pr.tage(pr.rest, q), b = pr.tage(pr.restAlle, q); const f = v => v === null ? "–" : v === 0 ? "sofort" : v + (v === 1 ? " Tag" : " Tage"); return `<div class="small" style="padding:6px 0;border-top:1px solid var(--line)"><b>${Math.round(q * 100)} % spenden</b><br><span class="muted">${st ? esc(st.kurz) + " voll: " + f(a) : "Alles gebaut"}${pr.restAlle ? " · Bundeslade fertig: " + f(b) : ""}</span></div>`; };
-    const gesamt = `<div class="card stack"><div class="topline"><b>Gemeinde gesamt</b><span class="small muted">${z.length} Spieler gezählt${ohne.length ? " · " + ohne.length + " noch ohne Zählung" : ""}</span></div>
-      <div class="small">Guthaben aller gezählten Spieler: <b>${pkt(pr.guth)}</b> Talente<br>Zufluss pro Tag (Summe der Ø letzte 7 Tage): <b>${talZ1(pr.fluss)}</b> · pro Woche etwa <b>${pkt(Math.round(pr.fluss * 7))}</b><br>Schon an die Stiftshütte gespendet: <b>${pkt(pr.gespendet)}</b> von ${pkt(STIFT.reduce((a, x) => a + x.ziel, 0))} Talenten</div></div>
-      <div class="card stack"><b>Prognose Stiftshütte</b><div class="small muted">${st ? `Aktuell offen: ${esc(st.n)} – noch ${pkt(pr.rest)} Talente · bis zur Bundeslade noch ${pkt(pr.restAlle)}` : "Alle Abschnitte sind erreicht."}. So lange würde es dauern, wenn dieser Anteil der Spieler das Guthaben und alle künftig verdienten Talente spendet (Richtwert, gerechnet mit dem Zufluss der letzten 7 Tage).</div>
-      <div>${[1, 0.5, 0.25].map(spkt).join("")}</div></div>`;
-    const karte = r => `<div class="card stack"><div class="topline"><b>${esc(r.name)}</b><span class="small muted">${pkt(r.tal)} Talente</span></div>
-      <div class="small">Ø je Spieltag: <b>${r.proSpiel === null ? "–" : talZ1(r.proSpiel)}</b> <span class="muted">(${r.spiel} Spieltage)</span> · Ø letzte 7 Tage: <b>${talZ1(r.pro7)}</b> pro Tag</div>
-      <div class="small muted">Verdient seit ${esc(datumVon(r.s).toLocaleDateString("de-DE"))}: ${pkt(r.v)} · im Laden ausgegeben: ${pkt(r.a)} · Stiftshütte gespendet: ${pkt(r.p)}${r.stand ? " · Stand " + esc(xqZeit(r.stand)) : ""}</div></div>`;
-    $("talListe").innerHTML = gesamt + z.map(karte).join("") + (ohne.length ? `<div class="card small muted">Noch keine Zählung (App noch nicht in Version 6.95 geöffnet): ${ohne.map(esc).join(", ")}</div>` : "") +
-      `<button class="btn ghost breit" id="talCsv" style="width:100%">${svg("scroll")} Als CSV-Datei (Excel)</button><div class="small muted">Zählbeginn der ersten Spieler: ${beginn ? esc(datumVon(beginn).toLocaleDateString("de-DE")) : "–"}.</div>`;
+    const st = pr.k < 8 ? STIFT[pr.k] : null, ziel = STIFT.reduce((a, x) => a + x.ziel, 0);
+    const tage = v => v === null ? "–" : v === 0 ? "sofort" : v + (v === 1 ? " Tag" : " Tage");
+    const kachel = (zahl, text) => `<div class="tp-k"><b>${zahl}</b><span>${text}</span></div>`;
+    const szen = q => `<div class="tp-z"><span>${Math.round(q * 100)} %</span><span>${st ? tage(pr.tage(pr.rest, q)) : "–"}</span><span>${pr.restAlle ? tage(pr.tage(pr.restAlle, q)) : "–"}</span></div>`;
+    const kopf = `<div class="tp-kacheln">${kachel(pkt(pr.guth), "Guthaben")}${kachel(talZ1(pr.fluss) + "/Tag", "Zufluss · Ø 7 Tage")}${kachel(pkt(pr.gespendet), "gespendet von " + pkt(ziel))}</div>`;
+    const prog = `<div class="card tp-prog"><div class="topline"><b>Prognose Stiftshütte</b><span class="small muted">${pkt(Math.round(pr.fluss * 7))} Talente pro Woche</span></div>
+      <div class="tp-z tp-zk"><span>Spenden</span><span>${st ? esc(st.kurz) + " voll" : "Abschnitte"}</span><span>Bundeslade</span></div>${[1, 0.5, 0.25].map(szen).join("")}
+      <div class="small muted" style="margin-top:4px">${st ? `Offen: ${esc(st.n)}, noch ${pkt(pr.rest)} · bis zur Bundeslade noch ${pkt(pr.restAlle)}.` : "Alle Abschnitte sind erreicht."}</div></div>`;
+    const zeile = r => `<div class="tp-s"><div class="tp-zeile"><b>${esc(r.name)}</b><span>${pkt(r.tal)}</span><span>${r.proSpiel === null ? "–" : talZ1(r.proSpiel)}</span><span>${talZ1(r.pro7)}</span></div>
+      <div class="tp-d">seit ${esc(datumVon(r.s).toLocaleDateString("de-DE", { day: "numeric", month: "numeric" }))} verdient ${pkt(r.v)} · Laden ${pkt(r.a)} · gespendet ${pkt(r.p)} · ${r.spiel} Spieltage</div></div>`;
+    const liste = `<div class="card tp-liste"><div class="tp-zeile tp-zk"><span>Spieler</span><span>Guthaben</span><span>Ø/Spieltag</span><span>Ø 7 Tage</span></div>${z.map(zeile).join("") || `<p class="small muted">Noch keine Zählung.</p>`}</div>`;
+    $("talListe").innerHTML = kopf + prog + liste + (ohne.length ? `<div class="small muted">Noch ohne Zählung (App noch nicht in 6.95 geöffnet): ${ohne.map(esc).join(", ")}</div>` : "") +
+      `<button class="btn ghost mini" id="talCsv" style="align-self:flex-start">${svg("scroll")} Als CSV (Excel)</button>`;
     if ($("talCsv")) $("talCsv").onclick = () => {
-      SFX.tap(); const num = v => v === null ? "" : String(Math.round(v * 10) / 10).replace(".", ","), kopf = ["Spieler", "Spieler-ID", "Guthaben", "Verdient seit Zaehlbeginn", "Zaehlbeginn", "Spieltage (35 Tage)", "Durchschnitt je Spieltag", "Durchschnitt pro Tag (7 Tage)", "Im Laden ausgegeben", "Stiftshuette gespendet", "Stand"];
+      SFX.tap(); const num = v => v === null ? "" : String(Math.round(v * 10) / 10).replace(".", ","), kopfz = ["Spieler", "Spieler-ID", "Guthaben", "Verdient seit Zaehlbeginn", "Zaehlbeginn", "Spieltage (35 Tage)", "Durchschnitt je Spieltag", "Durchschnitt pro Tag (7 Tage)", "Im Laden ausgegeben", "Stiftshuette gespendet", "Stand"];
       const zeilen = z.map(r => [r.name, r.pid, r.tal, r.v, datumVon(r.s).toLocaleDateString("de-DE"), r.spiel, num(r.proSpiel), num(r.pro7), r.a, r.p, r.stand ? xqZeit(r.stand) : ""].map(xqCsvFeld).join(";"));
-      const url = URL.createObjectURL(new Blob(["﻿" + [kopf.join(";"), ...zeilen].join("\r\n") + "\r\n"], { type: "text/csv;charset=utf-8" })), a = document.createElement("a");
+      const url = URL.createObjectURL(new Blob(["﻿" + [kopfz.join(";"), ...zeilen].join("\r\n") + "\r\n"], { type: "text/csv;charset=utf-8" })), a = document.createElement("a");
       a.href = url; a.download = `talente-gemeinde-${xqDateiTag()}.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
     };
   }).catch(e => { $("talListe").innerHTML = `<p class="muted">Konnte nicht geladen werden (${esc((e && e.code) || "Fehler")}). Sind die neuen Firebase-Regeln (Version 6.95) veröffentlicht?</p>`; });
