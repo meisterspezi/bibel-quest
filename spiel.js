@@ -4598,9 +4598,10 @@ function xqAnteile(q, n, alt, offen, xp) {
   z.forEach(r => { r.p = r.xp / ges * 100; });
   return z.sort((a, b) => b.xp - a.xp);
 }
-async function xpPruefDaten() {
-  const L = window.LB, jetzt = Date.now();
-  const [sp, xl, ev] = await Promise.all([L.alleSpieler(), L.xpListe(), L.xpProtokollNeu ? L.xpProtokollNeu(jetzt - 7 * 864e5).catch(() => null) : Promise.resolve(null)]);
+/* opt.seit/opt.limit: Zeitraum und Höchstzahl der gelesenen Protokoll-Einträge (jeder Eintrag zählt als Lesezugriff im Tageskontingent!) */
+async function xpPruefDaten(opt) {
+  const L = window.LB, jetzt = Date.now(); opt = opt || {};
+  const [sp, xl, ev] = await Promise.all([L.alleSpieler(), L.xpListe(), L.xpProtokollNeu ? L.xpProtokollNeu(opt.seit || jetzt - 7 * 864e5, opt.limit || 2000).catch(() => null) : Promise.resolve(null)]);
   const xm = new Map(xl.map(r => [r.pid, r])), ab24 = (() => { const d = new Date(jetzt - 864e5); return xqTagKey(d) + "-" + String(d.getHours()).padStart(2, "0"); })();
   const evVon = new Map(); (ev || []).forEach(e => { if (!evVon.has(e.pid)) evVon.set(e.pid, []); evVon.get(e.pid).push(e); });
   const seen = S.xpSeen || {};
@@ -4636,7 +4637,8 @@ async function xpPruefDaten() {
 async function xpBerichte() {
   const L = window.LB; if (!entwickler || !L || !L.xpListe || !L.alleSpieler || Date.now() - (S.xpPruefZ | 0) < 3 * 36e5) return;
   try {
-    const z = await xpPruefDaten();
+    /* Hintergrundprüfung liest nur Einträge seit der letzten Prüfung (nicht jedes Mal alle 7 Tage) – schont das tägliche Lese-Kontingent */
+    const z = await xpPruefDaten({ seit: Math.max(Date.now() - 7 * 864e5, (S.xpPruefZ | 0) - 6e5), limit: 1500 });
     for (const r of z) { const h = r.flags.filter(f => f.hart); if (h.length) await postkastenMelden("datenbank", `XP-Prüfung: ${r.name} (${r.xp.toLocaleString("de-DE")} XP) – ${h.map(f => f.t).join("; ")}. Details: Postkasten → XP-Prüfung.`, "xp-" + r.id + "-" + today() + "-" + String(hash(h.map(f => f.t).join("|")))); }
     S.xpSeen = {}; z.forEach(r => { if (r.hat) S.xpSeen[r.id] = { xp: r.xp, sum: r.summe, z: Date.now() }; });
     S.xpPruef = today(); S.xpPruefZ = Date.now(); save();
