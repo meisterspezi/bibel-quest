@@ -154,6 +154,7 @@ const LV_STUFEN = ["Kennenlernen", "Ordnen", "Ergänzen", "Anfangsbuchstaben", "
 const LV_TAL = [5, 5, 5, 5, 10];   /* Talente beim ersten Erreichen von Stufe 1 … 5 – je Vers einmal */
 const LV_BEWAHR_TAL = 15;          /* Monatsprüfung bestanden („Vers bewahrt“) */
 const LV_BEWAHR_TAGE = 7;          /* Monatsprüfung geht in den letzten 7 Tagen des Monats */
+const LEKTION_XP_FAKTOR = 0.25; /* Grund-XP einer Lektion: 75 % weniger (6.93) */
 const LV_XP = 30, LV_XP_RICHTIG = 48; /* XP je Lektion + je Aufgabe, die beim ersten Versuch sitzt */
 const LV_STUFEN_PRO_TAG = 1;       /* neue Stufen pro Tag – danach wird „gefestigt“ (XP, Übungstag) */
 const LV_TURBO_QUOTE = 90;         /* Turbo: wer eine Lektion mit so viel % beim ersten Versuch schafft … */
@@ -1687,7 +1688,7 @@ VIEWS.lektion = (arg) => {
   };
   function fertig(err) {
     const stars = err === 0 ? 3 : err <= 2 ? 2 : 1, prev = S.stars[gi] || 0; if (stars > prev) S.stars[gi] = stars;
-    const W = spielWdh("lektion-" + gi), xp = wdhMal(g.books.length * 21 + stars * 36, W), ltal = wdhMal(Math.max(0, stars - prev) * 2, W); richtig(g.books.length);
+    const W = spielWdh("lektion-" + gi), xp = wdhMal(Math.max(1, Math.round((g.books.length * 21 + stars * 36) * LEKTION_XP_FAKTOR)), W), ltal = wdhMal(Math.max(0, stars - prev) * 2, W); richtig(g.books.length);
     quest("station", 1); quest("runde", 1);
     SFX.win(); vibrate([20, 30, 20, 30, 60]); rain(70);
     setTimeout(() => {
