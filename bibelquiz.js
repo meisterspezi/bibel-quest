@@ -57,7 +57,7 @@ const QUIZ_THEMEN = [
     { f: "Wessen Träume deutete Josef im Land Ägypten?", a: ["Die Träume des Pharao", "Die Träume Nebukadnezars", "Die Träume Sauls", "Die Träume Labans"], ref: "1. Mose 41,25", st: 2 },
     { f: "Welcher König von Salem und Priester Gottes segnete Abram?", a: ["Melchisedek", "Abimelech", "Laban", "Bileam"], ref: "1. Mose 14,18-19", st: 3 },
     { f: "Wie hieß Saras ägyptische Magd, die Mutter Ismaels?", a: ["Hagar", "Bilha", "Silpa", "Ketura"], ref: "1. Mose 16,1.15", st: 2 },
-    { f: "Wie viele Jahre diente Jakob bei Laban insgesamt für Lea und Rahel?", a: ["14 Jahre", "7 Jahre", "20 Jahre", "12 Jahre"], ref: "1. Mose 29,20.27-30", st: 3 },
+    { f: "Wie viele Jahre diente Jakob insgesamt bei Laban?", a: ["20 Jahre", "14 Jahre", "7 Jahre", "12 Jahre"], ref: "1. Mose 31,41", st: 3 },
     { f: "Wie hieß die Tochter von Jakob und Lea?", a: ["Dina", "Tamar", "Mirjam", "Rahel"], ref: "1. Mose 30,21", st: 3 },
     { f: "Wie hießen die beiden Söhne Josefs?", a: ["Manasse und Ephraim", "Perez und Serach", "Ruben und Simeon", "Kain und Abel"], ref: "1. Mose 41,51-52", st: 3 },
     { f: "Was schenkte Jakob seinem Sohn Josef?", a: ["Einen bunten Leibrock", "Einen goldenen Ring", "Ein Schwert", "Eine Harfe"], ref: "1. Mose 37,3", st: 1 },
