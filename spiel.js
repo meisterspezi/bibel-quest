@@ -783,8 +783,15 @@ function xqZaehlen(n, q) {
   x.q[q] = (x.q[q] | 0) + n; x.n[q] = (x.n[q] | 0) + 1; x.m[q] = Math.max(x.m[q] | 0, n);
   const tg = xqTagKey(new Date()), st = tg + "-" + String(new Date().getHours()).padStart(2, "0");
   x.tag[tg] = (x.tag[tg] | 0) + n; x.std[st] = (x.std[st] | 0) + n;
+  xqKuerzen(x);
+}
+/* 6.81: Tages-/Stundenwerte auf das erlaubte Maß kürzen (Regeln: tag ≤ 12, std ≤ 50). Nach dem Zusammenführen zweier Geräte waren es
+   bis zu 20 Tage bzw. 96 Stunden – dann lehnte die Datenbank die XP-Quellen still ab, bis wieder XP vergeben wurden. */
+function xqKuerzen(x) {
+  if (!x) return x; x.tag = x.tag || {}; x.std = x.std || {};
   const tk = Object.keys(x.tag).sort(); while (tk.length > 10) delete x.tag[tk.shift()];
   const sk = Object.keys(x.std).sort(); while (sk.length > 48) delete x.std[sk.shift()];
+  return x;
 }
 /* 6.74: Protokoll der täglichen Belohnung (Schatztruhe): wann (Uhrzeit laut Gerät), wie viel XP/Talente, welcher Truhen-Tag, direkt geöffnet oder „von gestern“ */
 function xqBelohnung(art, xp, tal, tag) {
@@ -797,7 +804,7 @@ function xqMischen(a, b) {
   if (!b || !b.q) return a; if (!a || !a.q) return JSON.parse(JSON.stringify(b));
   const mx = (o1, o2) => { const r = Object.assign({}, o1 || {}); Object.entries(o2 || {}).forEach(([k, v]) => { r[k] = Math.max(r[k] | 0, v | 0); }); return r; };
   const bel = [...(Array.isArray(a.bel) ? a.bel : []), ...(Array.isArray(b.bel) ? b.bel : [])].filter((e, i, l) => l.findIndex(f => f.z === e.z && f.a === e.a) === i).sort((p, q) => p.z - q.z).slice(-100);
-  return { alt: Math.min(a.alt | 0, b.alt | 0), q: mx(a.q, b.q), n: mx(a.n, b.n), m: mx(a.m, b.m), tag: mx(a.tag, b.tag), std: mx(a.std, b.std), bel };
+  return xqKuerzen({ alt: Math.min(a.alt | 0, b.alt | 0), q: mx(a.q, b.q), n: mx(a.n, b.n), m: mx(a.m, b.m), tag: mx(a.tag, b.tag), std: mx(a.std, b.std), bel });
 }
 /* 6.76: Geräteabgleich – bringt das Zusammenführen XP von einem anderen Gerät mit (höherer Wert gewinnt) und stehen diese XP in keiner
    Quelle. Genau dieser Zuwachs wird als eigene Quelle „Geräteabgleich“ gebucht (mit Protokolleintrag), damit er nicht als „ohne Quelle“
@@ -847,7 +854,23 @@ function xqSenden() {
   xqLogSenden(); truheNachholen();
   const sig = JSON.stringify(S.xq); if (S.xqSync === sig) return;
   /* bewusst still: solange die Regeln für „xpquellen“ nicht veröffentlicht sind, darf das Spiel nichts melden oder neu verbinden */
-  L.xpSetzen(S.pid, S.lbName, S.xq).then(() => { S.xqSync = sig; save(); }).catch(() => {});
+  L.xpSetzen(S.pid, S.lbName, xqKuerzen(S.xq)).then(() => { S.xqSync = sig; save(); }).catch(e => xqNachholen(e));
+}
+/* 6.81: Ein anderes Gerät desselben Spielers hat die Zählung schon weitergeschrieben (Regeln: Summen nur steigend, Anfangsbestand nur
+   sinkend, Belohnungs-Protokoll nie kürzer). Dann lehnt die Datenbank den älteren Stand dieses Geräts ab – bis 6.80 still und so lange,
+   bis die App neu startete. Die Rangliste bekam die XP trotzdem, und in der XP-Prüfung standen sie als „ohne Quelle“.
+   Jetzt holt sich das Gerät den Stand aus der Datenbank, mischt ihn ein (je Quelle der höhere Wert) und sendet einmal erneut. */
+let xqNachLaeuft = 0;
+async function xqNachholen(e) {
+  const L = window.LB; if (!L || !L.xpHolen || !S.xq || !S.pid || Date.now() - xqNachLaeuft < 6e4) return;
+  if (!String((e && e.code) || "").includes("permission-denied")) return;
+  xqNachLaeuft = Date.now();
+  try {
+    const r = await L.xpHolen(S.pid); if (!r || !r.q) return;
+    S.xq = xqMischen(S.xq, r); save();
+    const sig = JSON.stringify(S.xq);
+    await L.xpSetzen(S.pid, S.lbName, S.xq); S.xqSync = sig; save();
+  } catch (e2) { /* still – nächster Versuch frühestens in einer Minute */ }
 }
 function addXp(n, el, quelle, info) {
   neuerTag(); serieZaehlen(); tagMerken();
@@ -4696,6 +4719,46 @@ function xqAnteile(q, n, alt, offen, xp) {
   z.forEach(r => { r.p = r.xp / ges * 100; });
   return z.sort((a, b) => b.xp - a.xp);
 }
+/* 6.81: „Ohne Quelle“ aufschlüsseln. Grundlage ist das Einzelprotokoll eines Spielers: Jeder Eintrag kennt den XP-Stand vorher (v),
+   die Vergabe (x) und eine laufende Nummer je Gerät (n). Folgt auf Nr. k die Nr. k+1, muss v gleich vorher v + x sein – liegt v höher,
+   kamen dazwischen XP ohne Vergabe auf diesem Gerät dazu („Sprung“). Kategorien (in dieser Reihenfolge auf „ohne Quelle“ verteilt):
+   wartet  – Vergaben, die nach der letzten gespeicherten Zählung gebucht wurden (Zählung dieses Geräts wurde abgelehnt, siehe xqNachholen)
+   sprung  – Sprung ohne andere Vergaben dazwischen und ab Version 6.76: nicht erklärbar → bleibt rot
+   zweit   – Sprung, während auf einem zweiten Gerät gespielt wurde (Übernahme beim Abgleich)
+   altlast – Sprung mit App-Version vor 6.76 (Geräteabgleich wurde damals noch nicht gebucht) und Rest aus der Zeit vor dem Protokoll
+   Rest ohne Erklärung bei vollständigem Protokoll → „nicht zuzuordnen“ (rot). Nur Anzeige – an den gezählten Quellen ändert sich nichts. */
+const XQ_LUECKE = {
+  wartet: { name: "Noch nicht übertragen", bereich: "Zählung eines Geräts hing hinterher", farbe: "#8fb3d9" },
+  zweit: { name: "Übernahme vom zweiten Gerät", bereich: "Abgleich ohne mitgezählte Quelle", farbe: "#b39ddb" },
+  altlast: { name: "Altlast vor 6.76", bereich: "Abgleich/alte Version, vor dem Protokoll", farbe: "#8a84a8" },
+  sprung: { name: "Sprung ohne Spiel", bereich: "nicht erklärt", farbe: "#ff5c5c" },
+  rest: { name: "Nicht zuzuordnen", bereich: "nicht erklärt", farbe: "#ff5c5c" }
+};
+function xqLueckenAnalyse(o, ev, vollGeladen) {
+  const l = (ev || []).filter(e => e && +e.z > 0).slice().sort((a, b) => a.z - b.z || a.n - b.n);
+  const nachNr = new Map(); l.forEach(e => { if (!nachNr.has(e.n)) nachNr.set(e.n, []); nachNr.get(e.n).push(e); });
+  const summe = { wartet: 0, sprung: 0, zweit: 0, altlast: 0 }, spruenge = [];
+  if (o.upd) l.forEach(e => { if (xqMs(e.gebucht) > o.upd + 2000) summe.wartet += +e.x || 0; });
+  l.forEach(e => {
+    const vor = (nachNr.get(e.n - 1) || []).filter(p => p.z <= e.z && e.z - p.z < 30 * 864e5).pop(); if (!vor) return;
+    const plus = Math.round((+e.v || 0) - ((+vor.v || 0) + (+vor.x || 0))); if (!(plus > 0)) return;
+    const dazwischen = l.some(f => f !== vor && f !== e && f.z > vor.z && f.z < e.z);
+    const k = !(parseFloat(e.ver) >= 6.76) ? "altlast" : (dazwischen || e.q === "abgleich") ? "zweit" : "sprung";
+    summe[k] += plus; spruenge.push({ k, xp: plus, von: vor.z, bis: e.z, ver: e.ver || "" });
+  });
+  let rest = Math.max(0, Math.round(o.offen || 0)); const zeilen = [];
+  ["wartet", "sprung", "zweit", "altlast"].forEach(k => { const v = Math.min(rest, summe[k]); if (v > 0) { zeilen.push({ k, xp: v }); rest -= v; } });
+  /* Protokoll unvollständig (Zählung begann vor 6.75 oder nicht alle Einträge geladen) → Rest gehört in die Zeit davor */
+  const vollst = vollGeladen && l.length >= Object.values(o.n || {}).reduce((a, v) => a + (+v || 0), 0);
+  if (rest > 0) { const k = vollst ? "rest" : "altlast", z = zeilen.find(r => r.k === k); if (z) z.xp += rest; else zeilen.push({ k, xp: rest }); }
+  return { zeilen: zeilen.map(z => Object.assign({ n: 0 }, XQ_LUECKE[z.k], z)), spruenge: spruenge.sort((a, b) => b.bis - a.bis), vollst, eintraege: l.length };
+}
+/* Anteile mit aufgeschlüsselter Lücke statt einer roten Zeile „Ohne Quelle“ */
+function xqAnteileLuecke(r, a, ohne) {
+  const basis = xqAnteile(r.q, r.n, ohne ? 0 : r.alt, 0, ohne ? Math.max(0, r.xp - r.alt) : r.xp).concat(a.zeilen.map(z => Object.assign({}, z, { k: "l-" + z.k })));
+  const ges = Math.max(1, ohne ? r.xp - r.alt : r.xp, basis.reduce((s, z) => s + z.xp, 0)); basis.forEach(z => { z.p = z.xp / ges * 100; });
+  return basis.sort((x, y) => y.xp - x.xp);
+}
 /* opt.seit/opt.limit: Zeitraum und Höchstzahl der gelesenen Protokoll-Einträge (jeder Eintrag zählt als Lesezugriff im Tageskontingent!) */
 async function xpPruefDaten(opt) {
   const L = window.LB, jetzt = Date.now(); opt = opt || {};
@@ -4711,7 +4774,7 @@ async function xpPruefDaten(opt) {
     { const gesehen = {}; o.bel.forEach(e => { const k = e.d || "?"; gesehen[k] = (gesehen[k] | 0) + 1; });
       Object.entries(gesehen).forEach(([k, c]) => { if (k !== "?" && c > 1) o.flags.push({ hart: true, t: `Tägliche Belohnung für den Truhen-Tag ${xqDatum(k)} ${c}× erhalten` }); });
       o.bel.forEach(e => { if (e.x !== AUFGABE_BONUS_XP && e.x !== 100) o.flags.push({ hart: true, t: `Tägliche Belohnung ${xqZeit(e.z)} mit ${e.x} XP statt ${AUFGABE_BONUS_XP}` }); }); }
-    o.q = q; o.n = n; o.alt = x.alt | 0; o.summe = Object.values(q).reduce((a, v) => a + (+v || 0), 0);
+    o.q = q; o.n = n; o.alt = x.alt | 0; o.upd = xqMs(x.updated); o.summe = Object.values(q).reduce((a, v) => a + (+v || 0), 0);
     o.offen = Math.max(0, xp - o.alt - o.summe);
     o.spitze = Math.max(0, ...Object.values(std).map(v => +v || 0));
     o.h24 = Object.entries(std).filter(([k]) => k >= ab24).reduce((a, [, v]) => a + (+v || 0), 0);
@@ -4767,6 +4830,18 @@ function xqEreignisHtml(e) {
     <div class="small muted">Spielzeit ${esc(xqDauer(e.s))}${e.f != null ? ` · Fortschritt ${e.f}${e.fm ? " / " + e.fm : ""}` : ""} · Stand ${(+e.v).toLocaleString("de-DE")} → ${(+e.v + +e.x).toLocaleString("de-DE")}${e.ver ? " · v" + esc(e.ver) : ""}${abw}</div>
     ${e.d ? `<div class="small muted">${esc(e.d)}</div>` : ""}${v.map(t => `<div class="small xq-warn">⚠ ${esc(t)}</div>`).join("")}</div>`;
 }
+function xqLueckeHtml(a) {
+  const zahl = v => (+v || 0).toLocaleString("de-DE");
+  const erkl = { wartet: "Ein Gerät durfte seine Zählung nicht speichern, weil ein anderes Gerät schon weiter war. Die Vergaben stehen im Protokoll – ab 6.81 holt das Gerät den Stand nach.",
+    zweit: "XP kamen beim Abgleich mit einem zweiten Gerät dazu, dessen Quellen nicht mitkamen (z. B. weil dort die Zählung abgelehnt wurde).",
+    altlast: "Vor Version 6.76 wurde der Geräteabgleich nicht als Quelle gebucht; vor 6.75 gab es noch kein Protokoll. Diese XP lassen sich nicht mehr genauer zuordnen.",
+    sprung: "Der XP-Stand stieg zwischen zwei Vergaben desselben Geräts, ohne dass irgendwo gespielt wurde. Das sollte nicht vorkommen – genauer ansehen.",
+    rest: "Das Protokoll ist vollständig, erklärt diese XP aber nicht." };
+  const sp = a.spruenge.filter(s => s.k === "sprung" || s.k === "zweit").slice(0, 8);
+  return `${a.zeilen.map(z => `<div class="xq-zeile"><i class="xq-dot" style="background:${z.farbe}"></i><span class="xq-nm">${esc(z.name)}<small>${esc(erkl[z.k] || "")}</small></span><b class="xq-xp">${zahl(z.xp)}</b></div>`).join("")}
+    ${sp.length ? `<div style="margin-top:6px"><b>Sprünge im Protokoll</b><br>${sp.map(s => `${esc(xqUhr(s.von))} → ${esc(xqUhr(s.bis))}: +${zahl(s.xp)} XP · ${esc(XQ_LUECKE[s.k].name)}${s.ver ? " · v" + esc(s.ver) : ""}`).join("<br>")}</div>` : ""}
+    <div style="margin-top:4px"><i>${zahl(a.eintraege)} Protokoll-Einträge ausgewertet${a.vollst ? "" : " · Protokoll reicht nicht bis zum Beginn der Zählung zurück"}</i></div>`;
+}
 /* 6.77: gemessene XP pro Minute je Spiel (nur Vergaben ab Version 6.79 mit mindestens 15 s Spielzeit) – Grundlage zum Nachjustieren */
 const XQ_ZIEL_MIN = { solo: 150, duell: 225 };
 function xqRateKarte(z) {
@@ -4802,7 +4877,8 @@ VIEWS.xppruefung = () => {
       const kopf = `<div class="topline"><b>${esc(r.name)}</b><span class="small muted">Level ${r.level} · ${ohne && r.hat ? zahl(r.xp - r.alt) + " gezählt · " + zahl(r.xp) + " gesamt" : zahl(r.xp) + " XP"}</span></div>`;
       if (!r.hat) return `<div class="card">${kopf}<div class="small muted">Noch keine Zählung (neue Version noch nicht geöffnet).</div></div>`;
       return `<div class="card stack${r.flags.some(f => f.hart) ? " xq-karte-bad" : ""}">${kopf}
-        ${xqAnteilHtml(ohne ? xqAnteile(r.q, r.n, 0, r.offen, Math.max(0, r.xp - r.alt)) : r.anteile)}
+        <div id="xqBar-${esc(r.id)}">${xqAnteilHtml(r.luecke ? xqAnteileLuecke(r, r.luecke, ohne) : ohne ? xqAnteile(r.q, r.n, 0, r.offen, Math.max(0, r.xp - r.alt)) : r.anteile)}</div>
+        ${r.offen > 0 ? `<details data-xqlu="${esc(r.id)}"${r.luecke ? " open" : ""}><summary class="small">Woher kommen die ${zahl(r.offen)} XP „ohne Quelle“?</summary><div class="xq-luliste small muted" style="margin-top:6px">${r.luecke ? xqLueckeHtml(r.luecke) : "Wird beim Öffnen aus dem Protokoll berechnet …"}</div></details>` : ""}
         <div class="small muted">Letzte 24 Stunden: ${zahl(r.h24)} XP · stärkste Stunde: ${zahl(r.spitze)} XP</div>
         <details data-xpev="${esc(r.id)}"><summary class="small">Protokoll aller XP-Vergaben (Zeit, Spielzeit, Fortschritt)</summary><div class="xq-evliste small muted" style="margin-top:6px">Wird beim Öffnen geladen …</div></details>
         ${r.bel.length ? `<details><summary class="small">Tägliche Belohnung: ${r.bel.length}× erhalten · zuletzt ${esc(xqZeit(r.bel[r.bel.length - 1].z))} (+${r.bel[r.bel.length - 1].x} XP)</summary><div class="small muted" style="margin-top:6px">${r.bel.slice(-14).reverse().map(e => `${esc(xqZeit(e.z))} · +${e.x} XP · +${e.t} Talente · Truhe vom ${esc(xqDatum(e.d || "?"))}${e.a === "gestern" ? " (am Folgetag automatisch geöffnet)" : ""}`).join("<br>")}<br><i>Uhrzeit laut Gerät des Spielers</i></div></details>` : ""}
@@ -4814,6 +4890,12 @@ VIEWS.xppruefung = () => {
       catch (e) { m.textContent = "Export fehlgeschlagen (" + ((e && e.code) || "Fehler") + ")."; }
       k.disabled = false;
     };
+    screen.querySelectorAll("details[data-xqlu]").forEach(d => d.addEventListener("toggle", () => {
+      const r = z.find(x => x.id === d.dataset.xqlu); if (!d.open || !r || r.luecke || d.dataset.laedt) return; d.dataset.laedt = "1"; const box = d.querySelector(".xq-luliste");
+      L.xpProtokoll(r.id, 2000).then(l => { r.luecke = xqLueckenAnalyse(r, l, l.length < 2000); box.innerHTML = xqLueckeHtml(r.luecke);
+        const bar = $("xqBar-" + r.id); if (bar) bar.innerHTML = xqAnteilHtml(xqAnteileLuecke(r, r.luecke, !!S.xqOhneAlt)); })
+        .catch(e => { d.dataset.laedt = ""; box.textContent = "Konnte nicht geladen werden (" + ((e && e.code) || "Fehler") + ")."; });
+    }));
     screen.querySelectorAll("details[data-xpev]").forEach(d => d.addEventListener("toggle", () => {
       if (!d.open || d.dataset.geladen) return; d.dataset.geladen = "1"; const box = d.querySelector(".xq-evliste");
       L.xpProtokoll(d.dataset.xpev, 100).then(l => { box.innerHTML = l.length ? `<div class="small muted" style="margin-bottom:6px">Die letzten ${l.length} Vergaben, neueste zuerst · Uhrzeit laut Gerät des Spielers</div>${l.map(xqEreignisHtml).join("")}<button class="btn ghost mini" data-xqcsv style="margin-top:4px">${svg("scroll")} Dieses Protokoll als CSV</button>` : "Noch keine protokollierten Vergaben.";

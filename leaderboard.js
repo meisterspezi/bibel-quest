@@ -168,6 +168,7 @@ if (!configured) {
     LB.stiftSetzen = async (pid, name, s) => { await LB.signIn(); await fs.setDoc(ref("stiftshuette", pid), { pid, name, s, updated: fs.serverTimestamp() }); };
     // 6.73: XP-Quellen je Spieler {pid, name, alt, q:{Quelle:XP}, n:{Quelle:Anzahl}, m:{Quelle:größte Vergabe}, tag:{Tag:XP}, std:{"Tag-Std":XP}, bel:[{z:Zeit(ms), x:XP, t:Talente, a:truhe|gestern, d:Truhen-Tag}]}
     LB.xpListe = async () => { const q = await fs.getDocs(fs.collection(db, "xpquellen")); return q.docs.map(d => ({ pid: d.id, ...d.data() })); };
+    LB.xpHolen = async (pid) => { await LB.signIn(); const s = await fs.getDoc(ref("xpquellen", pid)); return s.exists() ? s.data() : null; };  // 6.81
     LB.xpSetzen = async (pid, name, x) => { await LB.signIn(); await fs.setDoc(ref("xpquellen", pid), { pid, name, alt: x.alt | 0, q: x.q || {}, n: x.n || {}, m: x.m || {}, tag: x.tag || {}, std: x.std || {}, bel: Array.isArray(x.bel) ? x.bel.slice(-100) : [], updated: fs.serverTimestamp() }); };
     // 6.75: XP-Protokoll – je XP-Vergabe ein Dokument (nur anlegen, nie ändern): {pid, name, z:Zeit(ms, Uhr des Geräts), q:Quelle, x:XP, v:XP-Stand vorher,
     //       s:Spielzeit(Sek.), f:Fortschritt, fm:möglicher Höchstwert, d:Kurztext, ver:App-Version, gebucht:Serverzeit}. Dokument-ID: <pid>_<z>_<n>
