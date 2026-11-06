@@ -16,7 +16,7 @@ const DEF = {
   dq: { day: "", items: [], bonus: false }, questBonusCount: 0, lv: {}, duGes: [], duSiege: 0, duSpiele: 0, duTyp: "vers", duGesendet: 0, duAngenommen: 0, duArten: [], duKetteVoll: false,
   mute: false, beat: true, gapSing: false, atTi: 0, ntTi: 0,
   ruestStufe: {}, stift: {}, stiftGefeiert: [], stiftEingeweiht: false,
-  lvLohn: 0, lbName: "", pid: "", ownersSet: false, offlineOnly: false, weekKey: "", weekXp: 0, podium: false, wochensieger: false, wochenziel: false,
+  xq: null, lvLohn: 0, lbName: "", pid: "", ownersSet: false, offlineOnly: false, weekKey: "", weekXp: 0, podium: false, wochensieger: false, wochenziel: false,
   ver: 6
 };
 let S = JSON.parse(JSON.stringify(DEF));
@@ -482,7 +482,7 @@ function vlEnde() {
     ${turboWeiter ? `<button class="btn primary breit" id="vlTurbo">${svg("bolt")} Weiter mit Stufe ${neuSt + 1}</button><button class="btn ghost breit" id="vlFertig">Für heute fertig</button>` : `<button class="btn primary breit" id="vlFertig">Weiter</button>`}</div>`;
   $("vlFertig").onclick = () => { SFX.tap(); go("home"); };
   if ($("vlTurbo")) $("vlTurbo").onclick = () => { SFX.tap(); go("verslektion", k); };
-  setTimeout(() => { addXp(xp, $("vlFertig")); if (tal) addTal(tal); save(); checkBadges(); lbSync(); }, 350);
+  setTimeout(() => { addXp(xp, $("vlFertig"), "vers"); if (tal) addTal(tal); save(); checkBadges(); lbSync(); }, 350);
 }
 
 /* ----- Karte auf der Startseite und im Archiv ----- */
@@ -761,8 +761,40 @@ function bewaehrtWert(r) {
   return r.bew || 0;
 }
 
-function addXp(n, el) {
+/* ---------- XP-Quellen mitzählen (6.73) ----------
+   Jede XP-Vergabe läuft über addXp(n, el, quelle). S.xq = { alt: XP vor der Zählung, q: {Quelle: XP}, n: {Quelle: Anzahl},
+   m: {Quelle: größte einzelne Vergabe}, tag: {Tag: XP}, std: {"Tag-Stunde": XP} } – wird in die Sammlung „xpquellen“ gespiegelt.
+   Der Verwalter sieht in der „XP-Prüfung“, ob die XP der Rangliste durch Quellen erklärt sind. */
+const XQ_QUELLEN = { vers: "Lernvers", lektion: "Lektion", luecke: "Lückenquiz", blitz: "Blitz", kette: "Kette", duell: "Duell", duelleigen: "Duell (eigenes Profil)", bib: "Biblionär", tagesbonus: "Tagesaufgaben", spickzettel: "Spickzettel", sonst: "Sonstiges" };
+/* höchste XP, die eine einzelne Vergabe je Quelle ehrlich bringen kann (Blitz: 60 Richtige; Kette rückwärts: 65×4+300 …) */
+const XQ_MAX = { vers: 150, lektion: 130, luecke: 250, blitz: 1300, kette: 560, duell: 70, duelleigen: 70, bib: 105, tagesbonus: 100, spickzettel: 20, sonst: 100 };
+/* sortierbarer Tagesschlüssel (dstr() schreibt Monat/Tag ohne führende Null) */
+const xqTagKey = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+function xqZaehlen(n, q) {
+  n = Math.round(n); if (!(n > 0)) return;
+  if (!XQ_QUELLEN[q]) q = "sonst";
+  const x = S.xq && S.xq.q ? S.xq : (S.xq = { alt: Math.max(0, Math.round(S.xp)), q: {}, n: {}, m: {}, tag: {}, std: {} });
+  x.n = x.n || {}; x.m = x.m || {}; x.tag = x.tag || {}; x.std = x.std || {};
+  x.q[q] = (x.q[q] | 0) + n; x.n[q] = (x.n[q] | 0) + 1; x.m[q] = Math.max(x.m[q] | 0, n);
+  const tg = xqTagKey(new Date()), st = tg + "-" + String(new Date().getHours()).padStart(2, "0");
+  x.tag[tg] = (x.tag[tg] | 0) + n; x.std[st] = (x.std[st] | 0) + n;
+  const tk = Object.keys(x.tag).sort(); while (tk.length > 10) delete x.tag[tk.shift()];
+  const sk = Object.keys(x.std).sort(); while (sk.length > 48) delete x.std[sk.shift()];
+}
+function xqMischen(a, b) {
+  if (!b || !b.q) return a; if (!a || !a.q) return JSON.parse(JSON.stringify(b));
+  const mx = (o1, o2) => { const r = Object.assign({}, o1 || {}); Object.entries(o2 || {}).forEach(([k, v]) => { r[k] = Math.max(r[k] | 0, v | 0); }); return r; };
+  return { alt: Math.min(a.alt | 0, b.alt | 0), q: mx(a.q, b.q), n: mx(a.n, b.n), m: mx(a.m, b.m), tag: mx(a.tag, b.tag), std: mx(a.std, b.std) };
+}
+function xqSenden() {
+  const L = window.LB; if (!L || !L.ok || !L.xpSetzen || !S.pid || S.offlineOnly || !S.xq || !S.lbName) return;
+  const sig = JSON.stringify(S.xq); if (S.xqSync === sig) return;
+  /* bewusst still: solange die Regeln für „xpquellen“ nicht veröffentlicht sind, darf das Spiel nichts melden oder neu verbinden */
+  L.xpSetzen(S.pid, S.lbName, S.xq).then(() => { S.xqSync = sig; save(); }).catch(() => {});
+}
+function addXp(n, el, quelle) {
   neuerTag(); serieZaehlen(); tagMerken();
+  xqZaehlen(n, quelle);
   const vorher = levelOf(S.xp);
   S.xp += n; S.todayXp += n;
   const wk = weekKey(); if (S.weekKey !== wk) { S.weekKey = wk; S.weekXp = 0; } S.weekXp += n;
@@ -889,7 +921,7 @@ function aufgabenSicherstellen() {
   const t = today(); if (S.dq && S.dq.day === t && S.dq.items.every(it => AUFGABEN.some(a => a.id === it.id))) return;
   const alteTruhe = S.dq && S.dq.geschafft && !S.dq.bonus;
   const gew = aufgabenAuslosen(t);
-  if (alteTruhe) setTimeout(() => { addXp(AUFGABE_BONUS_XP); addTal(AUFGABE_BONUS); toast(`${TAL_MUENZE}<div><b>Deine Schatztruhe von gestern</b><div class="small muted">wurde für dich geöffnet: +${AUFGABE_BONUS_XP} XP und +${AUFGABE_BONUS} Talente</div></div>`); }, 1500);
+  if (alteTruhe) setTimeout(() => { addXp(AUFGABE_BONUS_XP, null, "tagesbonus"); addTal(AUFGABE_BONUS); toast(`${TAL_MUENZE}<div><b>Deine Schatztruhe von gestern</b><div class="small muted">wurde für dich geöffnet: +${AUFGABE_BONUS_XP} XP und +${AUFGABE_BONUS} Talente</div></div>`); }, 1500);
   S.dq = { day: t, items: gew.map(a => ({ id: a.id, prog: 0, done: false })), bonus: false };
 }
 function quest(ev, val = 1) {
@@ -1184,7 +1216,7 @@ function truheOeffnen(von) {
   t(2850, () => SFX.tick());
   t(3150, () => {
     ov.classList.remove("wackeln"); ov.classList.add("offen"); truhe.innerHTML = TRUHE_AUF; SFX.win(); vibrate([30, 40, 80]);
-    addXp(AUFGABE_BONUS_XP); addTal(AUFGABE_BONUS);
+    addXp(AUFGABE_BONUS_XP, null, "tagesbonus"); addTal(AUFGABE_BONUS);
   });
   t(3600, () => { ov.classList.add("lohn"); SFX.coin(); });
   t(3950, () => SFX.coin());
@@ -1364,7 +1396,7 @@ VIEWS.lektion = (arg) => {
     quest("station", 1); quest("runde", 1);
     SFX.win(); vibrate([20, 30, 20, 30, 60]); rain(70);
     setTimeout(() => {
-      addXp(xp); addTal(Math.max(0, stars - prev) * 2);
+      addXp(xp, null, "lektion"); addTal(Math.max(0, stars - prev) * 2);
       const next = gi + 1 < GROUPS.length;
       const m = modal(`<div class="label">Lektion geschafft</div><div class="stars" style="justify-content:center;gap:8px">${[1, 2, 3].map(k => `<span style="display:inline-block;width:44px;animation:pop .4s ${k * 0.15}s both">${STAR(stars >= k)}</span>`).join("")}</div>
       <h2>${err === 0 ? "Fehlerfrei!" : err + " Fehler"}</h2><div class="rewards"><span class="pill">+${xp} XP</span>${stars > prev ? `<span class="pill">+${(stars - prev) * 2} Talente</span>` : ""}</div>
@@ -1483,7 +1515,7 @@ VIEWS.gap = (arg) => {
       <button class="btn primary" id="again">Nochmal</button><button class="btn ghost" data-go="${alle ? "spielen" : "lied"}">Zurück</button></div>`;
     wireGo(); wireSing(); $("again").onclick = () => { SFX.tap(); vorlesenStop(); VIEWS.gap(arg); };
     SFX.win(); if (perfekt) rain(80);
-    if (xp) addXp(xp); save(); checkBadges();
+    if (xp) addXp(xp, null, "luecke"); save(); checkBadges();
   };
   render();
 };
@@ -1555,7 +1587,7 @@ function playBlitz(scope) {
       <button class="btn primary" id="again">Nochmal</button><button class="btn ghost" data-go="spielen">Zurück</button></div>`; wireGo(); wireSing();
     $("again").onclick = () => { SFX.tap(); vorlesenStop(); VIEWS.blitz(); };
     if (right > 0) { SFX.win(); if (rec) rain(90); }
-    if (xp) addXp(xp); addTal(tal); save(); checkBadges(); lbSync();
+    if (xp) addXp(xp, null, "blitz"); addTal(tal); save(); checkBadges(); lbSync();
   }
 }
 
@@ -1623,7 +1655,7 @@ function playChain(mode) {
       <button class="btn primary" id="cagain">Nochmal</button><button class="btn ghost" data-go="spielen">Andere Kette</button></div>`; wireGo(); wireSing();
     $("cagain").onclick = () => { SFX.tap(); vorlesenStop(); countdown(() => playChain(mode)); };
     if (full) { SFX.level(); rain(200); } else if (rec) SFX.win();
-    if (xp) addXp(xp); addTal(tal); save(); checkBadges(); lbSync();
+    if (xp) addXp(xp, null, "kette"); addTal(tal); save(); checkBadges(); lbSync();
   }
 }
 
@@ -1642,7 +1674,7 @@ VIEWS.learn = () => {
   bks.forEach(b => b.onclick = () => { b.classList.toggle("hid"); SFX.tap(); });
   $("hideAll").onclick = () => { bks.forEach(b => b.classList.add("hid")); SFX.tap(); screen.dataset.all = "1"; };
   $("showAll").onclick = () => { bks.forEach(b => b.classList.remove("hid")); SFX.tap(); };
-  bks.forEach(b => b.addEventListener("click", () => { if (screen.dataset.all === "1" && !S.peeked && bks.every(x => !x.classList.contains("hid"))) { S.peeked = true; save(); addXp(20); checkBadges(); } }));
+  bks.forEach(b => b.addEventListener("click", () => { if (screen.dataset.all === "1" && !S.peeked && bks.every(x => !x.classList.contains("hid"))) { S.peeked = true; save(); addXp(20, null, "spickzettel"); checkBadges(); } }));
 };
 
 /* ---------- Abzeichen ---------- */
@@ -1851,6 +1883,7 @@ function lbSync(now) {
   clearTimeout(lbTimer);
   lbTimer = setTimeout(() => {
     try { stiftSenden(); } catch (e) {} /* 6.68: noch nicht gesendete Spenden */
+    try { xqSenden(); } catch (e) {} /* 6.73: XP-Quellen */
     const opts = {}; if (!S.ownersSet && eigenePid(S.pid)) opts.owners = [L.uid];
     const ok = () => { if (opts.owners) { S.ownersSet = true; try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} geraetSpeichern(); } };
     /* Übergang 6.40: Solange die neuen Firebase-Regeln (Biblionär-Felder) noch nicht veröffentlicht sind, ohne diese Felder speichern */
@@ -1932,6 +1965,7 @@ function zusammenfuehren(r) {
   ["badges", "owned", "songHeard"].forEach(k => { S[k] = [...new Set([...(S[k] || []), ...(r[k] || [])])]; }); badgesBereinigen();
   Object.entries(r.stars || {}).forEach(([k, v]) => { S.stars[k] = Math.max(S.stars[k] || 0, v || 0); });
   if (dayNum(r.lastDay) > dayNum(S.lastDay)) { S.lastDay = r.lastDay; S.streak = r.streak; } else if (r.lastDay === S.lastDay) S.streak = Math.max(S.streak, r.streak || 0);
+  if (r.xq) S.xq = xqMischen(S.xq, r.xq);
   if (r.weekKey === S.weekKey) S.weekXp = Math.max(S.weekXp, r.weekXp || 0); else if ((r.weekKey || "") > (S.weekKey || "")) { S.weekKey = r.weekKey; S.weekXp = r.weekXp; }
   if (r.todayDay === S.todayDay) { S.todayXp = Math.max(S.todayXp, r.todayXp || 0); S.todayRight = Math.max(S.todayRight || 0, r.todayRight || 0); }
   if (r.lastGoalDay && dayNum(r.lastGoalDay) > dayNum(S.lastGoalDay)) { S.lastGoalDay = r.lastGoalDay; S.goalStreak = r.goalStreak; }
@@ -2886,7 +2920,7 @@ async function duEnde() {
   const extra = D.art === "blitz" && D.maxCombo >= 2 ? ` · beste Combo ${D.maxCombo}` : D.art === "kette" && D.r === D.fragen.length ? " · ganze Kette!"
     : D.art === "quiz" ? (D.p >= BIB_LEITER[14] ? " · Biblionär!" : D.raus ? " · ausgestiegen" : "") : "";
   const gegnerSpalte = `<div class="du-vs-sp offen"><span>${esc(D.gegner)}</span><b>?</b><small>${viele ? "sind dran" : "ist dran"}</small></div>`;
-  function xpGeben(ms) { if (D.xpGegeben) return; D.xpGegeben = true; setTimeout(() => { addXp(xp); if (tal) addTal(tal); checkBadges(); lbSync(); }, ms); }
+  function xpGeben(ms) { if (D.xpGegeben) return; D.xpGegeben = true; setTimeout(() => { addXp(xp, null, ziele.some(z => eigenePid(z.id)) ? "duelleigen" : "duell"); if (tal) addTal(tal); checkBadges(); lbSync(); }, ms); }
   /* 6.62: Gegenspieler – Auflösung im Siegelbruch-Stil; Titel, Belohnung und Knöpfe erst danach */
   const aufl = !D.neu && !fehler && !weg;
   if (aufl) {
@@ -3113,7 +3147,7 @@ function bibEnde(G, punkte) {
   if ($("bibNochmal")) $("bibNochmal").onclick = () => { SFX.tap(); bibSolo(); };
   if ($("bibRang")) $("bibRang").onclick = () => { SFX.tap(); go("rank", "bibWoche"); };
   SFX.win(); if (million) rain(140); else if (punkte >= 16000) rain(60);
-  setTimeout(() => { addXp(xp); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350);
+  setTimeout(() => { addXp(xp, null, "bib"); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350);
 }
 /* Solo-Übung (Spielen): zufällige Fragen */
 VIEWS.biblionaer = () => { screen.innerHTML = ""; };
@@ -4413,6 +4447,7 @@ async function entwicklerPruefen() {
     if (!entwickler) { renderHud(); return; }
     await doppelteZusammenfuehren();
     await statusBerichte();
+    await xpBerichte();
     const liste = await L.feedbackListe(); postfachNeu = liste.filter(f => !f.erledigt).length; renderHud();
     if (["home", "profil"].includes(current) && !document.querySelector(".modal")) go(current);
   } catch (e) { entwickler = false; }
@@ -4454,6 +4489,7 @@ VIEWS.postfach = (kat) => {
   <div class="card rk-liste" style="margin-top:10px"><div class="rk-kopf"><div><b>${esc(PK_KAT.find(k => k[0] === pkKategorie)[1])}</b><span class="small muted" id="pkAnz"></span></div>
     <div class="rk-var" role="group" aria-label="Filter">${[["neu", "Neu"], ["alle", "Alle"], ["erledigt", "Erledigt"]].map(([k, n]) => `<button data-pf="${k}" aria-pressed="${k === postfachFilter}">${n}</button>`).join("")}</div></div>
   <div class="stack" id="pfListe" style="margin-top:6px"><p class="muted small">Lade …</p></div></div>
+  <button class="btn ghost breit" data-go="xppruefung" style="margin-top:10px;width:100%">${svg("medal")} XP-Prüfung: woher kommen die XP?</button>
   ${pkKategorie === "datenbank" || pkKategorie === "alle" ? `<button class="btn ghost breit" id="dupJetzt" style="margin-top:10px;width:100%">${svg("people")} Doppelte Namen jetzt prüfen</button>` : ""}`;
   wireGo();
   screen.querySelectorAll("[data-pf]").forEach(b => b.onclick = () => { SFX.tap(); postfachFilter = b.dataset.pf; go("postfach"); });
@@ -4483,6 +4519,58 @@ VIEWS.postfach = (kat) => {
         if (a !== "ja") return; try { await L.feedbackLoeschen(b.dataset.del); liste = liste.filter(x => x.id !== b.dataset.del); zeichne(liste); } catch (e) { toast("<div>Löschen hat nicht geklappt.</div>"); } }); });
   };
   L.feedbackListe().then(zeichne).catch(() => { $("pfListe").innerHTML = `<p class="muted">Postkasten konnte nicht geladen werden.</p>`; });
+};
+
+/* ---------- XP-Prüfung (6.73) ----------
+   Vergleicht die XP der Rangliste mit der Zählung je Quelle (Sammlung „xpquellen“). „Ohne Quelle“ = XP − Anfangsbestand − Summe der Quellen. */
+async function xpPruefDaten() {
+  const L = window.LB, [sp, xl] = await Promise.all([L.alleSpieler(), L.xpListe()]);
+  const xm = new Map(xl.map(r => [r.pid, r])), jetzt = Date.now(), ab24 = (() => { const d = new Date(jetzt - 864e5); return xqTagKey(d) + "-" + String(d.getHours()).padStart(2, "0"); })();
+  return sp.filter(r => r.name).map(r => {
+    const x = xm.get(r.id) || null, xp = +r.xp || 0, o = { id: r.id, name: r.name, xp, level: r.level || levelOf(xp), hat: !!x, flags: [] };
+    if (!x) return o;
+    const q = x.q || {}, n = x.n || {}, m = x.m || {}, std = x.std || {};
+    o.q = q; o.n = n; o.alt = x.alt | 0; o.summe = Object.values(q).reduce((a, v) => a + (+v || 0), 0);
+    o.offen = Math.max(0, xp - o.alt - o.summe);
+    o.spitze = Math.max(0, ...Object.values(std).map(v => +v || 0));
+    o.h24 = Object.entries(std).filter(([k]) => k >= ab24).reduce((a, [, v]) => a + (+v || 0), 0);
+    if (o.offen > Math.max(500, xp * 0.1)) o.flags.push({ hart: true, t: `${o.offen.toLocaleString("de-DE")} XP ohne erklärende Quelle` });
+    if (o.spitze > 15000) o.flags.push({ hart: true, t: `${o.spitze.toLocaleString("de-DE")} XP in einer einzigen Stunde` });
+    Object.entries(m).forEach(([k, v]) => { if ((XQ_MAX[k] || 100) < v) o.flags.push({ hart: true, t: `Einzelvergabe ${v} XP bei „${XQ_QUELLEN[k] || k}“ (ehrlich höchstens ${XQ_MAX[k] || 100})` }); });
+    if ((q.duelleigen | 0) > 0) o.flags.push({ hart: false, t: `${(q.duelleigen | 0).toLocaleString("de-DE")} XP aus Duellen mit eigenem Profil` });
+    return o;
+  });
+}
+async function xpBerichte() {
+  const L = window.LB; if (!entwickler || !L || !L.xpListe || !L.alleSpieler || S.xpPruef === today()) return;
+  try {
+    const z = await xpPruefDaten();
+    for (const r of z) { const h = r.flags.filter(f => f.hart); if (h.length) await postkastenMelden("datenbank", `XP-Prüfung: ${r.name} (${r.xp.toLocaleString("de-DE")} XP) – ${h.map(f => f.t).join("; ")}. Details: Postkasten → XP-Prüfung.`, "xp-" + r.id + "-" + today()); }
+    S.xpPruef = today(); save();
+  } catch (e) { /* Regeln noch nicht veröffentlicht oder kein Internet – morgen wieder */ }
+}
+VIEWS.xppruefung = () => {
+  const L = window.LB;
+  screen.innerHTML = `${backBtn("postfach", "Postkasten")}<h1>XP-Prüfung</h1>
+  <p class="muted small" style="margin:0 0 10px">Seit Version ${APP_VERSION} wird jede XP-Vergabe mit ihrer Quelle mitgezählt. „Ohne Quelle“ sind XP, die weder zum Anfangsbestand noch zu einer Quelle passen – das kann auf Veränderungen am Spielstand hindeuten (oder auf ein Gerät mit alter App-Version). Die Zählung beginnt für jeden Spieler erst, wenn er die neue Version öffnet.</p>
+  <div class="stack" id="xpListe"><p class="muted small">Lade …</p></div>`;
+  wireGo();
+  if (!entwickler || !L || !L.ok || !L.xpListe) { $("xpListe").innerHTML = `<p class="muted">Die XP-Prüfung braucht Internet und Verwalter-Rechte.</p>`; return; }
+  const zahl = v => (+v || 0).toLocaleString("de-DE");
+  xpPruefDaten().then(z => {
+    const rang = r => (r.flags.some(f => f.hart) ? 0 : r.flags.length ? 1 : r.hat ? 2 : 3);
+    z.sort((a, b) => rang(a) - rang(b) || b.xp - a.xp);
+    $("xpListe").innerHTML = z.map(r => {
+      const kopf = `<div class="topline"><b>${esc(r.name)}</b><span class="small muted">Level ${r.level} · ${zahl(r.xp)} XP</span></div>`;
+      if (!r.hat) return `<div class="card">${kopf}<div class="small muted">Noch keine Zählung (neue Version noch nicht geöffnet).</div></div>`;
+      const teile = Object.entries(r.q).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<span class="pill">${esc(XQ_QUELLEN[k] || k)} ${zahl(v)} <span class="muted">(${zahl(r.n[k])}×)</span></span>`).join(" ");
+      return `<div class="card stack" style="${r.flags.some(f => f.hart) ? "border:1px solid var(--bad,#ff8a5c)" : ""}">${kopf}
+        <div class="small">Nachgewiesen <b>${zahl(r.summe)}</b> · Anfangsbestand ${zahl(r.alt)} · Ohne Quelle <b>${zahl(r.offen)}</b></div>
+        <div class="small muted">Letzte 24 Stunden: ${zahl(r.h24)} XP · stärkste Stunde: ${zahl(r.spitze)} XP</div>
+        ${teile ? `<div style="display:flex;flex-wrap:wrap;gap:6px">${teile}</div>` : ""}
+        ${r.flags.map(f => `<div class="small" style="color:${f.hart ? "var(--bad,#ff8a5c)" : "var(--muted,#9aa)"}">${f.hart ? "⚠ " : "ℹ "}${esc(f.t)}</div>`).join("")}</div>`;
+    }).join("") || `<p class="muted">Keine Einträge.</p>`;
+  }).catch(e => { $("xpListe").innerHTML = `<p class="muted">Konnte nicht geladen werden (${esc((e && e.code) || "Fehler")}). Sind die neuen Firebase-Regeln veröffentlicht?</p>`; });
 };
 
 /* ---------- Teilen ---------- */

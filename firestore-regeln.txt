@@ -1,5 +1,5 @@
 rules_version = '2';
-// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -240,6 +240,35 @@ service cloud.firestore {
         && request.resource.data.s is map && request.resource.data.s.keys().hasOnly(['1', '2', '3', '4', '5', '6', '7', '8'])
         && (resource == null || request.resource.data.s.keys().hasAll(resource.data.s.keys()))
         && spende('1') && spende('2') && spende('3') && spende('4') && spende('5') && spende('6') && spende('7') && spende('8');
+      allow delete: if false;
+    }
+
+    // 6.73: XP-Quellen – je Spieler ein Dokument, das zeigt, woher die XP kommen (Quelle → XP/Anzahl, größte Einzelvergabe,
+    // XP je Tag und je Stunde). Summen können nur steigen, der Anfangsbestand „alt“ nur sinken – so lässt sich die Zählung
+    // nicht nachträglich „glätten“. Lesen darf jeder angemeldete Spieler wie die Rangliste; ausgewertet wird sie in der XP-Prüfung des Verwalters.
+    function xqKeys() { return ['vers','lektion','luecke','blitz','kette','duell','duelleigen','bib','tagesbonus','spickzettel','sonst']; }
+    function xqW(k) {
+      let d = request.resource.data;
+      return (!(k in d.q) || (d.q[k] is int && d.q[k] >= 0 && d.q[k] <= 10000000
+          && (resource == null || !(k in resource.data.q) || d.q[k] >= resource.data.q[k])))
+        && (!(k in d.n) || (d.n[k] is int && d.n[k] >= 0 && d.n[k] <= 10000000))
+        && (!(k in d.m) || (d.m[k] is int && d.m[k] >= 0 && d.m[k] <= 100000));
+    }
+    match /xpquellen/{pid} {
+      allow read: if angemeldet();
+      allow create, update: if angemeldet() && besitzer(pid)
+        && request.resource.data.keys().hasOnly(['pid', 'name', 'alt', 'q', 'n', 'm', 'tag', 'std', 'updated'])
+        && request.resource.data.pid == pid
+        && request.resource.data.name is string && request.resource.data.name.size() >= 2 && request.resource.data.name.size() <= 20
+        && request.resource.data.alt is int && request.resource.data.alt >= 0 && request.resource.data.alt <= 10000000
+        && (resource == null || request.resource.data.alt <= resource.data.alt)
+        && request.resource.data.q is map && request.resource.data.q.keys().hasOnly(xqKeys())
+        && request.resource.data.n is map && request.resource.data.n.keys().hasOnly(xqKeys())
+        && request.resource.data.m is map && request.resource.data.m.keys().hasOnly(xqKeys())
+        && request.resource.data.tag is map && request.resource.data.tag.size() <= 12
+        && request.resource.data.std is map && request.resource.data.std.size() <= 50
+        && xqW('vers') && xqW('lektion') && xqW('luecke') && xqW('blitz') && xqW('kette') && xqW('duell')
+        && xqW('duelleigen') && xqW('bib') && xqW('tagesbonus') && xqW('spickzettel') && xqW('sonst');
       allow delete: if false;
     }
 
