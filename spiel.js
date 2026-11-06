@@ -2745,7 +2745,7 @@ function profilVergleich(r) {
    Datenmodell (firestore-regeln.txt): art = vers | kette | blitz, k = Lernvers-Monat bzw. Kette (bibel/at/nt/rueck) bzw. Bereich (all). */
 const DU_FRAGEN = 8, DU_SEK = 12, DU_KETTE_SEK = 10, DU_BLITZ_SEK = 60, DU_BLITZ_FRAGEN = 160, DU_MAX_OFFEN = 10, DU_MAX_AUSWAHL = 10, DU_TAGE_HALTEN = 30;
 /* 6.77/6.79: XP-Angleichung – Ziel ≈ 150 XP/Min im Einzelspiel (≈ Esthers Tagestempo von ~9.000 XP bei rund 1 Std. Spielzeit), Duelle (soziales Spiel mit Warten/Herausfordern) ≈ 225 XP/Min (+50 %) */
-const DU_XP = 30, DU_PRO = { vers: 33, blitz: 9, kette: 9, quiz: 66 }, DU_MAXR = { vers: 8, blitz: 25, kette: 66, quiz: 15 }, DU_TAGE_VOLL = 6, DU_EIGEN_FAKTOR = 0.67, DU_SPAET_FAKTOR = 0.5;
+const DU_XP = 30, DU_PRO = { vers: 33, blitz: 9, kette: 9, quiz: 66 }, DU_MAXR = { vers: 8, blitz: 25, kette: 66, quiz: 15 };
 const DU_SIEG_TAL = 10, DU_REMIS_TAL = 5, DU_FAIR_TAL = 5;
 const DU_TYPEN = {
   vers: { art: "vers", name: "Lernvers", ic: "scroll", info: "8 Fragen zum Lernvers des Monats · 12 s je Frage" },
@@ -2819,7 +2819,7 @@ let duAufloesQ = [];
 function duAufloesVersuch() {
   if (!duAufloesQ.length || duSpiel || document.querySelector(".modal, .sb-ov") || !["home", "duelle", "bib", "spielen", "rank", "profil", "lernen", "ich"].includes(current)) return;
   const d = duAufloesQ.shift(), du = d.vonErg, er = d.anErg, typ = duTypVon(d) || "vers", art = DU_TYPEN[typ].art || d.art;
-  const kf = (S.duKurz && S.duKurz[d.id]) || 1, sieg0 = du.p > er.p, remis0 = du.p === er.p, tal = Math.round((sieg0 ? DU_SIEG_TAL : remis0 ? DU_REMIS_TAL : 0) * kf);
+  const kf = 1 /* 6.93: keine Kürzung bei Duellen */, sieg0 = du.p > er.p, remis0 = du.p === er.p, tal = Math.round((sieg0 ? DU_SIEG_TAL : remis0 ? DU_REMIS_TAL : 0) * kf);
   const ov = document.createElement("div"); ov.className = "sb-ov"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");
   ov.innerHTML = `<div class="vl vl-ende du-ende sb-ende">
     <div class="sb-kopf"><small>Ergebnis ist da</small><b>${esc(duTypText(d))}-Duell gegen ${esc(d.anName)}</b></div>
@@ -2950,7 +2950,7 @@ function duBelohnen() {
   neu.forEach(d => {
     S.duGes = [...(S.duGes || []), d.id].slice(-60);
     const p = d.vonErg.p, q = d.anErg.p;
-    const kf = (S.duKurz && S.duKurz[d.id]) || 1;  /* 6.83: gekürzt, wenn es am Tag das 5.+ Duell gegen diesen Gegner war */
+    const kf = 1;  /* 6.93: Duelle werden nie gekürzt (bis 6.92: gekürzt beim 5.+ Duell am Tag gegen denselben Gegner) */
     if (p > q) tal += Math.round(DU_SIEG_TAL * kf); else if (p === q) tal += Math.round(DU_REMIS_TAL * kf); /* der Sieg selbst wird in duZaehlen() aus den Duellen gezählt */
     duAufloesQ.push(d); /* 6.62: statt Hinweis eine Auflösung im Siegelbruch-Stil */
   });
@@ -3212,15 +3212,14 @@ const wdhMal = (v, w) => (w && w.f < 1 ? Math.round(v * w.f) : v);
    anteilig gekürzt (z. B. 1 von 4 Gegnern schon 4× heute → 1/8 weniger). */
 const DU_GLEICH_VOLL = 4;
 function duGleichStand() { const t = today(); if (!S.duGT || S.duGT.t !== t) S.duGT = { t, n: {} }; return S.duGT.n; }
-const duGleichEinzel = id => wdhFaktorBei((duGleichStand()[id] | 0) + 1);
-function duGleichFaktor(ids) { ids = (ids || []).filter(Boolean); if (!ids.length) return 1; return ids.reduce((a, id) => a + duGleichEinzel(id), 0) / ids.length; }
+const duGleichEinzel = id => 1; /* 6.93: Duelle werden nie gekürzt (vorher: ab dem 5. Duell gegen dieselbe Person Stufen 75/50 %) */
+function duGleichFaktor(ids) { return 1; }
 function duGleichZaehlen(ids) { const n = duGleichStand(); (ids || []).filter(Boolean).forEach(id => { n[id] = (n[id] | 0) + 1; }); save(); }
 function duXpTagZaehlen() { const t = today(); S.duXpTag = { t, n: (S.duXpTag && S.duXpTag.t === t ? S.duXpTag.n | 0 : 0) + 1 }; save(); }
 function duXpWert(D, ziele) {
   const art = DU_PRO[D.art] ? D.art : "blitz", roh = DU_XP + DU_PRO[art] * Math.min(D.r | 0, DU_MAXR[art]);
-  const eigen = (ziele || []).some(z => eigenePid(z.id)), spaet = duXpTagStand() >= DU_TAGE_VOLL;
-  const gleich = D.gleichF != null ? D.gleichF : 1;
-  return Math.max(1, Math.round(roh * (eigen ? DU_EIGEN_FAKTOR : 1) * (spaet ? DU_SPAET_FAKTOR : 1) * gleich));
+  /* 6.93: Duelle sind sozial erwünscht – XP und Talente immer zu 100 % (keine Kürzung für spätes Duell am Tag, gleichen Gegner oder eigenes Profil) */
+  return Math.max(1, roh);
 }
 async function duEnde() {
   const D = duSpiel, L = window.LB, n = D.art === "blitz" ? Math.max(1, D.r + D.f) : D.fragen.length;
