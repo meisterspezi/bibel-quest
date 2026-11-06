@@ -1,5 +1,5 @@
 rules_version = '2';
-// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.80 – Sammlungen bibversuch (Biblionär-Wochenrunde einmal je Serverwoche) und spendenxp (XP für Spenden einmal je Talent); 6.79 – xpquellen: neue Quelle spende (Stiftshütte); 6.78 – Sammlung tagestruhe (Schatztruhe einmal je Serverdatum); 6.76 – xpquellen: neue Quelle abgleich; 6.75 – Sammlung xpprotokoll (Einzelprotokoll der XP-Vergaben, nur anlegen); 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.88 – xpquellen: Regel vereinfacht (Limit 1000 Auswertungen pro Schreibzugriff, ab der 4. Quelle wurde abgelehnt); 6.80 – Sammlungen bibversuch (Biblionär-Wochenrunde einmal je Serverwoche) und spendenxp (XP für Spenden einmal je Talent); 6.79 – xpquellen: neue Quelle spende (Stiftshütte); 6.78 – Sammlung tagestruhe (Schatztruhe einmal je Serverdatum); 6.76 – xpquellen: neue Quelle abgleich; 6.75 – Sammlung xpprotokoll (Einzelprotokoll der XP-Vergaben, nur anlegen); 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -247,32 +247,36 @@ service cloud.firestore {
     // XP je Tag und je Stunde). Summen können nur steigen, der Anfangsbestand „alt“ nur sinken – so lässt sich die Zählung
     // nicht nachträglich „glätten“. Lesen darf jeder angemeldete Spieler wie die Rangliste; ausgewertet wird sie in der XP-Prüfung des Verwalters.
     function xqKeys() { return ['vers','lektion','luecke','blitz','kette','duell','duelleigen','bib','tagesbonus','spickzettel','sonst','abgleich','spende']; }
-    function xqW(k) {
+    // 6.88: Die Regel war so aufwendig, dass Firestore bei vier oder mehr Quellen mit „maximum of 1000 expressions“ ablehnte (alle Schreibzugriffe
+    // der XP-Zählung nach den ersten drei Quellen, bei allen Spielern). Jetzt: Ausdrücke einmal in „let“ gebunden, die Schlüssel von q, n und m
+    // in einem Aufruf geprüft, Werte von n/m nicht mehr einzeln (sie sind nur Zähler für die Anzeige). Geprüft bleiben: Summen nur steigend
+    // und ganzzahlig, Anfangsbestand nur sinkend, Belohnungs-Protokoll nie kürzer, nur bekannte Quellen.
+    function xqSumme(k, q, rq) {
+      return !(k in q) || (q[k] is int && q[k] >= 0 && q[k] <= 10000000 && (!(k in rq) || q[k] >= rq[k]));
+    }
+    function xqGueltig(pid) {
       let d = request.resource.data;
-      return (!(k in d.q) || (d.q[k] is int && d.q[k] >= 0 && d.q[k] <= 10000000
-          && (resource == null || !(k in resource.data.q) || d.q[k] >= resource.data.q[k])))
-        && (!(k in d.n) || (d.n[k] is int && d.n[k] >= 0 && d.n[k] <= 10000000))
-        && (!(k in d.m) || (d.m[k] is int && d.m[k] >= 0 && d.m[k] <= 100000));
+      let q = d.q;
+      let rq = resource == null ? {} : resource.data.q;
+      return d.keys().hasOnly(['pid', 'name', 'alt', 'q', 'n', 'm', 'tag', 'std', 'bel', 'updated'])
+        && d.pid == pid
+        && d.name is string && d.name.size() >= 2 && d.name.size() <= 20
+        && d.alt is int && d.alt >= 0 && d.alt <= 10000000
+        && (resource == null || d.alt <= resource.data.alt)
+        && q is map && d.n is map && d.m is map
+        && q.keys().concat(d.n.keys()).concat(d.m.keys()).hasOnly(xqKeys())
+        && d.tag is map && d.tag.size() <= 12
+        && d.std is map && d.std.size() <= 50
+        // Protokoll der täglichen Belohnung: höchstens 100 Einträge, es darf nie kürzer werden, bis die 100 erreicht sind
+        && (!('bel' in d) || (d.bel is list && d.bel.size() <= 100))
+        && (resource == null || !('bel' in resource.data) || ('bel' in d && d.bel.size() >= resource.data.bel.size()))
+        && xqSumme('vers', q, rq) && xqSumme('lektion', q, rq) && xqSumme('luecke', q, rq) && xqSumme('blitz', q, rq) && xqSumme('kette', q, rq)
+        && xqSumme('duell', q, rq) && xqSumme('duelleigen', q, rq) && xqSumme('bib', q, rq) && xqSumme('tagesbonus', q, rq)
+        && xqSumme('spickzettel', q, rq) && xqSumme('sonst', q, rq) && xqSumme('abgleich', q, rq) && xqSumme('spende', q, rq);
     }
     match /xpquellen/{pid} {
       allow read: if angemeldet();
-      allow create, update: if angemeldet() && besitzer(pid)
-        && request.resource.data.keys().hasOnly(['pid', 'name', 'alt', 'q', 'n', 'm', 'tag', 'std', 'bel', 'updated'])
-        && request.resource.data.pid == pid
-        && request.resource.data.name is string && request.resource.data.name.size() >= 2 && request.resource.data.name.size() <= 20
-        && request.resource.data.alt is int && request.resource.data.alt >= 0 && request.resource.data.alt <= 10000000
-        && (resource == null || request.resource.data.alt <= resource.data.alt)
-        && request.resource.data.q is map && request.resource.data.q.keys().hasOnly(xqKeys())
-        && request.resource.data.n is map && request.resource.data.n.keys().hasOnly(xqKeys())
-        && request.resource.data.m is map && request.resource.data.m.keys().hasOnly(xqKeys())
-        && request.resource.data.tag is map && request.resource.data.tag.size() <= 12
-        && request.resource.data.std is map && request.resource.data.std.size() <= 50
-        // Protokoll der täglichen Belohnung: höchstens 100 Einträge, es darf nie kürzer werden, bis die 100 erreicht sind
-        && (!('bel' in request.resource.data) || (request.resource.data.bel is list && request.resource.data.bel.size() <= 100))
-        && (resource == null || !('bel' in resource.data)
-            || ('bel' in request.resource.data && request.resource.data.bel.size() >= resource.data.bel.size()))
-        && xqW('vers') && xqW('lektion') && xqW('luecke') && xqW('blitz') && xqW('kette') && xqW('duell')
-        && xqW('duelleigen') && xqW('bib') && xqW('tagesbonus') && xqW('spickzettel') && xqW('sonst') && xqW('abgleich') && xqW('spende');
+      allow create, update: if angemeldet() && besitzer(pid) && xqGueltig(pid);
       allow delete: if false;
     }
 
