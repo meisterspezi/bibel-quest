@@ -4732,12 +4732,15 @@ const XQ_LUECKE = {
   zweit: { name: "Übernahme vom zweiten Gerät", bereich: "Abgleich ohne mitgezählte Quelle", farbe: "#b39ddb" },
   altlast: { name: "Altlast vor 6.76", bereich: "Abgleich/alte Version, vor dem Protokoll", farbe: "#8a84a8" },
   sprung: { name: "Sprung ohne Spiel", bereich: "nicht erklärt", farbe: "#ff5c5c" },
+  ohneprot: { name: "Ohne Protokoll-Eintrag", bereich: "Gerät ohne Zählung oder veränderter Spielstand", farbe: "#ff8a5c" },
   rest: { name: "Nicht zuzuordnen", bereich: "nicht erklärt", farbe: "#ff5c5c" }
 };
 function xqLueckenAnalyse(o, ev, vollGeladen) {
   const l = (ev || []).filter(e => e && +e.z > 0).slice().sort((a, b) => a.z - b.z || a.n - b.n);
   const nachNr = new Map(); l.forEach(e => { if (!nachNr.has(e.n)) nachNr.set(e.n, []); nachNr.get(e.n).push(e); });
-  const summe = { wartet: 0, sprung: 0, zweit: 0, altlast: 0 }, spruenge = [];
+  const summe = { wartet: 0, sprung: 0, ohneprot: 0, zweit: 0, altlast: 0 }, spruenge = [];
+  /* 6.82: Rangliste höher als Stand nach der letzten protokollierten Vergabe → XP kamen ohne jeden Eintrag dazu */
+  const letzte = l[l.length - 1]; if (letzte && vollGeladen && +o.xp > 0) summe.ohneprot = Math.max(0, Math.round(+o.xp - ((+letzte.v || 0) + (+letzte.x || 0))));
   if (o.upd) l.forEach(e => { if (xqMs(e.gebucht) > o.upd + 2000) summe.wartet += +e.x || 0; });
   l.forEach(e => {
     const vor = (nachNr.get(e.n - 1) || []).filter(p => p.z <= e.z && e.z - p.z < 30 * 864e5).pop(); if (!vor) return;
@@ -4747,7 +4750,7 @@ function xqLueckenAnalyse(o, ev, vollGeladen) {
     summe[k] += plus; spruenge.push({ k, xp: plus, von: vor.z, bis: e.z, ver: e.ver || "" });
   });
   let rest = Math.max(0, Math.round(o.offen || 0)); const zeilen = [];
-  ["wartet", "sprung", "zweit", "altlast"].forEach(k => { const v = Math.min(rest, summe[k]); if (v > 0) { zeilen.push({ k, xp: v }); rest -= v; } });
+  ["wartet", "sprung", "ohneprot", "zweit", "altlast"].forEach(k => { const v = Math.min(rest, summe[k]); if (v > 0) { zeilen.push({ k, xp: v }); rest -= v; } });
   /* Protokoll unvollständig (Zählung begann vor 6.75 oder nicht alle Einträge geladen) → Rest gehört in die Zeit davor */
   const vollst = vollGeladen && l.length >= Object.values(o.n || {}).reduce((a, v) => a + (+v || 0), 0);
   if (rest > 0) { const k = vollst ? "rest" : "altlast", z = zeilen.find(r => r.k === k); if (z) z.xp += rest; else zeilen.push({ k, xp: rest }); }
@@ -4835,6 +4838,7 @@ function xqLueckeHtml(a) {
   const erkl = { wartet: "Ein Gerät durfte seine Zählung nicht speichern, weil ein anderes Gerät schon weiter war. Die Vergaben stehen im Protokoll – ab 6.81 holt das Gerät den Stand nach.",
     zweit: "XP kamen beim Abgleich mit einem zweiten Gerät dazu, dessen Quellen nicht mitkamen (z. B. weil dort die Zählung abgelehnt wurde).",
     altlast: "Vor Version 6.76 wurde der Geräteabgleich nicht als Quelle gebucht; vor 6.75 gab es noch kein Protokoll. Diese XP lassen sich nicht mehr genauer zuordnen.",
+    ohneprot: "Die Rangliste zeigt mehr XP als der Stand nach der letzten protokollierten Vergabe. Diese XP schrieb ein Gerät, das nichts protokolliert – eine alte App-Version (z. B. iPhone-Startbildschirm-App) – oder der Spielstand wurde verändert.",
     sprung: "Der XP-Stand stieg zwischen zwei Vergaben desselben Geräts, ohne dass irgendwo gespielt wurde. Das sollte nicht vorkommen – genauer ansehen.",
     rest: "Das Protokoll ist vollständig, erklärt diese XP aber nicht." };
   const sp = a.spruenge.filter(s => s.k === "sprung" || s.k === "zweit").slice(0, 8);
@@ -4898,7 +4902,7 @@ VIEWS.xppruefung = () => {
     }));
     screen.querySelectorAll("details[data-xpev]").forEach(d => d.addEventListener("toggle", () => {
       if (!d.open || d.dataset.geladen) return; d.dataset.geladen = "1"; const box = d.querySelector(".xq-evliste");
-      L.xpProtokoll(d.dataset.xpev, 100).then(l => { box.innerHTML = l.length ? `<div class="small muted" style="margin-bottom:6px">Die letzten ${l.length} Vergaben, neueste zuerst · Uhrzeit laut Gerät des Spielers</div>${l.map(xqEreignisHtml).join("")}<button class="btn ghost mini" data-xqcsv style="margin-top:4px">${svg("scroll")} Dieses Protokoll als CSV</button>` : "Noch keine protokollierten Vergaben.";
+      L.xpProtokoll(d.dataset.xpev, 1000, Date.now() - 7 * 864e5).then(l => { l = l.slice(0, 100); box.innerHTML = l.length ? `<div class="small muted" style="margin-bottom:6px">Die letzten ${l.length} Vergaben (7 Tage), neueste zuerst · Uhrzeit laut Gerät des Spielers</div>${l.map(xqEreignisHtml).join("")}<button class="btn ghost mini" data-xqcsv style="margin-top:4px">${svg("scroll")} Dieses Protokoll als CSV</button>` : "Noch keine protokollierten Vergaben.";
         const kn = box.querySelector("[data-xqcsv]"); if (kn) kn.onclick = async () => { SFX.tap(); kn.disabled = true; try { const alle = await L.xpProtokoll(d.dataset.xpev, 5000); xqCsvLaden(`xp-protokoll-${String(((z.find(r => r.id === d.dataset.xpev) || {}).name) || "spieler").replace(/[^\w-]+/g, "_")}-${xqDateiTag()}.csv`, alle); } catch (e) { toast("<div>Export fehlgeschlagen.</div>"); } kn.disabled = false; }; })
         .catch(e => { d.dataset.geladen = ""; box.textContent = "Konnte nicht geladen werden (" + ((e && e.code) || "Fehler") + ")."; });
     }));

@@ -184,7 +184,9 @@ if (!configured) {
     };
     // Verwalter: alle Einträge der letzten Zeit (seitMs) bzw. die letzten n Einträge eines Spielers (Dokument-ID beginnt mit der Spieler-ID)
     LB.xpProtokollNeu = async (seitMs, n = 3000) => { const q = await fs.getDocs(fs.query(fs.collection(db, "xpprotokoll"), fs.where("z", ">", seitMs), fs.orderBy("z", "desc"), fs.limit(n))); return q.docs.map(d => ({ id: d.id, ...d.data() })); };
-    LB.xpProtokoll = async (pid, n = 200) => { const q = await fs.getDocs(fs.query(fs.collection(db, "xpprotokoll"), fs.where(fs.documentId(), ">=", pid + "_"), fs.where(fs.documentId(), "<", pid + "`"), fs.orderBy(fs.documentId(), "desc"), fs.limit(n))); return q.docs.map(d => ({ id: d.id, ...d.data() })).sort((x, y) => y.z - x.z); };
+    // 6.82: aufsteigend nach Dokument-ID (<pid>_<Zeit>_<Nr>, Zeit hat 13 Ziffern → zeitlich sortiert). Absteigend brauchte einen Index,
+    //       den es nicht gibt („failed-precondition“). seitMs grenzt auf neuere Einträge ein; Ergebnis neueste zuerst.
+    LB.xpProtokoll = async (pid, n = 200, seitMs = 0) => { const q = await fs.getDocs(fs.query(fs.collection(db, "xpprotokoll"), fs.where(fs.documentId(), ">=", pid + "_" + (seitMs > 0 ? String(Math.floor(seitMs)) : "")), fs.where(fs.documentId(), "<", pid + "`"), fs.orderBy(fs.documentId()), fs.limit(n))); return q.docs.map(d => ({ id: d.id, ...d.data() })).sort((x, y) => y.z - x.z); };
     // 6.78: Schatztruhe – höchstens einmal je Spieler und Serverdatum (Dokument-ID <pid>_<JJJJMMTT>, nur anlegen)
     LB.truheBuchen = async (pid, name, tag, ver) => {
       await LB.signIn(); const id = pid + "_" + tag;
