@@ -1865,6 +1865,44 @@ details.pf>summary::after{content:"▾";margin-left:2px;color:var(--muted);trans
 .bh-wanderer{animation:bhGeh 3s ease-in-out infinite alternate}
 @keyframes bhGeh{to{transform:translate(2px,-2px)}}
 .sh-feier .sh-bild{border-radius:14px}
+
+/* ===== 8.0 „Allein und Zusammen“: einfacher, größer, ruhiger ===== */
+.tabbar{grid-template-columns:repeat(4,minmax(0,1fr));height:76px}
+.tabbar button{font:800 .86rem var(--body);color:#b3bae0;gap:3px}
+.tabbar .tb-ic{width:34px;height:34px}.tabbar .tb-ic svg{width:32px;height:32px}
+.tabbar [data-tab="zusammen"]{--ar:var(--ar-gemeinde)}
+.tabbar .tb-du{top:4px;right:calc(50% - 26px)}
+.hud .xptitle{font-size:1.2rem}
+.hud .xpnum,.hud .hserie{display:none!important}
+.hud .hlvl-t{display:inline-block;margin-top:3px;font:800 .8rem var(--body);color:#f2c14e;border:1px solid #f2c14e66;border-radius:999px;padding:1px 9px}
+.hud-tal{position:relative;cursor:pointer;color:inherit;font:inherit}
+.hud-tal .tb-punkt{position:absolute;top:-3px;right:-3px}
+.bk-zk{grid-column:3;display:flex;flex-direction:column;align-items:center;gap:1px;background:none;border:1px solid #ffffff2a;border-radius:14px;color:var(--muted);font:800 .72rem var(--body);padding:6px 4px;cursor:pointer}
+.bk-zk svg{width:20px;height:20px}
+.bkopf:not(.zahlen) .bk-ring,.bkopf:not(.zahlen) .bk-tafel{display:none}
+.bkopf.zahlen .bk-zk{display:none}
+.bk-t span{font-size:.92rem;white-space:normal}
+.ez-liste{display:grid;gap:10px}
+.ez,.ez-aufg>summary{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:14px 16px;border-radius:18px;border:1.5px solid color-mix(in srgb,var(--ar,#f2c14e) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--ar,#f2c14e) 16%,var(--surface)),var(--surface));color:var(--fg);font:inherit;cursor:pointer;position:relative}
+.ez[data-ar="lernen"]{--ar:var(--ar-lernen)}.ez[data-ar="spielen"]{--ar:var(--ar-spielen)}.ez[data-ar="gemeinde"]{--ar:var(--ar-gemeinde)}.ez[data-ar="bib"]{--ar:#66e0d0}.ez[data-ar="arena"]{--ar:#ff8a5c}
+.ez-ic{flex:none;width:48px;height:48px;display:grid;place-items:center;border-radius:50%;background:color-mix(in srgb,var(--ar,#f2c14e) 22%,transparent)}
+.ez-ic svg{width:34px;height:34px}.ez-ic .sf-logo svg{width:46px;height:46px}
+.ez-tx{flex:1;min-width:0}.ez-tx b{display:block;font:800 1.22rem/1.2 var(--display)}.ez-tx small{display:block;font-size:.95rem;color:#c5cbea;margin-top:2px}
+.ez-pf{font-style:normal;font-size:1.8rem;color:var(--ar,#f2c14e);flex:none}
+.ez-zahl{flex:none;min-width:30px;height:30px;padding:0 8px;border-radius:15px;background:#e5484d;color:#fff;font:800 1rem/30px var(--body);text-align:center}
+.ez-aufg{border-radius:18px}.ez-aufg>summary{list-style:none;--ar:#5fe0b0}.ez-aufg>summary::-webkit-details-marker{display:none}
+.ez-aufg.bereit>summary{--ar:#f2c14e}.ez-aufg.fertig>summary{--ar:#8d95c4}
+.ez-aufg[open]>summary{border-radius:18px 18px 0 0}
+.ez-aufg .heute3{margin:0;border-radius:0 0 18px 18px}
+.ez-keys{display:flex;gap:3px;flex:none}.ez-keys i{width:22px;height:22px;opacity:.3;filter:grayscale(1)}.ez-keys i.an{opacity:1;filter:none}.ez-keys i svg{width:100%;height:100%}
+.ez-hinw{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border-radius:14px;border:1px dashed #ff8a5c99;background:#ff8a5c14;color:var(--fg);font:800 1rem var(--body);cursor:pointer}
+.ez-hinw svg{width:26px;height:26px}
+.start8{gap:12px}.start8 .start-vers{opacity:.95}
+.gs-schalter .gs-knopf{width:44px;height:26px;border-radius:13px;background:#ffffff26;position:relative;flex:none}
+.gs-schalter .gs-knopf::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s}
+.gs-schalter[aria-pressed="true"] .gs-knopf{background:#5fe0b0}.gs-schalter[aria-pressed="true"] .gs-knopf::after{left:21px}
+html.gross{font-size:18.5px}html.gross body{font-size:18.5px}
+html.gross .tabbar{height:84px}html.gross #screen{padding-bottom:110px}
 </style>
 </head>
 <body>
@@ -1883,12 +1921,12 @@ details.pf>summary::after{content:"▾";margin-left:2px;color:var(--muted);trans
       <span class="hav" id="hRing"><span class="hav-in" id="hAvatar"></span><span class="lvl-mini" id="hLvl" aria-label="Level">1</span></span>
       <span class="xpbox">
         <span class="xptitle" id="hTitle">Schriftrollen-Lehrling</span>
-        <span class="xpnum" id="hXp">0 / 100 XP</span>
+        <span class="xpnum" id="hXp">0 / 100 XP</span><span class="hlvl-t" id="hLvlT">Level 1</span>
         <span class="hserie" title="Tage-Serie"><svg viewBox="0 0 24 24"><path fill="#ff9a3c" d="M12 2c1 4 5 5.5 5 11a5 5 0 0 1-10 0c0-2.5 1.2-4 2.5-5 .2 2 1 3 2 3.5C11 9 11 5 12 2z"/></svg><span id="hStreak">0</span><span class="hxpz">· <span id="hXpZ">0 / 100 XP</span></span></span>
       </span>
     </button>
     <div class="pills">
-      <div class="pill hud-tal" title="Talente"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tal"/></svg><span id="hTal">0</span></div>
+      <button class="pill hud-tal" id="hTalBtn" aria-label="Talente – zum Laden"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tal"/></svg><span id="hTal">0</span><span class="tb-punkt" id="tbTal" hidden aria-label="Im Laden ist etwas kaufbar"></span></button>
       <button class="iconbtn pk-btn" id="pkBtn" hidden aria-label="Postkasten" onclick="go('postfach')"></button>
       <button class="iconbtn hud-ton" id="muteBtn" aria-label="Ton an oder aus"></button>
     </div>
