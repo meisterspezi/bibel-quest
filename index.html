@@ -1967,6 +1967,25 @@ html.gross .tabbar{height:84px}html.gross #screen{padding-bottom:110px}
 .sp-aus{opacity:.5;filter:grayscale(.4)}
 .sp-menue + .bk-label{margin-top:10px}
 .btn.primary.du-fordern,.du-los-knopf.btn.primary{background:linear-gradient(180deg,#ffc0a0,#ff8a5c 55%,#c9502a);color:#2a0d00}
+
+/* ===== 8.3: Rangliste + Laden als eigener Reiter (grün), 5 Reiter, breiter Duelle-Knopf ===== */
+body[data-tab="rank"]{--ar-gemeinde:#5fe0b0;--ar:#5fe0b0}
+.tabbar{grid-template-columns:repeat(5,minmax(0,1fr))}
+.tabbar button{font-size:.72rem;letter-spacing:-.01em}
+.tabbar .tb-ic{width:30px;height:30px}.tabbar .tb-ic svg{width:28px;height:28px}
+.tabbar [data-tab="zusammen"]{--ar:#ff8a5c}.tabbar [data-tab="rank"]{--ar:#5fe0b0}
+.tabbar .tb-du{right:calc(50% - 24px)}
+.sp-duo.sp-breit{grid-template-columns:minmax(0,1fr)}
+.rl-switch{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;margin:10px 0 2px;border-radius:14px;background:#0003;border:1px solid #ffffff1a}
+.rl-switch button{display:flex;align-items:center;justify-content:center;gap:7px;min-height:42px;border:0;border-radius:10px;background:none;color:var(--muted);font:800 .95rem var(--body);cursor:pointer}
+.rl-switch button svg{width:22px;height:22px}
+.rl-switch button[aria-selected="true"]{background:#5fe0b02e;color:var(--fg);box-shadow:inset 0 0 0 1.5px #5fe0b0aa}
+.start-aufg .bk-med.truhe{position:relative;overflow:visible}
+.start-aufg .bk-med.truhe.offen{filter:drop-shadow(0 0 10px #ffe9806e)}
+.truhe-haken{position:absolute;right:-4px;bottom:-2px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(#6fe39a,#1f9a58);border:2px solid #0f1530;box-shadow:0 2px 6px #0009}
+.truhe-haken svg{width:14px!important;height:14px!important;color:#fff;stroke:#fff}
+.start-aufg .ez-keys.verbraucht{opacity:.35;filter:grayscale(.6)}
+.start-aufg:has(.truhe.offen) .bk-t h1{color:#6fe39a}
 </style>
 </head>
 <body>

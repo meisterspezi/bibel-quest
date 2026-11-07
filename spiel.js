@@ -398,9 +398,9 @@ function vlVerdrahten(a, verdeckt) {
   const [text, ref] = MONATSVERSE[a.k], P = $("vlPruefen");
   $("vlX").onclick = () => {
     SFX.tap();
-    if (VL.i === 0) { VL = null; go("home"); return; }
+    if (VL.i === 0) { VL = null; go(heimAnsicht("home")); return; }
     modal(`<div class="label">Lektion beenden?</div><h2>Fast geschafft!</h2><p class="muted">Wenn du jetzt aufhörst, zählt diese Lektion noch nicht.</p>
-      <button class="btn primary" data-close="weiter">Weiterlernen</button><button class="btn ghost" data-close="ende">Beenden</button>`, r => { if (r === "ende") { VL = null; go("home"); } });
+      <button class="btn primary" data-close="weiter">Weiterlernen</button><button class="btn ghost" data-close="ende">Beenden</button>`, r => { if (r === "ende") { VL = null; go(heimAnsicht("home")); } });
   };
   if ($("vlWeiter")) $("vlWeiter").onclick = () => { SFX.tap(); vorlesenStop(); VL.i++; vlZeige(); };
   if ($("vlHoer")) $("vlHoer").onclick = () => { const beat = S.beat; S.beat = false; vorlesen([{ text: text + " – " + ref.replace(/(\d+),(\d+)/, "$1, Vers $2") }]); S.beat = beat; };
@@ -542,7 +542,7 @@ function vlEnde() {
     ${aktuell ? `<div class="vle-monat">${svg("fire")}<span>An <b>${monatTage}</b> ${monatTage === 1 ? "Tag" : "Tagen"} im ${MONATE[new Date().getMonth()]} geübt · Woche ${lvWoche()}/4 · Ziel Stufe ${lvZiel()} ${neuSt >= lvZiel() ? svg("check", "var(--good)") : ""}</span></div>` : ""}
     <div class="lv-stufe gross" aria-label="Stufe ${neuSt} von ${LV_MAX}">${Array.from({ length: LV_MAX }, (_, i) => `<i class="${i < neuSt ? "an" : ""}"></i>`).join("")}</div>
     ${turboWeiter ? `<button class="btn primary breit" id="vlTurbo">${svg("bolt")} Weiter mit Stufe ${neuSt + 1}</button><button class="btn ghost breit" id="vlFertig">Für heute fertig</button>` : `<button class="btn primary breit" id="vlFertig">Weiter</button>`}</div>`;
-  $("vlFertig").onclick = () => { SFX.tap(); go("home"); };
+  $("vlFertig").onclick = () => { SFX.tap(); go(heimAnsicht("home")); };
   if ($("vlTurbo")) $("vlTurbo").onclick = () => { SFX.tap(); go("verslektion", k); };
   setTimeout(() => { addXp(xp, $("vlFertig"), "vers", xInfo); if (tal) addTal(tal); save(); checkBadges(); lbSync(); }, 350);
 }
@@ -1369,7 +1369,14 @@ function itemFrei(kat, it) {
 /* ---------- Navigation ---------- */
 let current = "home", timers = [], lbUnsub = [];
 function clearTimers() { timers.forEach(clearInterval); timers = []; }
+/* 8.3: Nach einem Spiel (fertig oder abgebrochen) geht es dorthin zurück, wo es gestartet wurde */
+const HAUPT_ANSICHTEN = ["home", "lernen", "lernverse", "spielen", "zusammen", "gegner", "duelle", "bib"];
+let ursprung = "";
+const HEIM_NAME = { home: "Start", lernen: "Lernen", lernverse: "Lernverse", spielen: "Allein", zusammen: "Zusammen", duelle: "Duelle", bib: "Biblionär" };
+const heimAnsicht = fb => { const u = ursprung === "gegner" ? "zusammen" : ursprung; return u && HEIM_NAME[u] ? u : fb; };
+const heimName = fb => HEIM_NAME[heimAnsicht(fb)];
 function go(name, arg) {
+  if (current && HAUPT_ANSICHTEN.includes(current)) ursprung = current;
   VL = null; applyTheme(); clearTimers(); vorlesenStop(); lbUnsub.forEach(u => { try { u(); } catch (e) {} }); lbUnsub = [];
   if (!S.lbName && name !== "name") name = "name";
   current = name; window.scrollTo(0, 0); document.body.classList.remove("spiel-laeuft");
@@ -1379,9 +1386,9 @@ function go(name, arg) {
 }
 /* Untere Menüleiste: zu welchem Reiter gehört eine Ansicht? */
 /* 8.0 „Allein und Zusammen“: nur noch vier große Reiter – Laden über die Talente oben, Rangliste unter „Zusammen“ */
-const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Allein", "user"], ["zusammen", "Zusammen", "people"]];
-const TAB_VON = { stift: "zusammen", advent: "home", beth: "home", kal: "home", duell: "zusammen", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen", biblionaer: "zusammen",
-  bib: "zusammen", gegner: "zusammen", duelle: "zusammen", rank: "zusammen", shop: "", ich: "", profil: "", badges: "", wer: "", postfach: "" };
+const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Allein", "user"], ["zusammen", "Zusammen", "people"], ["rank", "Rangliste", "trophy"]];
+const TAB_VON = { stift: "rank", advent: "home", beth: "home", kal: "home", duell: "zusammen", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen", biblionaer: "zusammen",
+  bib: "zusammen", gegner: "zusammen", duelle: "zusammen", rank: "rank", shop: "rank", ich: "", profil: "", badges: "", wer: "", postfach: "" };
 /* rote Zahl am Duell-Reiter: wartende Herausforderungen */
 function tbDuSetzen() { const t = $("tbDu"); if (!t) return; const n = typeof duFuerMich === "function" ? duFuerMich().length : 0; t.hidden = !n; t.textContent = n; }
 function tabbarSetzen(name) {
@@ -1401,7 +1408,7 @@ const backBtn = (to = "home", txt = "Zurück") => `<button class="back" data-go=
 /* Seitenkopf der Hauptbereiche: Titel links, kleine Info rechts */
 const seitenKopf = (titel, info = "") => `<div class="seitenkopf"><h1>${titel}</h1>${info ? `<span class="pill sk-info">${info}</span>` : ""}</div>`;
 /* 6.57: Bereichs-Kopf im Arena-Stil – o: {ic | bild, t, sub, ring:[zahl, text], tafel:[[zahl, text]×3], zeile:{ic,t,p,r}, knopf:{ic,t,attr}} */
-const BK_FARBE = { home: "#f2c14e", lernen: "var(--ar-lernen)", spielen: "var(--ar-spielen)", bib: "#66e0d0", gemeinde: "var(--ar-gemeinde)", advent: "#ffcf5a", laden: "#b38cff" };
+const BK_FARBE = { home: "#f2c14e", lernen: "var(--ar-lernen)", spielen: "var(--ar-spielen)", bib: "#66e0d0", gemeinde: "var(--ar-gemeinde)", advent: "#ffcf5a", laden: "var(--ar-gemeinde)" };
 /* 8.2: Zusatzinfos im Kopf (Ring, Zahlentafel, „Zahlen“-Knopf) entfallen – ruhiger. Die Elemente bleiben unsichtbar im Dokument, damit Stellen, die Werte nachtragen (ringId, Tafel-IDs), weiter funktionieren. */
 const bereichKopf = (m, o) => `<div class="bkopf" style="--bk:${BK_FARBE[m]}">
   <header class="bk-kopf">${o.bild ? `<span class="bk-med bild"><img src="${o.bild}" alt="" width="480" height="455"></span>` : `<span class="bk-med">${svg(o.ic)}</span>`}
@@ -1613,10 +1620,10 @@ VIEWS.home = () => {
   const ezZeile = (go, ar, ic, t, sub, ecke = "") => `<button class="ez" data-ar="${ar}" data-go="${go}"><span class="ez-ic">${ic}</span><span class="ez-tx"><b>${t}</b><small>${sub}</small></span>${ecke}<i class="ez-pf">›</i></button>`;
   /* 8.2: „Dein Tag“ entfällt – der Kopf IST die Tagesaufgabe (Truhe statt Sonne, Schlüssel rechts), darunter wie gewohnt der Kringel-Bogen.
      Antippen klappt die drei Aufgaben auf; ist die Truhe bereit, öffnet der Kopf direkt die Truhe. */
-  const keysH = `<span class="ez-keys" aria-hidden="true">${[0, 1, 2].map(i => `<i class="${i < erledigt ? "an" : ""}">${SCHLUESSEL}</i>`).join("")}</span>`;
-  const kopfTitel = S.dq.bonus ? "Geschafft!" : bereit ? "Öffnen!" : `Heute ${erledigt}/3`;
-  const kopfSub = S.dq.bonus ? "Morgen neue Aufgaben" : bereit ? "Truhe antippen zum Öffnen" : "Tagesaufgaben antippen";
-  const kopfInnen = `<span class="bk-med truhe">${S.dq.bonus ? TRUHE_AUF : truheZu(bereit ? 3 : erledigt)}</span><div class="bk-t"><h1>${kopfTitel}</h1><span>${kopfSub}</span></div>${keysH}`;
+  const keysH = `<span class="ez-keys${S.dq.bonus ? " verbraucht" : ""}" aria-hidden="true">${[0, 1, 2].map(i => `<i class="${i < erledigt ? "an" : ""}">${SCHLUESSEL}</i>`).join("")}</span>`;
+  const kopfTitel = S.dq.bonus ? "Geöffnet!" : bereit ? "Öffnen!" : `Heute ${erledigt}/3`;
+  const kopfSub = S.dq.bonus ? "Belohnung abgeholt" : bereit ? "Truhe antippen zum Öffnen" : "Tagesaufgaben antippen";
+  const kopfInnen = `<span class="bk-med truhe${S.dq.bonus ? " offen" : ""}">${S.dq.bonus ? TRUHE_AUF + `<i class="truhe-haken">${svg("check")}</i>` : truheZu(bereit ? 3 : erledigt)}</span><div class="bk-t"><h1>${kopfTitel}</h1><span>${kopfSub}</span></div>${keysH}`;
   const kopf = bereit
     ? `<div class="bkopf start-aufg" style="--bk:#f2c14e"><button class="bk-kopf bk-aufg bereit" id="truheKopf" aria-label="Schatztruhe mit drei Schlüsseln öffnen">${kopfInnen}</button></div>`
     : `<div class="bkopf start-aufg" style="--bk:#f2c14e"><details class="bk-aufg-d"><summary class="bk-kopf bk-aufg" aria-label="Tagesaufgaben: ${erledigt} von 3 geschafft">${kopfInnen}</summary>
@@ -1630,7 +1637,7 @@ VIEWS.home = () => {
     <div class="ez-liste">
       ${ezZeile("lernen", "lernen", svg("book"), "Lernen", ni >= 0 ? `Weiter mit: ${esc(GROUPS[ni].name)}` : "Lektionen, Lernvers, Lied")}
       ${ezZeile("spielen", "spielen", svg("user"), "Allein spielen", "Blitz, Kette, Biblionär")}
-      ${ezZeile("zusammen", "gemeinde", svg("people"), "Zusammen", duN ? (duN === 1 ? "1 Duell wartet auf dich" : `${duN} Duelle warten auf dich`) : "Duelle und Rangliste", duN ? `<span class="ez-zahl" aria-label="${duN} ${duN === 1 ? "Duell wartet" : "Duelle warten"}">${duN}</span>` : "")}
+      ${ezZeile("zusammen", "gemeinde", svg("people"), "Zusammen", duN ? (duN === 1 ? "1 Duell wartet auf dich" : `${duN} Duelle warten auf dich`) : "Spiele mit der Gemeinde", duN ? `<span class="ez-zahl" aria-label="${duN} ${duN === 1 ? "Duell wartet" : "Duelle warten"}">${duN}</span>` : "")}
     </div>
     ${entwickler && postfachNeu ? `<button class="erinnerung pf-hinweis" data-go="postfach">${svg("chat")}<span><b>${postfachNeu} ${postfachNeu === 1 ? "neue Meldung" : "neue Meldungen"} im Postkasten</b><span class="small muted">Feedback, Status und Datenbank</span></span></button>` : ""}
     <button class="feedback-link fb-start" id="fbLinkStart">${svg("chat")} Feedback an den Entwickler</button>
@@ -1688,6 +1695,8 @@ VIEWS.lernverse = (zurueck) => {
 };
 
 /* ---------- 8.2: Spielauswahl – Allein und Zusammen sehen gleich aus (Kette · Blitz · Biblionär · Lied bzw. Lernvers), je mit Rubrik-Trenner ---------- */
+/* 8.3: Rangliste und Laden teilen sich einen Reiter (rechts in der Leiste) */
+const rlSchalter = akt => `<div class="rl-switch" role="tablist" aria-label="Rangliste oder Laden"><button role="tab" data-go="rank" aria-selected="${akt === "rank"}">${svg("trophy")}<span>Rangliste</span></button><button role="tab" data-go="shop" aria-selected="${akt === "shop"}">${svg("shop")}<span>Laden</span></button></div>`;
 const spKachel = (attr, ic, t, sub = "", extra = "") => `<button class="bereich klein sp-k ${extra}" ${attr}><span class="b-ic">${ic}</span><span class="b-tx"><b>${t}</b>${sub ? `<span>${sub}</span>` : ""}</span></button>`;
 function spielMenue(zus) {
   const kette = Object.entries(KETTEN).map(([id, k]) => { const t = S.meister[id] || [], st = siegelStufe(t), fr = siegelFrisch(t);
@@ -1700,8 +1709,9 @@ function spielMenue(zus) {
     ${sp("blitz", 'data-go="blitz"', "bolt", "Blitz-Runde", "60 Sekunden – was kommt danach?")}
     ${bkLabel("biblionaer", "Wer wird Biblionär?")}
     ${sp("quiz", 'id="alleinBib"', "biblionaer", zus ? "Biblionär-Duell" : "Biblionär allein", "15 Bibelfragen bis zur Million")}
-    ${zus ? `${bkLabel("scroll", "Lernvers")}${sp("vers", "", "scroll", "Lernvers-Duell", "8 Fragen zum Vers des Monats")}`
-          : `${bkLabel("music", "Lied")}${sp("", 'data-go="gap" data-arg="alle"', "music", "Lied-Lückenquiz", "Welches Buch fehlt in der Liedzeile?")}`}
+    ${bkLabel("scroll", "Lernvers")}
+    ${sp("vers", 'data-go="verslektion"', "scroll", zus ? "Lernvers-Duell" : "Lernvers", zus ? "8 Fragen zum Vers des Monats" : "Übe den Vers des Monats")}
+    ${zus ? "" : `${bkLabel("music", "Lied")}${sp("", 'data-go="gap" data-arg="alle"', "music", "Lied-Lückenquiz", "Welches Buch fehlt in der Liedzeile?")}`}
   </div>`;
 }
 VIEWS.spielen = () => {
@@ -1718,9 +1728,8 @@ VIEWS.zusammen = () => {
   ${online ? "" : `<p class="small muted zus-hinweis">${window.LB && window.LB.ok ? "Für Duelle brauchst du einen Eintrag in der Gemeinde-Rangliste." : "Für Duelle brauchst du Internet."}</p>`}
   <div class="${online ? "" : "sp-aus"}">${spielMenue(true)}</div>
   ${bkLabel("people", "Gemeinde")}
-  <div class="sp-duo" style="--ar:var(--ar-gemeinde)">
+  <div class="sp-duo sp-breit" style="--ar:var(--ar-gemeinde)">
     <button class="bereich klein sp-k" data-go="duelle"><span class="b-ic"><span class="sf-logo">${DUELL_LOGO}</span></span><span class="b-tx"><b>Duelle</b><span>${duN ? `${duN} ${duN === 1 ? "wartet" : "warten"} auf dich` : "Alle Duelle"}</span></span>${duN ? `<i class="sp-zahl">${duN}</i>` : ""}</button>
-    <button class="bereich klein sp-k" data-go="rank"><span class="b-ic">${svg("trophy")}</span><span class="b-tx"><b>Rangliste</b><span>Alle im Überblick</span></span></button>
   </div>`;
   wireGo();
   screen.querySelectorAll("[data-dtyp]").forEach(b => b.onclick = () => { SFX.tap(); if (!online) { toast(`${svg("duell", "var(--muted)")}<div>Für Duelle brauchst du Internet und einen Eintrag in der Rangliste.</div>`); return; }
@@ -1870,7 +1879,7 @@ VIEWS.gap = (arg) => {
     const idx = alleTexte.indexOf(L.t);
     const nah = shuffle([...new Set([idx - 2, idx - 1, idx + 1, idx + 2, idx + 3].filter(j => j >= 0 && j < alleTexte.length).map(j => alleTexte[j]).filter(t => t !== L.t))]).slice(0, 3);
     while (nah.length < 3) { const r = pick(alleTexte); if (r !== L.t && !nah.includes(r)) nah.push(r); }
-    screen.innerHTML = `${backBtn(alle ? "spielen" : "lied", alle ? "Spielen" : "Lied")}<h1>Lückenquiz${alle ? "" : " · Strophe " + (L.vi + 1)}</h1>
+    screen.innerHTML = `${backBtn(alle ? heimAnsicht("spielen") : "lied", alle ? heimName("spielen") : "Lied")}<h1>Lückenquiz${alle ? "" : " · Strophe " + (L.vi + 1)}</h1>
       <div class="stack"><div class="topline"><span>${k + 1} / ${luecken.length}</span><span>Fehler: ${fehler}</span></div>
       <div class="progress"><i style="width:${k / luecken.length * 100}%"></i></div>
       <div class="card"><p class="liedtext gross" id="gapText">${strophe}</p></div>
@@ -1912,7 +1921,7 @@ VIEWS.gap = (arg) => {
       <div class="hilfe" style="text-align:left"><div class="label">${alle ? "Jetzt das ganze Lied am Stück" : "Jetzt die Strophe am Stück"}</div>${alle
         ? `<details class="lied-det"><summary>${svg("music")} Liedtext zeigen</summary>${singBox(LIED.map((v, vi) => `<div class="lied-mini">${v.lines.map((_, li) => zeileHtml(vi, li)).join("<br>")}</div>`).join(""))}</details>`
         : singBox(`<div class="lied-mini">${LIED[strophen[0]].lines.map((_, li) => zeileHtml(strophen[0], li)).join("<br>")}</div>`)}</div>
-      <button class="btn primary" id="again">Nochmal</button><button class="btn ghost" data-go="${alle ? "spielen" : "lied"}">Zurück</button></div>`;
+      <button class="btn primary" id="again">Nochmal</button><button class="btn ghost" data-go="${alle ? heimAnsicht("spielen") : "lied"}">Zurück</button></div>`;
     wireGo(); wireSing(); $("again").onclick = () => { SFX.tap(); vorlesenStop(); VIEWS.gap(arg); };
     SFX.win(); if (perfekt) rain(80);
     if (xp) addXp(xp, null, "luecke", { t0, f: luecken.length - Math.min(fehler, luecken.length), fm: luecken.length, d: `${alle ? "Ganzes Lied" : "Strophe " + (strophen[0] + 1)} · ${fehler} Fehler${W.d}` }); save(); checkBadges();
@@ -1922,7 +1931,7 @@ VIEWS.gap = (arg) => {
 
 /* ---------- Blitz-Runde ---------- */
 VIEWS.blitz = () => {
-  screen.innerHTML = `${backBtn("spielen", "Spielen")}<h1>Blitz-Runde</h1>
+  screen.innerHTML = `${backBtn(heimAnsicht("spielen"), heimName("spielen"))}<h1>Blitz-Runde</h1>
   <div class="card stack" style="text-align:center">
     <p class="muted" style="margin:0">60 Sekunden: Was kommt nach dem Buch? Jede 10er-Combo erhöht den Multiplikator (bis x3). Ein Fehler kostet 3 Sekunden.</p>
     <div class="label">Bereich</div>
@@ -1985,7 +1994,7 @@ function playBlitz(scope) {
     screen.innerHTML = `<div class="card result stack"><div class="label">Zeit abgelaufen</div><div class="big">${right}</div><div class="muted">Richtige · ${wrong} Fehler · beste Combo ${maxCombo}</div>${rec && right > 0 ? '<h2>Neuer Rekord!</h2>' : ''}
       <div class="rewards"><span class="pill">+${xp} XP</span><span class="pill">+${tal} Talente</span></div>${W.hinweis}
       ${blitzLiedHilfe()}
-      <button class="btn primary" id="again">Nochmal</button><button class="btn ghost" data-go="spielen">Zurück</button></div>`; wireGo(); wireSing();
+      <button class="btn primary" id="again">Nochmal</button><button class="btn ghost" data-go="${heimAnsicht("spielen")}">Zurück</button></div>`; wireGo(); wireSing();
     $("again").onclick = () => { SFX.tap(); vorlesenStop(); VIEWS.blitz(); };
     if (right > 0) { SFX.win(); if (rec) rain(90); }
     if (xp) addXp(xp, null, "blitz", { t0, f: right, fm: right + wrong, d: `${scope === "all" ? "Ganze Bibel" : scope} · ${wrong} Fehler · Combo ${maxCombo}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
@@ -2002,7 +2011,7 @@ const KETTEN = {
 const kettenBuecher = (key) => (S[key] ? S[key] + 1 : 0);
 VIEWS.chain = () => { go("spielen"); };
 VIEWS._chainAlt = () => {
-  screen.innerHTML = `${backBtn("spielen", "Spielen")}<h1>Die Kette</h1>
+  screen.innerHTML = `${backBtn(heimAnsicht("spielen"), heimName("spielen"))}<h1>Die Kette</h1>
   <p class="muted small" style="margin:0 0 10px">Immer das nächste Buch – ein Fehler beendet die Kette. Die Lied-Hilfe gibt es nur im Lernteil.</p>
   <div class="stack">${Object.entries(KETTEN).map(([id, k]) => { const max = k.seq.length, rec = kettenBuecher(k.key), voll = rec >= max;
     return `<button class="kette-karte ${voll ? "voll" : ""}" data-k="${id}">
@@ -2019,7 +2028,7 @@ function playChain(mode) {
   <div class="progress"><i id="cbar"></i></div>
   <div class="card stack"><div class="qsub">${K.rueck ? "Was steht davor?" : "Was kommt nach"}</div><div class="q" id="cq"></div><div class="qsub" id="cm"></div>
     <div class="combo" id="cc"></div><div class="opts" id="co"></div></div>
-  <div class="topline" style="justify-content:flex-end"><button class="btn ghost mini" data-go="spielen">Abbrechen</button></div></div>`;
+  <div class="topline" style="justify-content:flex-end"><button class="btn ghost mini" data-go="${heimAnsicht("spielen")}">Abbrechen</button></div></div>`;
   wireGo(); show();
   function show() {
     lock = false;
@@ -2054,7 +2063,7 @@ function playChain(mode) {
       ${!full && BUCH_IM_LIED[seq[i + 1]] ? `<div class="hilfe"><div class="label">So geht's im Lied</div>${singBox(zeileHtml(BUCH_IM_LIED[seq[i + 1]].v, BUCH_IM_LIED[seq[i + 1]].l))}</div>` : ""}
       ${sieg ? `<div class="siegel-box">${siegelHtml(sieg.nachher, true, true)}<div><b>${SIEGEL[sieg.nachher].name}-Siegel</b><div class="small muted">${sieg.nachher < 4 ? "Nächstes: " + SIEGEL[sieg.nachher + 1].name + " – " + SIEGEL[sieg.nachher + 1].text : "Höchste Stufe!"}<br>Bleibt ${SIEGEL_FRISCH} Tage frisch – danach einfach wiederholen.</div></div></div>` : ""}
       <div class="rewards"><span class="pill">+${xp} XP</span><span class="pill">+${tal + (sieg ? sieg.tal : 0)} Talente</span></div>${W.hinweis}
-      <button class="btn primary" id="cagain">Nochmal</button><button class="btn ghost" data-go="spielen">Andere Kette</button></div>`; wireGo(); wireSing();
+      <button class="btn primary" id="cagain">Nochmal</button><button class="btn ghost" data-go="${heimAnsicht("spielen")}">Andere Kette</button></div>`; wireGo(); wireSing();
     $("cagain").onclick = () => { SFX.tap(); vorlesenStop(); countdown(() => playChain(mode)); };
     if (full) { SFX.level(); rain(200); } else if (rec) SFX.win();
     if (xp) addXp(xp, null, "kette", { t0, f: i, fm: seq.length - 1, d: `${K.name}${full ? " · komplett" : " · gerissen"}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
@@ -2162,7 +2171,7 @@ VIEWS.shop = (tab, wahl) => {
     [[AVATARE, "av-"], [RAHMEN, "fr-"], [TITEL, "ti-"], [THEMES, ""]].forEach(([l, p]) => l.filter(i => i.price > 0).forEach(i => { g++; if (S.owned.includes(p + i.id)) h++; })); return `${h}/${g}`; })();
   const ruestN = RUESTUNG.filter(r => S.owned.includes("ar-" + r.id)).length;
   screen.innerHTML = `${bereichKopf("laden", { ic: "shop", t: "Laden", sub: kaufbarIn(shopTab) || Object.keys(SHOP_KAT).some(kaufbarIn) ? "Es gibt etwas Neues für dich!" : "Sammle Talente für Neues", ring: [pkt(S.tal), "Talente"],
-    tafel: [[`${ruestN}/${RUESTUNG.length}`, "Rüstung"], [ladenZahl, "Gesammelt"], [`${levelOf(S.xp)}`, "Level"]] })}
+    tafel: [[`${ruestN}/${RUESTUNG.length}`, "Rüstung"], [ladenZahl, "Gesammelt"], [`${levelOf(S.xp)}`, "Level"]] })}${rlSchalter("shop")}
     ${bkLabel("star", "Vorschau")}
     <section class="kb-buehne ${shopTab}">
       <div class="podest">${buehneBild}</div>
@@ -2617,8 +2626,8 @@ VIEWS.rank = (tab) => {
   if (tab && RANK_TABS[tab]) rankTab = tab;
   const L = window.LB;
   /* 6.58: Kopf im Arena-Stil – Ring = eigener Platz in der gewählten Liste, Tafel Level/Abzeichen/Spieler (nach dem Laden nachgetragen) */
-  let html = bereichKopf("gemeinde", { ic: "people", t: "Gemeinde", sub: "Freie Baptisten Eichstätt", ring: ["–", "Platz"], ringId: "bkPlatz",
-    tafel: [[levelOf(S.xp), "Level"], [`${S.badges.length}`, "Abzeichen"], ["–", "Spieler", "bkSpieler"]] }) + `<div id="shMiniBox">${stiftMiniHtml() || adventMiniHtml()}</div>` + bkLabel("trophy", "Ranglisten");
+  let html = bereichKopf("gemeinde", { ic: "trophy", t: "Rangliste", sub: "Freie Baptisten Eichstätt", ring: ["–", "Platz"], ringId: "bkPlatz",
+    tafel: [[levelOf(S.xp), "Level"], [`${S.badges.length}`, "Abzeichen"], ["–", "Spieler", "bkSpieler"]] }) + rlSchalter("rank") + `<div id="shMiniBox">${stiftMiniHtml() || adventMiniHtml()}</div>` + bkLabel("trophy", "Ranglisten");
   stiftLaden().then(() => { const b = $("shMiniBox"); if (b && current === "rank") { b.innerHTML = stiftMiniHtml() || adventMiniHtml(); wireGo(); } });
   if (!L) { screen.innerHTML = html + `<div class="card"><p class="muted" style="margin:0">Rangliste wird geladen …</p></div>`; wireGo(); return; }
   if (!L.configured) { screen.innerHTML = html + `<div class="card stack"><b>Noch nicht eingerichtet</b><p class="muted small" style="margin:0">Die Rangliste braucht einen gemeinsamen Online-Speicher. Bis dahin kannst du ganz normal spielen – dein Fortschritt wird später übernommen.</p></div>`; wireGo(); return; }
@@ -3298,7 +3307,7 @@ function duZeige() {
   $("duX").onclick = () => {
     SFX.tap();
     modal(`<div class="label">Duell abbrechen?</div><h2>Gegen ${esc(D.gegner)}</h2><p class="muted">${D.neu ? "Die Herausforderung wird dann nicht gesendet." : "Du kannst später noch einmal neu anfangen."}</p><button class="btn primary" data-close="weiter">Weiterspielen</button><button class="btn ghost" data-close="ende">Abbrechen</button>`,
-      r => { if (r === "ende") { D.abgeschlossen = true; duSpiel = null; go("duelle"); } });
+      r => { if (r === "ende") { D.abgeschlossen = true; duSpiel = null; go(D.heim || heimAnsicht("duelle")); } });
   };
 }
 /* 6.77: Duell-XP je Spielart (Grundwert + XP je Richtige, Obergrenze je Art). Zweitprofile zählen wie Einzelspiel, ab dem
@@ -3394,7 +3403,7 @@ async function duEnde() {
     <h1 class="sb-spaet${sieg ? "" : " leise"}">${titel}</h1><p class="muted sb-spaet">${zeile}${extra ? `<br><span class="small">${extra.replace(/^ · /, "")}</span>` : ""}</p>
     <div class="vle-werte sb-spaet"><div><b>+${xp}</b><span>XP</span></div>${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>${tal > DU_FAIR_TAL ? "Talente" : "Fairplay"}</span></div>` : ""}</div>
     <div class="sb-spaet sb-knoepfe"><button class="btn ghost breit${sieg ? "" : " puls"}" id="duRevanche">${svg("bolt")} ${sieg ? "Nochmal duellieren" : "Revanche"}</button>
-    <button class="btn primary breit" id="duFertig">${D.heim === "bib" ? "Zurück zu Biblionär" : "Zurück zur Arena"}</button></div></div>`;
+    <button class="btn primary breit" id="duFertig">${D.heim === "bib" ? "Zurück zu Biblionär" : "Zurück zu " + heimName("duelle")}</button></div></div>`;
     const wurzel = screen.querySelector(".sb-ende");
     /* XP/Level-Aufstieg erst nach der Auflösung, damit nichts das Ergebnis vorwegnimmt */
     sbStarten(wurzel, { gegner: D.gegner, du: { p: D.p, r: D.r, n }, er: D.gegnerErg, art: D.art }, s => { sbSchluss(wurzel, s); xpGeben(900); });
@@ -3405,10 +3414,10 @@ async function duEnde() {
     <div class="du-art-zeile">${duMarke({ art: D.art, k: D.k })}<span class="small muted">${esc(DU_TYPEN[typ].info)}</span></div>
     <div class="du-vs"><div class="du-vs-sp ${sieg ? "vorn" : ""}"><span>Du</span><b>${duP(D.p)}</b><small>${duErgText(D.art, ich)}${extra}</small></div><span class="du-vs-x">:</span>${gegnerSpalte}</div>
     <div class="vle-werte"><div><b>+${xp}</b><span>XP</span></div>${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>${tal > DU_FAIR_TAL ? "Talente" : "Fairplay"}</span></div>` : ""}</div>
-    ${fehler ? `<button class="btn primary breit" id="duNochmal">Nochmal senden</button>` : `<button class="btn primary breit" id="duFertig">${D.heim === "bib" ? "Zurück zu Biblionär" : "Zurück zur Arena"}</button>`}
+    ${fehler ? `<button class="btn primary breit" id="duNochmal">Nochmal senden</button>` : `<button class="btn primary breit" id="duFertig">${D.heim === "bib" ? "Zurück zu Biblionär" : "Zurück zu " + heimName("duelle")}</button>`}
     ${!D.neu && !fehler && !weg ? `<button class="btn ghost breit" id="duRevanche">${svg("bolt")} ${sieg ? "Nochmal duellieren" : "Revanche"}</button>` : ""}</div>`;
   if (!aufl && !fehler && !weg) SFX.coin(); /* Herausforderung gesendet: kleiner Ton, kein Sieg-Effekt */
-  const weiter = () => { duSpiel = null; go(D.heim || "duelle"); };
+  const weiter = () => { duSpiel = null; go(D.heim || heimAnsicht("duelle")); };
   if ($("duFertig")) $("duFertig").onclick = () => { SFX.tap(); weiter(); };
   if ($("duNochmal")) $("duNochmal").onclick = () => { SFX.tap(); duEnde(); };
   if ($("duRevanche")) $("duRevanche").onclick = () => { SFX.tap(); duSpiel = null;
@@ -3566,10 +3575,10 @@ function bibZeige(G) {
       : (G.modus === "woche" || G.modus === "advent") ? "Die Runde hat nur einen Versuch. Wenn du abbrichst, zählt sie mit 0 Punkten." : "Dein Fortschritt in dieser Runde geht verloren.";
     modal(`<div class="label">Spiel abbrechen?</div><h2>Wer wird Biblionär?</h2><p class="muted">${text}</p><button class="btn primary" data-close="weiter">Weiterspielen</button><button class="btn ghost" data-close="ende">Abbrechen</button>`,
       r => { if (r !== "ende") return; fertig = true; G.abgeschlossen = true; clearTimers();
-        if (G.modus === "duell") { duSpiel = null; go(G.heim || "duelle"); }
+        if (G.modus === "duell") { duSpiel = null; go(G.heim || heimAnsicht("duelle")); }
         else if (G.modus === "woche") { G.gewonnen = 0; G.fertigGrund = "abbruch"; bibErgebnis(G, 0); go("rank", "bibWoche"); }
         else if (G.modus === "advent") { G.gewonnen = 0; G.fertigGrund = "abbruch"; bibErgebnis(G, 0); go("advent"); }
-        else go("bib"); });
+        else go(heimAnsicht("bib")); });
   };
 }
 /* Ende: richtige Antworten, Punkte nach Leiter/Sicherheitsstufe */
@@ -3610,8 +3619,8 @@ function bibEnde(G, punkte) {
     <div class="vle-werte"><div><b>+${xp}</b><span>XP</span></div><div><b>+${tal}${TAL_MUENZE}</b><span>Talente</span></div>${woche || adv ? "" : `<div><b>${pkt(S.bibRekord)}</b><span>Rekord</span></div>`}</div>
     ${adv ? `<p class="small muted" style="margin:0">Alle in der Gemeinde bekommen dieselben Fragen. Nächsten Sonntag gibt es neue.</p><button class="btn primary breit" data-go="advent">${svg("kerze")} Zurück zum Advent</button>`
       : woche ? `<p class="small muted" style="margin:0">Alle in der Gemeinde bekommen diese Woche dieselben Fragen. Am Montag gibt es neue.</p>
-      <button class="btn primary breit" id="bibRang">${svg("trophy")} Zur Wochen-Rangliste</button><button class="btn ghost breit" data-go="bib">Zurück zu Biblionär</button>`
-      : `<button class="btn primary breit" id="bibNochmal">${svg("biblionaer")} Nochmal spielen</button><button class="btn ghost breit" data-go="bib">Zurück zu Biblionär</button>`}
+      <button class="btn primary breit" id="bibRang">${svg("trophy")} Zur Wochen-Rangliste</button><button class="btn ghost breit" data-go="${heimAnsicht("bib")}">Zurück zu ${heimName("bib")}</button>`
+      : `<button class="btn primary breit" id="bibNochmal">${svg("biblionaer")} Nochmal spielen</button><button class="btn ghost breit" data-go="${heimAnsicht("bib")}">Zurück zu ${heimName("bib")}</button>`}
   </div>`;
   wireGo();
   if ($("bibNochmal")) $("bibNochmal").onclick = () => { SFX.tap(); bibSolo(); };
