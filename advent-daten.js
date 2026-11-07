@@ -49,6 +49,27 @@ const BETH = [
     k: "Der Stern führt die Weisen zum Haus. Sie fallen nieder, beten das Kind an und schenken ihm Gold, Weihrauch und Myrrhe.",
     ver: ["Jesaja 60,3.6", "Völker ziehen zu deinem Licht, sie bringen Gold und Weihrauch und verkünden das Lob des Herrn."], erf: ["Matthäus 2,11", "Sie öffneten ihre Schätze und schenkten ihm Gold, Weihrauch und Myrrhe."] }
 ];
+/* 7.7: Etappen auf dem Weg nach Bethlehem – Hintergrund zu Zeit und Ort. Keine Figuren, keine Spenden: reine Wissenskarten im Zeitplan (Termine ohne Einfluss auf die Krippe). */
+const BETH_ETAPPEN = [
+  { d: "2026-12-12", n: "Der Kaiser befiehlt", v: "Lukas 2,1-3",
+    k: "Kaiser Augustus herrscht über das Römische Reich, auch Judäa gehört dazu. Seine Volkszählung bringt das ganze Land in Bewegung: Jeder soll sich in seiner Heimatstadt eintragen lassen.",
+    ver: ["Micha 5,1", "Aus Bethlehem soll der kommen, der Herrscher über Israel sein wird."], erf: ["Lukas 2,4", "Der Kaiserbefehl führt Josef und Maria genau nach Bethlehem."] },
+  { d: "2026-12-13", n: "Aufbruch aus Nazareth", v: "Lukas 2,4-5",
+    k: "Josef gehört zum Haus Davids und muss nach Bethlehem. Der Weg von Nazareth sind weit über 100 Kilometer, zu Fuß ein Marsch von mehreren Tagen – mit Maria, die ein Kind erwartet.",
+    ver: ["Jesaja 40,3", "Bahnt dem Herrn einen Weg – Gott ist selbst unterwegs zu den Menschen."], erf: ["Lukas 2,4-5", "Josef und Maria brechen auf, das Kind kommt zur Welt, wo Gott es angekündigt hat."] },
+  { d: "2026-12-16", n: "Der Statthalter in Syrien", v: "Lukas 2,2",
+    k: "Lukas nennt genau, wer regiert: Quirinius ist Statthalter in Syrien, Herodes König in Judäa, Augustus Kaiser in Rom. Weihnachten ist keine Sage, sondern eine Geschichte mit Ort und Zeit.",
+    ver: ["Daniel 2,44", "Gott wird ein Reich aufrichten, das niemals untergeht."], erf: ["Lukas 1,33", "Sein Reich wird kein Ende haben – während die Reiche der Kaiser vergehen."] },
+  { d: "2026-12-17", n: "Hinauf nach Bethlehem", v: "Lukas 2,4",
+    k: "Bethlehem liegt auf einem Höhenzug, nur wenige Kilometer südlich von Jerusalem. Hier wuchs der Hirtenjunge David auf und wurde zum König gesalbt – darum heißt der Ort „Stadt Davids“.",
+    ver: ["1. Samuel 16,1.13", "Samuel salbt in Bethlehem den jüngsten Sohn Isais, David, zum König."], erf: ["Lukas 2,11", "In der Stadt Davids ist euch der Retter geboren."] },
+  { d: "2026-12-18", n: "Wohin für die Nacht?", v: "Lukas 2,6-7",
+    k: "Durch die Volkszählung ist Bethlehem voll. Das Wort, das mit „Herberge“ übersetzt wird, kann auch einen Gästeraum meinen – in einfachen Häusern lebte man oft nah bei den Tieren. So kommt es zum Stall.",
+    ver: ["Jesaja 53,2", "Er hatte keine Gestalt und keine Pracht – der Retter kommt ganz unscheinbar."], erf: ["Lukas 2,7", "Es war kein Platz für sie in der Herberge."] },
+  { d: "2026-12-22", n: "König Herodes", v: "Matthäus 2,3",
+    k: "Herodes der Große regiert in Jerusalem. Er hat den Tempel prächtig ausgebaut, ist aber misstrauisch und fürchtet jeden, der ihm den Thron nehmen könnte. Darum erschrickt er, als er vom neuen König hört.",
+    ver: ["Psalm 2,2", "Die Könige der Erde lehnen sich auf gegen den Herrn und seinen Gesalbten."], erf: ["Matthäus 2,3", "Als König Herodes das hörte, erschrak er und ganz Jerusalem mit ihm."] }
+];
 const BETH_FINALE = { n: "Heiligabend – das Kind ist da!", v: "Lukas 2,7.11-12",
   k: "Maria bringt ihren ersten Sohn zur Welt, wickelt ihn in Windeln und legt ihn in eine Krippe. Der Engel sagt den Hirten: Euch ist heute der Retter geboren, der Christus, der Herr.",
   ver: ["Jesaja 9,5", "Uns ist ein Kind geboren, ein Sohn ist uns gegeben."], erf: ["Johannes 1,14", "Das Wort wurde Mensch und wohnte unter uns – wir sahen seine Herrlichkeit."] };
