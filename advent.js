@@ -323,20 +323,20 @@ function kalOeffnen(d) {
       ${kalKrippe(d)}
       ${vfKarte(vfTeil(ev[0]), vfTeil(ev[1]), "Verheißung", "Erfüllung")}
       ${neu ? `${zahlen(lohn.tal, lohn.licht)}${test ? `<p class="small muted" style="margin:0 0 10px">Testmodus: keine Belohnung${heute ? "" : " (nachgeholt)"}</p>` : `<p class="small muted" style="margin:0 0 10px">${heute ? "Heute geöffnet – volle Belohnung" : "Nachgeholt – halbe Belohnung"}</p>`}` : ""}
-      ${beantwortet() ? `<p class="small muted" style="margin:0 0 10px">${A().kal[d].r ? `${svg("check", "var(--good)")} Frage richtig beantwortet` : "Frage beantwortet"} – ${esc(e.e)}</p><button class="btn primary" data-close>Schließen</button>`
+      ${beantwortet() ? `<p class="small muted" style="margin:0 0 10px">${A().kal[d].r ? `${svg("check", "var(--good)")} Frage richtig beantwortet` : "Frage beantwortet"} – ${esc(e.e)} <span style="color:#ffe39a">(${esc(e.qs)})</span></p><button class="btn primary" data-close>Schließen</button>`
         : `<button class="btn primary" id="kalFrage">Zur Frage (+${KAL_TAL_FRAGE} Talente, +${KAL_LICHT_FRAGE} Lichter)</button><button class="btn ghost" data-close>Später</button>`}</div>`;
     innen.querySelectorAll("[data-close]").forEach(b => b.onclick = () => { m.remove(); SFX.tap(); if (current === "kal") VIEWS.kal(); });
     const f = innen.querySelector("#kalFrage"); if (f) f.onclick = () => { SFX.tap(); schritt2(); };
     if (neu) setTimeout(zaehlen, 250);
   };
   const schritt2 = () => {
-    innen.innerHTML = `<h2 style="margin:0 0 8px;font-size:1.1rem">${esc(e.q)}</h2><div class="stack">${kalOptionen(d).map((o, i) => `<button class="btn kal-opt" data-o="${i}">${esc(o)}</button>`).join("")}</div>`;
+    innen.innerHTML = `<h2 style="margin:0 0 6px;font-size:1.1rem">${esc(e.q)}</h2><p class="kal-stelle">${svg("book")} Schlag nach: <b>${esc(e.qs)}</b></p><div class="stack">${kalOptionen(d).map((o, i) => `<button class="btn kal-opt" data-o="${i}">${esc(o)}</button>`).join("")}</div>`;
     innen.querySelectorAll(".kal-opt").forEach(b => b.onclick = () => {
       const wahl = b.textContent, ok = wahl === e.a[0];
       innen.querySelectorAll(".kal-opt").forEach(x => { x.disabled = true; if (x.textContent === e.a[0]) x.classList.add("richtig"); else if (x === b) x.classList.add("falsch"); });
       A().kal[d].r = ok ? 1 : 0; save();
       if (ok) { SFX.right && SFX.right(); if (!test) { addTal(KAL_TAL_FRAGE); adventLichtGeben(KAL_LICHT_FRAGE); } } else SFX.wrong();
-      setTimeout(() => { innen.insertAdjacentHTML("beforeend", `<p style="margin:10px 0 6px"><b>${ok ? (test ? "Richtig!" : `Richtig! +${KAL_TAL_FRAGE} Talente, +${KAL_LICHT_FRAGE} Lichter`) : "Leider nicht."}</b> ${esc(e.e)}</p><button class="btn primary" id="kalOk">Weiter</button>`);
+      setTimeout(() => { innen.insertAdjacentHTML("beforeend", `<p style="margin:10px 0 6px"><b>${ok ? (test ? "Richtig!" : `Richtig! +${KAL_TAL_FRAGE} Talente, +${KAL_LICHT_FRAGE} Lichter`) : "Leider nicht."}</b> ${esc(e.e)}</p><p class="kal-stelle gold">${svg("book")} Die Lösung steht in <b>${esc(e.qs)}</b></p><button class="btn primary" id="kalOk">Weiter</button>`);
         $("kalOk").onclick = () => { m.remove(); SFX.tap(); if (current === "kal") VIEWS.kal(); }; }, 500);
     });
   };
