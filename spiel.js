@@ -1725,14 +1725,14 @@ VIEWS.lektion = (arg) => {
   };
   function fertig(err) {
     const stars = err === 0 ? 3 : err <= 2 ? 2 : 1, prev = S.stars[gi] || 0; if (stars > prev) S.stars[gi] = stars;
-    const W = spielWdh("lektion-" + gi), xp = wdhMal(Math.max(1, Math.round((g.books.length * 21 + stars * 36) * LEKTION_XP_FAKTOR)), W), ltal = wdhMal(Math.max(0, stars - prev) * 2, W); richtig(g.books.length);
+    const W = spielWdh("lektion-" + gi, LEKTION_WDH), xp = wdhMal(Math.max(1, Math.round((g.books.length * 21 + stars * 36) * LEKTION_XP_FAKTOR)), W), ltal = wdhMal(Math.max(0, stars - prev) * 2, W); richtig(g.books.length);
     quest("station", 1); quest("runde", 1);
     SFX.win(); vibrate([20, 30, 20, 30, 60]); rain(70);
     setTimeout(() => {
       addXp(xp, null, "lektion", { t0, f: g.books.length, fm: g.books.length, d: `Lektion ${gi + 1} · ${stars} ${stars === 1 ? "Stern" : "Sterne"} · ${err} Fehler${W.d}` }); addTal(ltal);
       const next = gi + 1 < GROUPS.length;
       const m = modal(`<div class="label">Lektion geschafft</div><div class="stars" style="justify-content:center;gap:8px">${[1, 2, 3].map(k => `<span style="display:inline-block;width:44px;animation:pop .4s ${k * 0.15}s both">${STAR(stars >= k)}</span>`).join("")}</div>
-      <h2>${err === 0 ? "Fehlerfrei!" : err + " Fehler"}</h2><div class="rewards"><span class="pill">+${xp} XP</span>${ltal ? `<span class="pill">+${ltal} Talente</span>` : ""}</div>${W.hinweis}
+      <h2>${err === 0 ? "Fehlerfrei!" : err + " Fehler"}</h2><div class="rewards">${xp ? `<span class="pill">+${xp} XP</span>` : ""}${ltal ? `<span class="pill">+${ltal} Talente</span>` : ""}</div>${W.hinweis}
       ${LIEDZEIT ? `<div class="hilfe belohnung"><div class="label">${svg("music")} Liedbelohnung – freiwillig</div>${singBox(strophenVonGruppe(gi).map(vi => `<div class="lied-mini">${LIED[vi].lines.map((_, li) => zeileHtml(vi, li)).join("<br>")}</div>`).join(""))}</div>` : ""}
       <button class="btn primary" data-close="${next ? "next" : "lernen"}">${next ? "Nächste Lektion" : "Zur Übersicht"}</button><button class="btn ghost" data-close="again">Nochmal ordnen</button>`,
         r => { vorlesenStop(); if (r === "next") go("lektion", gi + 1); else if (r === "again") { schritt = 3; zeige(); } else go("lernen"); });
@@ -3236,14 +3236,18 @@ function duXpTagStand() { const t = today(), d = S.duXpTag; return d && d.t === 
    Gezählt wird je Spielart: Blitz, jede Kette einzeln (Bibel, AT, NT, Rückwärts), Lückenquiz, jede Lektion einzeln, Biblionär solo –
    und bei Duellen je Gegner (egal welche Duell-Art). Neuer Tag = wieder volle Belohnung. */
 const WDH_STUFEN = [[10, 0.5], [5, 0.75]];
-const wdhFaktorBei = nr => { for (const [ab, f] of WDH_STUFEN) if (nr >= ab) return f; return 1; };
+const wdhFaktorBei = (nr, stufen) => { for (const [ab, f] of (stufen || WDH_STUFEN)) if (nr >= ab) return f; return 1; };
+/* 6.99: Lektionen werden je Lektion und Tag strenger gestaffelt: 1. Mal 100 %, 2. Mal 75 %, 3. Mal 50 %, 4. Mal 25 %, ab dem 5. Mal keine XP
+   und keine Talente mehr (Sterne und Fortschritt zählen weiter, neuer Tag = wieder voll). Ersetzt für Lektionen die milden Stufen. */
+const LEKTION_WDH = [[5, 0], [4, 0.25], [3, 0.5], [2, 0.75]];
 function wdhStand() { const t = today(); if (!S.spWdh || S.spWdh.t !== t) S.spWdh = { t, n: {} }; return S.spWdh.n; }
 /* zählt eine Runde der Spielart key und gibt Faktor, Nummer und Hinweis zurück */
-function spielWdh(key) {
+function spielWdh(key, stufen) {
   const n = wdhStand(), nr = (n[key] | 0) + 1; n[key] = nr;
-  const f = wdhFaktorBei(nr);
+  const f = wdhFaktorBei(nr, stufen);
   return { f, nr, d: f < 1 ? ` · ${nr}. Runde heute ×${f}` : "",
-    hinweis: f < 1 ? `<div class="small muted wdh-hinw">Heute schon ${nr - 1}× gespielt – ${Math.round(f * 100)} % der Belohnung. Morgen gibt es wieder die volle.</div>` : "" };
+    hinweis: f === 0 ? `<div class="small muted wdh-hinw">Diese Lektion hast du heute schon ${nr - 1}× geschafft – dafür gibt es heute keine XP mehr. Morgen gibt es wieder die volle Belohnung.</div>`
+      : f < 1 ? `<div class="small muted wdh-hinw">Heute schon ${nr - 1}× gespielt – ${Math.round(f * 100)} % der Belohnung. Morgen gibt es wieder die volle.</div>` : "" };
 }
 const wdhMal = (v, w) => (w && w.f < 1 ? Math.round(v * w.f) : v);
 /* 6.83: Gleicher Gegner – ab dem 5. Duell am selben Tag gegen dieselbe Person (egal, wer herausfordert) gibt es nur noch die halbe
