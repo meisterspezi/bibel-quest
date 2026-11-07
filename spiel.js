@@ -1630,6 +1630,7 @@ VIEWS.home = () => {
         <section class="heute3 ${S.dq.bonus ? "fertig" : ""}" aria-label="Tagesaufgaben, ${erledigt} von 3 erledigt"><ul>${aufg}</ul>${truhe}</section></details></div>`;
   screen.innerHTML = `<div class="stack start start2 start8">
     ${kopf}
+    ${duDranHtml()}
     ${adventMiniHtml(true)}${siegel}
     ${bkLabel("scroll", "Lernvers")}
     <div class="start-vers">${MONATSVERSE[monatKey()] ? lvKarte(monatKey()) : `<button class="vers-zeile" id="versZeile" aria-expanded="false">${versHtml(vKey, "tag klein")}<span class="vz-mehr">mehr</span></button>`}</div>
@@ -1642,7 +1643,7 @@ VIEWS.home = () => {
     ${entwickler && postfachNeu ? `<button class="erinnerung pf-hinweis" data-go="postfach">${svg("chat")}<span><b>${postfachNeu} ${postfachNeu === 1 ? "neue Meldung" : "neue Meldungen"} im Postkasten</b><span class="small muted">Feedback, Status und Datenbank</span></span></button>` : ""}
     <button class="feedback-link fb-start" id="fbLinkStart">${svg("chat")} Feedback an den Entwickler</button>
   </div>`;
-  wireGo();
+  wireGo(); duDranVerdrahten();
   $("fbLinkStart").onclick = () => { SFX.tap(); feedbackOeffnen(); };
   const tb = $("truheBtn"); if (tb) tb.onclick = () => truheOeffnen(tb);
   const tk = $("truheKopf"); if (tk) tk.onclick = () => truheOeffnen(tk);
@@ -1726,12 +1727,13 @@ VIEWS.zusammen = () => {
   const duN = duFuerMich().length, online = duOk();
   screen.innerHTML = `${bereichKopf("gemeinde", { ic: "people", t: "Zusammen", sub: duN ? `${duN} ${duN === 1 ? "Duell wartet" : "Duelle warten"} auf dich!` : "Mit der Gemeinde spielen" })}
   ${online ? "" : `<p class="small muted zus-hinweis">${window.LB && window.LB.ok ? "Für Duelle brauchst du einen Eintrag in der Gemeinde-Rangliste." : "Für Duelle brauchst du Internet."}</p>`}
+  ${duDranHtml()}
   <div class="${online ? "" : "sp-aus"}">${spielMenue(true)}</div>
-  ${bkLabel("people", "Gemeinde")}
+  ${duDranHtml() ? "" : bkLabel("people", "Gemeinde")}
   <div class="sp-duo sp-breit" style="--ar:var(--ar-gemeinde)">
     <button class="bereich klein sp-k" data-go="duelle"><span class="b-ic"><span class="sf-logo">${DUELL_LOGO}</span></span><span class="b-tx"><b>Duelle</b><span>${duN ? `${duN} ${duN === 1 ? "wartet" : "warten"} auf dich` : "Alle Duelle"}</span></span>${duN ? `<i class="sp-zahl">${duN}</i>` : ""}</button>
   </div>`;
-  wireGo();
+  wireGo(); duDranVerdrahten();
   screen.querySelectorAll("[data-dtyp]").forEach(b => b.onclick = () => { SFX.tap(); if (!online) { toast(`${svg("duell", "var(--muted)")}<div>Für Duelle brauchst du Internet und einen Eintrag in der Rangliste.</div>`); return; }
     S.duTyp = b.dataset.dtyp; duAuswahl = []; duSuche = ""; save(); go("gegner"); });
   if (online) { if (duGegner === null) duGegnerLaden(); if (duListe === null) duAktualisieren().then(() => { if (current === "zusammen") VIEWS.zusammen(); }).catch(() => {}); }
@@ -2524,6 +2526,7 @@ async function lbStart() {
       duAktualisieren().then(() => {
         const td = $("torDuell"), n = duFuerMich().length; if (td && current === "home") { const pk = td.querySelector(".du-punkt"); if (pk) pk.remove(); if (n) { td.insertAdjacentHTML("beforeend", `<i class="du-punkt">${n}</i>`); td.setAttribute("aria-label", `Arena – ${n} ${n === 1 ? "Herausforderung wartet" : "Herausforderungen warten"}`); } }
         if ((current === "spielen" || current === "duelle") && !document.querySelector(".modal") && !duSpiel) go(current);
+        if (current === "home" && n && !document.querySelector(".du-dran") && !document.querySelector(".modal") && !duSpiel && !document.querySelector(".bk-aufg-d[open]")) go("home");
       });
       bibSiegerPruefen();
       /* 6.68: Stiftshütte – offene Spenden senden, fertige Abschnitte feiern */
@@ -3115,6 +3118,22 @@ function duArenaHtml(fuerMich) {
 `;
 }
 
+/* 8.4: Duell direkt annehmen – von Start und Zusammen aus (je 1 Karte „Du bist dran“) */
+const duAnnehmen = d => duSpielStarten({ id: d.id, seed: d.seed, erstellt: d.erstellt, art: d.art || "vers", k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von, weih: !!(d.opt && d.opt.w) });
+function duDranKarte(d) {
+  const art = DU_TYPEN[duTypVon(d)].art, n = Math.max(0, Math.ceil((d.ablauf - Date.now()) / 864e5));
+  return `<li class="ar-karte t-${art}${n <= 1 ? " eilig" : ""}">
+      <span class="du-medaille t-${art}">${esc(duInitialen(d.vonName))}</span>
+      <span class="ar-tx"><b>${esc(d.vonName)}</b><span>${duMarke(d)}</span></span>
+      <span class="ar-vor"><b class="du-verdeckt" aria-label="Punkte verdeckt">?</b><small class="ar-zeit">noch ${n} ${n === 1 ? "Tag" : "Tage"}</small></span>
+      <span class="ar-knoepfe"><button class="ar-antreten" data-an="${d.id}">${svg("bolt")}Antreten</button><button class="ar-rev" data-ab="${d.id}" aria-label="Ablehnen">${svg("nein")}</button></span></li>`;
+}
+const duDranHtml = () => { const l = duFuerMich().sort((a, b) => a.ablauf - b.ablauf); return l.length && duOk() ? `<ul class="ar-liste du-dran">${duDranKarte(l[0])}</ul>` : ""; };
+function duDranVerdrahten() {
+  const liste = duFuerMich();
+  screen.querySelectorAll(".du-dran [data-an]").forEach(b => b.onclick = () => { SFX.tap(); const d = liste.find(x => x.id === b.dataset.an); if (d) duAnnehmen(d); });
+  screen.querySelectorAll(".du-dran [data-ab]").forEach(b => b.onclick = () => { SFX.tap(); const d = liste.find(x => x.id === b.dataset.ab); if (d) duAblehnenFrage(d, () => duAnnehmen(d)); });
+}
 VIEWS.duelle = () => {
   const kopf = seitenKopf("Arena", `${svg("crown")}${S.duSiege || 0} ${S.duSiege === 1 ? "Sieg" : "Siege"}`);
   if (!duOk()) {
@@ -3161,7 +3180,7 @@ VIEWS.duelle = () => {
   wireGo();
   $("duNeu").onclick = () => { SFX.tap(); go("zusammen"); };
   if ($("duNeuLaden")) $("duNeuLaden").onclick = () => { duAktualisieren().then(() => current === "duelle" && VIEWS.duelle()); };
-  const annehmen = d => duSpielStarten({ id: d.id, seed: d.seed, erstellt: d.erstellt, art: d.art || "vers", k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von, weih: !!(d.opt && d.opt.w) });
+  const annehmen = duAnnehmen;
   screen.querySelectorAll("[data-an]").forEach(b => b.onclick = () => { SFX.tap(); const d = liste.find(x => x.id === b.dataset.an); if (d) annehmen(d); });
   screen.querySelectorAll("[data-ab]").forEach(b => b.onclick = () => { SFX.tap(); const d = liste.find(x => x.id === b.dataset.ab); if (d) duAblehnenFrage(d, () => annehmen(d)); });
   screen.querySelectorAll("[data-rev]").forEach(b => b.onclick = () => { SFX.tap(); const d = liste.find(x => x.id === b.dataset.rev); if (!d) return; const ich = d.von === S.pid;
