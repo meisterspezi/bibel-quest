@@ -1,4 +1,4 @@
-const APP_VERSION = "8.6";
+const APP_VERSION = "8.7";
 /* =====================================================================
    Bibelbuch-Quest – Spieldaten
    Bücher (Schlachter 2000), Lieder, Bibelverse (Schlachter 2000 © Genfer Bibelgesellschaft),
