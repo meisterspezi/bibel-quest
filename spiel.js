@@ -1361,7 +1361,8 @@ function rangVon(r) {
 }
 /* 6.68: Veredelungs-Stufe eines Rüstungsteils (0 = Grundstufe, 1 = Geläutert, 2 = Im Feuer erprobt) */
 const ruestStufe = id => Math.min(2, (S.ruestStufe || {})[id] | 0);
-const veredelPreis = id => { if (!S.owned.includes("ar-" + id)) return 0; const st = ruestStufe(id); return st >= 2 ? 0 : RUEST_VEREDEL_PREIS[id][st]; };
+/* 9.5: Veredeln aus dem Laden gestrichen – bereits erreichte Stufen bleiben sichtbar */
+const veredelPreis = id => { return 0; if (!S.owned.includes("ar-" + id)) return 0; const st = ruestStufe(id); return st >= 2 ? 0 : RUEST_VEREDEL_PREIS[id][st]; };
 function ruestungHtml(n, klein = true) {
   if (!n) return "";
   return `<span class="ruest ${klein ? "klein" : ""}" title="Waffenrüstung Gottes: ${n} von 6">${RUESTUNG.slice(0, n).map(r => `<i class="rst-${ruestStufe(r.id)}">${svg("ar-" + r.id)}</i>`).join("")}</span>`;
