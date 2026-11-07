@@ -362,7 +362,7 @@ const QUIZ_THEMEN = [
     { f: "Wie hieß der Knecht, dem Petrus das Ohr abschlug?", a: ["Malchus", "Barabbas", "Kleopas", "Rhode"], ref: "Johannes 18,10", st: 3 },
     { f: "Wer legte Jesus in sein neues Grab?", a: ["Josef von Arimathia", "Nikodemus allein", "Petrus", "Lazarus"], ref: "Matthäus 27,57-60", st: 2 },
     { f: "Was stand auf der Überschrift am Kreuz?", a: ["Jesus von Nazareth, der König der Juden", "Der Sohn Gottes", "Der Prophet aus Galiläa", "Der gute Hirte"], ref: "Johannes 19,19", st: 2 },
-    { f: "Wer sah den Auferstandenen nach Markus als Erste?", a: ["Maria Magdalena", "Maria, die Mutter Jesu", "Marta", "Salome"], ref: "Markus 16,9", st: 2 },
+    { f: "Wem erschien Jesus nach seiner Auferstehung zuerst (Markus 16,9)?", a: ["Maria Magdalena", "Maria, die Mutter Jesu", "Marta", "Salome"], ref: "Markus 16,9", st: 2 },
     { f: "In welches Dorf waren die zwei Jünger unterwegs, als der Auferstandene mit ihnen ging?", a: ["Emmaus", "Bethanien", "Kana", "Nain"], ref: "Lukas 24,13", st: 2 },
     { f: "Von welchem Berg kehrten die Jünger nach der Himmelfahrt Jesu nach Jerusalem zurück?", a: ["Vom Ölberg", "Vom Berg Tabor", "Vom Berg Zion", "Vom Berg Karmel"], ref: "Apostelgeschichte 1,12", st: 3 },
     { f: "Was nahm Jesus beim letzten Abendmahl, dankte, brach es und gab es den Jüngern?", a: ["Das Brot", "Einen Fisch", "Ein Lamm", "Eine Feige"], ref: "Lukas 22,19", st: 1, ab: "2026-W45" },
