@@ -1298,12 +1298,12 @@ function titelCheck() {
 
 /* ---------- Kopfleiste ---------- */
 /* 9.2: genaue Levelfortschritt-Anzeige (Menü beim Antippen des Spielers und Profil) */
-function xpInfoHtml() {
+function xpInfoHtml(kompakt) {
   const n = levelOf(S.xp), lo = cum(n), hi = cum(n + 1), im = Math.max(0, Math.round(S.xp) - lo), gesamt = hi - lo, fehlt = Math.max(0, hi - Math.round(S.xp)), p = Math.max(0, Math.min(100, im / gesamt * 100));
   return `<div class="xpinfo" role="group" aria-label="Levelfortschritt">
     <div class="xi-kopf"><b>Level ${n}</b><span>${Math.floor(p)} % bis Level ${n + 1}</span></div>
     <div class="xi-balken" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(p)}"><i style="width:${p.toFixed(1)}%"></i></div>
-    <div class="xi-zeilen"><span>Schon geschafft</span><b>${pkt(im)} XP</b><span>Noch bis Level ${n + 1}</span><b>${pkt(fehlt)} XP</b><span>Dieses Level umfasst</span><b>${pkt(gesamt)} XP</b><span>XP insgesamt</span><b>${pkt(Math.round(S.xp))} XP</b></div></div>`;
+    ${kompakt ? `<div class="xi-eine"><span><b>${pkt(im)}</b> XP geschafft</span><span>noch <b>${pkt(fehlt)}</b> XP</span><span>gesamt <b>${pkt(Math.round(S.xp))}</b></span></div>` : `<div class="xi-zeilen"><span>Schon geschafft</span><b>${pkt(im)} XP</b><span>Noch bis Level ${n + 1}</span><b>${pkt(fehlt)} XP</b><span>Dieses Level umfasst</span><b>${pkt(gesamt)} XP</b><span>XP insgesamt</span><b>${pkt(Math.round(S.xp))} XP</b></div>`}</div>`;
 }
 function renderHud() {
   const n = levelOf(S.xp), lo = cum(n), hi = cum(n + 1);
@@ -2226,8 +2226,8 @@ function ichMenue() {
   const z = (wert, ic, t, info = "") => `<button class="im-zeile" data-close="${wert}">${svg(ic)}<span><b>${t}</b>${info ? `<small>${info}</small>` : ""}</span><i>›</i></button>`;
   const m = modal(`<div class="im-kopf">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName }, 56)}<div><b>${esc(S.lbName)}</b><small>${esc(rangVon())} · Level ${levelOf(S.xp)}</small></div></div>
     ${xpInfoHtml()}
-    <div class="im-liste">${z("profil", "user", "Mein Profil", "Titel, Siegel, Werte")}${z("ich", "shop", "Laden", "Aussehen, Rüstung")}
-    <button class="im-zeile gs-schalter" id="gsSchalter" aria-pressed="${grossAn()}">${svg("eye")}<span><b>Große Schrift</b><small>${grossAn() ? "an" : "aus"}</small></span><i class="gs-knopf"></i></button>${z("badges", "medal", "Abzeichen", `${S.badges.length} von ${BADGES.length}`)}${z("share", "share", "Mit Freunden teilen", "QR-Code")}${z("wer", "people", "Wer spielt?", "Spieler wechseln")}${entwickler ? z("postfach", "post", "Postkasten", postfachNeu ? postfachNeu + " neu" : "") : ""}${deferredInstall && !S.appBonus ? z("install", "down", "App installieren", `+${APP_BONUS} Talente`) : ""}${z("feedback", "chat", "Feedback an den Entwickler")}</div>
+    <div class="im-liste">${z("wer", "people", "Wer spielt?", "Spieler wechseln")}${z("profil", "user", "Mein Profil", "Titel, Siegel, Werte")}
+    <button class="im-zeile gs-schalter" id="gsSchalter" aria-pressed="${grossAn()}">${svg("eye")}<span><b>Große Schrift</b><small>${grossAn() ? "an" : "aus"}</small></span><i class="gs-knopf"></i></button>${z("badges", "medal", "Abzeichen", `${S.badges.length} von ${BADGES.length}`)}${z("share", "share", "Mit Freunden teilen", "QR-Code")}${entwickler ? z("postfach", "post", "Postkasten", postfachNeu ? postfachNeu + " neu" : "") : ""}${deferredInstall && !S.appBonus ? z("install", "down", "App installieren", `+${APP_BONUS} Talente`) : ""}${z("feedback", "chat", "Feedback an den Entwickler")}</div>
     <button class="btn ghost" data-close="">Schließen</button>`, r => {
       if (r === "feedback") feedbackOeffnen();
       else if (r === "install") { deferredInstall.prompt(); deferredInstall.userChoice.catch(() => {}).then(() => { deferredInstall = null; }); }
@@ -2259,27 +2259,23 @@ function titelKarte(liste, p, tag) {
 VIEWS.profil = () => {
   const me = lbPayload(), { atP, ntP } = fortschritt();
   const L = window.LB, online = L && L.ok;
-  screen.innerHTML = `${backBtn("home", "Start")}<h1>Mein Profil</h1>
-  <div class="card profil-kopf">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "Du" }, 84)}
-    <div><h2 style="margin:0">${esc(S.lbName || "Noch ohne Namen")}</h2>${!S.pid && !S.offlineOnly ? `<div class="small muted">Erscheint in der Rangliste, sobald Internet da ist.</div>` : ""}<div class="muted">${esc(rangVon())}</div>${ruestungHtml(armorCount(), false)}</div></div>
-  <div class="card" style="margin:10px 0">${xpInfoHtml()}</div>
-  <div class="card" style="margin:10px 0"><div class="gem-prof"><span class="small muted">Meine Gemeinde</span><b>${esc(gemName(meineGem()))}</b><button class="btn ghost mini" id="gemAendern">Ändern</button></div></div>
-  <div class="row-btns" style="margin:10px 0"><button class="btn" data-go="shop">Aussehen ändern</button><button class="btn ghost" data-go="badges">Meine Abzeichen</button></div>
-  <div class="card stack">${titelKarte(AT_TITEL, atP, "AT")}${titelKarte(NT_TITEL, ntP, "NT")}
-    <p class="small muted" style="margin:0">Die Titel wachsen mit deinen Sternen in den Lektionen und deiner Kette im AT bzw. NT.</p></div>
-  <div class="card stack" style="margin-top:12px"><b>Meine Siegel</b>${siegelReihe(Object.assign({}, me))}
-    <p class="small muted" style="margin:0">Bronze: 1-mal · Silber: in 3 Wochen · Gold: in 3 Monaten · Diamant: 12 Monate am Stück. Ein Siegel bleibt ${SIEGEL_FRISCH} Tage frisch.</p></div>
-  <div class="card" style="margin-top:12px"><table class="werte">${statsZeilen(me).map(([k, v]) => `<tr><th>${k}</th><td>${esc(v)}</td></tr>`).join("")}</table></div>
-  <div class="card stack" style="margin-top:12px">
-    <b>Auf einem weiteren Gerät spielen</b>
-    <p class="small muted" style="margin:0">Öffne die App auf dem anderen Gerät und wähle <b>Ich spiele schon mit</b> (spielt dort schon jemand: oben auf Level/Namen tippen → Weiteren Spieler hinzufügen). Dann tippe deinen Namen an. Dann spielst du dort mit demselben Spielstand weiter.</p>
-  </div>
-  <div class="row-btns" style="margin-top:12px"><button class="btn ghost mini" id="wechseln">Spieler wechseln</button><button class="btn ghost mini" id="rename">Namen ändern</button>${S.pid && online && !S.offlineOnly ? `<button class="btn ghost mini" id="leave">Aus der Rangliste austreten</button>` : ""}</div><div id="pextra"></div>
+  screen.innerHTML = `${backBtn("home", "Start")}
+  <div class="card profil-kopf pf-kompakt">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "Du" }, 58)}
+    <div class="pf-name"><h2 style="margin:0">${esc(S.lbName || "Noch ohne Namen")}</h2><div class="muted small">${esc(rangVon())} · ${esc(gemName(meineGem()))}</div>${!S.pid && !S.offlineOnly ? `<div class="small muted">Erscheint in der Rangliste, sobald Internet da ist.</div>` : ""}</div>
+    <button class="btn primary pf-wechsel" id="wechseln">${svg("people")}<span>Spieler wechseln</span></button></div>
+  <div class="card" style="margin:8px 0">${xpInfoHtml(true)}</div>
+  <div class="card stack pf-karte">${titelKarte(AT_TITEL, atP, "AT")}${titelKarte(NT_TITEL, ntP, "NT")}</div>
+  <div class="card stack pf-karte" style="margin-top:8px"><b>Meine Siegel</b>${siegelReihe(Object.assign({}, me))}</div>
+  <div class="row-btns" style="margin:8px 0"><button class="btn ghost" data-go="badges">Meine Abzeichen</button><button class="btn ghost" id="gemAendern">Gemeinde ändern</button></div>
+  <details class="card pf-det"><summary>Alle Werte</summary><table class="werte">${statsZeilen(me).map(([k, v]) => `<tr><th>${k}</th><td>${esc(v)}</td></tr>`).join("")}</table></details>
+  <details class="card pf-det"><summary>Hinweise zu Titeln und Siegeln</summary><p class="small muted">Die Titel wachsen mit deinen Sternen in den Lektionen und deiner Kette im AT bzw. NT. Siegel: Bronze 1-mal · Silber in 3 Wochen · Gold in 3 Monaten · Diamant 12 Monate am Stück. Ein Siegel bleibt ${SIEGEL_FRISCH} Tage frisch.</p></details>
+  <details class="card pf-det"><summary>Auf einem weiteren Gerät spielen</summary><p class="small muted">Öffne die App auf dem anderen Gerät und wähle <b>Ich spiele schon mit</b> (spielt dort schon jemand: oben auf Level/Namen tippen → Weiteren Spieler hinzufügen). Dann tippe deinen Namen an. Dann spielst du dort mit demselben Spielstand weiter.</p></details>
+  <div class="row-btns" style="margin-top:8px"><button class="btn ghost mini" id="rename">Namen ändern</button>${S.pid && online && !S.offlineOnly ? `<button class="btn ghost mini" id="leave">Aus der Rangliste austreten</button>` : ""}</div><div id="pextra">
   ${entwickler && (advTestOn() || dayNum(today()) < dayNum(ADV_START)) ? `<button class="btn" id="advTestBtn" style="margin-top:12px;width:100%">${svg("kerze")} Advent-Testmodus: ${advTestOn() ? "an – öffnen" : "starten"}</button>` : ""}
   ${entwickler ? `<button class="btn" data-go="postfach" style="margin-top:12px;width:100%">${svg("post")} Postkasten${postfachNeu ? ` (${postfachNeu} neu)` : ""}</button>` : ""}
   <button class="feedback-link" id="fbLink2">${svg("chat")} Feedback an den Entwickler</button>
   ${online ? kennungHtml("kennProfil") : ""}
-  <p class="small muted" style="margin-top:18px">Bibelverse: ${VERS_QUELLE} © Genfer Bibelgesellschaft.</p>`;
+  <p class="small muted" style="margin-top:14px">Bibelverse: ${VERS_QUELLE} © Genfer Bibelgesellschaft.</p></div>`;
   wireGo(); if ($("gemAendern")) $("gemAendern").onclick = () => { SFX.tap(); gemWahl(false); };
   $("wechseln").onclick = () => { SFX.tap(); go("wer"); };
   $("fbLink2").onclick = () => { SFX.tap(); feedbackOeffnen(); };

@@ -2019,6 +2019,16 @@ body[data-tab="rank"]{--ar-gemeinde:#5fe0b0;--ar:#5fe0b0}
 .xi-balken{height:12px;border-radius:8px;background:#ffffff14;overflow:hidden;box-shadow:inset 0 0 0 1px #ffffff1a}.xi-balken>i{display:block;height:100%;border-radius:8px;background:linear-gradient(90deg,#f2c14e,#ffe9a0)}
 .xi-zeilen{display:grid;grid-template-columns:1fr auto;gap:3px 10px;font-size:.84rem;text-align:left}.xi-zeilen span{color:var(--muted);text-align:left}.xi-zeilen b{text-align:right}
 .ich-menue .xpinfo{margin:0 0 10px;padding:10px;border-radius:14px;background:#ffffff0a;border:1px solid #ffffff14}
+/* ===== 9.3: kompaktes Profil ===== */
+.pf-kompakt{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 12px;align-items:center;padding:10px 12px}
+.pf-kompakt .pf-name{min-width:0}.pf-kompakt h2{font-size:1.15rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pf-wechsel{grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px}.pf-wechsel svg{width:22px;height:22px}
+.pf-karte{padding:10px 12px;gap:8px}
+.pf-karte .titelkarte>.small.muted{display:none}.pf-karte .titelkarte .small{font-size:.78rem}.pf-karte .titelkarte+.titelkarte{border-top:1px solid #ffffff14;padding-top:8px}
+.pf-det{padding:0;margin-top:8px}.pf-det>summary{list-style:none;cursor:pointer;padding:12px 14px;font-weight:800}.pf-det>summary::-webkit-details-marker{display:none}
+.pf-det>summary::after{content:"›";float:right;transition:transform .15s}.pf-det[open]>summary::after{transform:rotate(90deg)}
+.pf-det>:not(summary){margin:0 14px 12px}
+.xi-eine{display:flex;justify-content:space-between;gap:8px;font-size:.82rem;color:var(--muted);flex-wrap:wrap}.xi-eine b{color:var(--fg)}
 </style>
 </head>
 <body>
