@@ -16,7 +16,7 @@ const DEF = {
   dq: { day: "", items: [], bonus: false }, questBonusCount: 0, lv: {}, duGes: [], duSiege: 0, duSpiele: 0, duTyp: "vers", duGesendet: 0, duAngenommen: 0, duArten: [], duKetteVoll: false,
   mute: false, beat: true, gapSing: false, atTi: 0, ntTi: 0,
   ruestStufe: {}, stift: {}, spendeXp: {}, advTest: { on: false, d: "2026-11-29" }, advT: null, beth: {}, bethG: {}, bethSync: "", bethTage: [], bethGefeiert: [], bethAngekommen: false, kal: {}, advBib: {}, advLv: 0, advLr: 0, adventIntro: false, stiftGefeiert: [], stiftEingeweiht: false,
-  xq: null, lvLohn: 0, lbName: "", pid: "", ownersSet: false, offlineOnly: false, weekKey: "", weekXp: 0, podium: false, wochensieger: false, wochenziel: false,
+  xq: null, lvLohn: 0, gem: null, gemNeu: false, gemGesendet: "", rankScope: "", duAlle: false, lbName: "", pid: "", ownersSet: false, offlineOnly: false, weekKey: "", weekXp: 0, podium: false, wochensieger: false, wochenziel: false,
   ver: 6
 };
 let S = JSON.parse(JSON.stringify(DEF));
@@ -1381,14 +1381,14 @@ function go(name, arg) {
   if (!S.lbName && name !== "name") name = "name";
   current = name; window.scrollTo(0, 0); document.body.classList.remove("spiel-laeuft");
   tabbarSetzen(name); (VIEWS[name] || VIEWS.home)(arg);
-  try { staemmeErstatten(); appBonusPruefen(); appHinweisZeigen(); } catch (e) {} /* beim allerersten go() sind die Konstanten unten noch nicht bereit */
+  try { staemmeErstatten(); appBonusPruefen(); appHinweisZeigen(); gemFrageZeigen(); } catch (e) {} /* beim allerersten go() sind die Konstanten unten noch nicht bereit */
   if (typeof duAufloesQ !== "undefined" && duAufloesQ.length) setTimeout(duAufloesVersuch, 400);
 }
 /* Untere Menüleiste: zu welchem Reiter gehört eine Ansicht? */
 /* 8.0 „Allein und Zusammen“: nur noch vier große Reiter – Laden über die Talente oben, Rangliste unter „Zusammen“ */
 const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Allein", "user"], ["zusammen", "Zusammen", "people"], ["rank", "Rangliste", "trophy"]];
 const TAB_VON = { stift: "rank", advent: "home", beth: "home", kal: "home", duell: "zusammen", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen", biblionaer: "zusammen",
-  bib: "zusammen", gegner: "zusammen", duelle: "zusammen", rank: "rank", shop: "rank", ich: "", profil: "", badges: "", wer: "", postfach: "" };
+  bib: "zusammen", gemverwaltung: "", gegner: "zusammen", duelle: "zusammen", rank: "rank", shop: "rank", ich: "", profil: "", badges: "", wer: "", postfach: "" };
 /* rote Zahl am Duell-Reiter: wartende Herausforderungen */
 function tbDuSetzen() { const t = $("tbDu"); if (!t) return; const n = typeof duFuerMich === "function" ? duFuerMich().length : 0; t.hidden = !n; t.textContent = n; }
 function tabbarSetzen(name) {
@@ -2252,6 +2252,7 @@ VIEWS.profil = () => {
   screen.innerHTML = `${backBtn("home", "Start")}<h1>Mein Profil</h1>
   <div class="card profil-kopf">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "Du" }, 84)}
     <div><h2 style="margin:0">${esc(S.lbName || "Noch ohne Namen")}</h2>${!S.pid && !S.offlineOnly ? `<div class="small muted">Erscheint in der Rangliste, sobald Internet da ist.</div>` : ""}<div class="muted">${esc(rangVon())}</div>${ruestungHtml(armorCount(), false)}</div></div>
+  <div class="card" style="margin:10px 0"><div class="gem-prof"><span class="small muted">Meine Gemeinde</span><b>${esc(gemName(meineGem()))}</b><button class="btn ghost mini" id="gemAendern">Ändern</button></div></div>
   <div class="row-btns" style="margin:10px 0"><button class="btn" data-go="shop">Aussehen ändern</button><button class="btn ghost" data-go="badges">Meine Abzeichen</button></div>
   <div class="card stack">${titelKarte(AT_TITEL, atP, "AT")}${titelKarte(NT_TITEL, ntP, "NT")}
     <p class="small muted" style="margin:0">Die Titel wachsen mit deinen Sternen in den Lektionen und deiner Kette im AT bzw. NT.</p></div>
@@ -2268,7 +2269,7 @@ VIEWS.profil = () => {
   <button class="feedback-link" id="fbLink2">${svg("chat")} Feedback an den Entwickler</button>
   ${online ? kennungHtml("kennProfil") : ""}
   <p class="small muted" style="margin-top:18px">Bibelverse: ${VERS_QUELLE} © Genfer Bibelgesellschaft.</p>`;
-  wireGo();
+  wireGo(); if ($("gemAendern")) $("gemAendern").onclick = () => { SFX.tap(); gemWahl(false); };
   $("wechseln").onclick = () => { SFX.tap(); go("wer"); };
   $("fbLink2").onclick = () => { SFX.tap(); feedbackOeffnen(); };
   if ($("advTestBtn")) $("advTestBtn").onclick = () => { SFX.tap(); if (!advTestOn()) advTestSchalten(true); go("advent"); };
@@ -2307,6 +2308,7 @@ function lbSync(now) {
     try { bethSenden(); } catch (e) {} /* 7.3: Weg nach Bethlehem */
     try { xqSenden(); } catch (e) {} /* 6.73: XP-Quellen */
     try { talSenden(); } catch (e) {} /* 6.95: Talente-Zählung */
+    try { gemSenden(); } catch (e) {} /* 9.0: Gemeinde-Zuordnung */
     const opts = {}; if (!S.ownersSet && eigenePid(S.pid)) opts.owners = [L.uid];
     const ok = () => { if (opts.owners) { S.ownersSet = true; lsSchreiben(); geraetSpeichern(); } };
     /* Übergang 6.40: Solange die neuen Firebase-Regeln (Biblionär-Felder) noch nicht veröffentlicht sind, ohne diese Felder speichern */
@@ -2598,6 +2600,71 @@ const RANK_TABS = {
   bibWoche: { label: "Woche", val: r => (r.bwK === weekKey() ? r.bwP || 0 : 0), unit: "Punkte", titel: "Biblionär der Woche" },
   bibRekord: { label: "Rekord", val: r => r.bib || 0, unit: "Punkte", titel: "Biblionär-Rekord" }
 };
+/* ---------- 9.0: Gemeinden – nur der Verwalter legt Gemeinden an; ohne Eintrag gilt „fbg“ (Freie Baptisten Eichstätt); „gast“ = keine Gemeinde ---------- */
+const GEM_STANDARD = "fbg";
+let GEM = [{ id: GEM_STANDARD, name: "Freie Baptisten Eichstätt" }], GEM_ZUORD = {}, gemGeladen = false;
+const gemName = id => id === "gast" ? "Gäste" : ((GEM.find(g => g.id === id) || {}).name || "Unbekannte Gemeinde");
+const meineGem = () => S.gem || GEM_STANDARD;
+const gemVon = pid => (pid && (pid === S.pid) ? meineGem() : (GEM_ZUORD[pid] || GEM_STANDARD));
+/* lädt Gemeinden + Zuordnungen; true, wenn sich etwas geändert hat. Fehlende Regeln/offline: Standard bleibt */
+async function gemLaden(neu) {
+  const L = window.LB; if (!L || !L.ok || !L.gemListe) return false;
+  if (gemGeladen && !neu) return false;
+  try {
+    const [g, m] = await Promise.all([L.gemListe(), L.mitgliedListe()]);
+    const liste = g.filter(x => x.name).sort((a, b) => (a.ord | 0) - (b.ord | 0) || String(a.name).localeCompare(String(b.name), "de"));
+    if (!liste.some(x => x.id === GEM_STANDARD)) liste.unshift({ id: GEM_STANDARD, name: "Freie Baptisten Eichstätt" });
+    const z = {}; m.forEach(x => { if (x.g) z[x.id] = x.g; });
+    const alt = JSON.stringify([GEM, GEM_ZUORD]); GEM = liste; GEM_ZUORD = z; gemGeladen = true;
+    return alt !== JSON.stringify([GEM, GEM_ZUORD]);
+  } catch (e) { return false; }
+}
+function gemSenden() {
+  const L = window.LB; if (!L || !L.ok || !L.gemSetzen || !S.pid || !S.ownersSet || !S.gem || S.gemGesendet === S.gem) return;
+  const g = S.gem; L.gemSetzen(S.pid, S.lbName, g).then(() => { S.gemGesendet = g; GEM_ZUORD[S.pid] = g; save(); }).catch(() => {});
+}
+function gemWahl(erstmals) {
+  gemLaden().then(() => {
+    const opt = GEM.map(g => `<button class="bereich klein sp-k gem-opt" data-close="${esc(g.id)}"><span class="b-ic">${svg("people")}</span><span class="b-tx"><b>${esc(g.name)}</b></span></button>`).join("");
+    modal(`<div class="label">Deine Gemeinde</div><h2>Wo gehörst du hin?</h2><p class="muted small" style="margin:0 0 8px">Du erscheinst in der Gemeinde-Rangliste und zählst für die Gemeinde-Wertung. In der Weltrangliste sind immer alle dabei.</p>
+      <div class="stack gem-liste">${opt}<button class="bereich klein sp-k gem-opt" data-close="gast"><span class="b-ic">${svg("user")}</span><span class="b-tx"><b>Ich bin Gast</b><span>ohne Gemeinde</span></span></button></div>${erstmals ? "" : `<button class="btn ghost" data-close="">Abbrechen</button>`}`,
+      r => { if (r === "" || r == null) { if (!erstmals) return; r = S.gem || GEM_STANDARD; } S.gem = r; S.gemNeu = false; save(); gemSenden(); if (current === "rank" || current === "ich" || current === "profil" || current === "zusammen") go(current); });
+  });
+}
+function gemFrageZeigen() { if (S.gemNeu && S.lbName && !S.gem && !document.querySelector(".modal") && current !== "name") gemWahl(true); }
+/* Verwalter: Gemeinden anlegen, Spieler zuordnen */
+VIEWS.gemverwaltung = () => {
+  const L = window.LB; if (!entwickler || !L || !L.ok) { go("home"); return; }
+  screen.innerHTML = `${backBtn("postfach", "Postkasten")}<h1>Gemeinden</h1><div id="gvBox"><p class="muted">Lade …</p></div>`;
+  Promise.all([gemLaden(true), L.alleSpieler().catch(() => [])]).then(([, spieler]) => {
+    if (current !== "gemverwaltung") return;
+    const zahl = id => spieler.filter(r => gemVon(r.id) === id).length;
+    $("gvBox").innerHTML = `<div class="card stack">${GEM.map(g => `<div class="gv-zeile"><b>${esc(g.name)}</b><span class="small muted">${zahl(g.id)} Spieler · ${esc(g.id)}</span>${g.id === GEM_STANDARD || zahl(g.id) ? "" : `<button class="btn ghost mini" data-weg="${esc(g.id)}">Löschen</button>`}</div>`).join("")}
+      <div class="gv-zeile"><b>Gäste</b><span class="small muted">${zahl("gast")} Spieler</span></div></div>
+      <div class="card stack" style="margin-top:12px"><b>Neue Gemeinde</b><input class="du-suche" id="gvName" placeholder="Name der Gemeinde" maxlength="40" autocomplete="off"><button class="btn primary" id="gvNeu">Gemeinde anlegen</button></div>
+      <div class="card stack" style="margin-top:12px"><b>Spieler zuordnen</b><select class="du-suche" id="gvSp">${spieler.slice().sort((a, b) => String(a.name).localeCompare(String(b.name), "de")).map(r => `<option value="${esc(r.id)}">${esc(r.name)} · ${esc(gemName(gemVon(r.id)))}</option>`).join("")}</select>
+        <select class="du-suche" id="gvZiel">${GEM.map(g => `<option value="${esc(g.id)}">${esc(g.name)}</option>`).join("")}<option value="gast">Gast</option></select><button class="btn" id="gvZu">Zuordnen</button></div>`;
+    $("gvNeu").onclick = () => { const n = $("gvName").value.trim(); const id = n.toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 30);
+      if (n.length < 2 || id.length < 2) { toast(`${svg("nein")}<div>Bitte einen Namen eingeben.</div>`); return; }
+      if (GEM.some(g => g.id === id)) { toast(`${svg("nein")}<div>Diese Gemeinde gibt es schon.</div>`); return; }
+      L.gemAnlegen(id, n, GEM.length).then(() => { SFX.coin(); VIEWS.gemverwaltung(); }).catch(() => toast(`${svg("nein")}<div>Das hat nicht geklappt (Firebase-Regeln eingespielt?).</div>`)); };
+    $("gvZu").onclick = () => { const pid = $("gvSp").value, g = $("gvZiel").value, r = spieler.find(x => x.id === pid); if (!r) return;
+      L.gemSetzen(pid, r.name, g).then(() => { SFX.coin(); GEM_ZUORD[pid] = g; if (pid === S.pid) { S.gem = g; save(); } VIEWS.gemverwaltung(); }).catch(() => toast(`${svg("nein")}<div>Das hat nicht geklappt.</div>`)); };
+    screen.querySelectorAll("[data-weg]").forEach(b => b.onclick = () => { SFX.tap(); L.gemLoeschen(b.dataset.weg).then(() => VIEWS.gemverwaltung()).catch(() => {}); });
+    wireGo();
+  });
+};
+const rkSchalterHtml = scope => `<nav class="kb-tabs rk-scope" aria-label="Rangliste für" style="grid-template-columns:repeat(${meineGem() === "gast" ? 2 : 3},1fr)">${(meineGem() === "gast" ? [] : [["gemeinde", "Meine Gemeinde", "people"]]).concat([["gemeinden", "Gemeinden", "crown"], ["welt", "Welt", "star"]]).map(([k, t, ic]) => `<button data-scope="${k}" aria-pressed="${k === scope}" aria-selected="${k === scope}">${svg(ic)}<span>${t}</span></button>`).join("")}</nav>`;
+const rankScope = () => { const g = meineGem() === "gast"; const sc = S.rankScope || (g ? "welt" : "gemeinde"); return g && sc === "gemeinde" ? "welt" : sc; };
+/* Gemeinde-Wertung: Gesamtsumme aller XP je Gemeinde */
+function gemeindenWertungHtml(spieler) {
+  const sum = {}, anz = {}; GEM.forEach(g => { sum[g.id] = 0; anz[g.id] = 0; });
+  spieler.forEach(r => { const g = gemVon(r.id); if (g === "gast" || !(g in sum)) return; sum[g] += r.xp | 0; anz[g]++; });
+  const zeilen = GEM.map(g => ({ g, s: sum[g.id], n: anz[g.id] })).sort((a, b) => b.s - a.s || a.g.name.localeCompare(b.g.name, "de")), top = Math.max(1, zeilen[0] ? zeilen[0].s : 1);
+  let platz = 0, vor = null;
+  return `<div class="gw-liste">${zeilen.map((z, i) => { if (vor === null || z.s !== vor) platz = i + 1; vor = z.s; const ich = z.g.id === meineGem();
+    return `<div class="gw-zeile${ich ? " me" : ""}"><div class="rk">${platz}</div><div class="gw-tx"><b>${esc(z.g.name)}${ich ? '<span class="you">Deine Gemeinde</span>' : ""}</b><span class="small muted">${z.n} ${z.n === 1 ? "Spieler" : "Spieler"}</span><i class="gw-balken"><i style="width:${Math.round(z.s / top * 100)}%"></i></i></div><div class="gw-sum"><b>${pkt(z.s)}</b><small>XP gesamt</small></div></div>`; }).join("")}</div>`;
+}
 /* Vier Kategorien; Unterteilungen erscheinen als kleiner Umschalter im Listenkopf */
 const RANK_KAT = [
   { id: "erfahrung", name: "Erfahrung", icon: "star", tabs: ["woche", "gesamt"] },
@@ -2627,7 +2694,7 @@ VIEWS.rank = (tab) => {
   if (tab && RANK_TABS[tab]) rankTab = tab;
   const L = window.LB;
   /* 6.58: Kopf im Arena-Stil – Ring = eigener Platz in der gewählten Liste, Tafel Level/Abzeichen/Spieler (nach dem Laden nachgetragen) */
-  let html = bereichKopf("gemeinde", { ic: "trophy", t: "Rangliste", sub: "Freie Baptisten Eichstätt", ring: ["–", "Platz"], ringId: "bkPlatz",
+  let html = bereichKopf("gemeinde", { ic: "trophy", t: "Rangliste", sub: meineGem() === "gast" ? "Alle Spieler" : gemName(meineGem()), ring: ["–", "Platz"], ringId: "bkPlatz",
     tafel: [[levelOf(S.xp), "Level"], [`${S.badges.length}`, "Abzeichen"], ["–", "Spieler", "bkSpieler"]] }) + rlSchalter("rank") + `<div id="shMiniBox">${stiftMiniHtml() || adventMiniHtml()}</div>` + bkLabel("trophy", "Ranglisten");
   stiftLaden().then(() => { const b = $("shMiniBox"); if (b && current === "rank") { b.innerHTML = stiftMiniHtml() || adventMiniHtml(); wireGo(); } });
   if (!L) { screen.innerHTML = html + `<div class="card"><p class="muted" style="margin:0">Rangliste wird geladen …</p></div>`; wireGo(); return; }
@@ -2636,6 +2703,14 @@ VIEWS.rank = (tab) => {
   if (S.offlineOnly) { screen.innerHTML = html + `<div class="card stack"><b>Du bist nicht in der Rangliste</b><p class="muted small" style="margin:0">Du spielst als ${esc(S.lbName)} nur auf diesem Gerät. Du kannst jederzeit wieder beitreten – dein Fortschritt wird übernommen.</p><button class="btn primary" id="wieder">Wieder beitreten</button></div>`; wireGo();
     $("wieder").onclick = () => { SFX.coin(); S.offlineOnly = false; save(); lbStart().then(() => go("rank")); }; return; }
   if (!S.pid && !S.ownersSet) { lbStart(); }
+  const scope = rankScope();
+  gemLaden().then(ch => { if (ch && current === "rank") go("rank", rankTab); });
+  if (scope === "gemeinden") {
+    screen.innerHTML = html + `<div class="stack rk">${rkSchalterHtml(scope)}<div class="card rk-liste"><div class="rk-kopf"><div><b>Gemeinde-Wertung</b><span class="small muted">Alle XP der Spieler zusammen</span></div></div><div id="rbody"><p class="muted" style="margin:0">Lade …</p></div></div></div>`;
+    wireGo(); screen.querySelectorAll("[data-scope]").forEach(b => b.onclick = () => { SFX.tap(); S.rankScope = b.dataset.scope; save(); go("rank", rankTab); });
+    gemLaden(true).then(() => L.alleSpieler()).then(sp => { if (current === "rank" && $("rbody")) $("rbody").innerHTML = gemeindenWertungHtml(sp); }).catch(() => { if ($("rbody")) $("rbody").innerHTML = `<p class="muted" style="margin:0">Die Wertung konnte nicht geladen werden.</p>`; });
+    return;
+  }
   const T = RANK_TABS[rankTab];
   const kat = katVon(rankTab); letzterTab[kat.id] = rankTab;
   const varianten = kat.tabs.length > 1 ? kat.tabs.map(k => `<button data-tab="${k}" aria-pressed="${k === rankTab}">${TAB_LABEL[k]}</button>`).join("")
@@ -2643,6 +2718,7 @@ VIEWS.rank = (tab) => {
     : rankTab === "blitz" ? Object.entries(BLITZ_SUB).map(([k, v]) => `<button data-bsub="${k}" aria-pressed="${k === blitzSub}">${v[0]}</button>`).join("") : "";
   const titel = rankTab === "kette" ? T.titel : rankTab === "blitz" ? "Blitz-Rekord" : T.titel;
   screen.innerHTML = html + `<div class="stack rk">
+    ${rkSchalterHtml(scope)}
     <nav class="kb-tabs rk-nav" aria-label="Ranglisten" style="grid-template-columns:repeat(${RANK_KAT.length},1fr)">${RANK_KAT.map(k => `<button data-kat="${k.id}" aria-pressed="${k.id === kat.id}" aria-selected="${k.id === kat.id}">${svg(k.icon)}<span>${k.name}</span></button>`).join("")}</nav>
     <div class="card rk-liste">
       <div class="rk-kopf ${istBibTab(rankTab) ? "rk-bib" : ""}"><div><b>${esc(titel)}</b><span class="small muted" id="rcount">${rankTab === "woche" || rankTab === "bibWoche" ? weekKey().split("-W")[1] + ". Kalenderwoche" : istBibTab(rankTab) ? "Gemeinde" : ""}</span></div>${varianten ? `<div class="rk-var" role="group" aria-label="Variante">${varianten}</div>` : ""}</div>
@@ -2652,6 +2728,7 @@ VIEWS.rank = (tab) => {
     <div class="du-bar" id="rme"></div>
   </div>`;
   wireGo();
+  screen.querySelectorAll("[data-scope]").forEach(b => b.onclick = () => { SFX.tap(); S.rankScope = b.dataset.scope; save(); go("rank", rankTab); });
   screen.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { SFX.tap(); go("rank", b.dataset.tab); });
   screen.querySelectorAll("[data-kat]").forEach(b => b.onclick = () => { SFX.tap(); const k = RANK_KAT.find(x => x.id === b.dataset.kat); go("rank", letzterTab[k.id] || k.tabs[0]); });
   screen.querySelectorAll("[data-sub]").forEach(b => b.onclick = () => { SFX.tap(); ketteSub = b.dataset.sub; go("rank", "kette"); });
@@ -2661,7 +2738,7 @@ VIEWS.rank = (tab) => {
   const me = S.pid || L.uid; const wk = weekKey(); let zeilen = [];
   lbUnsub.push(L.watch(rankKind(), rankTab === "bibSpiele" ? BIB_GESAMT : wk, rows => {
     if (current !== "rank") return;
-    rows = rows.filter(r => rankWert(r) > 0 || r.id === me).sort((a, b) => rankWert(b) - rankWert(a) || String(a.name).localeCompare(String(b.name)));
+    rows = rows.filter(r => (scope !== "gemeinde" || gemVon(r.id) === meineGem()) && (rankWert(r) > 0 || r.id === me)).sort((a, b) => rankWert(b) - rankWert(a) || String(a.name).localeCompare(String(b.name)));
     zeilen = rows;
     const myIdx = rows.findIndex(r => r.id === me);
     /* Gleichstand: gleicher Wert = gleicher Platz; Plätze ohne Lücke (1, 1, 1, 2, 3 …) */
@@ -3203,11 +3280,12 @@ function duGegnerHtml() {
   const frei = Math.max(0, DU_MAX_OFFEN - offen.length), maxWahl = Math.min(DU_MAX_AUSWAHL, frei);
   duAuswahl = duAuswahl.filter(g => !offen.some(d => d.an === g.id)).slice(0, maxWahl);
   const q = nameSchluessel(duSuche), typ = duTypAktuell(), n = duAuswahl.length, voll = n >= maxWahl;
-  const liste = (duGegner || []).filter(r => !q || nameSchluessel(r.name).includes(q)).slice(0, 40);
+  const nurGem = !S.duAlle && meineGem() !== "gast";
+  const liste = (duGegner || []).filter(r => (!nurGem || gemVon(r.id) === meineGem()) && (!q || nameSchluessel(r.name).includes(q))).slice(0, 40);
   return `<div class="card du-gegner" id="duGegner">
     ${!frei ? `<p class="small muted" style="margin:0">Du hast schon ${DU_MAX_OFFEN} offene Herausforderungen – erst müssen diese gespielt werden. Unten bei „Wartet auf Gegner“ kannst du eine abbrechen.</p>` : `
     ${typ === "quiz" ? weihSchalterHtml() : ""}
-    <div class="label du-schritt du-schritt2"><span>${esc(DU_TYPEN[typ].name)} · Gegner</span><i class="du-zahl${n ? " an" : ""}">${n}/${maxWahl}</i></div>
+    <div class="label du-schritt du-schritt2"><span>${esc(DU_TYPEN[typ].name)} · Gegner</span><button class="du-scope" id="duScope" aria-pressed="${!nurGem}">${nurGem ? "Alle Spieler" : meineGem() === "gast" ? "Alle" : "Nur Gemeinde"}</button><i class="du-zahl${n ? " an" : ""}">${n}/${maxWahl}</i></div>
     <input class="du-suche" id="duSuche" type="search" placeholder="Name suchen …" value="${esc(duSuche)}" autocomplete="off" aria-label="Gegner suchen">
     ${n ? `<div class="du-chips">${duAuswahl.map(g => `<button class="du-chip" data-raus="${esc(g.id)}" aria-label="${esc(g.name)} abwählen">${esc(g.name)}${svg("nein")}</button>`).join("")}</div>` : ""}
     ${duGegner === null ? `<p class="small muted">Lade Gemeinde …</p>` : `<ul class="du-wahl">${liste.map(r => { const laeuft = offen.some(d => d.an === r.id), an = duAuswahl.some(g => g.id === r.id);
@@ -3221,6 +3299,7 @@ function duGegnerVerdrahten() {
     box.outerHTML = duGegnerHtml(); duGegnerVerdrahten(); const w = $("duGegner") && $("duGegner").querySelector(".du-wahl"); if (w) w.scrollTop = top; };
   const f = $("duSuche"); if (f) f.oninput = () => { duSuche = f.value; const pos = f.selectionStart; neuZeichnen(); const g = $("duSuche"); g.focus(); try { g.setSelectionRange(pos, pos); } catch (e) {} };
   weihSchalterWire(neuZeichnen);
+  const sc = $("duScope"); if (sc) sc.onclick = () => { SFX.tap(); S.duAlle = !S.duAlle; save(); neuZeichnen(); };
   screen.querySelectorAll("[data-gegner]").forEach(b => b.onclick = () => { SFX.tap(); const r = (duGegner || []).find(x => x.id === b.dataset.gegner); if (!r) return;
     duAuswahl = duAuswahl.some(g => g.id === r.id) ? duAuswahl.filter(g => g.id !== r.id) : [...duAuswahl, { id: r.id, name: r.name }]; neuZeichnen(); });
   screen.querySelectorAll("[data-raus]").forEach(b => b.onclick = () => { SFX.tap(); duAuswahl = duAuswahl.filter(g => g.id !== b.dataset.raus); neuZeichnen(); });
@@ -5028,7 +5107,7 @@ VIEWS.postfach = (kat) => {
   screen.innerHTML = `${backBtn("home", "Start")}<div class="pk-kopf"><h1>Postkasten</h1><span class="pk-ikonen">
     <button class="iconbtn" id="pkLupe" aria-label="Suchen" aria-pressed="${pkSuchOffen}"><span aria-hidden="true">🔍</span></button>
     <button class="iconbtn" id="pkWahl" aria-label="Auswählen" aria-pressed="${pkAuswahl}">☑</button></span></div>
-  <div class="pk-pins" aria-label="Prüfungen">${zeile("pkXp", "medal", "XP-Prüfung", xpTag, 'data-go="xppruefung"')}${zeile("pkDup", "people", "Doppelte Namen", dupTag, 'id2="x"')}<button class="pk-pin" id="pkTal" data-go="talente"><span class="pk-pt"><b>${svg("tal")} Talente-Planung</b><span class="small muted">Guthaben, Ø pro Tag, Spenden-Prognose</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button></div>
+  <div class="pk-pins" aria-label="Prüfungen">${zeile("pkXp", "medal", "XP-Prüfung", xpTag, 'data-go="xppruefung"')}${zeile("pkDup", "people", "Doppelte Namen", dupTag, 'id2="x"')}<button class="pk-pin" id="pkGem" data-go="gemverwaltung"><span class="pk-pt"><b>${svg("people")} Gemeinden</b><span class="small muted">Gemeinden anlegen, Spieler zuordnen</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkTal" data-go="talente"><span class="pk-pt"><b>${svg("tal")} Talente-Planung</b><span class="small muted">Guthaben, Ø pro Tag, Spenden-Prognose</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button></div>
   <div class="card rk-liste" style="margin-top:10px">
     <div class="pk-suchzeile" ${pkSuchOffen ? "" : "hidden"}><input type="search" id="pkSuche" placeholder="Suchen (Text, Name, Version)" value="${esc(pkSuche)}" aria-label="Post durchsuchen" autocomplete="off"></div>
     <div class="pk-filter"><div class="rk-var" role="group" aria-label="Filter">${[["neu", "Neu"], ["alle", "Alle"], ["erledigt", "Erledigt"]].map(([k, n]) => `<button data-pf="${k}" aria-pressed="${k === postfachFilter}">${n}<i class="pk-n" data-pfn="${k}"></i></button>`).join("")}</div>
@@ -5518,6 +5597,8 @@ if ("serviceWorker" in navigator && location.protocol === "https:") { addEventLi
 try { const von = new URLSearchParams(location.search).get("von"); if (von && /^[\w-]{4,64}$/.test(von)) { if (!S.lbName && !S.eingeladenVon) S.eingeladenVon = von; history.replaceState(null, "", location.pathname); } } catch (e) {}
 $("hWer").onclick = () => { SFX.tap(); ichMenue(); };
 $("hTalBtn").onclick = () => { SFX.tap(); go("ich"); };
+/* 9.0: Bestehende Spieler gehören zu den Freien Baptisten Eichstätt; ein neuer Spieler wählt nach seinem Namen */
+if (!S.gem) { if (S.lbName || S.xp > 0) { S.gem = GEM_STANDARD; S.gemGesendet = GEM_STANDARD; } else S.gemNeu = true; }
 neuerTag(); applyTheme(); renderMute(); renderHud(); checkBadges(); geraetSpeichern(); go("home");
 /* Mehrere Spieler auf dem Gerät? Dann beim Start fragen, wer spielt */
 /* 6.83 (E): Auf gemeinsamen Geräten beim Start und nach mehr als 10 Minuten Pause fragen, wer spielt – mit einem Knopf je Spieler,

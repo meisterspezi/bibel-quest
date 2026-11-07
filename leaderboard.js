@@ -241,6 +241,13 @@ if (!configured) {
     LB.bibWoche = async (week) => (await fs.getDocs(fs.query(bibliothek, fs.where("wk", "==", week), fs.limit(500)))).docs.map(bibZeile);
     LB.gegnerListe = async () => aktiv((await fs.getDocs(fs.query(spieler, fs.orderBy("xp", "desc"), fs.limit(150)))).docs);
 
+    // 9.0 Gemeinden: Liste legt nur der Verwalter an (Sammlung gemeinden); jeder Spieler ordnet sich über mitglied/{pid} einer Gemeinde zu
+    LB.gemListe = async () => (await fs.getDocs(fs.collection(db, "gemeinden"))).docs.map(d => ({ id: d.id, ...d.data() }));
+    LB.mitgliedListe = async () => (await fs.getDocs(fs.query(fs.collection(db, "mitglied"), fs.limit(1000)))).docs.map(d => ({ id: d.id, g: d.data().g }));
+    LB.gemSetzen = async (pid, name, g) => { await LB.signIn(); await fs.setDoc(ref("mitglied", pid), { pid, name, g, updated: fs.serverTimestamp() }); };
+    LB.gemAnlegen = async (id, name, ord) => { await LB.signIn(); await fs.setDoc(ref("gemeinden", id), { name, ord: ord | 0 }); };
+    LB.gemLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("gemeinden", id)); };
+
     // Live-Listen
     const FELD = { gesamt: "xp", kette_bibel: "bestChain", kette_at: "chainAT", kette_nt: "chainNT", kette_rueck: "chainRueck", treue: "t28", bewaehrt: "bew", abzeichen: "badges", blitz: "blitz", combo: "combo", duSiege: "duS", duSpiele: "duG", bibRekord: "bib" };
     LB.watch = (kind, week, cb, onErr) => {
