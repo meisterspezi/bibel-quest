@@ -5279,10 +5279,23 @@ VIEWS.xppruefung = () => {
         .catch(e => { d.dataset.laedt = ""; box.textContent = "Konnte nicht geladen werden (" + ((e && e.code) || "Fehler") + ")."; });
     }));
     screen.querySelectorAll("details[data-xpev]").forEach(d => d.addEventListener("toggle", () => {
-      if (!d.open || d.dataset.geladen) return; d.dataset.geladen = "1"; const box = d.querySelector(".xq-evliste");
-      L.xpProtokoll(d.dataset.xpev, 1000, Date.now() - 7 * 864e5).then(l => { l = l.slice(0, 100); box.innerHTML = l.length ? `<div class="small muted" style="margin-bottom:6px">Die letzten ${l.length} Vergaben (7 Tage), neueste zuerst · Uhrzeit laut Gerät des Spielers</div>${l.map(xqEreignisHtml).join("")}<button class="btn ghost mini" data-xqcsv style="margin-top:4px">${svg("scroll")} Dieses Protokoll als CSV</button>` : "Noch keine protokollierten Vergaben.";
-        const kn = box.querySelector("[data-xqcsv]"); if (kn) kn.onclick = async () => { SFX.tap(); kn.disabled = true; try { const alle = await L.xpProtokoll(d.dataset.xpev, 5000); xqCsvLaden(`xp-protokoll-${String(((z.find(r => r.id === d.dataset.xpev) || {}).name) || "spieler").replace(/[^\w-]+/g, "_")}-${xqDateiTag()}.csv`, alle); } catch (e) { toast("<div>Export fehlgeschlagen.</div>"); } kn.disabled = false; }; })
-        .catch(e => { d.dataset.geladen = ""; box.textContent = "Konnte nicht geladen werden (" + ((e && e.code) || "Fehler") + ")."; });
+      if (!d.open || d.dataset.geladen) return; d.dataset.geladen = "1"; const box = d.querySelector(".xq-evliste"), pid = d.dataset.xpev, zwischen = {};
+      const tagStart = () => { const t = new Date(); t.setHours(0, 0, 0, 0); return t.getTime(); };
+      const zeigen = async modus => {
+        box.innerHTML = `<div class="seg xq-evseg" role="tablist" aria-label="Zeitraum"><button type="button" role="tab" data-evm="heute" aria-selected="${modus === "heute"}">Heute</button><button type="button" role="tab" data-evm="woche" aria-selected="${modus === "woche"}">Letzte 7 Tage</button></div><div class="xq-evinhalt small muted">Lade …</div>`;
+        box.querySelectorAll("[data-evm]").forEach(b => b.onclick = () => { if (b.dataset.evm === modus) return; SFX.tap(); window.__xqEvModus = b.dataset.evm; zeigen(b.dataset.evm); });
+        const inh = box.querySelector(".xq-evinhalt");
+        try {
+          if (!zwischen[modus]) zwischen[modus] = await L.xpProtokoll(pid, 1000, modus === "heute" ? tagStart() : Date.now() - 7 * 864e5);
+          if (box.querySelector("[aria-selected=true]").dataset.evm !== modus) return;
+          const alle = zwischen[modus], l = alle.slice(0, 100), summe = alle.reduce((a, e) => a + (+e.x || 0), 0);
+          const kopf = modus === "heute" ? "heute" : "7 Tage";
+          inh.className = "xq-evinhalt";
+          inh.innerHTML = l.length ? `<div class="small muted" style="margin-bottom:6px">${alle.length > l.length ? `Die letzten ${l.length} von ${alle.length} Vergaben` : `${l.length} ${l.length === 1 ? "Vergabe" : "Vergaben"}`} (${kopf}) · zusammen +${summe.toLocaleString("de-DE")} XP · neueste zuerst · Uhrzeit laut Gerät des Spielers</div>${l.map(xqEreignisHtml).join("")}<button class="btn ghost mini" data-xqcsv style="margin-top:4px">${svg("scroll")} Dieses Protokoll als CSV</button>` : `<div class="small muted">${modus === "heute" ? "Heute noch keine protokollierten Vergaben." : "In den letzten 7 Tagen keine protokollierten Vergaben."}</div>`;
+          const kn = inh.querySelector("[data-xqcsv]"); if (kn) kn.onclick = async () => { SFX.tap(); kn.disabled = true; try { const voll = await L.xpProtokoll(pid, 5000); xqCsvLaden(`xp-protokoll-${String(((z.find(r => r.id === pid) || {}).name) || "spieler").replace(/[^\w-]+/g, "_")}-${xqDateiTag()}.csv`, voll); } catch (e) { toast("<div>Export fehlgeschlagen.</div>"); } kn.disabled = false; };
+        } catch (e) { inh.textContent = "Konnte nicht geladen werden (" + ((e && e.code) || "Fehler") + ")."; d.dataset.geladen = ""; }
+      };
+      zeigen(window.__xqEvModus === "woche" ? "woche" : "heute");
     }));
    };
    zeichnen();
