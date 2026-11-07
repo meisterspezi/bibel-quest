@@ -11,36 +11,52 @@ const KAL_START = "2026-12-01";        /* Adventskalender: Türchen 1 */
 const ADV_KRIPPE = "2026-12-24";       /* Heiligabend: das Kind liegt in der Krippe */
 const ADV_SICHT_BIS = "2027-01-06";    /* so lange bleibt der Advent in der App sichtbar */
 
-/* ---------- Weg nach Bethlehem: Gemeinschaftsprojekt mit Spenden ---------- */
+/* ---------- Die Krippe wächst: Gemeinschaftsprojekt (Spenden in Adventslichtern) ---------- */
+/* Adventslichter gibt es nur in der Adventszeit: Jede Spielerin und jeder Spieler verdient sie bei allem, was XP bringt
+   (Lernen, Spielen, Biblionär, Duelle, Tagesaufgaben …) und im Adventskalender. Gespendet wird nur mit Lichtern – nie mit Talenten. */
+const ADV_LICHT_XP = 10;               /* 1 Adventslicht je 10 verdiente XP */
+const ADV_LICHT_NAME = "Adventslichter";
 const BETH_ZUSCHUSS = 0.5;             /* die Gemeinde legt zu jeder Gabe 50 % dazu */
-const BETH_TAGE = 3;                   /* jede Station hat 3 Tage Zeit; danach füllt die Gemeinde den Rest auf */
-const BETH_TAGESGABE = 5;              /* kostenlose „Wegzehrung“ je Spieler und Tag (zählt für den Weg, kostet keine Talente) */
-/* ziel = so viele Talente braucht die Station (inklusive Gemeinde-Zuschuss). Summe 6.000 ≈ 4.000 Talente aus Spenden.
-   Nach einem Blick in „Talente-Planung“ (Postkasten) hier anpassen. */
+const BETH_TAGE = 3;                   /* jede Figur hat 3 Tage Zeit; danach füllt die Gemeinde den Rest auf */
+const BETH_TAGESGABE = 5;              /* kostenlose „Wegzehrung“: je Spieler und Tag ein kleines Licht für die Krippe */
+/* ziel = so viele Lichter braucht die Figur (inklusive Gemeinde-Zuschuss). Summe 6.000 ≈ 4.000 Lichter aus Spenden.
+   Nach den ersten Tagen hier anpassen. f = Figur im Bild (siehe advent.js), ver = Verheißung, erf = Erfüllung. */
 const BETH = [
-  { n: "Nazareth – der Engel kommt", kurz: "Nazareth", v: "Lukas 1,26-38", ziel: 400,
-    k: "In Nazareth in Galiläa erscheint der Engel Gabriel einer jungen Frau namens Maria. Sie soll einen Sohn bekommen und ihn Jesus nennen." },
-  { n: "Bei Elisabeth im Bergland", kurz: "Elisabeth", v: "Lukas 1,39-45", ziel: 500,
-    k: "Maria macht sich auf den Weg ins Bergland von Judäa. Ihre Verwandte Elisabeth freut sich mit ihr und segnet sie." },
-  { n: "Josefs Traum", kurz: "Josef", v: "Matthäus 1,18-25", ziel: 600,
-    k: "Josef will sich zuerst von Maria trennen. Da sagt ihm ein Engel im Traum: Hab keine Angst, nimm Maria zu dir – das Kind ist vom Heiligen Geist." },
-  { n: "Der Befehl des Kaisers", kurz: "Kaiser", v: "Lukas 2,1-3", ziel: 700,
-    k: "Kaiser Augustus befiehlt eine Volkszählung. Jeder soll sich in seiner Heimatstadt eintragen lassen." },
-  { n: "Aufbruch nach Süden", kurz: "Aufbruch", v: "Lukas 2,4-5", ziel: 800,
-    k: "Josef stammt aus dem Haus Davids. Darum zieht er mit der schwangeren Maria von Nazareth hinauf in die Stadt Davids, nach Bethlehem." },
-  { n: "Ankunft in Bethlehem", kurz: "Bethlehem", v: "Lukas 2,6-7", ziel: 900,
-    k: "Sie erreichen Bethlehem. Die Zeit der Geburt ist nahe – aber in der Herberge ist kein Platz für sie." },
-  { n: "Ein Stall wird bereitet", kurz: "Stall", v: "Lukas 2,7", ziel: 1000,
-    k: "Ein einfacher Stall wird zum Zuhause für diese Nacht. Eine Futterkrippe steht bereit – für das Kind, das bald kommt." },
-  { n: "Der Stern geht auf", kurz: "Stern", v: "Matthäus 2,1-2", ziel: 1100,
-    k: "Über Bethlehem leuchtet der Stern, dem später die Weisen aus dem Morgenland folgen. Noch eine Nacht – dann ist es so weit." }
+  { f: "stall", n: "Der Stall in Bethlehem", kurz: "Stall", v: "Lukas 2,4-7", ziel: 400,
+    k: "Josef stammt aus dem Haus Davids, darum zieht er nach Bethlehem. In der Herberge ist kein Platz – ein einfacher Stall wird zum Zuhause für diese Nacht.",
+    ver: ["Micha 5,1", "Du, Bethlehem, bist klein unter den Städten Judas – aus dir soll der kommen, der Herrscher über Israel sein wird."], erf: ["Lukas 2,4-7", "Jesus wird in Bethlehem, der Stadt Davids, geboren."] },
+  { f: "maria", n: "Maria", kurz: "Maria", v: "Lukas 1,26-38", ziel: 500,
+    k: "Der Engel Gabriel kommt zu Maria in Nazareth: Du wirst einen Sohn bekommen und ihn Jesus nennen. Maria antwortet: Siehe, ich bin des Herrn Magd.",
+    ver: ["Jesaja 7,14", "Eine junge Frau wird schwanger werden und einen Sohn gebären – sein Name: Immanuel, Gott mit uns."], erf: ["Matthäus 1,22-23", "Das ist geschehen, damit sich erfüllt, was der Herr durch den Propheten gesagt hat."] },
+  { f: "josef", n: "Josef", kurz: "Josef", v: "Matthäus 1,18-25", ziel: 600,
+    k: "Josef will sich erst von Maria trennen. Da sagt ihm ein Engel im Traum: Fürchte dich nicht, nimm Maria zu dir – das Kind ist vom Heiligen Geist. Josef gehorcht.",
+    ver: ["Jesaja 11,1", "Ein Reis wird hervorgehen aus dem Stamm Isais – aus Davids Familie kommt der Retter."], erf: ["Matthäus 1,20", "Der Engel nennt Josef „Sohn Davids“ – Jesus gehört zum Königshaus."] },
+  { f: "schafe", n: "Die Schafe auf dem Feld", kurz: "Schafe", v: "Lukas 2,8", ziel: 700,
+    k: "Draußen vor der Stadt hüten Hirten ihre Herden bei Nacht. Schafe und Lämmer gehören in Bethlehem zum Alltag – und zu den Opfern im Tempel.",
+    ver: ["Jesaja 53,7", "Wie ein Lamm, das zur Schlachtung geführt wird – der Knecht Gottes trägt unsere Schuld."], erf: ["Johannes 1,29", "Johannes der Täufer sieht Jesus und sagt: Siehe, das Lamm Gottes, das die Sünde der Welt trägt!"] },
+  { f: "hirten", n: "Die Hirten", kurz: "Hirten", v: "Lukas 2,8-20", ziel: 800,
+    k: "Die Hirten bekommen die erste Nachricht von allen: Euch ist heute der Retter geboren! Sie laufen los, finden das Kind und erzählen es weiter.",
+    ver: ["Hesekiel 34,23", "Ich will einen einzigen Hirten über sie setzen, meinen Knecht David, der soll sie weiden."], erf: ["Johannes 10,11", "Jesus sagt: Ich bin der gute Hirte. Der gute Hirte lässt sein Leben für die Schafe."] },
+  { f: "engel", n: "Der Engel und das Heer des Himmels", kurz: "Engel", v: "Lukas 2,9-14", ziel: 900,
+    k: "Ein Engel des Herrn tritt zu den Hirten, Gottes Licht umstrahlt sie. Dann loben viele Engel Gott: Ehre sei Gott in der Höhe und Friede auf Erden!",
+    ver: ["Jesaja 9,5", "Uns ist ein Kind geboren – sein Name ist Wunder-Rat, Gott-Held, Ewig-Vater, Friedefürst."], erf: ["Lukas 2,11.14", "Euch ist heute der Retter geboren, der Christus, der Herr – und Friede auf Erden."] },
+  { f: "stern", n: "Der Stern über dem Stall", kurz: "Stern", v: "Matthäus 2,1-2", ziel: 1000,
+    k: "Weise aus dem Morgenland sehen einen Stern aufgehen und machen sich auf den Weg: Wo ist der neugeborene König der Juden?",
+    ver: ["4. Mose 24,17", "Ein Stern geht auf aus Jakob, ein Zepter erhebt sich aus Israel."], erf: ["Matthäus 2,2", "Wir haben seinen Stern gesehen und sind gekommen, ihn anzubeten."] },
+  { f: "weise", n: "Die Weisen aus dem Morgenland", kurz: "Weise", v: "Matthäus 2,9-11", ziel: 1100,
+    k: "Der Stern führt die Weisen zum Haus. Sie fallen nieder, beten das Kind an und schenken ihm Gold, Weihrauch und Myrrhe.",
+    ver: ["Jesaja 60,3.6", "Völker ziehen zu deinem Licht, sie bringen Gold und Weihrauch und verkünden das Lob des Herrn."], erf: ["Matthäus 2,11", "Sie öffneten ihre Schätze und schenkten ihm Gold, Weihrauch und Myrrhe."] }
 ];
 const BETH_FINALE = { n: "Heiligabend – das Kind ist da!", v: "Lukas 2,7.11-12",
-  k: "Maria bringt ihren ersten Sohn zur Welt, wickelt ihn in Windeln und legt ihn in eine Krippe. Der Engel sagt den Hirten: Euch ist heute der Retter geboren, der Christus, der Herr." };
+  k: "Maria bringt ihren ersten Sohn zur Welt, wickelt ihn in Windeln und legt ihn in eine Krippe. Der Engel sagt den Hirten: Euch ist heute der Retter geboren, der Christus, der Herr.",
+  ver: ["Jesaja 9,5", "Uns ist ein Kind geboren, ein Sohn ist uns gegeben."], erf: ["Johannes 1,14", "Das Wort wurde Mensch und wohnte unter uns – wir sahen seine Herrlichkeit."] };
 
 /* ---------- Adventskalender (ab 1. Dezember) ---------- */
-const KAL_TAL = 8, KAL_TAL_SPAET = 4, KAL_TAL_FRAGE = 4;   /* Talente: am Tag selbst / später geöffnet / Frage richtig */
-const KAL_MEISTER = 20;                                     /* so viele Türchen für Rahmen „Adventskranz“ und Titel „Adventsbote“ */
+/* Belohnung je Türchen (ähnlich der Tages-Schatztruhe: 25 Talente). Am Tag selbst geöffnet / nachgeholt; Frage richtig = Zugabe. */
+const KAL_TAL = 25, KAL_TAL_SPAET = 12, KAL_TAL_FRAGE = 10;
+const KAL_LICHT = 30, KAL_LICHT_SPAET = 15, KAL_LICHT_FRAGE = 10;     /* Adventslichter */
+const KAL_GROSS = { 24: [60, 150] };                                 /* Heiligabend: [Talente, Lichter] zusätzlich */
+const KAL_MEISTER = 20;                                              /* so viele Türchen für Rahmen „Adventskranz“ und Titel „Adventsbote“ */
 /* a: die richtige Antwort steht immer zuerst; die App mischt für jedes Türchen immer gleich */
 const KALENDER = [
   { t: "Die erste Verheißung", v: "1. Mose 3,15", s: "Gleich nach dem Sündenfall verspricht Gott: Ein Nachkomme der Frau wird der Schlange den Kopf zertreten. Hier beginnt der Weg zum Retter.",
@@ -166,8 +182,183 @@ const ADV_BIB_FRAGEN = {
   ]
 };
 
-/* ---------- Duell-Aktion und Advents-Biblionär ---------- */
-const ADV_DU_ZIEL = 3;      /* so viele Duelle pro Adventswoche … */
-const ADV_DU_GEGNER = 2;    /* … gegen mindestens so viele verschiedene Mitspieler */
-const ADV_DU_TAL = 15;      /* Belohnung je geschaffter Woche (einmal) */
-const ADV_BIB_TAL = 10;     /* Talente für eine gespielte Advents-Biblionär-Runde */
+/* ---------- Advents-Biblionär ---------- */
+const ADV_BIB_TAL = 10;     /* Talente für eine gespielte Advents-Biblionär-Runde (zusätzlich zu XP und Lichtern) */
+/* Alle Fragen zusammen: Pool für Weihnachts-Duelle */
+const ADV_ALLE_FRAGEN = Object.values(ADV_BIB_FRAGEN).flat();
+
+/* ---------- Verheißung und Erfüllung: je Türchen ein Satz „Gott versprochen → in Jesus erfüllt“ ---------- */
+const KAL_ERF = [
+  ["1. Mose 3,15: Ein Nachkomme der Frau wird der Schlange den Kopf zertreten.", "Galater 4,4: Als die Zeit erfüllt war, sandte Gott seinen Sohn, geboren von einer Frau."],
+  ["1. Mose 12,3: In dir sollen alle Geschlechter der Erde gesegnet werden.", "Galater 3,16: Die Verheißungen gelten Abraham und seinem Nachkommen – das ist Christus."],
+  ["1. Mose 49,10: Das Zepter wird von Juda nicht weichen.", "Offenbarung 5,5: Der Löwe aus dem Stamm Juda hat überwunden."],
+  ["5. Mose 18,15: Gott wird euch einen Propheten erwecken wie mich.", "Apostelgeschichte 3,22-26: Petrus sagt: Dieser Prophet ist Jesus."],
+  ["2. Samuel 7,16: Dein Thron soll für immer bestehen.", "Lukas 1,32-33: Gott wird ihm den Thron seines Vaters David geben, und sein Reich wird kein Ende haben."],
+  ["Jesaja 7,14: Die junge Frau wird einen Sohn gebären – Immanuel.", "Matthäus 1,22-23: Das ist geschehen, damit sich erfüllt, was der Herr gesagt hat."],
+  ["Jesaja 9,5: Uns ist ein Kind geboren, ein Sohn ist uns gegeben.", "Lukas 2,11: Euch ist heute der Retter geboren, der Christus, der Herr."],
+  ["Micha 5,1: Aus Bethlehem soll der Herrscher über Israel kommen.", "Matthäus 2,5-6: Die Schriftgelehrten nennen Bethlehem – und Jesus wird dort geboren."],
+  ["Jesaja 40,3: Eine Stimme ruft: In der Wüste bereitet dem Herrn den Weg!", "Matthäus 3,1-3: Johannes der Täufer ist diese Stimme, die auf Jesus vorbereitet."],
+  ["Maleachi 3,1: Ich sende meinen Boten, der den Weg vor mir bereiten soll.", "Lukas 1,16-17: Der Sohn des Zacharias wird das Volk für den Herrn bereit machen."],
+  ["Jesaja 7,14: Die Jungfrau wird schwanger werden.", "Lukas 1,26-27: Gott sendet Gabriel zu einer Jungfrau namens Maria."],
+  ["2. Samuel 7,13: Sein Königreich will ich festigen für immer.", "Lukas 1,32-33: Der Sohn wird der Sohn des Höchsten genannt, sein Reich hat kein Ende."],
+  ["Micha 5,2: Von Ewigkeit her ist sein Ursprung.", "Lukas 1,43: Elisabeth ruft: Wie kommt es, dass die Mutter meines Herrn zu mir kommt?"],
+  ["1. Mose 22,18: Durch deinen Nachkommen sollen alle Völker gesegnet werden.", "Lukas 1,54-55: Maria lobt Gott: Er denkt an seine Barmherzigkeit, wie er unseren Vätern zugesagt hat, Abraham."],
+  ["Jesaja 7,14: Sein Name: Immanuel – Gott mit uns.", "Matthäus 1,20-21: Der Engel sagt Josef: Das Kind ist vom Heiligen Geist."],
+  ["Psalm 130,8: Er wird Israel erlösen von allen seinen Sünden.", "Matthäus 1,21: Du sollst ihm den Namen Jesus geben, denn er wird sein Volk retten von seinen Sünden."],
+  ["Micha 5,1: Aus Bethlehem kommt der Herrscher.", "Lukas 2,1-4: Durch den Befehl des Kaisers muss Josef nach Bethlehem – so führt Gott alles zusammen."],
+  ["Micha 5,1: Du Bethlehem Ephrata, klein unter den Städten Judas.", "Lukas 2,4-5: Josef und Maria ziehen hinauf in die Stadt Davids, die Bethlehem heißt."],
+  ["Jesaja 53,2-3: Er hatte keine Gestalt, die uns gefiel; er war verachtet.", "Lukas 2,7: Kein Platz in der Herberge – der König kommt ganz klein."],
+  ["Hesekiel 34,23: Ich will einen Hirten über sie setzen, meinen Knecht David.", "Lukas 2,8-11: Hirten hören als Erste: Euch ist der Retter geboren."],
+  ["Jesaja 9,1: Das Volk, das im Finstern wandelt, sieht ein großes Licht.", "Lukas 2,9-11: Die Klarheit des Herrn umleuchtet die Hirten – der Retter ist da."],
+  ["Jesaja 9,5: Er heißt Friedefürst.", "Lukas 2,14: Ehre sei Gott in der Höhe und Friede auf Erden bei den Menschen seines Wohlgefallens."],
+  ["4. Mose 24,17: Ein Stern geht auf aus Jakob.", "Matthäus 2,2.10-11: Die Weisen sehen den Stern, kommen und beten Jesus an."],
+  ["Jesaja 9,5 und Jesaja 40,5: Die Herrlichkeit des Herrn wird offenbart werden.", "Johannes 1,14: Das Wort wurde Fleisch und wohnte unter uns, und wir sahen seine Herrlichkeit."]
+];
+
+/* =====================================================================
+   Weihnachts-Telefonjoker: Pastor Willi und Pastor Aaron in Weihnachtsmütze und mit weihnachtlichen Antworten.
+   Gilt für den Advents-Biblionär und für Duelle im Weihnachtsmodus. Platzhalter: X = richtige/getippte Antwort, Y = die andere, ref = Bibelstelle.
+   ===================================================================== */
+const WEIH_MUETZE = `<g class="weih-muetze"><path d="M29 34C30 20 40 12 53 12c7 0 12 3 14 8l11-6-3 13c0 3-1 5-3 8z" fill="#d93a4a" stroke="#6a1420" stroke-width="1.3" stroke-linejoin="round"/><rect x="26" y="31" width="44" height="9" rx="4.5" fill="#fff" stroke="#c9c2b0" stroke-width="1"/><circle cx="78" cy="14" r="5.5" fill="#fff" stroke="#c9c2b0" stroke-width="1"/></g>`;
+const weihBild = svgText => svgText.replace("</svg>", WEIH_MUETZE + "</svg>");
+const ADV_PASTOREN = {
+  willi: {
+    hallo: [
+      "Frohe Weihnachten im Voraus! Willi am Telefon – ich stehe gerade am Glühweinstand und höre dir trotzdem zu.",
+      "Willi hier! Heidi backt Plätzchen, das ganze Haus riecht nach Zimt. Ich hab eine Minute – schieß los!",
+      "Servus, Pastor Willi mit Weihnachtsmütze! Die ist übrigens nicht gerutscht, die sitzt mit Absicht schief.",
+      "Willi am Apparat! Ich hab Heidis Lebkuchen nur zur Kontrolle probiert, falls du dich wunderst, warum ich kaue.",
+      "Hallo, hier ist Willi! Bei uns brennt schon die zweite Kerze am Kranz – und die Feuerwehr ist nicht nötig. Noch nicht.",
+      "Willi hier, mitten im Adventstrubel! Das Beste an Weihnachten ist nicht der Braten, sondern das Kind in der Krippe. Aber der Braten hilft."
+    ],
+    sicher: [
+      x => `Das weiß ich wie meinen Adventskranz: ${x.X}. Steht in ${x.ref}.`,
+      x => `Ganz klar ${x.X}! Das haben wir schon als Kinder im Krippenspiel gelernt – ${x.ref}.`,
+      x => `${x.X}! Da bin ich mir sicherer als bei Heidis Plätzchenrezept. ${x.ref}.`,
+      x => `Ohne Zweifel: ${x.X}. Lies es nach in ${x.ref} – Weihnachten steht wirklich in der Bibel.`,
+      x => `${x.X}, und das gilt, solange Weihnachten ist. Also immer. ${x.ref}.`
+    ],
+    ziemlich: [
+      x => `Ich bin ziemlich sicher: ${x.X}. Wenn nicht, schiebe ich es auf den Glühwein.`,
+      x => `Ich tippe stark auf ${x.X}. Das habe ich in ${x.ref} gelesen – oder war es im Krippenspiel?`,
+      x => `Mein Bauchgefühl sagt ${x.X}, und das hat sich nach Lebkuchen bisher nicht geirrt.`,
+      x => `Ich würde ${x.X} nehmen. Die Weisen aus dem Morgenland hätten es auch gewusst – wenn sie das Navi dabeigehabt hätten.`
+    ],
+    schwank: [
+      x => `Hm, entweder ${x.X} oder ${x.Y}. Beim Adventskalender hätte ich jetzt gern ein Türchen mehr.`,
+      x => `Ich schwanke zwischen ${x.X} und ${x.Y}. Wie Josef in der Nacht, bevor ihm der Engel erschien.`,
+      x => `${x.X} würde ich sagen, aber ${x.Y} ist nicht ausgeschlossen. Ich habe zu viele Plätzchen gegessen.`,
+      x => `Hin und her wie ein Schaf auf dem Hirtenfeld: ${x.X} oder ${x.Y}. Ich nehme ${x.X}.`
+    ],
+    geraten: [
+      x => `Ehrlich gesagt geraten: ${x.X}. Mein Kopf ist schon im Weihnachtsurlaub.`,
+      x => `Nur ein Tipp ins Blaue: ${x.X}. Mehr kann ich dir in diesem Moment nicht anbieten – außer Plätzchen.`,
+      x => `Ganz unsicher. ${x.X}, aber ohne Gewähr, wie bei der Paketlieferung kurz vor Heiligabend.`
+    ],
+    thema: [
+      [/Immanuel|Jesaja 7/, "Immanuel heißt „Gott mit uns“. Genau deshalb feiern wir: Gott kommt nicht von oben herab, er kommt mitten rein (Matthäus 1,23)."],
+      [/Bethlehem|Micha/, "Bethlehem heißt „Haus des Brotes“ – und dort wird der geboren, der später sagt: Ich bin das Brot des Lebens (Johannes 6,35). Da hat Heidi nichts entgegenzusetzen."],
+      [/Hirt|Schaf|Feld/, "Die Hirten waren die Ersten, die es erfuhren. Gott sucht sich zuerst die aus, die nachts arbeiten – ich verstehe das, ich grille auch nachts."],
+      [/Engel|Gabriel|fürchte/, "„Fürchte dich nicht!“ ist der Weihnachtssatz der Bibel – er steht in der Weihnachtsgeschichte mehrmals. Das sage ich mir auch vor dem Weihnachtsessen."],
+      [/Stern|Weise|Morgenland|Gold|Weihrauch/, "Gold, Weihrauch, Myrrhe – ich hätte der Familie lieber etwas Praktisches geschenkt. Eine Windel, zum Beispiel. Aber die Weisen wussten, wem sie schenken."],
+      [/Josef|Traum/, "Josef ist mein Held der Weihnacht. Er sagt in der ganzen Geschichte kein einziges Wort – und tut trotzdem genau das Richtige."],
+      [/Maria|Magd|Lobgesang/, "Marias Lobgesang ist das Adventslied schlechthin: „Meine Seele erhebt den Herrn.“ Und das als junge Frau, die gerade alles auf den Kopf gestellt bekommt."],
+      [/Kaiser|Augustus|Zählung|Quirinius/, "Der Kaiser dachte, er plant eine Volkszählung. Tatsächlich hat Gott nur dafür gesorgt, dass Micha 5,1 stimmt. Das nenne ich Terminplanung."],
+      [/Elisabeth|Zacharias|Johannes/, "Johannes der Täufer ist der Vorbote, der sagt: Macht den Weg frei! Das ist ungefähr wie der Räumdienst vor der Kirche am vierten Advent."],
+      [/Jesaja|Prophet|Verhei/, "Die Propheten haben Jahrhunderte vor Weihnachten gesagt, was kommt. Gott hält, was er verspricht – das ist das Fundament von Weihnachten."],
+      [/Name|Jesus|Retter/, "Jesus heißt „Gott rettet“. Der Name ist das ganze Programm von Weihnachten in zwei Silben."]
+    ],
+    themen: { "Advent": [
+      "Advent heißt „Ankunft“. Der König kommt, und wir räumen auf – mindestens die Garage, bevor die Verwandtschaft anrückt.",
+      "Jedes Türchen im Adventskalender erinnert: Gott hat versprochen, dass er kommt – und er hat es gehalten.",
+      "Die Weihnachtsgeschichte ist die Erfüllung von Verheißungen. Jede Prophezeiung wird Kerze für Kerze heller."
+    ] },
+    allg: [
+      "Weihnachten ist das Fest, an dem Gott sein Versprechen hält. Und der Christstollen auch.",
+      "Wenn alles hektisch wird: Maria hat in der Krippenszene auch nicht gedrängelt. Sie hat Dinge in ihrem Herzen bewegt (Lukas 2,19).",
+      "Das Kind in der Krippe ist die Antwort auf jahrhundertelanges Warten. Und ich beschwere mich über eine Viertelstunde im Stau.",
+      "Heidi sagt, ich soll weniger reden und mehr Plätzchen backen. Aber die Frage ist ja gleich beantwortet.",
+      "Weihnachten ist kein Wunschzettel, sondern ein Geschenk: Gott schenkt sich selbst.",
+      "Die Hirten haben nicht lange gefragt, sie sind einfach losgerannt (Lukas 2,15). Beim Glühwein bin ich auch schneller."
+    ],
+    tschuess: [
+      "Frohe Weihnachten! Und grüß mir die Krippe.",
+      "So, ich muss zurück zum Plätzchenteller. Gesegneten Advent!",
+      "Möge das Licht von Bethlehem bei dir brennen – ruf an, wenn du mehr brauchst!",
+      "Und denk dran: Fürchte dich nicht. Gilt auch fürs Weihnachtsgeschäft.",
+      "Bis bald – und ein frohes, gesegnetes Fest!"
+    ]
+  },
+  aaron: {
+    hallo: [
+      "Aaron am Telefon – in Weihnachtsmütze! Selbst Chewbacca hat sich eine aufgesetzt, wenn auch ungern.",
+      "Hallo, hier Aaron! Eliza hat gerade den Adventskranz angezündet, und ich halte den Feuerlöscher bereit. Frag, ich höre zu.",
+      "Aaron hier! Bei uns läuft schon der Weihnachts-Soundtrack – und ja, auch das Imperial March-Cover. Was gibt's?",
+      "Hallo! Das ist ein Anruf aus einer weit, weit entfernten Küche voller Lebkuchen. Schieß los!",
+      "Aaron am Apparat! Möge die Macht – und der Glühwein – mit dir sein. Wobei, nur das eine davon ist biblisch.",
+      "Hier Aaron! Wir schmücken gerade den Baum. Der Stern oben ist ein bisschen krumm. Wie das Krippenspiel letztes Jahr."
+    ],
+    sicher: [
+      x => `Da muss ich nicht lange in die Macht greifen: ${x.X}. Steht in ${x.ref}.`,
+      x => `Das ist ${x.X}! So sicher wie der Stern über Bethlehem – ${x.ref}.`,
+      x => `${x.X}. Ganz klar. Lies ${x.ref} nach, das hat mehr Tiefgang als jeder Weihnachtsfilm.`,
+      x => `Ohne Zweifel ${x.X}. So klar wie ein Sternenhimmel in Bethlehem. ${x.ref}.`,
+      x => `${x.X}! Das ist Weihnachten, wie es geschrieben steht: ${x.ref}.`
+    ],
+    ziemlich: [
+      x => `Ich bin ziemlich sicher: ${x.X}. Mein Gefühl sagt das, und es täuscht mich seltener als Eliza ihre Lebkuchenwaage.`,
+      x => `Ich würde ${x.X} nehmen. Das habe ich in ${x.ref} im Ohr, vom Krippenspiel her.`,
+      x => `Meine Antwort wäre ${x.X}. So sicher wie ein Hirte, der einem Engel begegnet – also fast.`,
+      x => `${x.X} – das klingt wie die Weihnachtsgeschichte, wie ich sie kenne.`
+    ],
+    schwank: [
+      x => `Zwischen ${x.X} und ${x.Y} – das ist wie die Entscheidung zwischen Lebkuchen und Zimtstern.`,
+      x => `Ich schwanke: ${x.X} oder ${x.Y}. Ich nehme ${x.X} – möge der Stern von Bethlehem mir leuchten.`,
+      x => `Hmm, ${x.X}, aber ${x.Y} könnte auch sein. Mein Hirn hat Weihnachtsmodus, nicht Prüfungsmodus.`,
+      x => `Entweder ${x.X} oder ${x.Y}. Ich sage ${x.X}, aber frag bitte nicht nach.`
+    ],
+    geraten: [
+      x => `Nur geraten: ${x.X}. Die Weisen hatten wenigstens einen Stern, ich habe nur Lebkuchenkrümel.`,
+      x => `Ein Schuss ins Blaue: ${x.X}. Ich bin gedanklich schon beim Weihnachtsessen.`,
+      x => `Unsicher. ${x.X}, aber behalte deinen Joker im Hinterkopf – ich bin heute nicht der beste Ratgeber.`
+    ],
+    thema: [
+      [/Immanuel|Jesaja 7/, "Immanuel – „Gott mit uns“. Das ist die Version von „Die Macht ist mit dir“, die wirklich stimmt (Matthäus 1,23)."],
+      [/Bethlehem|Micha/, "Bethlehem ist so klein wie Tatooine – und trotzdem passiert dort die wichtigste Geschichte der Welt (Micha 5,1)."],
+      [/Hirt|Schaf|Feld/, "Die Hirten sind die ersten Zeugen, nicht die Mächtigen. Das ist die echte Rebellen-Allianz: die Kleinen, die Gott zuerst einlädt."],
+      [/Engel|Gabriel|fürchte/, "„Fürchte dich nicht!“ – das hat jeder Engel in der Weihnachtsgeschichte gesagt. Auch ein Jedi-Meister könnte das nicht besser."],
+      [/Stern|Weise|Morgenland|Gold|Weihrauch/, "Der Stern führt die Weisen zum Ziel – so gut navigiert nicht mal der Millennium Falke. Und das ohne Navi (Matthäus 2,9)."],
+      [/Josef|Traum/, "Josef geht auf Gottes Wort hin los, ohne Beweise. Das ist Vertrauen, das Yoda stolz machen würde."],
+      [/Maria|Magd|Lobgesang/, "Maria singt: „Meine Seele erhebt den Herrn.“ Das ist das erste Adventslied – und es ist keine Verhandlung, es ist Vertrauen."],
+      [/Kaiser|Augustus|Zählung|Quirinius/, "Ein Kaiser denkt, er herrscht – und merkt gar nicht, dass er in Gottes Drehbuch mitspielt. Das ist besser als jeder Plot-Twist."],
+      [/Elisabeth|Zacharias|Johannes/, "Johannes der Täufer macht den Weg frei – wie ein Pilot, der die Landebahn beleuchtet, bevor der König landet."],
+      [/Jesaja|Prophet|Verhei/, "Hunderte Jahre vorher angekündigt und dann genau so geschehen: Das ist eine Prophezeiung, die wirklich funktioniert."],
+      [/Name|Jesus|Retter/, "„Gott rettet“ – so heißt Jesus. Das ist das Beste, was ein Name versprechen kann."]
+    ],
+    themen: { "Advent": [
+      "Advent ist Vorfreude. Gott kommt, und wir bereiten die Tür – mit Herz, nicht nur mit Lichterketten.",
+      "Jede Kerze am Adventskranz ist ein Versprechen mehr: Das Licht kommt, und die Dunkelheit hat nicht das letzte Wort (Johannes 1,5).",
+      "Weihnachten ist nicht die Geschichte eines Babys, sondern die Geschichte, wie Gott sein Wort hält."
+    ] },
+    allg: [
+      "Eliza sagt, dass ich zu Weihnachten weniger Star Wars zitieren soll. Aber hier passt es, schau: Ein Licht in der Finsternis.",
+      "Das Kind in der Krippe ist die größte Überraschung der Weltgeschichte. Und dabei ist die Lebkuchenkonkurrenz stark.",
+      "Alle Verheißungen laufen auf die Krippe zu – ich liebe diese Spannung, besser als jeder Film-Trailer.",
+      "Gott kommt klein, nicht mit Truppen. Genau das macht Weihnachten so besonders.",
+      "Ich mag an Weihnachten, dass niemand eine Leistung bringen muss. Gott schenkt, wir dürfen auspacken.",
+      "Die Weisen kamen von weit her, die Hirten von nebenan – bei Jesus ist für alle Platz."
+    ],
+    sw: [
+      "Und denk dran: In einem Stall fing die größte Rebellion der Geschichte an – ohne Laserschwert, nur mit Liebe.",
+      "Wenn es dunkel wird, denk an Bethlehem: Ein kleiner Stern reicht, und die Wüste hat ein Ziel.",
+      "Selbst Yoda würde sagen: Ein Kind du suchen musst, in einer Krippe es liegt."
+    ],
+    tschuess: [
+      "Frohe Weihnachten! Möge das Licht von Bethlehem dir leuchten.",
+      "Ich muss zurück zu den Lebkuchen. Gesegneten Advent!",
+      "Ruf wieder an, wenn du Hilfe brauchst – ich bin hier, bis die Kerzen runtergebrannt sind.",
+      "Fürchte dich nicht, sagt der Engel. Gute Antwort, würde ich sagen!",
+      "Bis zum nächsten Mal – und frohe, gesegnete Weihnachten!"
+    ]
+  }
+};

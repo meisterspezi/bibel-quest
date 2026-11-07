@@ -153,6 +153,7 @@ if (!configured) {
       await LB.signIn();
       const r = await fs.addDoc(duelle, { v: 1, art: d.art || "vers", modus: d.modus || "1v1", von: d.von, teil: [d.von, d.an],
         namen: { [d.von]: d.vonName, [d.an]: d.anName }, k: d.k, seed: d.seed, ergebnisse: { [d.von]: d.vonErg },
+        ...(d.weih ? { opt: { w: 1 } } : {}), /* 7.3: Weihnachtsmodus */
         status: "offen", erstellt: fs.serverTimestamp(), ablauf: fs.Timestamp.fromMillis(Date.now() + 7 * 864e5) });
       return r.id;
     };

@@ -15,7 +15,7 @@ const DEF = {
   songHeard: [], gapPerfect: false, peeked: false, earlyBird: false,
   dq: { day: "", items: [], bonus: false }, questBonusCount: 0, lv: {}, duGes: [], duSiege: 0, duSpiele: 0, duTyp: "vers", duGesendet: 0, duAngenommen: 0, duArten: [], duKetteVoll: false,
   mute: false, beat: true, gapSing: false, atTi: 0, ntTi: 0,
-  ruestStufe: {}, stift: {}, spendeXp: {}, advTest: { on: false, d: "2026-11-29" }, advT: null, beth: {}, bethG: {}, bethSync: "", bethTage: [], bethGefeiert: [], bethAngekommen: false, kal: {}, advBib: {}, advDu: {}, advDuOk: [], adventIntro: false, stiftGefeiert: [], stiftEingeweiht: false,
+  ruestStufe: {}, stift: {}, spendeXp: {}, advTest: { on: false, d: "2026-11-29" }, advT: null, beth: {}, bethG: {}, bethSync: "", bethTage: [], bethGefeiert: [], bethAngekommen: false, kal: {}, advBib: {}, advLv: 0, advLr: 0, adventIntro: false, stiftGefeiert: [], stiftEingeweiht: false,
   xq: null, lvLohn: 0, lbName: "", pid: "", ownersSet: false, offlineOnly: false, weekKey: "", weekXp: 0, podium: false, wochensieger: false, wochenziel: false,
   ver: 6
 };
@@ -1048,6 +1048,7 @@ async function xqStartPruefung() {
 function addXp(n, el, quelle, info) {
   if (gesperrt) return;
   neuerTag(); serieZaehlen(); tagMerken();
+  try { adventLichterVerdienen(n, quelle); } catch (e) {} /* 7.3: Adventslichter */
   xqEreignis(n, quelle, info, S.xp);
   xqZaehlen(n, quelle);
   const vorher = levelOf(S.xp);
@@ -2890,9 +2891,9 @@ function duAufloesVersuch() {
 }
 function rngVon(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 /* Fragen aus Startwert + Art – für beide Spieler genau gleich (Zufall wird dafür kurz ersetzt) */
-function duFragen(seed, art, k, stand) {
+function duFragen(seed, art, k, stand, weih) {
   const alt = Math.random; Math.random = rngVon(seed);
-  if (art === "quiz") { Math.random = alt; return bibFragen(seed, stand); }
+  if (art === "quiz") { Math.random = alt; return bibFragen(seed, stand, weih ? ADV_ALLE_FRAGEN : null); }
   try {
     if (art === "kette") {
       const seq = (KETTEN[k] || KETTEN.bibel).seq;
@@ -3086,7 +3087,7 @@ VIEWS.duelle = () => {
   wireGo(); duGegnerVerdrahten();
   $("duNeu").onclick = () => { SFX.tap(); duWahl = !duWahl; VIEWS.duelle(); if (duWahl) { duGegnerLaden(); const f = $("duSuche"); if (f && !matchMedia("(pointer: coarse)").matches) f.focus(); } };
   if ($("duNeuLaden")) $("duNeuLaden").onclick = () => { duAktualisieren().then(() => current === "duelle" && VIEWS.duelle()); };
-  const annehmen = d => duSpielStarten({ id: d.id, seed: d.seed, erstellt: d.erstellt, art: d.art || "vers", k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von });
+  const annehmen = d => duSpielStarten({ id: d.id, seed: d.seed, erstellt: d.erstellt, art: d.art || "vers", k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von, weih: !!(d.opt && d.opt.w) });
   screen.querySelectorAll("[data-an]").forEach(b => b.onclick = () => { SFX.tap(); const d = liste.find(x => x.id === b.dataset.an); if (d) annehmen(d); });
   screen.querySelectorAll("[data-ab]").forEach(b => b.onclick = () => { SFX.tap(); const d = liste.find(x => x.id === b.dataset.ab); if (d) duAblehnenFrage(d, () => annehmen(d)); });
   screen.querySelectorAll("[data-rev]").forEach(b => b.onclick = () => { SFX.tap(); const d = liste.find(x => x.id === b.dataset.rev); if (!d) return; const ich = d.von === S.pid;
@@ -3173,7 +3174,7 @@ function duSpielStarten(opt) {
   go("duell");
   const art = DU_TYPEN[opt.art === "kette" ? "kette-" + opt.k : opt.art] ? opt.art : "vers";
   duSpiel = Object.assign({ i: 0, p: 0, r: 0, f: 0, combo: 0, maxCombo: 0, rest: DU_BLITZ_SEK, gesendet: false }, opt, { art });
-  duSpiel.fragen = duFragen(opt.seed, art, opt.k, opt.erstellt ? weekKey(opt.erstellt) : weekKey());
+  duSpiel.fragen = duFragen(opt.seed, art, opt.k, opt.erstellt ? weekKey(opt.erstellt) : weekKey(), !!opt.weih);
   document.body.classList.add("spiel-laeuft");
   if (art === "quiz") { duSpiel.modus = "duell"; countdown(() => bibStart(duSpiel)); return; }
   countdown(() => { duSpiel.t0 = Date.now(); if (art === "blitz") duBlitzUhr(); duZeige(); });
@@ -3285,13 +3286,13 @@ async function duEnde() {
   const gegnerIds = D.neu ? ziele.map(z => z.id) : [D.vonPid];
   if (D.gleichF == null) { D.gleichF = duGleichFaktor(gegnerIds); D.gleichEinzel = D.neu ? Object.fromEntries(ziele.map(z => [z.id, duGleichEinzel(z.id)])) : null; duGleichZaehlen(gegnerIds); }
   xp = duXpWert(D, ziele);
-  const angekommen = () => { if (D.gezaehlt) return; D.gezaehlt = true; if (D.neu) S.duGesendet = (S.duGesendet || 0) + ziele.length; else S.duAngenommen = (S.duAngenommen || 0) + 1; quest("duell", 1); try { adventDuell(gegnerIds); } catch (e) {} save(); };
+  const angekommen = () => { if (D.gezaehlt) return; D.gezaehlt = true; if (D.neu) S.duGesendet = (S.duGesendet || 0) + ziele.length; else S.duAngenommen = (S.duAngenommen || 0) + 1; quest("duell", 1); save(); };
   let titel, zeile, tal = 0, sieg = false, fehler = false, weg = false;
   try {
     if (D.neu) {
       /* je Gegner ein eigenes Duell mit demselben Startwert; bei einem Fehler werden beim nächsten Versuch nur die fehlenden gesendet */
       D.ok = D.ok || [];
-      for (const g of ziele) if (!D.ok.includes(g.id)) { D.id = await L.duellAnlegen({ art: D.art, von: S.pid, an: g.id, vonName: S.lbName, anName: g.name, k: D.k, seed: D.seed, vonErg: erg }); D.ok.push(g.id); duListe = null;
+      for (const g of ziele) if (!D.ok.includes(g.id)) { D.id = await L.duellAnlegen({ art: D.art, von: S.pid, an: g.id, vonName: S.lbName, anName: g.name, k: D.k, seed: D.seed, vonErg: erg, weih: D.weih }); D.ok.push(g.id); duListe = null;
         /* späterer Sieg-/Remis-Lohn für dieses Duell ebenfalls gekürzt, wenn es heute schon das 5.+ gegen diesen Gegner war */
         const f = D.gleichEinzel ? D.gleichEinzel[g.id] : 1; if (f < 1 && D.id) { S.duKurz = Object.assign({}, S.duKurz || {}); S.duKurz[D.id] = f; const ks = Object.keys(S.duKurz); while (ks.length > 60) delete S.duKurz[ks.shift()]; save(); } }
       D.gesendet = true;
@@ -3386,7 +3387,7 @@ function bibFragen(seed, stand, pool) {
       let ant = opts.map(o => (o === loesung ? richtigAnteil : (1 - richtigAnteil) * w[falsche.indexOf(o)] / sw));
       if (q.st === 3 && Math.random() < .18) { const j = ant.indexOf(Math.max(...ant.filter((_, k) => opts[k] !== loesung))), r = opts.indexOf(loesung); [ant[j], ant[r]] = [ant[r], ant[j]]; }
       let proz = ant.map(a => Math.round(a * 100)); proz[proz.indexOf(Math.max(...proz))] += 100 - proz.reduce((a, b) => a + b, 0);
-      return { f: q.f, opts, loesung, ref: q.ref, st: q.st, thema: q.thema, weg, gemeinde: proz };
+      return { f: q.f, opts, loesung, ref: q.ref, st: q.st, thema: q.thema, weg, gemeinde: proz, weih: !!pool };
     }).map((q, idx) => Object.assign(q, { ws: hash("willi|" + seed + "|" + idx) }));
   } finally { Math.random = alt; }
 }
@@ -3412,7 +3413,7 @@ function bibZeige(G) {
   if (G.modus !== "duell" && current !== "biblionaer") return;
   const f = G.fragen[G.i], halb = G.halbBei === G.i;
   const lang = f.opts.some(o => o.length > 22);
-  const titel = G.modus === "duell" ? `Duell gegen ${esc(G.gegner)}` : G.modus === "woche" ? `Biblionär der Woche · ${weekKey().split("-W")[1]}. KW` : G.modus === "advent" ? `Advents-Biblionär · ${G.adv}. Advent` : "Wer wird Biblionär?";
+  const titel = G.modus === "duell" ? `${G.weih ? "Weihnachts-Duell" : "Duell"} gegen ${esc(G.gegner)}` : G.modus === "woche" ? `Biblionär der Woche · ${weekKey().split("-W")[1]}. KW` : G.modus === "advent" ? `Advents-Biblionär · ${G.adv}. Advent` : "Wer wird Biblionär?";
   screen.innerHTML = `<div class="vl bib">
     <div class="vl-kopf"><button class="vl-x" id="bibX" aria-label="Spiel abbrechen">${svg("back")}</button>
       <button class="bib-leiste" id="bibLeiter" aria-label="Gewinnleiter ansehen"><span>Frage ${G.i + 1}/15</span><b>${pkt(BIB_LEITER[G.i])}</b></button></div>
@@ -3484,7 +3485,7 @@ function bibZeige(G) {
         const h = $("bibHilfe"); if (h) h.innerHTML = G.hilfe;
         zeitWeiter();
       });
-    }, () => zeitWeiter());
+    }, () => zeitWeiter(), !!f.weih);
   }
   $("bibLeiter").onclick = () => { SFX.tap(); bibLeiterZeigen(G); };
   if ($("bibRaus")) $("bibRaus").onclick = () => {
@@ -4127,7 +4128,8 @@ const TEL_ZULETZT_KEY = "bq-telefon-zuletzt";
 function telZuletzt() { try { const a = JSON.parse(localStorage.getItem(TEL_ZULETZT_KEY) || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
 function telMerken(liste) { try { localStorage.setItem(TEL_ZULETZT_KEY, JSON.stringify(liste.slice(-150))); } catch (e) {} }
 function pastorAntwort(f, halb, id = "willi") {
-  const P = PASTOREN[id] || PASTOREN.willi;
+  const P0 = PASTOREN[id] || PASTOREN.willi, weih = !!f.weih && !!ADV_PASTOREN[id]; /* 7.3: Weihnachtsmodus – Mütze und weihnachtliche Antworten */
+  const P = weih ? Object.assign({}, P0, ADV_PASTOREN[id], { sicherOhne: null, ziemlichOhne: null }) : P0; if (weih) id = id + "-w";
   const rnd = rngVon((f.ws || hash(f.f)) ^ (halb ? 0x5bd1e995 : 0) ^ P.salt), zuletzt = telZuletzt();
   /* wahl: zufälliger Eintrag; ist er kürzlich gekommen, der nächste noch nicht gehörte. Gesperrt wird je Liste
      höchstens gut die Hälfte, damit immer genug Auswahl bleibt. */
@@ -4173,7 +4175,7 @@ function pastorAntwort(f, halb, id = "willi") {
   if (P.sw && !/Star Wars|Jedi|Yoda|Macht|Todesstern|Han Solo|Luke|Vader|Tatooine|Chewbacca|C-3PO|Lichtschwert|Kamino|Falke|Mos Eisley|Obi-Wan|Hoth/.test(extra) && rnd() < .6) saetze.push(esc(wahl(P.sw)));
   saetze.push(wahl(P.tschuess));
   telMerken(zuletzt);
-  return { saetze, tipp: kurz(tipp), grad, richtig: tipp === r, wer: id };
+  return { saetze, tipp: kurz(tipp), grad, richtig: tipp === r, wer: id.replace(/-w$/, ""), weih };
 }
 
 /* ---------- Zweiter Telefonjoker-Kontakt: Pastor Aaron (6.42) ----------
@@ -4642,9 +4644,9 @@ const PASTOREN = {
     hallo: AARON_HALLO, sicher: AARON_SICHER, ziemlich: AARON_ZIEMLICH, sicherOhne: AARON_SICHER_OHNE, ziemlichOhne: AARON_ZIEMLICH_OHNE, schwank: AARON_SCHWANK, geraten: AARON_GERATEN, thema: AARON_THEMA, themen: AARON_THEMEN, allg: AARON_ALLG, tschuess: AARON_TSCHUESS, sw: AARON_SW }
 };
 /* Wen rufst du an? Erst nach der Wahl ist der Joker verbraucht – Abbrechen gibt ihn zurück. */
-function telefonWahl(weiter, abbruch) {
+function telefonWahl(weiter, abbruch, weih) {
   const m = modal(`<div class="label">Telefonjoker</div><h2 style="margin:0">Wen rufst du an?</h2>
-    <div class="tel-wahl">${Object.entries(PASTOREN).map(([id, P]) => `<button class="tel-kontakt" data-tel="${id}">${P.bild()}<span><b>${P.name}</b><small>${P.info}</small></span>${svg("telefon")}</button>`).join("")}</div>
+    <div class="tel-wahl">${Object.entries(PASTOREN).map(([id, P]) => `<button class="tel-kontakt" data-tel="${id}">${pastorBild(P, weih)}<span><b>${P.name}</b><small>${P.info}</small></span>${svg("telefon")}</button>`).join("")}</div>
     <p class="small muted" style="margin:0">Die Uhr steht, solange du telefonierst. Du hast nur einen Anruf.</p>
     <button class="btn ghost" data-close>Doch nicht</button>`, x => { if (x !== "gewaehlt") abbruch(); });
   m.classList.add("willi-modal");
@@ -4663,11 +4665,12 @@ const WILLI_BILD = `<svg class="willi-bild" viewBox="0 0 96 96" aria-hidden="tru
 <path d="M36 30q2-6 8-7" stroke="#fff" stroke-opacity=".55" stroke-width="2" fill="none" stroke-linecap="round"/></g>
 <g transform="rotate(28 78 30)"><rect x="76" y="20" width="4" height="30" rx="2" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1"/><path d="M74 21V9M78 21V7M82 21V9" stroke="url(#wrG)" stroke-width="2.4" stroke-linecap="round"/><path d="M73 21h10" stroke="#1b2a55" stroke-width="1"/></g></svg>`;
 /* Das Telefonat: es klingelt, dann erzählt Willi Satz für Satz. Die Bedenkzeit steht so lange. */
+const pastorBild = (P, weih) => weih ? weihBild(P.bild()) : P.bild();
 function pastorAnruf(w, weiter) {
   const P = PASTOREN[w.wer] || PASTOREN.willi;
   const ruhig = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const m = modal(`<div class="willi">
-      <div class="willi-kopf">${P.bild()}<div><div class="label">Telefonjoker</div><b>${P.name}</b><small id="wStatus"><i class="w-ring"></i> Es klingelt …</small></div></div>
+      <div class="willi-kopf">${pastorBild(P, w.weih)}<div><div class="label">Telefonjoker</div><b>${P.name}</b><small id="wStatus"><i class="w-ring"></i> Es klingelt …</small></div></div>
       <div class="willi-text" id="wText" aria-live="polite">${w.saetze.map((t, k) => `<p class="${ruhig ? "da" : ""}" data-k="${k}">${t}</p>`).join("")}</div>
       <button class="btn primary" data-close="auf">${svg("telefon")} Danke, ${P.kurz}! Auflegen</button></div>`, () => weiter());
   m.classList.add("willi-modal");
@@ -4701,8 +4704,13 @@ function bibGegnerVerdrahten() {
   screen.querySelectorAll("[data-bqg]").forEach(b => b.onclick = () => { SFX.tap(); const r = (duGegner || []).find(x => x.id === b.dataset.bqg); if (r) bibHerausfordern(r); });
 }
 function bibHerausfordern(r) {
-  const los = () => { bibDuWahl = false; duHerausfordern(r, "quiz", { heim: "bib" }); };
-  if (duListe) los(); else duAktualisieren().then(los);
+  const los = (weih) => { bibDuWahl = false; duHerausfordern(r, "quiz", { heim: "bib", weih: !!weih }); };
+  /* 7.3: In der Adventszeit kann das Biblionär-Duell im Weihnachtsmodus gespielt werden (Weihnachtsfragen, Pastoren mit Mütze) */
+  if (weihnachtsDuellOk()) { modal(`<div class="label">Biblionär-Duell</div><h2 style="margin:0">Welcher Modus?</h2>
+      <p class="small muted" style="margin:0">Im Weihnachtsmodus gibt es 15 Fragen rund um Advent und Weihnachten. Pastor Willi und Pastor Aaron tragen Weihnachtsmützen und antworten weihnachtlich.</p>
+      <button class="btn primary" data-close="weih">${svg("kerze")} Weihnachtsmodus</button><button class="btn" data-close="norm">${svg("biblionaer")} Normal</button><button class="btn ghost" data-close>Abbrechen</button>`,
+      x => { if (x === "weih" || x === "norm") { if (duListe) los(x === "weih"); else duAktualisieren().then(() => los(x === "weih")); } }).dataset.frei = "1"; return; }
+  if (duListe) los(false); else duAktualisieren().then(() => los(false));
 }
 /* Revanche nach einem Biblionär-Duell: gleich wieder Biblionär, nur kurz bestätigen */
 function bibRevanche(r, revanche) {
@@ -4771,8 +4779,8 @@ VIEWS.bib = () => {
       const f = $("bqSuche"); if (f && !matchMedia("(pointer: coarse)").matches) f.focus(); } };
   bibGegnerVerdrahten();
   screen.querySelectorAll("[data-bqan]").forEach(b => b.onclick = () => { SFX.tap(); const d = dran.find(x => x.id === b.dataset.bqan); if (!d) return;
-    duSpielStarten({ id: d.id, seed: d.seed, erstellt: d.erstellt, art: "quiz", k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von, heim: "bib" }); });
-  const bqAntreten = d => duSpielStarten({ id: d.id, seed: d.seed, erstellt: d.erstellt, art: "quiz", k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von, heim: "bib" });
+    duSpielStarten({ id: d.id, seed: d.seed, erstellt: d.erstellt, art: "quiz", k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von, heim: "bib", weih: !!(d.opt && d.opt.w) }); });
+  const bqAntreten = d => duSpielStarten({ id: d.id, seed: d.seed, erstellt: d.erstellt, art: "quiz", k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von, heim: "bib", weih: !!(d.opt && d.opt.w) });
   screen.querySelectorAll("[data-bqab]").forEach(b => b.onclick = () => { SFX.tap(); const d = dran.find(x => x.id === b.dataset.bqab); if (d) duAblehnenFrage(d, () => bqAntreten(d)); });
   screen.querySelectorAll("[data-bqstop]").forEach(b => b.onclick = () => { SFX.tap(); const d = warte.find(x => x.id === b.dataset.bqstop); if (d) duAbbrechenFrage(d); });
   screen.querySelectorAll("[data-bqrev]").forEach(b => b.onclick = () => { SFX.tap(); const d = liste.find(x => x.id === b.dataset.bqrev); if (!d) return; const ich = d.von === S.pid;
