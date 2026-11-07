@@ -6,7 +6,25 @@
    ===================================================================== */
 
 /* ---------- Datum (nur auf localhost testbar: ?advent=2026-12-05) ---------- */
+/* ---------- Entwickler-Testmodus (nur vor dem 1. Advent): eigener Probestand, keine Belohnungen, Datum frei wählbar ---------- */
+const ADV_LEER = () => ({ beth: {}, bethG: {}, bethTage: [], bethGefeiert: [], bethAngekommen: false, kal: {}, advBib: {}, advDu: {}, advDuOk: [] });
+const advTestOn = () => { try { return typeof entwickler !== "undefined" && !!entwickler && !!(S.advTest && S.advTest.on) && dayNum(today()) < dayNum(ADV_START); } catch (e) { return false; } };
+function A() { if (!advTestOn()) return S; if (!S.advT) S.advT = ADV_LEER(); return S.advT; }
+const advTal = () => advTestOn() ? 1e9 : S.tal | 0;
+function advTestSchalten(an) { S.advTest = an ? { on: true, d: S.advTest && S.advTest.d || ADV_START } : { on: false, d: ADV_START }; if (!an) S.advT = null; save(); }
+function advTestTag(delta) { const n = Math.max(dayNum(ADV_START) - 2, Math.min(dayNum(ADV_SICHT_BIS), dayNum(S.advTest.d) + delta)); S.advTest.d = dstr(datumVon(n)); save(); }
+function advTestLeiste() {
+  if (!advTestOn()) return "";
+  return `<div class="adv-test" role="note"><b>Testmodus</b> · ${esc(adventKurz(adventTag()))} · keine Belohnungen, nichts wird gesendet<div class="adv-test-knoepfe"><button class="btn ghost mini" data-at="-1">− Tag</button><button class="btn ghost mini" data-at="1">+ Tag</button><button class="btn ghost mini" data-at="reset">Neu starten</button><button class="btn ghost mini" data-at="aus">Beenden</button></div></div>`;
+}
+function advTestWire(neu) {
+  screen.querySelectorAll("[data-at]").forEach(b => b.onclick = () => { SFX.tap(); const v = b.dataset.at;
+    if (v === "aus") { advTestSchalten(false); go("home"); return; }
+    if (v === "reset") { S.advT = ADV_LEER(); save(); } else advTestTag(+v);
+    neu(); });
+}
 function adventHeute() {
+  if (advTestOn()) return S.advTest.d || ADV_START;
   try {
     if (/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) {
       const t = new URLSearchParams(location.search).get("advent") || sessionStorage.getItem("bq-advent-test");
@@ -32,12 +50,12 @@ const adventKurz = tag => datumVon(tag).toLocaleDateString("de-DE", { weekday: "
   ICONS.tuer = W(`<rect x="10" y="8" width="44" height="50" rx="5" fill="#8a2a3a" stroke="#1b2a55" stroke-width="1.6"/><rect x="16" y="14" width="32" height="38" rx="3" fill="#b03a4a" stroke="#1b2a55" stroke-width="1.2"/><path d="M32 14v38M16 33h32" stroke="#1b2a55" stroke-width="1.2" opacity=".6"/><circle cx="26" cy="33" r="2.2" fill="#f2c14e"/><circle cx="38" cy="33" r="2.2" fill="#f2c14e"/>`);
   ICONS.krippe = W(`<path d="M8 26L32 8l24 18" fill="#7a4a24" stroke="#1b2a55" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 26v30M52 26v30" stroke="#a56a32" stroke-width="4" stroke-linecap="round"/><path d="M18 46h28l-4 10H22z" fill="#c98a4b" stroke="#1b2a55" stroke-width="1.4" stroke-linejoin="round"/><ellipse cx="32" cy="43" rx="8" ry="4" fill="#fff6c8" stroke="#e0b04a" stroke-width="1"/>`);
   /* Abzeichen */
-  const B = (id, name, d, ic, tal, ok) => BADGES.push({ id, kat: "gemeinschaft", name, d, ic, tal, ok });
+  const B = (id, name, d, ic, tal, ok) => BADGES.push({ id, kat: "gemeinschaft", name, d, ic, tal, ok: x => !advTestOn() && ok(x) });
   B("bethlehem", "Bethlehem-Pilger", "Beim Weg nach Bethlehem mitgeholfen – bis zur Krippe (Lukas 2,15)", "stern", 30,
-    s => !!s.bethAngekommen && (Object.values(s.beth || {}).some(v => v > 0) || Object.values(s.bethG || {}).some(v => v > 0)));
-  B("adventskalender", "Adventsbote", `${KAL_MEISTER} Türchen im Adventskalender geöffnet`, "tuer", 30, s => Object.keys(s.kal || {}).length >= KAL_MEISTER);
-  B("advDuell", "Kerzenhüter", "In 3 Adventswochen die Duell-Aktion geschafft", "kerze", 20, s => (s.advDuOk || []).length >= 3);
-  B("advBib", "Advents-Biblionär", "In 3 Adventswochen die Biblionär-Runde gespielt", "biblionaer", 20, s => Object.keys(s.advBib || {}).length >= 3);
+    s => !!A().bethAngekommen && (Object.values(A().beth || {}).some(v => v > 0) || Object.values(A().bethG || {}).some(v => v > 0)));
+  B("adventskalender", "Adventsbote", `${KAL_MEISTER} Türchen im Adventskalender geöffnet`, "tuer", 30, s => Object.keys(A().kal || {}).length >= KAL_MEISTER);
+  B("advDuell", "Kerzenhüter", "In 3 Adventswochen die Duell-Aktion geschafft", "kerze", 20, s => (A().advDuOk || []).length >= 3);
+  B("advBib", "Advents-Biblionär", "In 3 Adventswochen die Biblionär-Runde gespielt", "biblionaer", 20, s => Object.keys(A().advBib || {}).length >= 3);
   /* Rahmen und Titel zum Freischalten */
   RAHMEN.push({ id: "stern", name: "Stern von Bethlehem", price: -1, need: "bethlehem", bezug: "Die Weisen sagten: Wir haben seinen Stern gesehen und sind gekommen, ihn anzubeten (Matthäus 2,2)." });
   RAHMEN.push({ id: "kranz", name: "Adventskranz", price: -1, need: "adventskalender", bezug: "Das Licht scheint in der Finsternis, und die Finsternis hat es nicht überwältigt (Johannes 1,5)." });
@@ -74,10 +92,10 @@ const bethSumme = (r, k) => ((r.s || {})[k] | 0) + ((r.g || {})[k] | 0);
    oder ihre Zeit abgelaufen ist (dann füllt die Gemeinde den Rest auf). Die nächste Station öffnet höchstens einen Tag früher als geplant. */
 function bethStand() {
   const sum = BETH.map(() => 0), spender = BETH.map(() => []);
-  const zeilen = (bethDaten || []).filter(r => r.pid !== S.pid);
-  if (S.pid || Object.keys(S.beth || {}).length || Object.keys(S.bethG || {}).length) {
-    const eig = (bethDaten || []).find(r => r.pid === S.pid) || { s: {}, g: {} }, s = {}, g = {};
-    for (let k = 1; k <= 8; k++) { s[k] = Math.max((eig.s || {})[k] | 0, (S.beth || {})[k] | 0); g[k] = Math.max((eig.g || {})[k] | 0, (S.bethG || {})[k] | 0); }
+  const test = advTestOn(), zeilen = test ? [] : (bethDaten || []).filter(r => r.pid !== S.pid);
+  if (S.pid || Object.keys(A().beth || {}).length || Object.keys(A().bethG || {}).length) {
+    const eig = test ? { s: {}, g: {} } : (bethDaten || []).find(r => r.pid === S.pid) || { s: {}, g: {} }, s = {}, g = {};
+    for (let k = 1; k <= 8; k++) { s[k] = Math.max((eig.s || {})[k] | 0, (A().beth || {})[k] | 0); g[k] = Math.max((eig.g || {})[k] | 0, (A().bethG || {})[k] | 0); }
     zeilen.push({ pid: S.pid, name: S.lbName, s, g, ich: true });
   }
   zeilen.forEach(r => { for (let k = 1; k <= 8; k++) { const v = bethSumme(r, k); if (v > 0) { sum[k - 1] += v; spender[k - 1].push(r.ich ? "Du" : r.name); } } });
@@ -90,25 +108,26 @@ function bethStand() {
     offen: k < 8 && tag >= start + BETH_TAGE * k - 1, ab: start + BETH_TAGE * k - 1, frist: start + BETH_TAGE * (k + 1) };
 }
 const bethRest = st => st.k >= 8 ? 0 : Math.ceil(Math.max(0, BETH[st.k].ziel - st.eff[st.k]) / (1 + BETH_ZUSCHUSS));
-const bethHeuteGegeben = () => (S.bethTage || []).includes(adventTag());
+const bethHeuteGegeben = () => (A().bethTage || []).includes(adventTag());
 function bethSerie() {
-  const t = S.bethTage || []; let n = 0, d = adventTag(); if (!t.includes(d)) d--;
+  const t = A().bethTage || []; let n = 0, d = adventTag(); if (!t.includes(d)) d--;
   while (t.includes(d)) { n++; d--; } return n;
 }
 function bethSenden() {
+  if (advTestOn()) return;
   const L = window.LB; if (!L || !L.ok || !L.bethSetzen || !S.pid || S.offlineOnly || !S.lbName) return;
-  const sig = JSON.stringify([S.beth || {}, S.bethG || {}]); if (!Object.keys(S.beth || {}).length && !Object.keys(S.bethG || {}).length) return; if (S.bethSync === sig) return;
+  const sig = JSON.stringify([A().beth || {}, A().bethG || {}]); if (!Object.keys(A().beth || {}).length && !Object.keys(A().bethG || {}).length) return; if (S.bethSync === sig) return;
   const klaer = o => { const r = {}; Object.entries(o || {}).forEach(([k, v]) => { if (+k >= 1 && +k <= 8 && v > 0) r[k] = Math.min(v | 0, 20000); }); return r; };
-  L.bethSetzen(S.pid, S.lbName, klaer(S.beth), klaer(S.bethG)).then(() => { S.bethSync = sig; save(); const s = klaer(S.beth), g = klaer(S.bethG); bethDaten = (bethDaten || []).filter(r => r.pid !== S.pid).concat([{ pid: S.pid, name: S.lbName, s, g }]); })
+  L.bethSetzen(S.pid, S.lbName, klaer(A().beth), klaer(A().bethG)).then(() => { S.bethSync = sig; save(); const s = klaer(A().beth), g = klaer(A().bethG); bethDaten = (bethDaten || []).filter(r => r.pid !== S.pid).concat([{ pid: S.pid, name: S.lbName, s, g }]); })
     .catch(e => { try { dbFehler("Weg nach Bethlehem speichern", e); } catch (e2) {} });
 }
 function bethSpenden(v, el) {
   const st = bethStand(); if (!st.offen) return;
-  v = Math.min(v | 0, bethRest(st), S.tal | 0);
-  if (v < 1) { SFX.wrong(); toast(`${TAL_MUENZE}<div>${S.tal < 1 ? "Du hast gerade keine Talente." : "Diese Station ist schon voll."}</div>`); return; }
+  v = Math.min(v | 0, bethRest(st), advTal());
+  if (v < 1) { SFX.wrong(); toast(`${TAL_MUENZE}<div>${advTal() < 1 ? "Du hast gerade keine Talente." : "Diese Station ist schon voll."}</div>`); return; }
   const k = String(st.k + 1), mit = Math.round(v * (1 + BETH_ZUSCHUSS));
-  try { talBuchen(); } catch (e) {} S.tal -= v; if (S.tl) { S.tl.p = (S.tl.p | 0) + v; S.tl.l = S.tal | 0; }
-  S.beth = Object.assign({}, S.beth, { [k]: ((S.beth || {})[k] | 0) + v }); save(); renderHud();
+  if (!advTestOn()) { try { talBuchen(); } catch (e) {} S.tal -= v; if (S.tl) { S.tl.p = (S.tl.p | 0) + v; S.tl.l = S.tal | 0; } }
+  A().beth = Object.assign({}, A().beth, { [k]: ((A().beth || {})[k] | 0) + v }); save(); renderHud();
   SFX.coin(); if (el) { const [x, y] = centerOf(el); burst(x, y, 40, { up: 5 }); }
   bethSenden(); checkBadges();
   const voll = bethStand().k > st.k;
@@ -121,7 +140,7 @@ function bethTagesgabe(el) {
   const st = bethStand(); if (!st.offen || bethHeuteGegeben()) return;
   const v = Math.min(BETH_TAGESGABE, bethRest(st)); if (v < 1) return;
   const k = String(st.k + 1);
-  S.bethG = Object.assign({}, S.bethG, { [k]: ((S.bethG || {})[k] | 0) + v }); S.bethTage = [...(S.bethTage || []), adventTag()].slice(-40); save();
+  A().bethG = Object.assign({}, A().bethG, { [k]: ((A().bethG || {})[k] | 0) + v }); A().bethTage = [...(A().bethTage || []), adventTag()].slice(-40); save();
   SFX.coin(); if (el) { const [x, y] = centerOf(el); burst(x, y, 30, { up: 4 }); }
   bethSenden(); checkBadges();
   const voll = bethStand().k > st.k;
@@ -133,10 +152,10 @@ function bethTagesgabe(el) {
 function bethFeiern() {
   if (document.querySelector(".modal") || !adventSichtbar()) return;
   const st = bethStand();
-  if (st.krippe && !S.bethAngekommen) {
-    S.bethAngekommen = true; save(); checkBadges();
+  if (st.krippe && !A().bethAngekommen) {
+    A().bethAngekommen = true; save(); checkBadges();
     [0, 900, 2000].forEach(t => setTimeout(() => { SFX.level(); rain(150); }, t));
-    const dabei = Object.values(S.beth || {}).some(v => v > 0) || Object.values(S.bethG || {}).some(v => v > 0);
+    const dabei = Object.values(A().beth || {}).some(v => v > 0) || Object.values(A().bethG || {}).some(v => v > 0);
     modal(`<div class="label">Heiligabend</div><div class="sh-feier">${bethBild(st)}</div><h2 style="margin:0">${esc(BETH_FINALE.n)}</h2><p class="muted small" style="margin:0">${esc(BETH_FINALE.k)} (${esc(BETH_FINALE.v)})</p>
       ${dabei ? `<div class="vle-werte"><div><b>${avatarHtml({ avatar: S.avatar, frame: "stern", name: S.lbName }, 44)}</b><span>Rahmen „Stern von Bethlehem“</span></div><div><b>${svg("stern")}</b><span>Titel „Bethlehem-Pilger“</span></div></div>` : `<p class="small muted" style="margin:0">Frohe Weihnachten! Gott ist Mensch geworden – er wohnt unter uns.</p>`}
       <button class="btn primary" data-close>Frohe Weihnachten!</button>`);
@@ -144,8 +163,8 @@ function bethFeiern() {
   }
   for (let i = 0; i < st.fertig; i++) {
     const k = String(i + 1);
-    if (((S.beth || {})[k] > 0 || (S.bethG || {})[k] > 0) && !(S.bethGefeiert || []).includes(k)) {
-      S.bethGefeiert = [...(S.bethGefeiert || []), k]; save(); SFX.badge(); rain(90);
+    if (((A().beth || {})[k] > 0 || (A().bethG || {})[k] > 0) && !(A().bethGefeiert || []).includes(k)) {
+      A().bethGefeiert = [...(A().bethGefeiert || []), k]; save(); SFX.badge(); rain(90);
       modal(`<div class="label">Station ${k} von 8 geschafft</div><div class="sh-feier">${bethBild(Object.assign({}, st, { fertig: Math.max(st.fertig, i + 1) }))}</div><h2 style="margin:0">${esc(BETH[i].n)}</h2>
         <p class="muted small" style="margin:0">Maria und Josef gehen weiter. Gemeinsam gebracht von ${stiftNamen(st.spender[i])}.</p><button class="btn primary" data-close="ok">Weiter</button>`, () => setTimeout(bethFeiern, 300));
       return;
@@ -214,23 +233,23 @@ VIEWS_BETH = () => {
     karte = `<div class="sh-karte"><div class="sh-z1"><b>${st.k + 1} · ${esc(a.n)}</b><small>bis ${esc(adventKurz(st.frist - 1))}</small></div><p class="sh-vers">${esc(a.k)} (${esc(a.v)})</p>
       <div class="sh-balken"><i style="width:${pz}%"></i></div><div class="sh-zahlen"><span>${pkt(ist)} von ${pkt(a.ziel)} Talenten</span><span>${pz} %</span></div>
       <p class="small muted" style="margin:0">Die Gemeinde legt zu jeder Gabe <b>${zuschuss} %</b> dazu. Spätestens am ${esc(adventDatum(st.frist))} füllt sie den Rest auf und die Reise geht weiter.</p>
-      ${online ? `<div class="sh-spenden">${[10, 50, 100].map(v => `<button data-sp="${v}" ${S.tal < 1 ? "disabled" : ""}>+${v}</button>`).join("")}<button class="haupt" data-sp="frei">Spenden</button></div>
+      ${online ? `<div class="sh-spenden">${[10, 50, 100].map(v => `<button data-sp="${v}" ${advTal() < 1 ? "disabled" : ""}>+${v}</button>`).join("")}<button class="haupt" data-sp="frei">Spenden</button></div>
         <button class="btn ${heute ? "ghost" : "primary"} breit adv-gabe" id="bethGabe" ${heute ? "disabled" : ""}>${svg("stern")} ${heute ? `Heute gegeben · ${serie} ${serie === 1 ? "Tag" : "Tage"} in Folge` : `Tägliche Wegzehrung · +${BETH_TAGESGABE} gratis`}</button>`
       : `<p class="small muted" style="margin:0">Spenden geht nur mit Internet und Eintrag in der Rangliste.</p>`}
       <p class="sh-geber">${st.spender[st.k].length ? `Bisher gaben ${stiftNamen(st.spender[st.k])}` : "Sei der Erste, der für diese Station gibt!"}</p></div>`;
   }
-  screen.innerHTML = `${backBtn("advent", "Advent")}${bereichKopf("advent", { ic: "stern", t: "Bethlehem", sub: "Die Gemeinde geht gemeinsam", ring: [st.fertig, "von 8"] })}
+  screen.innerHTML = `${backBtn("advent", "Advent")}${bereichKopf("advent", { ic: "stern", t: "Bethlehem", sub: "Die Gemeinde geht gemeinsam", ring: [st.fertig, "von 8"] })}${advTestLeiste()}
     <div class="sh-buehne">${bethBild(st)}</div>${bethWeg(st)}${karte}
-    <p class="small muted sh-fuss">Wer mitgeholfen hat, wird mit Namen genannt, Beträge bleiben verborgen (Matthäus 6,3). Du hast ${pkt(S.tal)} Talente.</p>`;
-  wireGo();
+    <p class="small muted sh-fuss">Wer mitgeholfen hat, wird mit Namen genannt, Beträge bleiben verborgen (Matthäus 6,3). ${advTestOn() ? "Im Testmodus kostet Spenden keine Talente." : `Du hast ${pkt(S.tal)} Talente.`}</p>`;
+  wireGo(); advTestWire(VIEWS_BETH);
   screen.querySelectorAll("[data-sp]").forEach(b => b.onclick = () => { const v = b.dataset.sp; if (v === "frei") { bethSpendeWahl(); return; } bethSpenden(+v, b); });
   const g = $("bethGabe"); if (g) g.onclick = () => bethTagesgabe(g);
   if ((!bethDaten || Date.now() - bethZeit > 60e3) && Date.now() - bethVersuch > 60e3) bethLaden(true).then(() => { if (current === "beth" && !document.querySelector(".modal")) VIEWS_BETH(); bethFeiern(); });
   else bethFeiern();
 };
 function bethSpendeWahl() {
-  const st = bethStand(), rest = bethRest(st), max = Math.min(S.tal | 0, rest);
-  const m = modal(`<div class="label">Gabe für den Weg</div><h2 style="margin:0">${esc(BETH[st.k].n)}</h2><p class="muted small" style="margin:0">Noch ${pkt(rest)} Talente bis zum Ziel · du hast ${pkt(S.tal)}.<br>Die Gemeinde legt ${Math.round(BETH_ZUSCHUSS * 100)} % dazu.</p>
+  const st = bethStand(), rest = bethRest(st), max = Math.min(advTal(), rest);
+  const m = modal(`<div class="label">Gabe für den Weg</div><h2 style="margin:0">${esc(BETH[st.k].n)}</h2><p class="muted small" style="margin:0">Noch ${pkt(rest)} Talente bis zum Ziel · du hast ${advTestOn() ? "im Test unbegrenzt" : pkt(S.tal)}.<br>Die Gemeinde legt ${Math.round(BETH_ZUSCHUSS * 100)} % dazu.</p>
     <input class="field" id="spBetrag" type="number" inputmode="numeric" min="1" max="${max}" value="${Math.max(1, Math.min(max, 25))}" aria-label="Talente spenden">
     <button class="btn primary" id="spOk" ${max < 1 ? "disabled" : ""}>Spenden</button><button class="btn ghost" data-close>Abbrechen</button>`);
   m.querySelector("#spOk").onclick = () => { const v = Math.floor(+m.querySelector("#spBetrag").value || 0); m.remove(); bethSpenden(v); };
@@ -243,19 +262,19 @@ const kalOptionen = d => KALENDER[d - 1].a.slice().sort((x, y) => hash("kal" + d
 function kalOeffnen(d) {
   if (d > kalHeuteNr()) { SFX.wrong(); toast(`${svg("tuer")}<div><b>Noch zu!</b><div class="small muted">Türchen ${d} geht am ${esc(adventDatum(dayNum(KAL_START) + d - 1))} auf.</div></div>`); return; }
   const e = KALENDER[d - 1], frist = dayNum(KAL_START) + d - 1, heute = adventTag() === frist;
-  S.kal = Object.assign({}, S.kal);
+  A().kal = Object.assign({}, A().kal);
   let neu = false;
-  if (!S.kal[d]) { neu = true; S.kal[d] = { o: adventTag() }; save(); }
+  if (!A().kal[d]) { neu = true; A().kal[d] = { o: adventTag() }; save(); }
   const tal = neu ? (heute ? KAL_TAL : KAL_TAL_SPAET) : 0;
-  if (tal) { addTal(tal); }
+  if (tal && !advTestOn()) { addTal(tal); }
   if (neu) { SFX.badge(); if (d === 24) { rain(160); setTimeout(() => SFX.level(), 500); } checkBadges(); }
-  const beantwortet = () => S.kal[d].r !== undefined;
+  const beantwortet = () => A().kal[d].r !== undefined;
   const m = modal(`<div class="label">Türchen ${d}${d === 24 ? " · Heiligabend" : ""}</div><div id="kalInhalt"></div>`);
   const innen = m.querySelector("#kalInhalt");
   const schritt1 = () => {
     innen.innerHTML = `<h2 style="margin:0 0 6px">${esc(e.t)}</h2><p class="small muted" style="margin:0 0 8px">${svg("book")} ${esc(e.v)}</p><p style="margin:0 0 10px">${esc(e.s)}</p>
-      ${tal ? `<p class="small" style="margin:0 0 10px">${TAL_MUENZE} <b>+${tal} Talente</b>${heute ? "" : " (nachgeholt)"}</p>` : ""}
-      ${beantwortet() ? `<p class="small muted" style="margin:0 0 10px">${S.kal[d].r ? `${svg("check", "var(--good)")} Frage richtig beantwortet` : "Frage beantwortet"} – ${esc(e.e)}</p><button class="btn primary" data-close>Schließen</button>`
+      ${tal ? `<p class="small" style="margin:0 0 10px">${TAL_MUENZE} <b>${advTestOn() ? "Testmodus: keine Talente" : `+${tal} Talente`}</b>${heute ? "" : " (nachgeholt)"}</p>` : ""}
+      ${beantwortet() ? `<p class="small muted" style="margin:0 0 10px">${A().kal[d].r ? `${svg("check", "var(--good)")} Frage richtig beantwortet` : "Frage beantwortet"} – ${esc(e.e)}</p><button class="btn primary" data-close>Schließen</button>`
         : `<button class="btn primary" id="kalFrage">Zur Frage (+${KAL_TAL_FRAGE} Talente)</button><button class="btn ghost" data-close>Später</button>`}`;
     innen.querySelectorAll("[data-close]").forEach(b => b.onclick = () => { m.remove(); SFX.tap(); if (current === "kal") VIEWS.kal(); });
     const f = innen.querySelector("#kalFrage"); if (f) f.onclick = () => { SFX.tap(); schritt2(); };
@@ -265,8 +284,8 @@ function kalOeffnen(d) {
     innen.querySelectorAll(".kal-opt").forEach(b => b.onclick = () => {
       const wahl = b.textContent, ok = wahl === e.a[0];
       innen.querySelectorAll(".kal-opt").forEach(x => { x.disabled = true; if (x.textContent === e.a[0]) x.classList.add("richtig"); else if (x === b) x.classList.add("falsch"); });
-      S.kal[d].r = ok ? 1 : 0; save();
-      if (ok) { SFX.right && SFX.right(); addTal(KAL_TAL_FRAGE); } else SFX.wrong();
+      A().kal[d].r = ok ? 1 : 0; save();
+      if (ok) { SFX.right && SFX.right(); if (!advTestOn()) addTal(KAL_TAL_FRAGE); } else SFX.wrong();
       setTimeout(() => { innen.insertAdjacentHTML("beforeend", `<p style="margin:10px 0 6px"><b>${ok ? `Richtig! +${KAL_TAL_FRAGE} Talente` : "Leider nicht."}</b> ${esc(e.e)}</p><button class="btn primary" id="kalOk">Weiter</button>`);
         $("kalOk").onclick = () => { m.remove(); SFX.tap(); if (current === "kal") VIEWS.kal(); }; }, 500);
     });
@@ -274,33 +293,33 @@ function kalOeffnen(d) {
   schritt1();
 }
 VIEWS_KAL = () => {
-  const nr = kalHeuteNr(), offen = Object.keys(S.kal || {}).length, schon = adventTag() >= dayNum(KAL_START);
-  const tuer = Array.from({ length: 24 }, (_, i) => { const d = i + 1, auf = !!(S.kal || {})[d], da = d <= nr;
+  const nr = kalHeuteNr(), offen = Object.keys(A().kal || {}).length, schon = adventTag() >= dayNum(KAL_START);
+  const tuer = Array.from({ length: 24 }, (_, i) => { const d = i + 1, auf = !!(A().kal || {})[d], da = d <= nr;
     const z = auf ? "auf" : d === nr ? "heute" : da ? "verpasst" : "zu";
     return `<button class="adv-tuer ${z} ${d === 24 ? "gross" : ""}" data-t="${d}" aria-label="Türchen ${d}${auf ? ", geöffnet" : da ? ", wartet" : ", noch zu"}"><b>${d}</b>${auf ? svg("check") : d === 24 ? svg("krippe") : da ? svg("tuer") : svg("lock")}</button>`; }).join("");
   screen.innerHTML = `${backBtn("advent", "Advent")}${bereichKopf("advent", { ic: "tuer", t: "Kalender", sub: schon ? "Jeden Tag ein Türchen" : `Es geht los am ${adventDatum(dayNum(KAL_START))}`, ring: [offen, "von 24"],
-    tafel: [[nr, "heute dran"], [Object.values(S.kal || {}).filter(x => x.r === 1).length, "Fragen richtig"], [`${KAL_MEISTER}`, "für Rahmen"]] })}
-    <div class="adv-tuerfeld">${tuer}</div>
+    tafel: [[nr, "heute dran"], [Object.values(A().kal || {}).filter(x => x.r === 1).length, "Fragen richtig"], [`${KAL_MEISTER}`, "für Rahmen"]] })}
+    ${advTestLeiste()}<div class="adv-tuerfeld">${tuer}</div>
     <p class="small muted sh-fuss">Jedes Türchen bringt ${KAL_TAL} Talente (am selben Tag geöffnet, später ${KAL_TAL_SPAET}) und eine Frage mit ${KAL_TAL_FRAGE} Talenten. Verpasste Türchen kannst du jederzeit nachholen. Mit ${KAL_MEISTER} Türchen gibt es den Rahmen „Adventskranz“ und den Titel „Adventsbote“.</p>`;
-  wireGo();
+  wireGo(); advTestWire(VIEWS_KAL);
   screen.querySelectorAll("[data-t]").forEach(b => b.onclick = () => { SFX.tap(); kalOeffnen(+b.dataset.t); });
 };
 
 /* =====================================================================
    Advents-Biblionär (eine Runde je Adventswoche) und Duell-Aktion
    ===================================================================== */
-const advBibGespielt = w => (S.advBib || {})[w] !== undefined;
+const advBibGespielt = w => (A().advBib || {})[w] !== undefined;
 function bibAdventStarten() {
   const w = advRunde();
   if (!w) { toast(`${svg("biblionaer")}<div><b>Der Advent ist vorbei</b><div class="small muted">Frohe Weihnachten!</div></div>`); return; }
   if (advBibGespielt(w)) { toast(`${svg("biblionaer")}<div><b>Diese Woche schon gespielt</b><div class="small muted">Nächsten Sonntag gibt es neue Fragen.</div></div>`); return; }
   modal(`<div class="label">Advents-Biblionär</div><h2 style="margin:0">${w}. Advent</h2>
-    <p class="muted">15 Fragen rund um Advent und Weihnachten – für alle in der Gemeinde dieselben. Du hast <b>einen Versuch pro Adventswoche</b>; wer abbricht, bekommt 0 Punkte. Zusätzlich gibt es ${ADV_BIB_TAL} Talente.</p>
+    <p class="muted">15 Fragen rund um Advent und Weihnachten – für alle in der Gemeinde dieselben. Du hast <b>einen Versuch pro Adventswoche</b>; wer abbricht, bekommt 0 Punkte. Zusätzlich gibt es ${ADV_BIB_TAL} Talente.${advTestOn() ? " <b>(Testmodus: ohne Belohnung)</b>" : ""}</p>
     <button class="btn primary" data-close="los">${svg("biblionaer")} Los geht's</button><button class="btn ghost" data-close>Später</button>`, r => { if (r === "los") advBibLos(w); });
 }
 function advBibLos(w) {
   if (advBibGespielt(w)) return;
-  S.advBib = Object.assign({}, S.advBib, { [w]: 0 }); save();
+  A().advBib = Object.assign({}, A().advBib, { [w]: 0 }); save();
   go("biblionaer");
   const G = { modus: "advent", adv: w, fragen: bibFragen(hash("advent" + w), "", ADV_BIB_FRAGEN[w]) };
   countdown(() => bibStart(G));
@@ -309,16 +328,16 @@ function advBibLos(w) {
 function adventDuell(ids) {
   const w = advRunde(); if (!w || !adventSichtbar()) return;
   const gegner = (ids || []).filter(id => id && !eigenePid(id)); if (!gegner.length) return;
-  const alt = (S.advDu || {})[w] || { c: 0, g: [] }, neu = { c: (alt.c | 0) + gegner.length, g: [...new Set([...(alt.g || []), ...gegner])].slice(0, 20) };
-  S.advDu = Object.assign({}, S.advDu, { [w]: neu });
-  if (neu.c >= ADV_DU_ZIEL && neu.g.length >= ADV_DU_GEGNER && !(S.advDuOk || []).includes(w)) {
-    S.advDuOk = [...(S.advDuOk || []), w]; S.tal += ADV_DU_TAL; renderHud();
-    setTimeout(() => { SFX.badge(); toast(`${svg("kerze")}<div><b>Duell-Aktion geschafft!</b><div class="small muted">${w}. Advent · +${ADV_DU_TAL} Talente</div></div>`); }, 1500);
+  const alt = (A().advDu || {})[w] || { c: 0, g: [] }, neu = { c: (alt.c | 0) + gegner.length, g: [...new Set([...(alt.g || []), ...gegner])].slice(0, 20) };
+  A().advDu = Object.assign({}, A().advDu, { [w]: neu });
+  if (neu.c >= ADV_DU_ZIEL && neu.g.length >= ADV_DU_GEGNER && !(A().advDuOk || []).includes(w)) {
+    A().advDuOk = [...(A().advDuOk || []), w]; if (!advTestOn()) { S.tal += ADV_DU_TAL; renderHud(); }
+    setTimeout(() => { SFX.badge(); toast(`${svg("kerze")}<div><b>Duell-Aktion geschafft!</b><div class="small muted">${w}. Advent · ${advTestOn() ? "Testmodus" : `+${ADV_DU_TAL} Talente`}</div></div>`); }, 1500);
     checkBadges();
   }
   save();
 }
-const advDuStand = w => { const a = (S.advDu || {})[w] || { c: 0, g: [] }; return { c: Math.min(a.c | 0, ADV_DU_ZIEL), g: (a.g || []).length, ok: (S.advDuOk || []).includes(w) }; };
+const advDuStand = w => { const a = (A().advDu || {})[w] || { c: 0, g: [] }; return { c: Math.min(a.c | 0, ADV_DU_ZIEL), g: (a.g || []).length, ok: (A().advDuOk || []).includes(w) }; };
 
 /* ---------- Zusammenführen mit einem anderen Gerät: nie Fortschritt verlieren ---------- */
 function adventMischen(r) {
@@ -345,20 +364,20 @@ function adventKranz(n) {
     <path d="M150 94l10 0 4 10-8-3-8 3z" fill="#d93a4a" stroke="#6a1420" stroke-width=".6" transform="translate(-2 0)"/></svg>`;
 }
 VIEWS_ADVENT = () => {
-  const w = adventWoche(), n = Math.min(4, w), st = bethStand(), nr = kalHeuteNr(), kalOffen = Object.keys(S.kal || {}).length, kalHeute = nr > 0 && (S.kal || {})[nr];
+  const w = adventWoche(), n = Math.min(4, w), st = bethStand(), nr = kalHeuteNr(), kalOffen = Object.keys(A().kal || {}).length, kalHeute = nr > 0 && (A().kal || {})[nr];
   const r = advRunde(), bibGesp = r ? advBibGespielt(r) : true, du = r ? advDuStand(r) : { c: 0, g: 0, ok: true };
   const karte = (ic, titel, unter, info, attr, punkt) => `<button class="bereich klein adv-karte" ${attr}><span class="b-ic">${svg(ic)}</span><span class="b-tx"><b>${titel}</b><span>${unter}</span></span><span class="b-info">${punkt ? `<i class="adv-punkt"></i>` : ""}${info}</span></button>`;
   const wegUnter = st.krippe ? "Das Kind ist da!" : st.alle ? "Alles bereit – bis Heiligabend" : st.offen ? `Station ${st.k + 1}: ${esc(BETH[st.k].kurz)}` : "Maria und Josef rasten";
   const wegPunkt = st.offen && !st.alle && (!bethHeuteGegeben() || S.tal > 0 && false);
   const kalUnter = !nr ? `Ab ${esc(adventDatum(dayNum(KAL_START)))}` : kalHeute ? "Heute schon geöffnet" : `Türchen ${nr} wartet`;
   screen.innerHTML = `${backBtn("home", "Start")}${bereichKopf("advent", { ic: "kerze", t: "Advent", sub: w === 5 ? "Frohe Weihnachten!" : `${n}. Advent – Gott kommt zu uns`, ring: [n, n === 1 ? "Kerze" : "Kerzen"] })}
-    <div class="adv-kranzbox">${adventKranz(n)}</div>
+    ${advTestLeiste()}<div class="adv-kranzbox">${adventKranz(n)}</div>
     ${karte("stern", "Weg nach Bethlehem", wegUnter, `${st.fertig}/8`, `data-go="beth"`, wegPunkt)}
     ${karte("tuer", "Adventskalender", kalUnter, `${kalOffen}/24`, nr ? `data-go="kal"` : `data-go="kal"`, nr > 0 && !kalHeute)}
-    ${karte("biblionaer", "Advents-Biblionär", !r ? "Die Runden sind vorbei" : bibGesp ? `Diese Woche: ${pkt((S.advBib || {})[r] | 0)} Punkte` : `${r}. Advent · 15 Fragen, 1 Versuch`, r ? `${Object.keys(S.advBib || {}).length}/4` : "–", `id="advBib"`, r && !bibGesp)}
+    ${karte("biblionaer", "Advents-Biblionär", !r ? "Die Runden sind vorbei" : bibGesp ? `Diese Woche: ${pkt((A().advBib || {})[r] | 0)} Punkte` : `${r}. Advent · 15 Fragen, 1 Versuch`, r ? `${Object.keys(A().advBib || {}).length}/4` : "–", `id="advBib"`, r && !bibGesp)}
     ${karte("duell", "Duell-Aktion", !r ? "Vorbei" : du.ok ? "Diese Woche geschafft!" : `${ADV_DU_ZIEL} Duelle gegen ${ADV_DU_GEGNER} Mitspieler`, r ? `${du.ok ? ADV_DU_ZIEL : du.c}/${ADV_DU_ZIEL}` : "–", `data-go="duelle"`, r && !du.ok)}
     <p class="small muted sh-fuss">Jede Adventswoche beginnt am Sonntag. Biblionär-Runde und Duell-Aktion gibt es einmal pro Woche; die Duell-Aktion bringt ${ADV_DU_TAL} Talente.</p>`;
-  wireGo();
+  wireGo(); advTestWire(VIEWS_ADVENT);
   const b = $("advBib"); if (b) b.onclick = () => { SFX.tap(); bibAdventStarten(); };
   bethLaden().then(() => { if (current === "advent" && !document.querySelector(".modal")) { const alt = st.fertig; if (bethStand().fertig !== alt) VIEWS_ADVENT(); } });
 };
@@ -369,16 +388,16 @@ function adventMiniHtml(kompakt) {
   const st = bethStand(), nr = kalHeuteNr(), r = advRunde();
   const offen = [];
   if (st.offen && !st.alle && !bethHeuteGegeben()) offen.push("Wegzehrung");
-  if (nr > 0 && !(S.kal || {})[nr]) offen.push(`Türchen ${nr}`);
+  if (nr > 0 && !(A().kal || {})[nr]) offen.push(`Türchen ${nr}`);
   if (r && !advBibGespielt(r)) offen.push("Biblionär-Runde");
   if (r && !advDuStand(r).ok) offen.push("Duell-Aktion");
   const zeile = st.krippe ? "Frohe Weihnachten! Das Kind ist da" : offen.length ? `Wartet: ${offen.slice(0, 2).join(" · ")}` : `Weg nach Bethlehem ${st.fertig}/8`;
   const pz = st.alle ? 100 : Math.min(100, Math.round(st.eff[st.k] / BETH[st.k].ziel * 100));
-  return `<button class="sh-mini adv-mini ${kompakt ? "kompakt" : ""}" data-go="advent" aria-label="Advent: ${esc(zeile)}">${svg("kerze")}<span class="sh-mini-tx"><b>Advent</b><small>${esc(zeile)}</small>${kompakt ? "" : `<i class="sh-balken klein"><i style="width:${pz}%"></i></i>`}</span>${offen.length ? `<i class="adv-punkt" aria-hidden="true"></i>` : ""}<span class="sh-pfeil">›</span></button>`;
+  return `<button class="sh-mini adv-mini ${kompakt ? "kompakt" : ""}" data-go="advent" aria-label="Advent: ${esc(zeile)}">${svg("kerze")}<span class="sh-mini-tx"><b>Advent${advTestOn() ? " · Test" : ""}</b><small>${esc(zeile)}</small>${kompakt ? "" : `<i class="sh-balken klein"><i style="width:${pz}%"></i></i>`}</span>${offen.length ? `<i class="adv-punkt" aria-hidden="true"></i>` : ""}<span class="sh-pfeil">›</span></button>`;
 }
 /* Einmaliger Willkommens-Hinweis am Anfang des Advents */
 function adventStartHinweis() {
-  if (!adventSichtbar() || S.adventIntro || document.querySelector(".modal") || !S.lbName) return;
+  if (advTestOn() || !adventSichtbar() || S.adventIntro || document.querySelector(".modal") || !S.lbName) return;
   S.adventIntro = true; save(); SFX.badge();
   modal(`<div class="label">1. Advent</div><h2 style="margin:0">Der Advent beginnt!</h2>
     <p class="muted" style="margin:0">Bis Weihnachten gibt es etwas Besonderes:</p>

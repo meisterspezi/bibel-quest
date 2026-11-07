@@ -15,7 +15,7 @@ const DEF = {
   songHeard: [], gapPerfect: false, peeked: false, earlyBird: false,
   dq: { day: "", items: [], bonus: false }, questBonusCount: 0, lv: {}, duGes: [], duSiege: 0, duSpiele: 0, duTyp: "vers", duGesendet: 0, duAngenommen: 0, duArten: [], duKetteVoll: false,
   mute: false, beat: true, gapSing: false, atTi: 0, ntTi: 0,
-  ruestStufe: {}, stift: {}, spendeXp: {}, beth: {}, bethG: {}, bethSync: "", bethTage: [], bethGefeiert: [], bethAngekommen: false, kal: {}, advBib: {}, advDu: {}, advDuOk: [], adventIntro: false, stiftGefeiert: [], stiftEingeweiht: false,
+  ruestStufe: {}, stift: {}, spendeXp: {}, advTest: { on: false, d: "2026-11-29" }, advT: null, beth: {}, bethG: {}, bethSync: "", bethTage: [], bethGefeiert: [], bethAngekommen: false, kal: {}, advBib: {}, advDu: {}, advDuOk: [], adventIntro: false, stiftGefeiert: [], stiftEingeweiht: false,
   xq: null, lvLohn: 0, lbName: "", pid: "", ownersSet: false, offlineOnly: false, weekKey: "", weekXp: 0, podium: false, wochensieger: false, wochenziel: false,
   ver: 6
 };
@@ -2182,6 +2182,7 @@ VIEWS.profil = () => {
     <p class="small muted" style="margin:0">Öffne die App auf dem anderen Gerät und wähle <b>Ich spiele schon mit</b> (spielt dort schon jemand: oben auf Level/Namen tippen → Weiteren Spieler hinzufügen). Dann tippe deinen Namen an. Dann spielst du dort mit demselben Spielstand weiter.</p>
   </div>
   <div class="row-btns" style="margin-top:12px"><button class="btn ghost mini" id="wechseln">Spieler wechseln</button><button class="btn ghost mini" id="rename">Namen ändern</button>${S.pid && online && !S.offlineOnly ? `<button class="btn ghost mini" id="leave">Aus der Rangliste austreten</button>` : ""}</div><div id="pextra"></div>
+  ${entwickler && (advTestOn() || dayNum(today()) < dayNum(ADV_START)) ? `<button class="btn" id="advTestBtn" style="margin-top:12px;width:100%">${svg("kerze")} Advent-Testmodus: ${advTestOn() ? "an – öffnen" : "starten"}</button>` : ""}
   ${entwickler ? `<button class="btn" data-go="postfach" style="margin-top:12px;width:100%">${svg("post")} Postkasten${postfachNeu ? ` (${postfachNeu} neu)` : ""}</button>` : ""}
   <button class="feedback-link" id="fbLink2">${svg("chat")} Feedback an den Entwickler</button>
   ${online ? kennungHtml("kennProfil") : ""}
@@ -2189,6 +2190,7 @@ VIEWS.profil = () => {
   wireGo();
   $("wechseln").onclick = () => { SFX.tap(); go("wer"); };
   $("fbLink2").onclick = () => { SFX.tap(); feedbackOeffnen(); };
+  if ($("advTestBtn")) $("advTestBtn").onclick = () => { SFX.tap(); if (!advTestOn()) advTestSchalten(true); go("advent"); };
   kennungKopierenVerdrahten(screen);
   if ($("rename")) $("rename").onclick = () => { SFX.tap(); $("pextra").innerHTML = `<div class="card stack"><label class="label" for="rn">Neuer Spitzname</label><input class="field" id="rn" maxlength="20" value="${esc(S.lbName)}"><button class="btn primary" id="rnSave">Speichern</button></div>`;
     $("rnSave").onclick = () => { const n = $("rn").value.trim().replace(/\s+/g, " "); if (n.length < 2) { SFX.wrong(); return; } S.lbName = n; save(); lbSync(true); SFX.coin(); go("profil"); }; };
@@ -3517,11 +3519,12 @@ function bibFertig(G, grund) {
 /* Rekord, Wochenrunde, Zähler (für alle Wege gleich) */
 function bibErgebnis(G, punkte) {
   if (G.gezaehlt) return; G.gezaehlt = true;
+  if (G.modus === "advent" && advTestOn()) { A().advBib = Object.assign({}, A().advBib, { [G.adv]: punkte }); save(); return; } /* Testmodus: keine Zähler, keine Rekorde */
   S.bibSpiele = (S.bibSpiele || 0) + 1;
   if (punkte > (S.bibRekord || 0)) { G.rekord = !!S.bibRekord || punkte > 0; S.bibRekord = punkte; }
   if (punkte >= BIB_LEITER[14]) S.bibMillion = (S.bibMillion || 0) + 1;
   if (G.modus === "woche") { S.bwP = punkte; S.bwFertig = true; }
-  if (G.modus === "advent") S.advBib = Object.assign({}, S.advBib, { [G.adv]: punkte });
+  if (G.modus === "advent") A().advBib = Object.assign({}, A().advBib, { [G.adv]: punkte });
   save();
 }
 function bibEnde(G, punkte) {
@@ -3529,9 +3532,9 @@ function bibEnde(G, punkte) {
   const grund = G.fertigGrund, million = grund === "biblionaer", woche = G.modus === "woche", adv = G.modus === "advent";
   if (!woche && !adv && !G.wdh) G.wdh = spielWdh("bib-solo");
   const W = woche || adv ? null : G.wdh;
-  const xp = wdhMal(30 + 42 * G.r + (million ? 300 : 0), W);
-  const tal = wdhMal(Math.floor(G.r / 3) + (million ? 25 : 0) + (G.rekord && !woche ? 3 : 0), W) + (woche ? BIB_WOCHE_TAL : 0) + (adv ? ADV_BIB_TAL : 0);
-  if (!G.belohnt) { G.belohnt = true; richtig(G.r); quest("runde", 1); save(); }
+  const xp = adv && advTestOn() ? 0 : wdhMal(30 + 42 * G.r + (million ? 300 : 0), W);
+  const tal = adv && advTestOn() ? 0 : wdhMal(Math.floor(G.r / 3) + (million ? 25 : 0) + (G.rekord && !woche ? 3 : 0), W) + (woche ? BIB_WOCHE_TAL : 0) + (adv ? ADV_BIB_TAL : 0);
+  if (!G.belohnt) { G.belohnt = true; if (!(adv && advTestOn())) { richtig(G.r); quest("runde", 1); } save(); }
   const titel = million ? "Biblionär!" : grund === "raus" ? "Klug ausgestiegen!" : grund === "zeit" ? "Die Zeit ist um" : "Leider falsch";
   const zeile = million ? "Alle 15 Fragen richtig – du hast die Million!" : grund === "raus" ? `Du nimmst ${pkt(punkte)} Punkte mit.` : `Du fällst auf die Sicherheitsstufe zurück: ${pkt(punkte)} Punkte.`;
   const f = G.letzte;
@@ -3550,7 +3553,7 @@ function bibEnde(G, punkte) {
   if ($("bibNochmal")) $("bibNochmal").onclick = () => { SFX.tap(); bibSolo(); };
   if ($("bibRang")) $("bibRang").onclick = () => { SFX.tap(); go("rank", "bibWoche"); };
   SFX.win(); if (million) rain(140); else if (punkte >= 16000) rain(60);
-  setTimeout(() => { addXp(xp, null, "bib", { t0: G.t0, f: G.r, fm: 15, d: `${woche ? "Wochenrunde" : adv ? "Advents-Runde" : "Solo"} · ${pkt(punkte)} Punkte${W ? W.d : ""}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350);
+  setTimeout(() => { if (xp) addXp(xp, null, "bib", { t0: G.t0, f: G.r, fm: 15, d: `${woche ? "Wochenrunde" : adv ? "Advents-Runde" : "Solo"} · ${pkt(punkte)} Punkte${W ? W.d : ""}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350);
 }
 /* Solo-Übung (Spielen): zufällige Fragen */
 VIEWS.biblionaer = () => { screen.innerHTML = ""; };
