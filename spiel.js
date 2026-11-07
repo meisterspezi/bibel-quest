@@ -2237,8 +2237,8 @@ function ichMenue() {
   const gs = m.querySelector("#gsSchalter"); if (gs) gs.onclick = () => { SFX.tap(); grossSetzen(!grossAn()); gs.setAttribute("aria-pressed", grossAn()); gs.querySelector("small").textContent = grossAn() ? "an" : "aus"; };
 }
 /* 8.0: Große Schrift – je Gerät, alles ca. 15 % größer */
-const GROSS_KEY = "bq-gross";
-function grossAn() { try { return localStorage.getItem(GROSS_KEY) === "1"; } catch (e) { return false; } }
+const GROSS_KEY = "bq-gross2"; /* 9.4: neuer Schlüssel – Große Schrift ist jetzt für alle standardmäßig an */
+function grossAn() { try { return localStorage.getItem(GROSS_KEY) !== "0"; } catch (e) { return true; } }
 function grossSetzen(an) { try { localStorage.setItem(GROSS_KEY, an ? "1" : "0"); } catch (e) {} document.documentElement.classList.toggle("gross", an); }
 document.documentElement.classList.toggle("gross", grossAn());
 
@@ -2264,9 +2264,11 @@ VIEWS.profil = () => {
     <div class="pf-name"><h2 style="margin:0">${esc(S.lbName || "Noch ohne Namen")}</h2><div class="muted small">${esc(rangVon())} · ${esc(gemName(meineGem()))}</div>${!S.pid && !S.offlineOnly ? `<div class="small muted">Erscheint in der Rangliste, sobald Internet da ist.</div>` : ""}</div>
     <button class="btn primary pf-wechsel" id="wechseln">${svg("people")}<span>Spieler wechseln</span></button></div>
   <div class="card" style="margin:8px 0">${xpInfoHtml(true)}</div>
+  <button class="im-zeile gs-schalter pf-gross" id="gsSchalterP" aria-pressed="${grossAn()}">${svg("eye")}<span><b>Große Schrift</b><small>${grossAn() ? "an" : "aus"}</small></span><i class="gs-knopf"></i></button>
   <div class="card stack pf-karte">${titelKarte(AT_TITEL, atP, "AT")}${titelKarte(NT_TITEL, ntP, "NT")}</div>
   <div class="card stack pf-karte" style="margin-top:8px"><b>Meine Siegel</b>${siegelReihe(Object.assign({}, me))}</div>
   <div class="row-btns" style="margin:8px 0"><button class="btn ghost" data-go="badges">Meine Abzeichen</button><button class="btn ghost" id="gemAendern">Gemeinde ändern</button></div>
+  <div class="row-btns" style="margin:0 0 8px"><button class="btn ghost" data-go="share">Mit Freunden teilen</button>${deferredInstall && !S.appBonus ? `<button class="btn ghost" id="pfInstall">App installieren (+${APP_BONUS})</button>` : ""}</div>
   <details class="card pf-det"><summary>Alle Werte</summary><table class="werte">${statsZeilen(me).map(([k, v]) => `<tr><th>${k}</th><td>${esc(v)}</td></tr>`).join("")}</table></details>
   <details class="card pf-det"><summary>Hinweise zu Titeln und Siegeln</summary><p class="small muted">Die Titel wachsen mit deinen Sternen in den Lektionen und deiner Kette im AT bzw. NT. Siegel: Bronze 1-mal · Silber in 3 Wochen · Gold in 3 Monaten · Diamant 12 Monate am Stück. Ein Siegel bleibt ${SIEGEL_FRISCH} Tage frisch.</p></details>
   <details class="card pf-det"><summary>Auf einem weiteren Gerät spielen</summary><p class="small muted">Öffne die App auf dem anderen Gerät und wähle <b>Ich spiele schon mit</b> (spielt dort schon jemand: oben auf Level/Namen tippen → Weiteren Spieler hinzufügen). Dann tippe deinen Namen an. Dann spielst du dort mit demselben Spielstand weiter.</p></details>
@@ -2278,7 +2280,9 @@ VIEWS.profil = () => {
   <p class="small muted" style="margin-top:14px">Bibelverse: ${VERS_QUELLE} © Genfer Bibelgesellschaft.</p></div>`;
   wireGo(); if ($("gemAendern")) $("gemAendern").onclick = () => { SFX.tap(); gemWahl(false); };
   $("wechseln").onclick = () => { SFX.tap(); go("wer"); };
+  $("gsSchalterP").onclick = () => { SFX.tap(); const b = $("gsSchalterP"); grossSetzen(!grossAn()); b.setAttribute("aria-pressed", grossAn()); b.querySelector("small").textContent = grossAn() ? "an" : "aus"; };
   $("fbLink2").onclick = () => { SFX.tap(); feedbackOeffnen(); };
+  if ($("pfInstall")) $("pfInstall").onclick = () => { SFX.tap(); deferredInstall.prompt(); deferredInstall.userChoice.catch(() => {}).then(() => { deferredInstall = null; }); };
   if ($("advTestBtn")) $("advTestBtn").onclick = () => { SFX.tap(); if (!advTestOn()) advTestSchalten(true); go("advent"); };
   kennungKopierenVerdrahten(screen);
   if ($("rename")) $("rename").onclick = () => { SFX.tap(); $("pextra").innerHTML = `<div class="card stack"><label class="label" for="rn">Neuer Spitzname</label><input class="field" id="rn" maxlength="20" value="${esc(S.lbName)}"><button class="btn primary" id="rnSave">Speichern</button></div>`;
@@ -5602,7 +5606,7 @@ if ("serviceWorker" in navigator && location.protocol === "https:") { addEventLi
 
 /* ---------- Start ---------- */
 try { const von = new URLSearchParams(location.search).get("von"); if (von && /^[\w-]{4,64}$/.test(von)) { if (!S.lbName && !S.eingeladenVon) S.eingeladenVon = von; history.replaceState(null, "", location.pathname); } } catch (e) {}
-$("hWer").onclick = () => { SFX.tap(); ichMenue(); };
+$("hWer").onclick = () => { SFX.tap(); if (!S.lbName) { go("name"); return; } go("profil"); };
 $("hTalBtn").onclick = () => { SFX.tap(); go("ich"); };
 /* 9.0: Bestehende Spieler gehören zu den Freien Baptisten Eichstätt; ein neuer Spieler wählt nach seinem Namen */
 if (!S.gem) { if (S.lbName || S.xp > 0) { S.gem = GEM_STANDARD; S.gemGesendet = GEM_STANDARD; } else S.gemNeu = true; }

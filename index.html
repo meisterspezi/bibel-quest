@@ -2029,6 +2029,16 @@ body[data-tab="rank"]{--ar-gemeinde:#5fe0b0;--ar:#5fe0b0}
 .pf-det>summary::after{content:"›";float:right;transition:transform .15s}.pf-det[open]>summary::after{transform:rotate(90deg)}
 .pf-det>:not(summary){margin:0 14px 12px}
 .xi-eine{display:flex;justify-content:space-between;gap:8px;font-size:.82rem;color:var(--muted);flex-wrap:wrap}.xi-eine b{color:var(--fg)}
+/* ===== 9.4: Laden – Symbole in Form und Größe (Rüstungs-Regel traf auch Avatare, Rahmen und Farbfelder) ===== */
+.kb-item .vor>span:not(.av):not(.swatch):not(.kb-titel-ic){display:grid;place-items:center;width:100%;height:48px}
+.kb-item .vor>.av{width:var(--s);height:var(--s);display:inline-grid;flex:none}
+.kb-item .vor>.swatch{width:40px;height:40px;display:block;flex:none}
+.kb-item .vor>.kb-titel-ic{display:grid;place-items:center;width:44px;height:44px}
+.kb-item .vor>.kb-titel-ic>svg{width:44px;height:44px}
+.kb-item .vor{width:100%;justify-content:center}
+.kb-item small{overflow-wrap:anywhere;hyphens:auto;max-width:100%;font-size:.64rem}
+.kb-info b{overflow-wrap:anywhere;hyphens:auto;max-width:100%;font-size:clamp(1.05rem,5vw,1.35rem)}
+.pf-gross{width:100%;box-sizing:border-box;margin:0 0 8px}
 </style>
 </head>
 <body>
