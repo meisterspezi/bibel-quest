@@ -1630,7 +1630,6 @@ VIEWS.home = () => {
         <section class="heute3 ${S.dq.bonus ? "fertig" : ""}" aria-label="Tagesaufgaben, ${erledigt} von 3 erledigt"><ul>${aufg}</ul>${truhe}</section></details></div>`;
   screen.innerHTML = `<div class="stack start start2 start8">
     ${kopf}
-    ${duDranHtml()}
     ${adventMiniHtml(true)}${siegel}
     ${bkLabel("scroll", "Lernvers")}
     <div class="start-vers">${MONATSVERSE[monatKey()] ? lvKarte(monatKey()) : `<button class="vers-zeile" id="versZeile" aria-expanded="false">${versHtml(vKey, "tag klein")}<span class="vz-mehr">mehr</span></button>`}</div>
@@ -1639,6 +1638,7 @@ VIEWS.home = () => {
       ${ezZeile("lernen", "lernen", svg("book"), "Lernen", ni >= 0 ? `Weiter mit: ${esc(GROUPS[ni].name)}` : "Lektionen, Lernvers, Lied")}
       ${ezZeile("spielen", "spielen", svg("user"), "Allein spielen", "Blitz, Kette, Biblionär")}
       ${ezZeile("zusammen", "gemeinde", svg("people"), "Zusammen", duN ? (duN === 1 ? "1 Duell wartet auf dich" : `${duN} Duelle warten auf dich`) : "Spiele mit der Gemeinde", duN ? `<span class="ez-zahl" aria-label="${duN} ${duN === 1 ? "Duell wartet" : "Duelle warten"}">${duN}</span>` : "")}
+      ${duDranHtml()}
     </div>
     ${entwickler && postfachNeu ? `<button class="erinnerung pf-hinweis" data-go="postfach">${svg("chat")}<span><b>${postfachNeu} ${postfachNeu === 1 ? "neue Meldung" : "neue Meldungen"} im Postkasten</b><span class="small muted">Feedback, Status und Datenbank</span></span></button>` : ""}
     <button class="feedback-link fb-start" id="fbLinkStart">${svg("chat")} Feedback an den Entwickler</button>

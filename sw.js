@@ -1,5 +1,5 @@
 // Offline-Speicher für Bibelbuch-Quest. Bei Änderungen an der App die Versionsnummer erhöhen.
-const VERSION = "bibel-quest-v8-5";
+const VERSION = "bibel-quest-v8-6";
 const APP = ["./", "index.html", "daten.js", "bibelquiz.js", "symbole.js", "advent-daten.js", "advent.js", "spiel.js", "logo.png", "qrcode.js", "firebase-config.js", "leaderboard.js", "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "icons/icon-512-maskable.png", "icons/icon-180.png", "icons/favicon-32.png", "icons/biblionaer-logo.webp"];
 // Fremde Dateien, die offline mitgespeichert werden dürfen (Schriften, Firebase-Bibliothek).
