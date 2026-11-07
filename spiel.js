@@ -5147,6 +5147,41 @@ function xqLueckeHtml(a) {
 }
 /* 6.77: gemessene XP pro Minute je Spiel (nur Vergaben ab Version 6.79 mit Spielzeit; 6.89: keine Mindestzeit, alle Spiele immer gelistet, 30 Tage) – Grundlage zum Nachjustieren */
 const XQ_ZIEL_MIN = { solo: 150, duell: 225 };
+/* 7.0: Zeitraum-Umschalter für „Gemeinde gesamt“ und jeden Spieler (je eigener Schalter, Standard Heute). Heute/7 Tage/30 Tage werden aus dem
+   Einzelprotokoll (r.ev, bis 30 Tage / 4000 Einträge) berechnet, „Gesamt“ ist die bisherige Ansicht aus der Zählung (inkl. Anfangsbestand und „ohne Quelle“). */
+const XQ_ZEIT = { heute: "Heute", woche: "7 Tage", monat: "30 Tage", gesamt: "Gesamt" };
+const xqZModus = k => { const m = (window.__xqZ || {})[k]; return XQ_ZEIT[m] ? m : "heute"; };
+const xqZSeg = k => { const m = xqZModus(k); return `<div class="seg xq-evseg" role="tablist" aria-label="Zeitraum" style="grid-template-columns:repeat(4,1fr)">${Object.entries(XQ_ZEIT).map(([v, t]) => `<button type="button" role="tab" data-zk="${esc(k)}" data-zm="${v}" aria-selected="${v === m}">${t}</button>`).join("")}</div>`; };
+function xqZPeriode(evs, modus) {
+  const seit = modus === "heute" ? xqTagStart() : Date.now() - (modus === "woche" ? 7 : 30) * 864e5, q = {}, n = {}; let xp = 0, cnt = 0, alt = Infinity;
+  (evs || []).forEach(e => { if (e.z < alt) alt = e.z; if (e.z < seit || !(+e.x > 0)) return; const k = XQ_QUELLEN[e.q] ? e.q : "sonst"; q[k] = (q[k] | 0) + (+e.x); n[k] = (n[k] | 0) + 1; xp += +e.x; cnt++; });
+  return { q, n, xp, cnt, abgeschnitten: (evs || []).length >= 4000 && alt > seit };
+}
+const xqZNotiz = (p, ok) => !ok ? `<div class="small muted">Das Einzelprotokoll ist nicht lesbar – Zeiträume gehen erst, wenn es geladen werden kann.</div>` : p.abgeschnitten ? `<div class="small muted">Hinweis: Es wurden nur die neuesten 4000 Vergaben geladen – dieser Zeitraum ist evtl. unvollständig.</div>` : "";
+function xqGemInnen(z, ohne) {
+  const zahl = v => (+v || 0).toLocaleString("de-DE"), m = xqZModus("gem"), seg = xqZSeg("gem");
+  if (m === "gesamt") {
+    const gez = z.filter(r => r.hat), gq = {}, gn = {}; let gXp = 0, gAlt = 0, gOffen = 0;
+    gez.forEach(r => { gXp += r.xp; gAlt += r.alt; gOffen += r.offen; Object.entries(r.q).forEach(([k, v]) => { gq[k] = (gq[k] | 0) + (+v || 0); gn[k] = (gn[k] | 0) + (+(r.n[k]) || 0); }); });
+    return `<div class="topline"><b>Gemeinde gesamt</b><span class="small muted">${gez.length} von ${z.length} Spielern gezählt · ${ohne ? zahl(gXp - gAlt) + " gezählte XP (ohne Anfangsbestand)" : zahl(gXp) + " XP"}</span></div>${seg}${gez.length ? xqAnteilHtml(xqAnteile(gq, gn, ohne ? 0 : gAlt, gOffen, ohne ? Math.max(0, gXp - gAlt) : gXp)) : `<div class="small muted">Noch keine Zählung.</div>`}`;
+  }
+  const alle = z.flatMap(r => r.ev || []), p = xqZPeriode(alle, m), akt = new Set(alle.filter(e => e.z >= (m === "heute" ? xqTagStart() : Date.now() - (m === "woche" ? 7 : 30) * 864e5)).map(e => e.pid)).size;
+  return `<div class="topline"><b>Gemeinde gesamt</b><span class="small muted">${zahl(p.xp)} XP · ${zahl(p.cnt)} Vergaben · ${akt} von ${z.length} Spielern aktiv</span></div>${seg}${p.cnt ? xqAnteilHtml(xqAnteile(p.q, p.n, 0, 0, p.xp)) : `<div class="small muted">${m === "heute" ? "Heute" : m === "woche" ? "In den letzten 7 Tagen" : "In den letzten 30 Tagen"} noch keine protokollierten Vergaben.</div>`}${xqZNotiz(p, z.evOk)}`;
+}
+function xqSpielerBalken(r, ohne) {
+  const m = xqZModus(r.id);
+  if (m === "gesamt") return `<div id="xqBar-${esc(r.id)}">${xqAnteilHtml(r.luecke ? xqAnteileLuecke(r, r.luecke, ohne) : ohne ? xqAnteile(r.q, r.n, 0, r.offen, Math.max(0, r.xp - r.alt)) : r.anteile)}</div>`;
+  const p = xqZPeriode(r.ev || [], m);
+  return `<div class="small muted">${(+p.xp).toLocaleString("de-DE")} XP · ${p.cnt} ${p.cnt === 1 ? "Vergabe" : "Vergaben"} (${XQ_ZEIT[m]})</div>${p.cnt ? xqAnteilHtml(xqAnteile(p.q, p.n, 0, 0, p.xp)) : `<div class="small muted">${m === "heute" ? "Heute" : m === "woche" ? "In den letzten 7 Tagen" : "In den letzten 30 Tagen"} noch keine protokollierten Vergaben.</div>`}${xqZNotiz(p, true)}`;
+}
+function xqZVerdrahten(z, ohne) {
+  document.querySelectorAll("[data-zk]").forEach(b => b.onclick = () => {
+    const k = b.dataset.zk, m = b.dataset.zm; if (xqZModus(k) === m) return; SFX.tap(); (window.__xqZ = window.__xqZ || {})[k] = m;
+    if (k === "gem") { const box = $("xqGem"); if (box) box.innerHTML = xqGemInnen(z, ohne); }
+    else { const r = z.find(x => x.id === k), box = $("xqZeit-" + k); if (r && box) box.innerHTML = xqZSeg(k) + xqSpielerBalken(r, ohne); }
+    xqZVerdrahten(z, ohne);
+  });
+}
 function xqTagStart() { const t = new Date(); t.setHours(0, 0, 0, 0); return t.getTime(); }
 const XQ_RATE_ZEIT = { heute: "Heute", woche: "7 Tage", monat: "30 Tage" };
 function xqRateInnen(z) {
@@ -5244,9 +5279,7 @@ VIEWS.xppruefung = () => {
     const ohne = !!S.xqOhneAlt;   // 6.80: „Vor der Zählung“ ausblenden → nur gezählte XP, danach sortiert
     z.sort((a, b) => ohne ? (b.xp - b.alt) - (a.xp - a.alt) : b.xp - a.xp);   // höchste XP oben
     const auffaellig = z.filter(r => r.flags.some(f => f.hart));
-    const gez = z.filter(r => r.hat), gq = {}, gn = {}; let gXp = 0, gAlt = 0, gOffen = 0;
-    gez.forEach(r => { gXp += r.xp; gAlt += r.alt; gOffen += r.offen; Object.entries(r.q).forEach(([k, v]) => { gq[k] = (gq[k] | 0) + (+v || 0); gn[k] = (gn[k] | 0) + (+(r.n[k]) || 0); }); });
-    const gesamt = gez.length ? `<div class="card stack"><div class="topline"><b>Gemeinde gesamt</b><span class="small muted">${gez.length} von ${z.length} Spielern gezählt · ${ohne ? zahl(gXp - gAlt) + " gezählte XP (ohne Anfangsbestand)" : zahl(gXp) + " XP"}</span></div>${xqAnteilHtml(xqAnteile(gq, gn, ohne ? 0 : gAlt, gOffen, ohne ? Math.max(0, gXp - gAlt) : gXp))}</div>` : "";
+    const gesamt = z.length ? `<div class="card stack" id="xqGem">${xqGemInnen(z, ohne)}</div>` : "";
     const warn = auffaellig.length ? `<div class="card stack xq-karte-bad"><b>⚠ Auffälligkeiten (${auffaellig.length})</b>${auffaellig.map(r => `<div class="small"><b>${esc(r.name)}</b> (${zahl(r.xp)} XP)<br>${r.flags.filter(f => f.hart).map(f => esc(f.t)).join("<br>")}</div>`).join("")}</div>` : `<div class="card small muted">Keine Auffälligkeiten.</div>`;
     const hinweis = z.evOk ? "" : `<div class="card small muted">Das Einzelprotokoll ist noch nicht lesbar – sind die neuen Firebase-Regeln (Version 6.75) veröffentlicht?</div>`;
     const csvAlle = `<button class="btn ghost breit" id="xqCsvAlle" style="width:100%">${svg("scroll")} Alle XP-Vergaben als CSV-Datei (Excel)</button><div class="small muted" id="xqCsvMeld" aria-live="polite"></div>`;
@@ -5254,7 +5287,7 @@ VIEWS.xppruefung = () => {
       const kopf = `<div class="topline"><b>${esc(r.name)}${r.geteilt && r.geteilt.length ? ` <span class="xq-teilt" title="Spielt auf demselben Gerät wie ${esc(r.geteilt.join(", "))}">${svg("people")} ${esc(r.geteilt.join(", "))}</span>` : ""}</b><span class="small muted">Level ${r.level} · ${ohne && r.hat ? zahl(r.xp - r.alt) + " gezählt · " + zahl(r.xp) + " gesamt" : zahl(r.xp) + " XP"}</span></div>`;
       if (!r.hat) return `<div class="card">${kopf}<div class="small muted">Noch keine Zählung (neue Version noch nicht geöffnet).</div></div>`;
       return `<div class="card stack${r.flags.some(f => f.hart) ? " xq-karte-bad" : ""}">${kopf}
-        <div id="xqBar-${esc(r.id)}">${xqAnteilHtml(r.luecke ? xqAnteileLuecke(r, r.luecke, ohne) : ohne ? xqAnteile(r.q, r.n, 0, r.offen, Math.max(0, r.xp - r.alt)) : r.anteile)}</div>
+        <div class="stack" id="xqZeit-${esc(r.id)}">${xqZSeg(r.id)}${xqSpielerBalken(r, ohne)}</div>
         ${r.offen > 0 ? `<details data-xqlu="${esc(r.id)}"${r.luecke ? " open" : ""}><summary class="small">Woher kommen die ${zahl(r.offen)} XP „ohne Quelle“?</summary><div class="xq-luliste small muted" style="margin-top:6px">${r.luecke ? xqLueckeHtml(r.luecke) : "Wird beim Öffnen aus dem Protokoll berechnet …"}</div></details>` : ""}
         <div class="small muted">Letzte 24 Stunden: ${zahl(r.h24)} XP · stärkste Stunde: ${zahl(r.spitze)} XP</div>
         <details data-xpev="${esc(r.id)}"><summary class="small">Protokoll aller XP-Vergaben (Zeit, Spielzeit, Fortschritt)</summary><div class="xq-evliste small muted" style="margin-top:6px">Wird beim Öffnen geladen …</div></details>
@@ -5273,7 +5306,7 @@ VIEWS.xppruefung = () => {
       try { await L.abgleichAnfordern(id); m.textContent = "✓ Angefordert – wird beim nächsten Start der App des Spielers ausgeführt."; }
       catch (e) { m.textContent = "✗ Nicht möglich (" + ((e && e.code) || "Fehler") + ") – sind die neuen Firebase-Regeln (6.88) veröffentlicht und ist dieses Gerät als Verwalter eingetragen?"; }
       b.disabled = false; };
-    xqRateVerdrahten(z);
+    xqRateVerdrahten(z); xqZVerdrahten(z, ohne);
     if ($("xqAnAlle")) $("xqAnAlle").onclick = () => anfordern("_alle", $("xqAnAlle"), $("xqAnAlleM"));
     screen.querySelectorAll("[data-xqan]").forEach(b => b.onclick = () => anfordern(b.dataset.xqan, b, b.parentNode.querySelector("[data-xqanm]")));
     screen.querySelectorAll("[data-xqab]").forEach(b => b.onclick = async () => {
