@@ -1297,6 +1297,14 @@ function titelCheck() {
 }
 
 /* ---------- Kopfleiste ---------- */
+/* 9.2: genaue Levelfortschritt-Anzeige (Menü beim Antippen des Spielers und Profil) */
+function xpInfoHtml() {
+  const n = levelOf(S.xp), lo = cum(n), hi = cum(n + 1), im = Math.max(0, Math.round(S.xp) - lo), gesamt = hi - lo, fehlt = Math.max(0, hi - Math.round(S.xp)), p = Math.max(0, Math.min(100, im / gesamt * 100));
+  return `<div class="xpinfo" role="group" aria-label="Levelfortschritt">
+    <div class="xi-kopf"><b>Level ${n}</b><span>${Math.floor(p)} % bis Level ${n + 1}</span></div>
+    <div class="xi-balken" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(p)}"><i style="width:${p.toFixed(1)}%"></i></div>
+    <div class="xi-zeilen"><span>Schon geschafft</span><b>${pkt(im)} XP</b><span>Noch bis Level ${n + 1}</span><b>${pkt(fehlt)} XP</b><span>Dieses Level umfasst</span><b>${pkt(gesamt)} XP</b><span>XP insgesamt</span><b>${pkt(Math.round(S.xp))} XP</b></div></div>`;
+}
 function renderHud() {
   const n = levelOf(S.xp), lo = cum(n), hi = cum(n + 1);
   $("hLvl").textContent = n; $("hAvatar").innerHTML = avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "?" }, 44);
@@ -1306,6 +1314,7 @@ function renderHud() {
   const serie = streakNow(); $("hStreak").textContent = serie === 1 ? "1 Tag" : serie + " Tage"; $("hStreak").parentElement.classList.toggle("null", !serie);
   $("hTal").textContent = S.tal; const tbP = $("tbTal"); if (tbP) tbP.hidden = !etwasKaufbar();
   $("hLvlT").textContent = "Level " + n;
+  { const pz = Math.max(0, Math.min(100, (S.xp - lo) / (hi - lo) * 100)); const lt = $("hLvlT"); lt.style.setProperty("--lp", pz.toFixed(1) + "%"); lt.title = `Level ${n}: ${Math.round(S.xp) - lo} von ${hi - lo} XP (noch ${Math.max(0, hi - Math.round(S.xp))} bis Level ${n + 1})`; }
   const pk = $("pkBtn"); if (pk) { pk.hidden = !entwickler; pk.innerHTML = `${svg("post")}${pkOffenPruef ? `<i class="pk-ap" aria-hidden="true"></i>` : ""}${postfachNeu ? `<span class="pk-zahl">${postfachNeu > 99 ? "99+" : postfachNeu}</span>` : ""}`; pk.setAttribute("aria-label", `Postkasten${postfachNeu ? ", " + postfachNeu + " neu" : ""}`); }
 }
 /* Was ist im Laden gerade kaufbar? (je Kategorie, Reihenfolge-Regeln wie im Laden) */
@@ -2216,6 +2225,7 @@ function ichMenue() {
   if (!S.lbName) { go("name"); return; }
   const z = (wert, ic, t, info = "") => `<button class="im-zeile" data-close="${wert}">${svg(ic)}<span><b>${t}</b>${info ? `<small>${info}</small>` : ""}</span><i>›</i></button>`;
   const m = modal(`<div class="im-kopf">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName }, 56)}<div><b>${esc(S.lbName)}</b><small>${esc(rangVon())} · Level ${levelOf(S.xp)}</small></div></div>
+    ${xpInfoHtml()}
     <div class="im-liste">${z("profil", "user", "Mein Profil", "Titel, Siegel, Werte")}${z("ich", "shop", "Laden", "Aussehen, Rüstung")}
     <button class="im-zeile gs-schalter" id="gsSchalter" aria-pressed="${grossAn()}">${svg("eye")}<span><b>Große Schrift</b><small>${grossAn() ? "an" : "aus"}</small></span><i class="gs-knopf"></i></button>${z("badges", "medal", "Abzeichen", `${S.badges.length} von ${BADGES.length}`)}${z("share", "share", "Mit Freunden teilen", "QR-Code")}${z("wer", "people", "Wer spielt?", "Spieler wechseln")}${entwickler ? z("postfach", "post", "Postkasten", postfachNeu ? postfachNeu + " neu" : "") : ""}${deferredInstall && !S.appBonus ? z("install", "down", "App installieren", `+${APP_BONUS} Talente`) : ""}${z("feedback", "chat", "Feedback an den Entwickler")}</div>
     <button class="btn ghost" data-close="">Schließen</button>`, r => {
@@ -2252,6 +2262,7 @@ VIEWS.profil = () => {
   screen.innerHTML = `${backBtn("home", "Start")}<h1>Mein Profil</h1>
   <div class="card profil-kopf">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "Du" }, 84)}
     <div><h2 style="margin:0">${esc(S.lbName || "Noch ohne Namen")}</h2>${!S.pid && !S.offlineOnly ? `<div class="small muted">Erscheint in der Rangliste, sobald Internet da ist.</div>` : ""}<div class="muted">${esc(rangVon())}</div>${ruestungHtml(armorCount(), false)}</div></div>
+  <div class="card" style="margin:10px 0">${xpInfoHtml()}</div>
   <div class="card" style="margin:10px 0"><div class="gem-prof"><span class="small muted">Meine Gemeinde</span><b>${esc(gemName(meineGem()))}</b><button class="btn ghost mini" id="gemAendern">Ändern</button></div></div>
   <div class="row-btns" style="margin:10px 0"><button class="btn" data-go="shop">Aussehen ändern</button><button class="btn ghost" data-go="badges">Meine Abzeichen</button></div>
   <div class="card stack">${titelKarte(AT_TITEL, atP, "AT")}${titelKarte(NT_TITEL, ntP, "NT")}
