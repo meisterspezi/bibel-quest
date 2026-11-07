@@ -6,44 +6,46 @@
    ===================================================================== */
 
 /* ---------- Termine ---------- */
-const ADV_START = "2026-11-29";        /* 1. Advent: Weg nach Bethlehem, Advents-Biblionär und Duell-Aktion beginnen */
+const ADV_START = "2026-11-29";        /* 1. Advent: Krippe, Weihnachts-Biblionär und Duell-Aktion beginnen */
 const KAL_START = "2026-12-01";        /* Adventskalender: Türchen 1 */
 const ADV_KRIPPE = "2026-12-24";       /* Heiligabend: das Kind liegt in der Krippe */
 const ADV_SICHT_BIS = "2027-01-06";    /* so lange bleibt der Advent in der App sichtbar */
 
-/* ---------- Die Krippe wächst: Gemeinschaftsprojekt (Spenden in Adventslichtern) ---------- */
+/* ---------- Die Krippe wächst: nach dem biblischen Zeitplan (7.6) ----------
+   Jede Figur erscheint an einem festen Tag, passend zur Geschichte und zum Adventskalender (Feld d in BETH). Das Kind kommt an Heiligabend (ADV_KRIPPE),
+   die Weisen erst am 6. Januar (Epiphanias). Adventslichter ändern den Zeitplan NICHT – sie schmücken die Krippe (Lichterglanz für alle)
+   und schalten persönliche Belohnungen frei (Rahmen, Titel). */
 /* Adventslichter gibt es nur in der Adventszeit: Jede Spielerin und jeder Spieler verdient sie bei allem, was XP bringt
    (Lernen, Spielen, Biblionär, Duelle, Tagesaufgaben …) und im Adventskalender. Gespendet wird nur mit Lichtern – nie mit Talenten. */
 const ADV_LICHT_XP = 10;               /* 1 Adventslicht je 10 verdiente XP */
 const ADV_LICHT_NAME = "Adventslichter";
-const BETH_ZUSCHUSS = 0.5;             /* die Gemeinde legt zu jeder Gabe 50 % dazu */
-const BETH_TAGE = 3;                   /* jede Figur hat 3 Tage Zeit; danach füllt die Gemeinde den Rest auf */
+const ADV_GLANZ = [150, 400, 800, 1500, 2500];   /* Lichter der ganzen Gemeinde → Glanzstufe 1–5 der Krippe (Lichterkette, Funkeln, Sternschnuppe …) */
+const ADV_SPENDER = 50;                /* so viele eigene Lichter für Rahmen „Lichterglanz“ und Titel „Lichtträger“ */
 const BETH_TAGESGABE = 5;              /* kostenlose „Wegzehrung“: je Spieler und Tag ein kleines Licht für die Krippe */
-/* ziel = so viele Lichter braucht die Figur (inklusive Gemeinde-Zuschuss). Summe 6.000 ≈ 4.000 Lichter aus Spenden.
-   Nach den ersten Tagen hier anpassen. f = Figur im Bild (siehe advent.js), ver = Verheißung, erf = Erfüllung. */
+/* d = Tag, an dem die Figur erscheint, f = Figur im Bild (siehe advent.js), ver = Verheißung, erf = Erfüllung. */
 const BETH = [
-  { f: "stall", n: "Der Stall in Bethlehem", kurz: "Stall", v: "Lukas 2,4-7", ziel: 400,
-    k: "Josef stammt aus dem Haus Davids, darum zieht er nach Bethlehem. In der Herberge ist kein Platz – ein einfacher Stall wird zum Zuhause für diese Nacht.",
-    ver: ["Micha 5,1", "Du, Bethlehem, bist klein unter den Städten Judas – aus dir soll der kommen, der Herrscher über Israel sein wird."], erf: ["Lukas 2,4-7", "Jesus wird in Bethlehem, der Stadt Davids, geboren."] },
-  { f: "maria", n: "Maria", kurz: "Maria", v: "Lukas 1,26-38", ziel: 500,
+  { f: "maria", n: "Maria", kurz: "Maria", v: "Lukas 1,26-38", d: "2026-12-11",
     k: "Der Engel Gabriel kommt zu Maria in Nazareth: Du wirst einen Sohn bekommen und ihn Jesus nennen. Maria antwortet: Siehe, ich bin des Herrn Magd.",
     ver: ["Jesaja 7,14", "Eine junge Frau wird schwanger werden und einen Sohn gebären – sein Name: Immanuel, Gott mit uns."], erf: ["Matthäus 1,22-23", "Das ist geschehen, damit sich erfüllt, was der Herr durch den Propheten gesagt hat."] },
-  { f: "josef", n: "Josef", kurz: "Josef", v: "Matthäus 1,18-25", ziel: 600,
+  { f: "josef", n: "Josef", kurz: "Josef", v: "Matthäus 1,18-25", d: "2026-12-15",
     k: "Josef will sich erst von Maria trennen. Da sagt ihm ein Engel im Traum: Fürchte dich nicht, nimm Maria zu dir – das Kind ist vom Heiligen Geist. Josef gehorcht.",
     ver: ["Jesaja 11,1", "Ein Reis wird hervorgehen aus dem Stamm Isais – aus Davids Familie kommt der Retter."], erf: ["Matthäus 1,20", "Der Engel nennt Josef „Sohn Davids“ – Jesus gehört zum Königshaus."] },
-  { f: "schafe", n: "Die Schafe auf dem Feld", kurz: "Schafe", v: "Lukas 2,8", ziel: 700,
+  { f: "stall", n: "Der Stall in Bethlehem", kurz: "Stall", v: "Lukas 2,4-7", d: "2026-12-19",
+    k: "Josef stammt aus dem Haus Davids, darum zieht er nach Bethlehem. In der Herberge ist kein Platz – ein einfacher Stall wird zum Zuhause für diese Nacht.",
+    ver: ["Micha 5,1", "Du, Bethlehem, bist klein unter den Städten Judas – aus dir soll der kommen, der Herrscher über Israel sein wird."], erf: ["Lukas 2,4-7", "Jesus wird in Bethlehem, der Stadt Davids, geboren."] },
+  { f: "schafe", n: "Die Schafe auf dem Feld", kurz: "Schafe", v: "Lukas 2,8", d: "2026-12-20",
     k: "Draußen vor der Stadt hüten Hirten ihre Herden bei Nacht. Schafe und Lämmer gehören in Bethlehem zum Alltag – und zu den Opfern im Tempel.",
     ver: ["Jesaja 53,7", "Wie ein Lamm, das zur Schlachtung geführt wird – der Knecht Gottes trägt unsere Schuld."], erf: ["Johannes 1,29", "Johannes der Täufer sieht Jesus und sagt: Siehe, das Lamm Gottes, das die Sünde der Welt trägt!"] },
-  { f: "hirten", n: "Die Hirten", kurz: "Hirten", v: "Lukas 2,8-20", ziel: 800,
-    k: "Die Hirten bekommen die erste Nachricht von allen: Euch ist heute der Retter geboren! Sie laufen los, finden das Kind und erzählen es weiter.",
-    ver: ["Hesekiel 34,23", "Ich will einen einzigen Hirten über sie setzen, meinen Knecht David, der soll sie weiden."], erf: ["Johannes 10,11", "Jesus sagt: Ich bin der gute Hirte. Der gute Hirte lässt sein Leben für die Schafe."] },
-  { f: "engel", n: "Der Engel und das Heer des Himmels", kurz: "Engel", v: "Lukas 2,9-14", ziel: 900,
+  { f: "engel", n: "Der Engel und das Heer des Himmels", kurz: "Engel", v: "Lukas 2,9-14", d: "2026-12-21",
     k: "Ein Engel des Herrn tritt zu den Hirten, Gottes Licht umstrahlt sie. Dann loben viele Engel Gott: Ehre sei Gott in der Höhe und Friede auf Erden!",
     ver: ["Jesaja 9,5", "Uns ist ein Kind geboren – sein Name ist Wunder-Rat, Gott-Held, Ewig-Vater, Friedefürst."], erf: ["Lukas 2,11.14", "Euch ist heute der Retter geboren, der Christus, der Herr – und Friede auf Erden."] },
-  { f: "stern", n: "Der Stern über dem Stall", kurz: "Stern", v: "Matthäus 2,1-2", ziel: 1000,
+  { f: "stern", n: "Der Stern über dem Stall", kurz: "Stern", v: "Matthäus 2,1-2", d: "2026-12-23",
     k: "Weise aus dem Morgenland sehen einen Stern aufgehen und machen sich auf den Weg: Wo ist der neugeborene König der Juden?",
     ver: ["4. Mose 24,17", "Ein Stern geht auf aus Jakob, ein Zepter erhebt sich aus Israel."], erf: ["Matthäus 2,2", "Wir haben seinen Stern gesehen und sind gekommen, ihn anzubeten."] },
-  { f: "weise", n: "Die Weisen aus dem Morgenland", kurz: "Weise", v: "Matthäus 2,9-11", ziel: 1100,
+  { f: "hirten", n: "Die Hirten", kurz: "Hirten", v: "Lukas 2,8-20", d: "2026-12-25",
+    k: "Nach der Botschaft der Engel laufen die Hirten los, finden das Kind in der Krippe und erzählen es weiter. Weihnachten ist ihre Geschichte.",
+    ver: ["Hesekiel 34,23", "Ich will einen einzigen Hirten über sie setzen, meinen Knecht David, der soll sie weiden."], erf: ["Johannes 10,11", "Jesus sagt: Ich bin der gute Hirte. Der gute Hirte lässt sein Leben für die Schafe."] },
+  { f: "weise", n: "Die Weisen aus dem Morgenland", kurz: "Weise", v: "Matthäus 2,9-11", d: "2027-01-06",
     k: "Der Stern führt die Weisen zum Haus. Sie fallen nieder, beten das Kind an und schenken ihm Gold, Weihrauch und Myrrhe.",
     ver: ["Jesaja 60,3.6", "Völker ziehen zu deinem Licht, sie bringen Gold und Weihrauch und verkünden das Lob des Herrn."], erf: ["Matthäus 2,11", "Sie öffneten ihre Schätze und schenkten ihm Gold, Weihrauch und Myrrhe."] }
 ];

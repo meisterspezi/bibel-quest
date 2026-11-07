@@ -84,10 +84,13 @@ const advLichtText = () => advTestOn() ? "∞" : pkt(advLichter());
   B("bethlehem", "Krippenbauer", "An der Krippe mitgebaut – bis das Kind in der Krippe lag (Lukas 2,12)", "krippe", 30,
     s => !!A().bethAngekommen && (Object.values(A().beth || {}).some(v => v > 0) || Object.values(A().bethG || {}).some(v => v > 0)));
   B("adventskalender", "Adventsbote", `${KAL_MEISTER} Türchen im Adventskalender geöffnet`, "tuer", 30, s => Object.keys(A().kal || {}).length >= KAL_MEISTER);
+  B("advLicht", "Lichtspender", `${ADV_SPENDER} Lichter an die Krippe gebracht – sie leuchtet für alle`, "licht", 20, s => bethEigen() >= ADV_SPENDER);
   B("advBib", "Advents-Biblionär", "In 3 Adventswochen die Biblionär-Runde gespielt", "biblionaer", 20, s => Object.keys(A().advBib || {}).length >= 3);
   /* Rahmen und Titel zum Freischalten */
   RAHMEN.push({ id: "stern", name: "Stern von Bethlehem", price: -1, need: "bethlehem", bezug: "Die Weisen sagten: Wir haben seinen Stern gesehen und sind gekommen, ihn anzubeten (Matthäus 2,2)." });
   RAHMEN.push({ id: "kranz", name: "Adventskranz", price: -1, need: "adventskalender", bezug: "Das Licht scheint in der Finsternis, und die Finsternis hat es nicht überwältigt (Johannes 1,5)." });
+  RAHMEN.push({ id: "lichter", name: "Lichterglanz", price: -1, need: "advLicht", bezug: "Lasst euer Licht leuchten vor den Menschen (Matthäus 5,16)." });
+  TITEL.push({ id: "lichttraeger", name: "Lichtträger", price: -1, need: "advLicht", bezug: "Ihr seid das Licht der Welt (Matthäus 5,14)." });
   TITEL.push({ id: "bethlehem", name: "Krippenbauer", price: -1, need: "bethlehem", bezug: "Die Hirten sagten: Lasst uns nach Bethlehem gehen und die Sache sehen, die geschehen ist (Lukas 2,15)." });
   TITEL.push({ id: "adventsbote", name: "Adventsbote", price: -1, need: "adventskalender", bezug: "Der Engel sagte: Ich verkündige euch große Freude, die dem ganzen Volk widerfahren wird (Lukas 2,10)." });
   /* Rahmen-Overlays um den Avatar */
@@ -97,6 +100,8 @@ const advLichtText = () => advTestOn() ? "∞" : pkt(advLichter());
   R.stern = `<svg class="av-fr" viewBox="0 0 100 100" aria-hidden="true"><circle class="fr-schein" cx="50" cy="50" r="47" fill="url(#wrRschein)"/>${ring("url(#wrR_gold)", 6)}
     <path d="M50 -1l4.4 9.4 10.3 1.2-7.6 7 2 10.2L50 21.6 40.9 27.8l2-10.2-7.6-7 10.3-1.2z" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1" stroke-linejoin="round" transform="translate(0 3)"/>
     <g stroke="#ffe39a" stroke-width="1.4" stroke-linecap="round"><path d="M50 30v6M18 60l5-3M82 60l-5-3"/></g>${glanz}</svg>`;
+  R.lichter = `<svg class="av-fr" viewBox="0 0 100 100" aria-hidden="true"><circle class="fr-schein" cx="50" cy="50" r="47" fill="url(#wrRschein)"/>${ring("url(#wrR_gold)", 5)}
+    <g>${Array.from({ length: 16 }, (_, i) => { const w = i / 16 * Math.PI * 2, x = 50 + 35 * Math.cos(w), y = 50 + 35 * Math.sin(w); return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" fill="${["#fff3c4", "#ffb54a", "#ff8a7a", "#fff3c4"][i % 4]}" stroke="#1b2a55" stroke-width=".5"/>`; }).join("")}</g>${glanz}</svg>`;
   R.kranz = `<svg class="av-fr" viewBox="0 0 100 100" aria-hidden="true">${ring("#2f6b3f", 7)}
     <g fill="#3f8a52" stroke="#1b3d24" stroke-width=".6">${Array.from({ length: 14 }, (_, i) => { const a = i / 14 * Math.PI * 2; return `<ellipse cx="${(50 + 35 * Math.cos(a)).toFixed(1)}" cy="${(50 + 35 * Math.sin(a)).toFixed(1)}" rx="5.4" ry="2.6" transform="rotate(${(a * 180 / Math.PI + 90).toFixed(0)} ${(50 + 35 * Math.cos(a)).toFixed(1)} ${(50 + 35 * Math.sin(a)).toFixed(1)})"/>`; }).join("")}</g>
     <g fill="#d93a4a" stroke="#6a1420" stroke-width=".5"><circle cx="83" cy="44" r="2.2"/><circle cx="17" cy="58" r="2.2"/><circle cx="62" cy="84" r="2.2"/><circle cx="30" cy="16" r="2.2"/></g>
@@ -116,8 +121,9 @@ function bethLaden(neu) {
   return bethLaedt;
 }
 const bethSumme = (r, k) => ((r.s || {})[k] | 0) + ((r.g || {})[k] | 0);
-/* Stand der Krippe. Die Gabe jedes Spielers zählt mit Gemeinde-Zuschuss. Eine Figur ist fertig, wenn ihr Ziel erreicht ist
-   oder ihre Zeit abgelaufen ist (dann füllt die Gemeinde den Rest auf). Die nächste Figur öffnet höchstens einen Tag früher als geplant. */
+/* Stand der Krippe (7.6): feste Termine. Eine Figur steht, sobald ihr Tag erreicht ist – unabhängig von Spenden.
+   Lichter bestimmen nur den Glanz (gesamt) und persönliche Belohnungen (eigen). */
+const bethEigen = () => Object.values(A().beth || {}).reduce((x, v) => x + (v | 0), 0) + Object.values(A().bethG || {}).reduce((x, v) => x + (v | 0), 0);
 function bethStand() {
   const sum = BETH.map(() => 0), spender = BETH.map(() => []), alle = new Set();
   const test = advTestOn(), zeilen = test ? [] : (bethDaten || []).filter(r => r.pid !== S.pid);
@@ -127,15 +133,13 @@ function bethStand() {
     zeilen.push({ pid: S.pid, name: S.lbName, s, g, ich: true });
   }
   zeilen.forEach(r => { let da = false; for (let k = 1; k <= 8; k++) { const v = bethSumme(r, k); if (v > 0) { sum[k - 1] += v; spender[k - 1].push(r.ich ? "Du" : r.name); da = true; } } if (da) alle.add(r.ich ? "Du" : r.name); });
-  const eff = sum.map(v => Math.round(v * (1 + BETH_ZUSCHUSS)));
-  const tag = adventTag(), start = dayNum(ADV_START);
-  const fertigI = i => eff[i] >= BETH[i].ziel || tag >= start + BETH_TAGE * (i + 1);
-  let k = 0; while (k < 8 && fertigI(k)) k++;
-  const fertigAlle = k >= 8;
-  return { sum, eff, spender, namen: [...alle], k, fertig: k, alle: fertigAlle, krippe: fertigAlle && tag >= dayNum(ADV_KRIPPE), vorStart: tag < start,
-    offen: k < 8 && tag >= start + BETH_TAGE * k - 1, ab: start + BETH_TAGE * k - 1, frist: start + BETH_TAGE * (k + 1) };
+  const tag = adventTag(), start = dayNum(ADV_START), fertig = BETH.filter(b => tag >= dayNum(b.d)).length, gesamt = sum.reduce((x, v) => x + v, 0);
+  const glanz = ADV_GLANZ.filter(x => gesamt >= x).length;
+  return { sum, spender, namen: [...alle], gesamt, glanz, naechstGlanz: ADV_GLANZ[glanz] || 0, k: fertig, fertig, alle: fertig >= BETH.length, krippe: tag >= dayNum(ADV_KRIPPE), kind: tag >= dayNum(ADV_KRIPPE),
+    vorStart: tag < start, offen: tag >= start };
 }
-const bethRest = st => st.k >= 8 ? 0 : Math.ceil(Math.max(0, BETH[st.k].ziel - st.eff[st.k]) / (1 + BETH_ZUSCHUSS));
+/* Spenden landen bei der Figur, die zuletzt erschienen ist (Schlüssel 1–8, wie bisher in der Datenbank) */
+const bethSchluessel = st => String(Math.max(1, st.fertig));
 const bethHeuteGegeben = () => (A().bethTage || []).includes(adventTag());
 function bethSerie() {
   const t = A().bethTage || []; let n = 0, d = adventTag(); if (!t.includes(d)) d--;
@@ -151,29 +155,24 @@ function bethSenden() {
 }
 function bethSpenden(v, el) {
   const st = bethStand(); if (!st.offen) return;
-  v = Math.min(v | 0, bethRest(st), advLichter());
-  if (v < 1) { SFX.wrong(); toast(`${svg("licht")}<div>${advLichter() < 1 ? "Du hast gerade keine Adventslichter. Sie kommen bei allem, was XP bringt." : "Diese Figur ist schon fertig."}</div>`); return; }
-  const k = String(st.k + 1), mit = Math.round(v * (1 + BETH_ZUSCHUSS));
+  v = Math.min(v | 0, advLichter());
+  if (v < 1) { SFX.wrong(); toast(`${svg("licht")}<div>Du hast gerade keine Adventslichter. Sie kommen bei allem, was XP bringt.</div>`); return; }
+  const k = bethSchluessel(st);
   A().beth = Object.assign({}, A().beth, { [k]: ((A().beth || {})[k] | 0) + v }); save(); renderHud();
   SFX.coin(); if (el) { const [x, y] = centerOf(el); burst(x, y, 40, { up: 5 }); }
   bethSenden(); checkBadges();
-  const voll = bethStand().k > st.k;
   VIEWS.beth();
-  if (voll) setTimeout(bethFeiern, 500);
-  else toast(`${svg("licht")}<div><b>Danke für dein Licht!</b><div class="small muted">${v} Adventslichter + Gemeinde = ${mit} für „${esc(BETH[st.k].kurz)}“</div></div>`);
+  toast(`${svg("licht")}<div><b>Danke für dein Licht!</b><div class="small muted">${v} ${v === 1 ? "Licht" : "Lichter"} schmücken jetzt die Krippe.</div></div>`);
 }
-/* Tägliche Gabe: kostenlos, zählt für die Krippe (einmal pro Tag) */
+/* Tägliche Gabe: kostenlos, ein kleines Licht für die Krippe (einmal pro Tag) */
 function bethTagesgabe(el) {
   const st = bethStand(); if (!st.offen || bethHeuteGegeben()) return;
-  const v = Math.min(BETH_TAGESGABE, bethRest(st)); if (v < 1) return;
-  const k = String(st.k + 1);
+  const v = BETH_TAGESGABE, k = bethSchluessel(st);
   A().bethG = Object.assign({}, A().bethG, { [k]: ((A().bethG || {})[k] | 0) + v }); A().bethTage = [...(A().bethTage || []), adventTag()].slice(-40); save();
   SFX.coin(); if (el) { const [x, y] = centerOf(el); burst(x, y, 30, { up: 4 }); }
   bethSenden(); checkBadges();
-  const voll = bethStand().k > st.k;
   VIEWS.beth();
-  if (voll) setTimeout(bethFeiern, 500);
-  else toast(`${svg("licht")}<div><b>Tägliches Licht gebracht!</b><div class="small muted">+${v} für „${esc(BETH[st.k].kurz)}“ · ${bethSerie()} ${bethSerie() === 1 ? "Tag" : "Tage"} in Folge</div></div>`);
+  toast(`${svg("licht")}<div><b>Tägliches Licht gebracht!</b><div class="small muted">${bethSerie()} ${bethSerie() === 1 ? "Tag" : "Tage"} in Folge</div></div>`);
 }
 /* Feiern: jede fertige Figur einmal für alle, die dafür gegeben haben; das Kind an Heiligabend für alle */
 function bethFeiern() {
@@ -182,26 +181,26 @@ function bethFeiern() {
   if (st.krippe && !A().bethAngekommen) {
     A().bethAngekommen = true; save(); checkBadges();
     [0, 900, 2000, 3200].forEach(t => setTimeout(() => { SFX.level(); rain(150); }, t));
-    const dabei = Object.values(A().beth || {}).some(v => v > 0) || Object.values(A().bethG || {}).some(v => v > 0);
+    const dabei = bethEigen() > 0;
     modal(`<div class="label">Heiligabend</div><div class="sh-feier adv-finale">${krippeBild(Object.assign({}, st, { kind: true, neuKind: true }))}</div><h2 style="margin:0">${esc(BETH_FINALE.n)}</h2>
-      <p class="adv-gruss"><b>Frohe Weihnachten${S.lbName ? ", " + esc(S.lbName) : ""}!</b><br>Die Gemeinde der Freien Baptisten Eichstätt wünscht dir ein gesegnetes Fest. ${st.namen.length} ${st.namen.length === 1 ? "Stern hat" : "Sterne haben"} die Krippe gebaut – jetzt liegt Jesus darin.</p>
+      <p class="adv-gruss"><b>Frohe Weihnachten${S.lbName ? ", " + esc(S.lbName) : ""}!</b><br>Die Gemeinde der Freien Baptisten Eichstätt wünscht dir ein gesegnetes Fest. ${st.namen.length} ${st.namen.length === 1 ? "Stern hat" : "Sterne haben"} Licht an die Krippe gebracht – und jetzt liegt Jesus darin.</p>
       <p class="small muted" style="margin:0">${esc(BETH_FINALE.k)} (${esc(BETH_FINALE.v)})</p>
       <div class="adv-vf"><div><small>Verheißung · ${esc(BETH_FINALE.ver[0])}</small><span>${esc(BETH_FINALE.ver[1])}</span></div><i>→</i><div><small>Erfüllt · ${esc(BETH_FINALE.erf[0])}</small><span>${esc(BETH_FINALE.erf[1])}</span></div></div>
       ${dabei ? `<div class="vle-werte"><div><b>${avatarHtml({ avatar: S.avatar, frame: "stern", name: S.lbName }, 44)}</b><span>Rahmen „Stern von Bethlehem“</span></div><div><b>${svg("krippe")}</b><span>Titel „Krippenbauer“</span></div></div>` : ""}
       <button class="btn primary" data-close>Frohe Weihnachten!</button>`);
     return;
   }
-  for (let i = 0; i < st.fertig; i++) {
-    const k = String(i + 1);
-    if (((A().beth || {})[k] > 0 || (A().bethG || {})[k] > 0) && !(A().bethGefeiert || []).includes(k)) {
-      A().bethGefeiert = [...(A().bethGefeiert || []), k]; save(); SFX.badge(); rain(90);
-      const b = BETH[i];
-      modal(`<div class="label">Figur ${k} von 8 ist da</div><div class="sh-feier">${krippeBild(Object.assign({}, st, { fertig: Math.max(st.fertig, i + 1), neu: i }))}</div><h2 style="margin:0">${esc(b.n)}</h2>
-        <div class="adv-vf"><div><small>Gott hat versprochen · ${esc(b.ver[0])}</small><span>${esc(b.ver[1])}</span></div><i>→</i><div><small>In Jesus erfüllt · ${esc(b.erf[0])}</small><span>${esc(b.erf[1])}</span></div></div>
-        <p class="muted small" style="margin:0">Mitgebaut haben ${stiftNamen(st.spender[i])}.</p><button class="btn primary" data-close="ok">Weiter</button>`, () => setTimeout(bethFeiern, 300));
-      return;
-    }
-  }
+  /* Jede Figur an ihrem Tag, für alle: wer mehrere verpasst hat, sieht nur die neueste */
+  const offen = [];
+  for (let i = 0; i < st.fertig; i++) if (!(A().bethGefeiert || []).includes(String(i + 1))) offen.push(i);
+  if (!offen.length) return;
+  offen.slice(0, -1).forEach(i => { A().bethGefeiert = [...(A().bethGefeiert || []), String(i + 1)]; });
+  const i = offen[offen.length - 1], k = String(i + 1), b = BETH[i];
+  A().bethGefeiert = [...(A().bethGefeiert || []), k]; save(); SFX.badge(); rain(90);
+  modal(`<div class="label">${esc(adventDatum(dayNum(b.d)))} · Figur ${k} von 8</div><div class="sh-feier">${krippeBild(Object.assign({}, st, { fertig: Math.max(st.fertig, i + 1), neu: i }))}</div><h2 style="margin:0">${esc(b.n)}</h2>
+    <p class="small muted" style="margin:0">${esc(b.k)} (${esc(b.v)})</p>
+    <div class="adv-vf"><div><small>Gott hat versprochen · ${esc(b.ver[0])}</small><span>${esc(b.ver[1])}</span></div><i>→</i><div><small>In Jesus erfüllt · ${esc(b.erf[0])}</small><span>${esc(b.erf[1])}</span></div></div>
+    <button class="btn primary" data-close="ok">Weiter</button>`, () => setTimeout(bethFeiern, 300));
 }
 
 /* ---------- Das Krippenbild: jede Figur erscheint, wenn ihre Station fertig ist ---------- */
@@ -221,48 +220,58 @@ const kfFiguren = {
 const kfKrone = `<path d="M-5.6 -33l1.6-5 2.4 3 1.6-4 1.6 4 2.4-3 1.6 5z" fill="#f2c14e" stroke="#9a6d12" stroke-width=".6"/>`;
 const kfGabe = c => `<rect x="-14" y="-12" width="8" height="8" rx="1.2" fill="${c}" stroke="#1b2a55" stroke-width=".6"/>`;
 function krippeBild(st) {
-  const sterne = Array.from({ length: 30 }, (_, i) => `<circle cx="${(i * 47) % 320}" cy="${(i * 29) % 80 + 6}" r="${i % 4 ? .8 : 1.4}" fill="#fff" opacity="${i % 3 ? .55 : .9}"/>`).join("");
-  const figs = BETH.map((b, i) => { const z = i < st.fertig ? "da" : i === st.k && st.offen && !st.alle ? "jetzt" : "spaeter";
+  const gl = st.glanz | 0, sterne = Array.from({ length: 30 + gl * 12 }, (_, i) => `<circle cx="${(i * 47) % 320}" cy="${(i * 29) % 80 + 6}" r="${i % 4 ? .8 : 1.4}" fill="#fff" opacity="${i % 3 ? .55 : .9}"/>`).join("");
+  const figs = BETH.map((b, i) => [b, i]).sort((x, y) => (y[0].f === "stall") - (x[0].f === "stall")).map(([b, i]) => { const z = i < st.fertig ? "da" : "spaeter";
     return `<g class="kf kf-${z}${st.neu === i ? " kf-neu" : ""}" data-f="${b.f}">${kfFiguren[b.f]()}</g>`; }).join("");
   const kind = `<g class="kf-kind${st.neuKind ? " kf-neu" : ""}"><circle cx="160" cy="146" r="${st.kind ? 40 : 0}" fill="url(#kfGlut)"/><ellipse cx="160" cy="153" rx="14" ry="6.5" fill="#fff" stroke="#e8dcc0" stroke-width="1"/><circle cx="160" cy="147" r="5.4" fill="#f6dcc0" stroke="#d9b896" stroke-width=".7"/><path d="M155 146q5 3 10 0" stroke="#b08a6a" stroke-width=".8" fill="none"/>${st.kind ? [0, 1, 2, 3, 4, 5, 6].map(i => `<path d="M160 146L${(160 + 70 * Math.cos(Math.PI + i * Math.PI / 6)).toFixed(0)} ${(146 + 70 * Math.sin(Math.PI + i * Math.PI / 6)).toFixed(0)}" stroke="#fff3c4" stroke-width="1" opacity=".25"/>`).join("") : ""}</g>`;
+  /* Lichterglanz der Gemeinde (rein kosmetisch): Stufe 1 Lichterkette, 3 Schein um den Stall, 4 Funkeln, 5 Sternschnuppe */
+  const kette = gl >= 1 ? (() => { const n = 5 + gl * 3, pt = t => [(1 - t) * (1 - t) * 6 + 2 * t * (1 - t) * 160 + t * t * 314, (1 - t) * (1 - t) * 14 + 2 * t * (1 - t) * 60 + t * t * 14];
+    return `<path d="M6 14Q160 60 314 14" fill="none" stroke="#1b1230" stroke-width="1" opacity=".7"/>` + Array.from({ length: n }, (_, i) => { const [x, y] = pt((i + .5) / n);
+      return `<circle class="kf-bulb" style="animation-delay:${(i % 5) * .45}s" cx="${x.toFixed(1)}" cy="${(y + 2).toFixed(1)}" r="2.6" fill="${["#ffd970", "#ff8a7a", "#fff3c4", "#8ad0ff"][i % 4]}"/>`; }).join(""); })() : "";
+  const fun = (gl >= 4 ? Array.from({ length: 9 }, (_, i) => `<circle class="kf-fun" style="animation-delay:${(i * .55).toFixed(2)}s" cx="${40 + i * 30}" cy="${150 + (i * 13) % 24}" r="1.5" fill="#ffe39a"/>`).join("") : "") + (gl >= 5 ? `<path class="kf-schnuppe" d="M300 10l-34 22" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>` : "");
   return `<svg class="sh-bild krippe-bild" viewBox="0 0 320 190" role="img" aria-label="Die Krippe: ${st.fertig} von 8 Figuren stehen${st.kind ? ", das Kind liegt in der Krippe" : ""}">
   <defs><linearGradient id="kfNacht" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d1636"/><stop offset=".7" stop-color="#2a2552"/><stop offset="1" stop-color="#5a3a52"/></linearGradient>
     <radialGradient id="kfGlut"><stop offset="0" stop-color="#fffbe8"/><stop offset=".45" stop-color="#ffe39a" stop-opacity=".6"/><stop offset="1" stop-color="#ffe39a" stop-opacity="0"/></radialGradient></defs>
   <rect width="320" height="190" fill="url(#kfNacht)"/>${sterne}
   <path d="M0 128Q60 100 130 118T320 92V190H0Z" fill="#2b2447"/><path d="M0 164Q90 138 190 154T320 134V190H0Z" fill="#3a2f55"/><rect y="168" width="320" height="22" fill="#3a2f55"/>
-  ${figs}${st.fertig >= 1 || st.kind ? kind : ""}</svg>`;
+  ${gl >= 3 ? `<circle cx="160" cy="118" r="78" fill="url(#kfGlut)" opacity=".3"/>` : ""}${figs}${BETH.slice(0, st.fertig).some(b => b.f === "stall") || st.kind ? kind : ""}${kette}${fun}</svg>`;
 }
-const bethWeg = st => `<ol class="sh-weg" aria-label="Figuren">${BETH.map((a, i) => { const z = i < st.fertig ? "fertig" : i === st.k && st.offen ? "jetzt" : i === st.k ? "naechst" : "spaeter";
-  return `<li class="${z}" title="${i + 1}. ${esc(a.n)}"><span>${z === "fertig" ? svg("check") : i + 1}</span><small>${esc(a.kurz)}</small></li>`; }).join("")}</ol>`;
+const adventKurzDatum = tag => datumVon(tag).toLocaleDateString("de-DE", { day: "numeric", month: "short" });
+/* Der Zeitplan: wann welche Figur erscheint – passend zur Geschichte (und zum Adventskalender) */
+const bethZeitplan = st => {
+  const tag = adventTag(), z = BETH.map(b => ({ d: dayNum(b.d), n: b.n, v: b.v })); z.push({ d: dayNum(ADV_KRIPPE), n: BETH_FINALE.n, v: BETH_FINALE.v, kind: true });
+  z.sort((x, y) => x.d - y.d || (x.kind ? 1 : 0) - (y.kind ? 1 : 0));
+  const bald = z.findIndex(x => x.d > tag);
+  return `<ol class="adv-zeit" aria-label="Zeitplan der Krippe">${z.map((x, j) => { const da = x.d <= tag;
+    return `<li class="${da ? "da" : j === bald ? "bald" : "spaeter"}${x.kind ? " kind" : ""}"><span class="az-d">${esc(adventKurzDatum(x.d))}</span><span class="az-p">${da ? svg("check") : ""}</span><span class="az-t"><b>${esc(x.n)}</b><small>${esc(x.v)}</small></span></li>`; }).join("")}</ol>`;
+};
+const bethUnter = st => st.alle ? "Alle sind da – frohe Weihnachten!" : st.krippe ? `Das Kind liegt in der Krippe · Weise am ${adventKurzDatum(dayNum(BETH[7].d))}`
+  : st.fertig ? `Zuletzt: ${esc(BETH[st.fertig - 1].kurz)} · als Nächstes ${esc(adventKurzDatum(dayNum((BETH[st.fertig] || { d: ADV_KRIPPE }).d)))}` : `Am ${esc(adventKurzDatum(dayNum(BETH[0].d)))} kommt Maria`;
 const vfTeil = t => { const i = t.indexOf(": "); return i < 0 ? ["", t] : [t.slice(0, i), t.slice(i + 2)]; };
 const vfKarte = (ver, erf, kopf1 = "Gott hat versprochen", kopf2 = "In Jesus erfüllt") => `<div class="adv-vf"><div><small>${kopf1} · ${esc(ver[0])}</small><span>${esc(ver[1])}</span></div><i>→</i><div><small>${kopf2} · ${esc(erf[0])}</small><span>${esc(erf[1])}</span></div></div>`;
 const sternenTafel = st => `<section class="adv-tafel" aria-label="Sternen-Tafel"><div class="adv-tafel-kopf">${svg("stern")}<div><b>Sternen-Tafel</b><small>Alle, die an der Krippe mitbauen</small></div></div>
   ${st.namen.length ? `<div class="adv-sterne">${st.namen.slice().sort((a, b) => a === "Du" ? -1 : b === "Du" ? 1 : a.localeCompare(b, "de")).slice(0, 40).map(n => `<span class="adv-stern${n === "Du" ? " ich" : ""}">${svg("stern")}${esc(n)}</span>`).join("")}${st.namen.length > 40 ? `<span class="adv-stern mehr">+${st.namen.length - 40}</span>` : ""}</div>` : `<p class="small muted" style="margin:6px 0 0">Noch leer – dein Stern kann der erste sein.</p>`}</section>`;
 VIEWS_BETH = () => {
-  const st = bethStand(), a = BETH[Math.min(st.k, 7)], ist = st.alle ? 0 : st.eff[st.k];
-  const pz = st.alle ? 100 : Math.min(100, Math.round(ist / a.ziel * 100)), online = (window.LB && LB.ok && LB.bethSetzen && S.pid && !S.offlineOnly) || advTestOn();
-  const zuschuss = Math.round(BETH_ZUSCHUSS * 100);
-  let karte;
-  if (st.krippe) karte = `<div class="sh-karte fertig"><div class="sh-z1"><b>${esc(BETH_FINALE.n)}</b><small>8 von 8</small></div><p class="sh-vers">${esc(BETH_FINALE.k)} (${esc(BETH_FINALE.v)})</p>${vfKarte(BETH_FINALE.ver, BETH_FINALE.erf)}</div>`;
-  else if (st.alle) karte = `<div class="sh-karte genug"><div class="sh-z1"><b>Alles ist bereit!</b><small>8 von 8</small></div><p class="sh-vers">Die Krippe steht, alle sind da. Nur einer fehlt noch: Am Heiligabend (${esc(adventDatum(dayNum(ADV_KRIPPE)))}) liegt das Kind darin – schau dann wieder vorbei!</p>
-      <p class="sh-geber">Zuletzt bauten mit ${stiftNamen(st.spender[7])}</p></div>`;
-  else if (!st.offen) karte = `<div class="sh-karte genug"><div class="sh-z1"><b>Figur ist da!</b><small>${st.k} von 8</small></div><p class="sh-vers">Es geht weiter am ${esc(adventDatum(st.ab + 1))} mit „${esc(a.n)}“.</p>${vfKarte(BETH[st.k - 1].ver, BETH[st.k - 1].erf)}
-      <p class="sh-geber">Mitgebaut haben ${stiftNamen(st.spender[st.k - 1])}</p></div>`;
-  else {
-    const heute = bethHeuteGegeben(), serie = bethSerie();
-    karte = `<div class="sh-karte"><div class="sh-z1"><b>${st.k + 1} · ${esc(a.n)}</b><small>bis ${esc(adventKurz(st.frist - 1))}</small></div><p class="sh-vers">${esc(a.k)} (${esc(a.v)})</p>${vfKarte(a.ver, a.erf)}
-      <div class="sh-balken"><i style="width:${pz}%"></i></div><div class="sh-zahlen"><span>${pkt(ist)} von ${pkt(a.ziel)} Lichtern</span><span>${pz} %</span></div>
-      <p class="small muted" style="margin:0">Die Gemeinde legt zu jedem Licht <b>${zuschuss} %</b> dazu. Spätestens am ${esc(adventDatum(st.frist))} füllt sie den Rest auf und die nächste Figur kommt.</p>
-      ${online ? `<div class="sh-spenden">${[10, 50, 100].map(v => `<button data-sp="${v}" ${advLichter() < 1 ? "disabled" : ""}>+${v}</button>`).join("")}<button class="haupt" data-sp="frei">Spenden</button></div>
-        <button class="btn ${heute ? "ghost" : "primary"} breit adv-gabe" id="bethGabe" ${heute ? "disabled" : ""}>${svg("licht")} ${heute ? `Heute gebracht · ${serie} ${serie === 1 ? "Tag" : "Tage"} in Folge` : `Tägliches Licht · +${BETH_TAGESGABE} gratis`}</button>`
-      : `<p class="small muted" style="margin:0">Spenden geht nur mit Internet und Eintrag in der Rangliste.</p>`}
-      <p class="sh-geber">${st.spender[st.k].length ? `Bisher bauten mit ${stiftNamen(st.spender[st.k])}` : "Sei der Erste, der für diese Figur ein Licht bringt!"}</p></div>`;
-  }
-  screen.innerHTML = `${backBtn("advent", "Advent")}${bereichKopf("advent", { ic: "krippe", t: "Die Krippe", sub: "Die Gemeinde baut sie gemeinsam", ring: [st.fertig, "von 8"] })}${advTestLeiste()}
-    <div class="sh-buehne">${krippeBild(st)}</div>${bethWeg(st)}
-    <div class="adv-licht-zeile">${svg("licht")}<span><b>${advLichtText()} Adventslichter</b><small>Du verdienst 1 Licht je ${ADV_LICHT_XP} XP – bei allen Spielen. Gespendet wird nur mit Lichtern.</small></span></div>
-    ${karte}${sternenTafel(st)}
-    <p class="small muted sh-fuss">Wer mitgebaut hat, wird mit Namen genannt, Mengen bleiben verborgen (Matthäus 6,3).</p>`;
+  const st = bethStand(), online = (window.LB && LB.ok && LB.bethSetzen && S.pid && !S.offlineOnly) || advTestOn();
+  const heute = bethHeuteGegeben(), serie = bethSerie(), eigen = bethEigen(), neueste = st.fertig ? BETH[st.fertig - 1] : null;
+  const wann = st.vorStart ? "" : st.fertig ? `Zuletzt erschienen · ${esc(adventDatum(dayNum(neueste.d)))}` : `Am ${esc(adventDatum(dayNum(BETH[0].d)))} geht es los`;
+  const geschichte = st.krippe && (!neueste || dayNum(neueste.d) <= dayNum(ADV_KRIPPE)) ? `<div class="sh-karte fertig"><div class="sh-z1"><b>${esc(BETH_FINALE.n)}</b><small>${st.fertig} von 8</small></div><p class="sh-vers">${esc(BETH_FINALE.k)} (${esc(BETH_FINALE.v)})</p>${vfKarte(BETH_FINALE.ver, BETH_FINALE.erf)}</div>`
+    : neueste ? `<div class="sh-karte"><div class="sh-z1"><b>${st.fertig} · ${esc(neueste.n)}</b><small>${wann}</small></div><p class="sh-vers">${esc(neueste.k)} (${esc(neueste.v)})</p>${vfKarte(neueste.ver, neueste.erf)}</div>`
+    : `<div class="sh-karte genug"><div class="sh-z1"><b>Die Krippe wartet</b><small>${wann}</small></div><p class="sh-vers">Die Weihnachtsgeschichte beginnt bei Maria in Nazareth. Jeden Tag, an dem die Geschichte weitergeht, kommt eine Figur dazu.</p></div>`;
+  const glanzZeile = st.naechstGlanz ? `<div class="sh-balken"><i style="width:${Math.min(100, Math.round(st.gesamt / st.naechstGlanz * 100))}%"></i></div><div class="sh-zahlen"><span>Glanz ${st.glanz} von ${ADV_GLANZ.length}</span><span>${pkt(st.gesamt)} von ${pkt(st.naechstGlanz)} Lichtern</span></div>`
+    : `<div class="sh-zahlen"><span>Höchster Glanz erreicht!</span><span>${pkt(st.gesamt)} Lichter</span></div>`;
+  const licht = `<div class="sh-karte adv-lichtkarte"><div class="sh-z1"><b>Licht für die Krippe</b><small>${advLichtText()} Lichter</small></div>
+    <p class="small muted" style="margin:0">Deine Lichter schmücken die Krippe für alle: Lichterkette, Schein, Funkeln. Am Zeitplan der Geschichte ändern sie nichts. Mit ${ADV_SPENDER} Lichtern bekommst du außerdem den Rahmen „Lichterglanz“ und den Titel „Lichtträger“${eigen >= ADV_SPENDER ? " – beides gehört dir schon" : ` (du hast ${pkt(eigen)})`}.</p>
+    ${glanzZeile}
+    ${online ? `<div class="sh-spenden">${[10, 50, 100].map(v => `<button data-sp="${v}" ${advLichter() < 1 ? "disabled" : ""}>+${v}</button>`).join("")}<button class="haupt" data-sp="frei">Spenden</button></div>
+      <button class="btn ${heute ? "ghost" : "primary"} breit adv-gabe" id="bethGabe" ${heute ? "disabled" : ""}>${svg("licht")} ${heute ? `Heute gebracht · ${serie} ${serie === 1 ? "Tag" : "Tage"} in Folge` : `Tägliches Licht · +${BETH_TAGESGABE} gratis`}</button>`
+      : `<p class="small muted" style="margin:0">Lichter bringen geht nur mit Internet und Eintrag in der Rangliste.</p>`}</div>`;
+  screen.innerHTML = `${backBtn("advent", "Advent")}${bereichKopf("advent", { ic: "krippe", t: "Die Krippe", sub: "Nach der Weihnachtsgeschichte", ring: [st.fertig, "von 8"] })}${advTestLeiste()}
+    <div class="sh-buehne">${krippeBild(st)}</div>
+    ${geschichte}
+    ${bkLabel("kerze", "Zeitplan")}${bethZeitplan(st)}
+    ${licht}${sternenTafel(st)}
+    <p class="small muted sh-fuss">Wer Lichter bringt, wird mit Namen genannt, Mengen bleiben verborgen (Matthäus 6,3).</p>`;
   wireGo(); advTestWire(VIEWS_BETH);
   screen.querySelectorAll("[data-sp]").forEach(b => b.onclick = () => { const v = b.dataset.sp; if (v === "frei") { bethSpendeWahl(); return; } bethSpenden(+v, b); });
   const g = $("bethGabe"); if (g) g.onclick = () => bethTagesgabe(g);
@@ -270,8 +279,8 @@ VIEWS_BETH = () => {
   else bethFeiern();
 };
 function bethSpendeWahl() {
-  const st = bethStand(), rest = bethRest(st), max = Math.min(advLichter(), rest);
-  const m = modal(`<div class="label">Licht für die Krippe</div><h2 style="margin:0">${esc(BETH[st.k].n)}</h2><p class="muted small" style="margin:0">Noch ${pkt(rest)} Lichter bis zum Ziel · du hast ${advTestOn() ? "im Test unbegrenzt" : pkt(advLichter())}.<br>Die Gemeinde legt ${Math.round(BETH_ZUSCHUSS * 100)} % dazu.</p>
+  const max = advLichter();
+  const m = modal(`<div class="label">Licht für die Krippe</div><h2 style="margin:0">Wie viele Lichter?</h2><p class="muted small" style="margin:0">Du hast ${advTestOn() ? "im Test unbegrenzt" : pkt(advLichter())}. Die Lichter schmücken die Krippe – der Zeitplan bleibt, wie er ist.</p>
     <input class="field" id="spBetrag" type="number" inputmode="numeric" min="1" max="${max}" value="${Math.max(1, Math.min(max, 25))}" aria-label="Adventslichter spenden">
     <button class="btn primary" id="spOk" ${max < 1 ? "disabled" : ""}>Spenden</button><button class="btn ghost" data-close>Abbrechen</button>`);
   m.querySelector("#spOk").onclick = () => { const v = Math.floor(+m.querySelector("#spBetrag").value || 0); m.remove(); bethSpenden(v); };
@@ -282,6 +291,12 @@ function bethSpendeWahl() {
    ===================================================================== */
 const kalOptionen = d => KALENDER[d - 1].a.slice().sort((x, y) => hash("kal" + d + x) - hash("kal" + d + y));
 const kalBelohnung = (d, heute) => { const g = KAL_GROSS[d] || [0, 0]; return { tal: (heute ? KAL_TAL : KAL_TAL_SPAET) + g[0], licht: (heute ? KAL_LICHT : KAL_LICHT_SPAET) + g[1] }; };
+/* Welche Figur kommt an diesem Türchen-Tag in die Krippe? */
+function kalKrippe(d) {
+  const t = dayNum(KAL_START) + d - 1, f = BETH.filter(b => dayNum(b.d) === t).map(b => b.n);
+  if (t === dayNum(ADV_KRIPPE)) f.push("das Kind in der Krippe");
+  return f.length ? `<p class="small" style="margin:0 0 10px;color:#ffe39a">${svg("krippe")} In der Krippe: ${esc(f.join(" und "))}</p>` : "";
+}
 function kalOeffnen(d) {
   if (d > kalHeuteNr()) { SFX.wrong(); toast(`${svg("tuer")}<div><b>Noch zu!</b><div class="small muted">Türchen ${d} geht am ${esc(adventDatum(dayNum(KAL_START) + d - 1))} auf.</div></div>`); return; }
   const e = KALENDER[d - 1], frist = dayNum(KAL_START) + d - 1, heute = adventTag() === frist, test = advTestOn();
@@ -305,6 +320,7 @@ function kalOeffnen(d) {
   const schritt1 = () => {
     const ev = KAL_ERF[d - 1];
     innen.innerHTML = `<div class="adv-aufgang"><h2 style="margin:0 0 6px">${esc(e.t)}</h2><p class="small muted" style="margin:0 0 8px">${svg("book")} ${esc(e.v)}</p><p style="margin:0 0 10px">${esc(e.s)}</p>
+      ${kalKrippe(d)}
       ${vfKarte(vfTeil(ev[0]), vfTeil(ev[1]), "Verheißung", "Erfüllung")}
       ${neu ? `${zahlen(lohn.tal, lohn.licht)}${test ? `<p class="small muted" style="margin:0 0 10px">Testmodus: keine Belohnung${heute ? "" : " (nachgeholt)"}</p>` : `<p class="small muted" style="margin:0 0 10px">${heute ? "Heute geöffnet – volle Belohnung" : "Nachgeholt – halbe Belohnung"}</p>`}` : ""}
       ${beantwortet() ? `<p class="small muted" style="margin:0 0 10px">${A().kal[d].r ? `${svg("check", "var(--good)")} Frage richtig beantwortet` : "Frage beantwortet"} – ${esc(e.e)}</p><button class="btn primary" data-close>Schließen</button>`
@@ -394,8 +410,8 @@ VIEWS_ADVENT = () => {
   const w = adventWoche(), n = Math.min(4, w), st = bethStand(), nr = kalHeuteNr(), kalOffen = Object.keys(A().kal || {}).length, kalHeute = nr > 0 && (A().kal || {})[nr];
   const r = advRunde(), bibGesp = r ? advBibGespielt(r) : true;
   const karte = (ic, titel, unter, info, attr, punkt) => `<button class="bereich klein adv-karte" ${attr}><span class="b-ic">${svg(ic)}</span><span class="b-tx"><b>${titel}</b><span>${unter}</span></span><span class="b-info">${punkt ? `<i class="adv-punkt"></i>` : ""}${info}</span></button>`;
-  const wegUnter = st.krippe ? "Das Kind liegt in der Krippe!" : st.alle ? "Alles bereit – bis Heiligabend" : st.offen ? `Jetzt: ${esc(BETH[st.k].kurz)}` : "Die nächste Figur kommt bald";
-  const wegPunkt = st.offen && !st.alle && !bethHeuteGegeben();
+  const wegUnter = bethUnter(st);
+  const wegPunkt = st.offen && !bethHeuteGegeben();
   const kalUnter = !nr ? `Ab ${esc(adventDatum(dayNum(KAL_START)))}` : kalHeute ? "Heute schon geöffnet" : `Türchen ${nr} wartet`;
   const vf = nr > 0 ? KAL_ERF[nr - 1].map(vfTeil) : [["Jesaja 9,1", "Das Volk, das im Finstern wandelt, sieht ein großes Licht."], ["Lukas 2,11", "Euch ist heute der Retter geboren, der Christus, der Herr."]];
   const bibUnter = !r ? "Die Runden sind vorbei" : bibGesp ? `${pkt((A().advBib || {})[r] | 0)} Punkte` : `${advRundeName(r)} · 1 Versuch`;
@@ -407,7 +423,7 @@ VIEWS_ADVENT = () => {
     ${bkLabel("biblionaer", "Weihnachts-Biblionär")}
     <div class="adv-modi">${modus("advSolo", "user", "Solo", "Allein üben", false)}${modus("advBib", "crown", "Der Woche", bibUnter, !!r && !bibGesp)}${modus("advDuell", "duell", "Duell", "Gegen die Gemeinde", false)}</div>
     ${vfKarte(vf[0], vf[1], "Gott hat versprochen", "In Jesus erfüllt")}
-    <p class="adv-erklaer">${svg("licht")}<span><b>Adventslichter:</b> Du bekommst 1 Licht je ${ADV_LICHT_XP} XP bei jedem Spiel – nur im Advent. Damit baust du die Krippe; die Gemeinde legt ${Math.round(BETH_ZUSCHUSS * 100)} % dazu.</span></p>`;
+    <p class="adv-erklaer">${svg("licht")}<span><b>Adventslichter:</b> Du bekommst 1 Licht je ${ADV_LICHT_XP} XP bei jedem Spiel – nur im Advent. Damit schmückst du die Krippe und schaltest Rahmen und Titel frei. Die Figuren erscheinen an festen Tagen, passend zur Geschichte.</span></p>`;
   wireGo(); advTestWire(VIEWS_ADVENT);
   $("advSolo").onclick = () => { SFX.tap(); weihModus = true; bibSolo(true); };
   $("advBib").onclick = () => { SFX.tap(); bibAdventStarten(); };
@@ -422,11 +438,11 @@ function adventMiniHtml(kompakt) {
   if (!adventSichtbar()) return "";
   const st = bethStand(), nr = kalHeuteNr(), r = advRunde();
   const offen = [];
-  if (st.offen && !st.alle && !bethHeuteGegeben()) offen.push("Tägliches Licht");
+  if (st.offen && !bethHeuteGegeben()) offen.push("Tägliches Licht");
   if (nr > 0 && !(A().kal || {})[nr]) offen.push(`Türchen ${nr}`);
   if (r && !advBibGespielt(r)) offen.push("Biblionär-Runde");
   const zeile = st.krippe ? "Frohe Weihnachten! Das Kind ist da" : offen.length ? `Wartet: ${offen.slice(0, 2).join(" · ")}` : `Krippe ${st.fertig}/8`;
-  const pz = st.alle ? 100 : Math.min(100, Math.round(st.eff[st.k] / BETH[st.k].ziel * 100));
+  const pz = Math.round(st.fertig / BETH.length * 100);
   return `<button class="sh-mini adv-mini ${kompakt ? "kompakt" : ""}" data-go="advent" aria-label="Advent: ${esc(zeile)}">${svg("kerze")}<span class="sh-mini-tx"><b>Advent${advTestOn() ? " · Test" : ""}</b><small>${esc(zeile)}</small>${kompakt ? "" : `<i class="sh-balken klein"><i style="width:${pz}%"></i></i>`}</span><span class="adv-mini-licht">${svg("licht")}${advLichtText()}</span>${offen.length ? `<i class="adv-punkt" aria-hidden="true"></i>` : ""}<span class="sh-pfeil">›</span></button>`;
 }
 /* Einmaliger Willkommens-Hinweis am Anfang des Advents */
@@ -435,8 +451,8 @@ function adventStartHinweis() {
   S.adventIntro = true; save(); SFX.badge();
   modal(`<div class="label">1. Advent</div><h2 style="margin:0">Der Advent beginnt!</h2>
     <p class="muted" style="margin:0">Gott hat versprochen, dass er kommt – an Weihnachten hat Jesus es erfüllt. Bis dahin gibt es:</p>
-    <ul class="adv-liste"><li>${svg("krippe")}<span><b>Die Krippe wächst</b> – die Gemeinde baut gemeinsam Stall, Maria, Josef, Schafe, Hirten, Engel, Stern und Weise. Am Heiligabend liegt das Kind darin.</span></li>
-      <li>${svg("licht")}<span><b>Adventslichter</b> – gibt es nur im Advent, bei allem, was XP bringt. Mit ihnen baust du die Krippe; die Gemeinde legt ${Math.round(BETH_ZUSCHUSS * 100)} % dazu.</span></li>
+    <ul class="adv-liste"><li>${svg("krippe")}<span><b>Die Krippe wächst</b> – nach der Weihnachtsgeschichte: ab 11. Dezember Maria, Josef, Stall, Schafe, Engel und Stern; an Heiligabend liegt das Kind darin, am 6. Januar kommen die Weisen.</span></li>
+      <li>${svg("licht")}<span><b>Adventslichter</b> – gibt es nur im Advent, bei allem, was XP bringt. Sie schmücken die Krippe und bringen dir Rahmen und Titel; den Zeitplan ändern sie nicht.</span></li>
       <li>${svg("tuer")}<span><b>Adventskalender</b> – ab ${esc(adventDatum(dayNum(KAL_START)))} jeden Tag ein Türchen mit großer Belohnung.</span></li>
       <li>${svg("biblionaer")}<span><b>Weihnachts-Biblionär</b> – Solo, der Woche und Duell, mit weihnachtlichen Pastoren. Bis 6. Januar.</span></li></ul>
     <button class="btn primary" data-close="los">${svg("kerze")} Zum Advent</button><button class="btn ghost" data-close>Später</button>`, r => { if (r === "los") go("advent"); });

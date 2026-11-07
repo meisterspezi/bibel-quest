@@ -1762,6 +1762,22 @@ details.pf>summary::after{content:"▾";margin-left:2px;color:var(--muted);trans
 .adv-modus .adv-punkt{position:absolute;top:7px;right:7px;margin:0}
 .adv-erklaer{display:flex;gap:8px;align-items:flex-start;margin:10px 2px 2px;font-size:.7rem;line-height:1.35;color:var(--muted)}
 .adv-erklaer svg{width:16px;height:16px;flex:none;margin-top:1px}.adv-erklaer b{color:#ffe39a;font-weight:800}
+/* 7.6: Zeitplan der Krippe, Lichterglanz */
+.adv-zeit{list-style:none;margin:0 0 10px;padding:6px 8px;border-radius:16px;border:1px solid #ffffff18;background:linear-gradient(180deg,#14183a,#1c1a40);display:grid;gap:0}
+.adv-zeit li{display:grid;grid-template-columns:44px 22px minmax(0,1fr);gap:8px;align-items:center;padding:6px 2px;border-bottom:1px solid #ffffff0d}
+.adv-zeit li:last-child{border-bottom:0}
+.adv-zeit .az-d{font:800 .72rem var(--body);color:var(--muted);text-align:right;white-space:nowrap}
+.adv-zeit .az-p{width:20px;height:20px;border-radius:50%;border:2px solid #ffffff33;display:grid;place-items:center;background:#0e1226}
+.adv-zeit .az-p svg{width:12px;height:12px}
+.adv-zeit .az-t{min-width:0;display:grid;gap:0}.adv-zeit .az-t b{font:800 .84rem var(--body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.adv-zeit .az-t small{font:700 .66rem var(--body);color:var(--muted)}
+.adv-zeit li.da .az-p{background:#2f6b3f;border-color:#5fe0b0}
+.adv-zeit li.bald .az-p{border-color:#ffcf5a;box-shadow:0 0 0 3px #ffcf5a33}.adv-zeit li.bald .az-d{color:#ffe39a}
+.adv-zeit li.spaeter{opacity:.55}
+.adv-zeit li.kind .az-t b{color:#ffe39a}
+.adv-lichtkarte{display:grid;gap:8px}
+.kf-bulb{filter:drop-shadow(0 0 3px #ffe39a)}
+@media (prefers-reduced-motion:no-preference){.kf-bulb{animation:kfBulb 2.2s ease-in-out infinite}.kf-fun{animation:kfFun 3.4s ease-in infinite}.kf-schnuppe{animation:kfSchn 6s ease-out infinite;opacity:0}
+@keyframes kfBulb{50%{opacity:.35}}@keyframes kfFun{0%{transform:translateY(0);opacity:0}20%{opacity:.9}100%{transform:translateY(-34px);opacity:0}}@keyframes kfSchn{0%,70%{opacity:0;transform:translate(0,0)}75%{opacity:1}100%{opacity:0;transform:translate(-40px,26px)}}}
 .weih-schalter{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:0 0 8px;padding:3px;border-radius:14px;background:#ffffff0d;border:1px solid #ffffff1c}
 .weih-schalter button{display:flex;align-items:center;justify-content:center;gap:6px;height:32px;border:0;border-radius:11px;background:transparent;color:var(--muted);font:800 .8rem var(--body);cursor:pointer}
 .weih-schalter button svg{width:17px;height:17px}
