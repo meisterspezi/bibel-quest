@@ -239,13 +239,13 @@ function krippeBild(st) {
 const adventKurzDatum = tag => datumVon(tag).toLocaleDateString("de-DE", { day: "numeric", month: "short" });
 /* Der Zeitplan: wann welche Figur erscheint – passend zur Geschichte (und zum Adventskalender) */
 const bethZeitplan = st => {
-  const tag = adventTag(), z = BETH.map(b => ({ d: dayNum(b.d), n: b.n, v: b.v })); z.push({ d: dayNum(ADV_KRIPPE), n: BETH_FINALE.n, v: BETH_FINALE.v, kind: true });
-  BETH_ETAPPEN.forEach(e => z.push({ d: dayNum(e.d), n: e.n, v: e.v, e }));
+  const tag = adventTag(), z = BETH.map(b => ({ d: dayNum(b.d), n: b.n, v: b.v, e: b })); z.push({ d: dayNum(ADV_KRIPPE), n: BETH_FINALE.n, v: BETH_FINALE.v, kind: true, e: BETH_FINALE });
+  BETH_ETAPPEN.forEach(e => z.push({ d: dayNum(e.d), n: e.n, v: e.v, e, hg: true }));   /* 7.9: auch Figuren und Finale zeigen Verheißung und Erfüllung; „Hintergrund“ nur bei den Etappen */
   z.sort((x, y) => x.d - y.d || (x.kind ? 1 : 0) - (y.kind ? 1 : 0));
   const bald = z.findIndex(x => x.d > tag);
   return `<ol class="adv-zeit" aria-label="Zeitplan der Krippe">${z.map((x, j) => { const da = x.d <= tag;
     const mehr = x.e && da ? `<span class="az-mehr"><span>${esc(x.e.k)}</span><details><summary>Verheißung und Erfüllung</summary>${vfKarte(x.e.ver, x.e.erf)}</details></span>` : "";
-    return `<li class="${da ? "da" : j === bald ? "bald" : "spaeter"}${x.kind ? " kind" : ""}${x.e ? " etappe" : ""}"><span class="az-d">${esc(adventKurzDatum(x.d))}</span><span class="az-p">${da ? svg("check") : ""}</span><span class="az-t"><b>${esc(x.n)}</b><small>${esc(x.v)}${x.e ? " · Hintergrund" : ""}</small>${mehr}</span></li>`; }).join("")}</ol>`;
+    return `<li class="${da ? "da" : j === bald ? "bald" : "spaeter"}${x.kind ? " kind" : ""}${x.e ? " etappe" : ""}"><span class="az-d">${esc(adventKurzDatum(x.d))}</span><span class="az-p">${da ? svg("check") : ""}</span><span class="az-t"><b>${esc(x.n)}</b><small>${esc(x.v)}${x.hg ? " · Hintergrund" : ""}</small>${mehr}</span></li>`; }).join("")}</ol>`;
 };
 const bethUnter = st => st.alle ? "Alle sind da – frohe Weihnachten!" : st.krippe ? `Das Kind liegt in der Krippe · Weise am ${adventKurzDatum(dayNum(BETH[7].d))}`
   : st.fertig ? `Zuletzt: ${esc(BETH[st.fertig - 1].kurz)} · als Nächstes ${esc(adventKurzDatum(dayNum((BETH[st.fertig] || { d: ADV_KRIPPE }).d)))}` : `Am ${esc(adventKurzDatum(dayNum(BETH[0].d)))} kommt Maria`;
