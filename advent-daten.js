@@ -9,11 +9,12 @@
 const ADV_START = "2026-11-29";        /* 1. Advent: Krippe, Weihnachts-Biblionär und Duell-Aktion beginnen */
 const KAL_START = "2026-12-01";        /* Adventskalender: Türchen 1 */
 const ADV_KRIPPE = "2026-12-24";       /* Heiligabend: das Kind liegt in der Krippe */
-const ADV_SICHT_BIS = "2027-01-06";    /* so lange bleibt der Advent in der App sichtbar */
+const ADV_SICHT_BIS = "2027-01-08";    /* so lange bleibt der Advent in der App sichtbar (7.8: bis 8. Januar, damit die Flucht nach Ägypten am 7.1. noch dabei ist) */
 
 /* ---------- Die Krippe wächst: nach dem biblischen Zeitplan (7.6) ----------
    Jede Figur erscheint an einem festen Tag, passend zur Geschichte und zum Adventskalender (Feld d in BETH). Das Kind kommt an Heiligabend (ADV_KRIPPE),
-   die Weisen erst am 6. Januar (Epiphanias). Adventslichter ändern den Zeitplan NICHT – sie schmücken die Krippe (Lichterglanz für alle)
+   mit ihm Engel und Stern (7.8: biblisch erst in der Nacht der Geburt), die Hirten am 25.12., die Weisen am 6. Januar (Epiphanias).
+   WICHTIG: BETH bleibt nach Datum sortiert und hat genau 8 Figuren (Schlüssel 1–8 in der Datenbank, Regeln und advent.js). Adventslichter ändern den Zeitplan NICHT – sie schmücken die Krippe (Lichterglanz für alle)
    und schalten persönliche Belohnungen frei (Rahmen, Titel). */
 /* Adventslichter gibt es nur in der Adventszeit: Jede Spielerin und jeder Spieler verdient sie bei allem, was XP bringt
    (Lernen, Spielen, Biblionär, Duelle, Tagesaufgaben …) und im Adventskalender. Gespendet wird nur mit Lichtern – nie mit Talenten. */
@@ -36,11 +37,11 @@ const BETH = [
   { f: "schafe", n: "Die Schafe auf dem Feld", kurz: "Schafe", v: "Lukas 2,8", d: "2026-12-20",
     k: "Draußen vor der Stadt hüten Hirten ihre Herden bei Nacht. Schafe und Lämmer gehören in Bethlehem zum Alltag – und zu den Opfern im Tempel.",
     ver: ["Jesaja 53,7", "Wie ein Lamm, das zur Schlachtung geführt wird – der Knecht Gottes trägt unsere Schuld."], erf: ["Johannes 1,29", "Johannes der Täufer sieht Jesus und sagt: Siehe, das Lamm Gottes, das die Sünde der Welt trägt!"] },
-  { f: "engel", n: "Der Engel und das Heer des Himmels", kurz: "Engel", v: "Lukas 2,9-14", d: "2026-12-21",
+  { f: "engel", n: "Der Engel und das Heer des Himmels", kurz: "Engel", v: "Lukas 2,9-14", d: "2026-12-24",
     k: "Ein Engel des Herrn tritt zu den Hirten, Gottes Licht umstrahlt sie. Dann loben viele Engel Gott: Ehre sei Gott in der Höhe und Friede auf Erden!",
     ver: ["Jesaja 9,5", "Uns ist ein Kind geboren – sein Name ist Wunder-Rat, Gott-Held, Ewig-Vater, Friedefürst."], erf: ["Lukas 2,11.14", "Euch ist heute der Retter geboren, der Christus, der Herr – und Friede auf Erden."] },
-  { f: "stern", n: "Der Stern über dem Stall", kurz: "Stern", v: "Matthäus 2,1-2", d: "2026-12-23",
-    k: "Weise aus dem Morgenland sehen einen Stern aufgehen und machen sich auf den Weg: Wo ist der neugeborene König der Juden?",
+  { f: "stern", n: "Der Stern über dem Stall", kurz: "Stern", v: "Matthäus 2,1-2", d: "2026-12-24",
+    k: "Weise im Osten sehen einen besonderen Stern aufgehen – für sie das Zeichen, dass der neugeborene König der Juden da ist. Sie machen sich auf den Weg.",
     ver: ["4. Mose 24,17", "Ein Stern geht auf aus Jakob, ein Zepter erhebt sich aus Israel."], erf: ["Matthäus 2,2", "Wir haben seinen Stern gesehen und sind gekommen, ihn anzubeten."] },
   { f: "hirten", n: "Die Hirten", kurz: "Hirten", v: "Lukas 2,8-20", d: "2026-12-25",
     k: "Nach der Botschaft der Engel laufen die Hirten los, finden das Kind in der Krippe und erzählen es weiter. Weihnachten ist ihre Geschichte.",
@@ -49,26 +50,52 @@ const BETH = [
     k: "Der Stern führt die Weisen zum Haus. Sie fallen nieder, beten das Kind an und schenken ihm Gold, Weihrauch und Myrrhe.",
     ver: ["Jesaja 60,3.6", "Völker ziehen zu deinem Licht, sie bringen Gold und Weihrauch und verkünden das Lob des Herrn."], erf: ["Matthäus 2,11", "Sie öffneten ihre Schätze und schenkten ihm Gold, Weihrauch und Myrrhe."] }
 ];
-/* 7.7: Etappen auf dem Weg nach Bethlehem – Hintergrund zu Zeit und Ort. Keine Figuren, keine Spenden: reine Wissenskarten im Zeitplan (Termine ohne Einfluss auf die Krippe). */
+/* 7.7/7.8: Etappen – Hintergrund zu Zeit und Ort, dazu Verheißung und Erfüllung. Keine Figuren, keine Spenden: reine Wissenskarten im Zeitplan (Termine ohne Einfluss auf die Krippe).
+   7.8: neue Karten ab dem 1. Advent, Reihenfolge nach Lukas/Matthäus (Josef vor dem Aufbruch, Herodes erst nach der Frage der Weisen), Karten nach Weihnachten bis 7. Januar.
+   Beliebig viele Einträge möglich; die Reihenfolge im Array ist egal (der Zeitplan sortiert nach d). Bibelstellen Schlachter 2000, Texte sinngemäß. */
 const BETH_ETAPPEN = [
-  { d: "2026-12-12", n: "Der Kaiser befiehlt", v: "Lukas 2,1-3",
-    k: "Kaiser Augustus herrscht über das Römische Reich, auch Judäa gehört dazu. Seine Volkszählung bringt das ganze Land in Bewegung: Jeder soll sich in seiner Heimatstadt eintragen lassen.",
-    ver: ["Micha 5,1", "Aus Bethlehem soll der kommen, der Herrscher über Israel sein wird."], erf: ["Lukas 2,4", "Der Kaiserbefehl führt Josef und Maria genau nach Bethlehem."] },
-  { d: "2026-12-13", n: "Aufbruch aus Nazareth", v: "Lukas 2,4-5",
+  { d: "2026-11-29", n: "Advent heißt: Er kommt", v: "Galater 4,4",
+    k: "Seit Jahrhunderten wartet das Volk Gottes auf den versprochenen Retter. „Advent“ heißt Ankunft: Gott hält sein Wort, und als die Zeit erfüllt ist, sendet er seinen Sohn.",
+    ver: ["Jeremia 33,14", "Es kommen Tage, da ich das gute Wort erfüllen will, das ich zugesagt habe."], erf: ["Galater 4,4", "Als die Zeit erfüllt war, sandte Gott seinen Sohn, geboren von einer Frau."] },
+  { d: "2026-12-01", n: "Der Stammbaum Davids", v: "Matthäus 1,1-17",
+    k: "Matthäus beginnt sein Evangelium mit einer langen Namensliste. Sie zeigt: Jesus gehört zur Familie von Abraham und David, genau wie Gott es versprochen hatte.",
+    ver: ["Jeremia 23,5", "Es kommen Tage, da erwecke ich dem David einen gerechten Spross, der als König regieren wird."], erf: ["Matthäus 1,1", "Buch des Ursprungs von Jesus Christus, dem Sohn Davids, dem Sohn Abrahams."] },
+  { d: "2026-12-03", n: "Der Bote vor dem Herrn", v: "Lukas 7,27",
+    k: "Der letzte Prophet des Alten Testaments kündigt an: Ein Bote wird Gott den Weg bereiten, danach kommt der Herr selbst. Jesus sagt später, wer dieser Bote ist.",
+    ver: ["Maleachi 3,1", "Siehe, ich sende meinen Boten, der den Weg vor mir bereiten soll."], erf: ["Lukas 7,27", "Jesus über Johannes den Täufer: Dieser ist es, von dem geschrieben steht, ich sende meinen Boten vor dir her."] },
+  { d: "2026-12-06", n: "Zacharias und Elisabeth", v: "Lukas 1,5-17",
+    k: "Der alte Priester Zacharias und seine Frau Elisabeth haben keine Kinder. Im Tempel erscheint ihm der Engel Gabriel und kündigt einen Sohn an, der im Geist des Propheten Elia den Weg für den Herrn bereiten wird.",
+    ver: ["Maleachi 3,23-24", "Ich sende euch den Propheten Elia, er wird das Herz der Väter den Kindern zuwenden."], erf: ["Lukas 1,17", "Er wird vor ihm hergehen im Geist und in der Kraft des Elia."] },
+  { d: "2026-12-08", n: "Ein Reich ohne Ende", v: "Lukas 1,32-33",
+    k: "Der Prophet Daniel sieht in einer Vision einen, dem Gott ewige Herrschaft gibt. Als der Engel Gabriel später mit Maria spricht, greift er dieses Versprechen auf.",
+    ver: ["Daniel 7,14", "Ihm wurde Herrschaft, Ehre und Reich gegeben, seine Herrschaft ist ewig und vergeht nicht."], erf: ["Lukas 1,32-33", "Gott wird ihm den Thron seines Vaters David geben, und sein Reich wird kein Ende haben."] },
+  { d: "2026-12-09", n: "Licht in Galiläa", v: "Matthäus 4,12-16",
+    k: "Galiläa, die Gegend von Nazareth, galt als weit weg und unbedeutend. Gerade dort fängt Gott an: Jesus wächst in Nazareth auf und beginnt später in Galiläa zu predigen.",
+    ver: ["Jesaja 9,1-2", "Das Volk, das im Finstern wandelt, sieht ein großes Licht."], erf: ["Matthäus 4,15-16", "Matthäus bezieht das auf Jesus, der in Galiläa auftritt."] },
+  { d: "2026-12-16", n: "Der Kaiser und der Statthalter", v: "Lukas 2,1-2",
+    k: "Lukas nennt genau, wer regiert: Augustus ist Kaiser in Rom, Quirinius Statthalter in Syrien, Herodes König in Judäa. Weihnachten ist keine Sage, sondern Geschichte mit Ort und Zeit. Der Befehl des Kaisers führt Josef und Maria nach Bethlehem.",
+    ver: ["Sprüche 21,1", "Das Herz des Königs ist in der Hand des Herrn wie Wasserbäche, er lenkt es, wohin er will."], erf: ["Lukas 2,1-4", "Die Volkszählung des Kaisers bringt Josef und Maria genau dorthin, wo Gott es angekündigt hat."] },
+  { d: "2026-12-17", n: "Aufbruch aus Nazareth", v: "Lukas 2,4-5",
     k: "Josef gehört zum Haus Davids und muss nach Bethlehem. Der Weg von Nazareth sind weit über 100 Kilometer, zu Fuß ein Marsch von mehreren Tagen – mit Maria, die ein Kind erwartet.",
     ver: ["Jesaja 40,3", "Bahnt dem Herrn einen Weg – Gott ist selbst unterwegs zu den Menschen."], erf: ["Lukas 2,4-5", "Josef und Maria brechen auf, das Kind kommt zur Welt, wo Gott es angekündigt hat."] },
-  { d: "2026-12-16", n: "Der Statthalter in Syrien", v: "Lukas 2,2",
-    k: "Lukas nennt genau, wer regiert: Quirinius ist Statthalter in Syrien, Herodes König in Judäa, Augustus Kaiser in Rom. Weihnachten ist keine Sage, sondern eine Geschichte mit Ort und Zeit.",
-    ver: ["Daniel 2,44", "Gott wird ein Reich aufrichten, das niemals untergeht."], erf: ["Lukas 1,33", "Sein Reich wird kein Ende haben – während die Reiche der Kaiser vergehen."] },
-  { d: "2026-12-17", n: "Hinauf nach Bethlehem", v: "Lukas 2,4",
+  { d: "2026-12-18", n: "Hinauf nach Bethlehem", v: "Lukas 2,4",
     k: "Bethlehem liegt auf einem Höhenzug, nur wenige Kilometer südlich von Jerusalem. Hier wuchs der Hirtenjunge David auf und wurde zum König gesalbt – darum heißt der Ort „Stadt Davids“.",
     ver: ["1. Samuel 16,1.13", "Samuel salbt in Bethlehem den jüngsten Sohn Isais, David, zum König."], erf: ["Lukas 2,11", "In der Stadt Davids ist euch der Retter geboren."] },
-  { d: "2026-12-18", n: "Wohin für die Nacht?", v: "Lukas 2,6-7",
+  { d: "2026-12-19", n: "Wohin für die Nacht?", v: "Lukas 2,6-7",
     k: "Durch die Volkszählung ist Bethlehem voll. Das Wort, das mit „Herberge“ übersetzt wird, kann auch einen Gästeraum meinen – in einfachen Häusern lebte man oft nah bei den Tieren. So kommt es zum Stall.",
     ver: ["Jesaja 53,2", "Er hatte keine Gestalt und keine Pracht – der Retter kommt ganz unscheinbar."], erf: ["Lukas 2,7", "Es war kein Platz für sie in der Herberge."] },
-  { d: "2026-12-22", n: "König Herodes", v: "Matthäus 2,3",
-    k: "Herodes der Große regiert in Jerusalem. Er hat den Tempel prächtig ausgebaut, ist aber misstrauisch und fürchtet jeden, der ihm den Thron nehmen könnte. Darum erschrickt er, als er vom neuen König hört.",
-    ver: ["Psalm 2,2", "Die Könige der Erde lehnen sich auf gegen den Herrn und seinen Gesalbten."], erf: ["Matthäus 2,3", "Als König Herodes das hörte, erschrak er und ganz Jerusalem mit ihm."] }
+  { d: "2026-12-26", n: "Das wahre Licht", v: "Johannes 1,4-9",
+    k: "Johannes erzählt Weihnachten als Licht, das in die Welt kommt. Jesus ist das Licht, das jeden Menschen erleuchtet – für Hirten, Weise und alle Völker.",
+    ver: ["Jesaja 42,6", "Ich habe dich zum Licht der Völker gemacht."], erf: ["Johannes 1,9", "Das wahre Licht, das jeden Menschen erleuchtet, kam in die Welt."] },
+  { d: "2027-01-01", n: "Acht Tage alt: der Name Jesus", v: "Lukas 2,21",
+    k: "Nach jüdischem Brauch wird ein Junge am achten Tag beschnitten und bekommt seinen Namen. Maria und Josef nennen das Kind Jesus, so wie der Engel es gesagt hatte: „Der Herr rettet“.",
+    ver: ["1. Mose 17,12", "Jeder Junge soll, wenn er acht Tage alt ist, beschnitten werden – das Zeichen des Bundes."], erf: ["Lukas 2,21", "Als acht Tage vorüber waren, wurde er beschnitten und erhielt den Namen Jesus."] },
+  { d: "2027-01-05", n: "König Herodes", v: "Matthäus 2,3",
+    k: "Als die Weisen in Jerusalem nach dem neugeborenen König fragen, erschrickt Herodes. Er regiert in Jerusalem, hat den Tempel prächtig ausgebaut, ist aber misstrauisch und fürchtet jeden, der ihm den Thron nehmen könnte.",
+    ver: ["Psalm 2,2", "Die Könige der Erde lehnen sich auf gegen den Herrn und seinen Gesalbten."], erf: ["Matthäus 2,3", "Als König Herodes das hörte, erschrak er und ganz Jerusalem mit ihm."] },
+  { d: "2027-01-07", n: "Flucht nach Ägypten", v: "Matthäus 2,13-15",
+    k: "Ein Engel warnt Josef im Traum: Herodes will das Kind suchen. Josef steht in der Nacht auf und bringt Maria und Jesus in Sicherheit nach Ägypten. Gott beschützt seinen Sohn.",
+    ver: ["Hosea 11,1", "Aus Ägypten habe ich meinen Sohn gerufen."], erf: ["Matthäus 2,14-15", "Josef zog nach Ägypten – so erfüllte sich, was der Herr durch den Propheten gesagt hatte."] }
 ];
 const BETH_FINALE = { n: "Heiligabend – das Kind ist da!", v: "Lukas 2,7.11-12",
   k: "Maria bringt ihren ersten Sohn zur Welt, wickelt ihn in Windeln und legt ihn in eine Krippe. Der Engel sagt den Hirten: Euch ist heute der Retter geboren, der Christus, der Herr.",

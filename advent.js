@@ -1,7 +1,7 @@
 /* =====================================================================
    Advent 2026 – Logik und Ansichten (Version 7.4)
    Die Krippe wächst (Gemeinschaftsprojekt, gespendet wird mit Adventslichtern), Adventskalender (ab 1. Dezember),
-   Weihnachts-Biblionär (Solo, der Woche, Duell – bis 6. Januar). Einstellungen und Inhalte: advent-daten.js.
+   Weihnachts-Biblionär (Solo, der Woche, Duell – bis 8. Januar). Einstellungen und Inhalte: advent-daten.js.
    Wird vor spiel.js geladen; alles, was aus spiel.js gebraucht wird (S, save, go, modal …), wird erst beim Aufruf benutzt.
    Technische Namen mit „beth“ (Sammlung „bethlehem“) bleiben aus Kompatibilität erhalten und meinen die Krippe.
    ===================================================================== */
@@ -38,10 +38,10 @@ const adventTag = () => dayNum(adventHeute());
 const adventSichtbar = () => { const t = adventTag(); return t >= dayNum(ADV_START) && t <= dayNum(ADV_SICHT_BIS); };
 /* 1–4 = Adventswoche (Sonntag bis Samstag), 5 = vorbei, 0 = noch nicht */
 function adventWoche() { const t = adventTag() - dayNum(ADV_START); return t < 0 ? 0 : t >= 28 ? 5 : Math.floor(t / 7) + 1; }
-/* Biblionär-Runden des Weihnachts-Biblionärs: 1–4 = Adventswochen, 5 = Weihnachtswoche (27.12.–2.1.), 6 = Sternsinger-Tage (3.–6.1.) */
+/* Biblionär-Runden des Weihnachts-Biblionärs: 1–4 = Adventswochen, 5 = Weihnachtswoche (27.12.–2.1.), 6 = Epiphanias-Tage (3.–8.1.) */
 const advRunde = () => { const t = adventTag() - dayNum(ADV_START); return t < 0 || t > dayNum(ADV_SICHT_BIS) - dayNum(ADV_START) ? 0 : Math.min(6, Math.floor(t / 7) + 1); };
 const advRundeName = w => (w <= 4 ? w + ". Advent" : w === 5 ? "Weihnachtswoche" : "Epiphanias");
-/* Modus „Weihnachten“ für Solo, Woche und Duell – wählbar im Advent, im Reiter Biblionär und in der Arena (nur 1. Advent bis 6. Januar) */
+/* Modus „Weihnachten“ für Solo, Woche und Duell – wählbar im Advent, im Reiter Biblionär und in der Arena (nur 1. Advent bis 8. Januar) */
 let weihModus = false;
 const weihAktiv = () => weihModus && weihnachtsDuellOk();
 function weihSchalterHtml() {
@@ -453,9 +453,9 @@ function adventStartHinweis() {
   S.adventIntro = true; save(); SFX.badge();
   modal(`<div class="label">1. Advent</div><h2 style="margin:0">Der Advent beginnt!</h2>
     <p class="muted" style="margin:0">Gott hat versprochen, dass er kommt – an Weihnachten hat Jesus es erfüllt. Bis dahin gibt es:</p>
-    <ul class="adv-liste"><li>${svg("krippe")}<span><b>Die Krippe wächst</b> – nach der Weihnachtsgeschichte: ab 11. Dezember Maria, Josef, Stall, Schafe, Engel und Stern; an Heiligabend liegt das Kind darin, am 6. Januar kommen die Weisen.</span></li>
+    <ul class="adv-liste"><li>${svg("krippe")}<span><b>Die Krippe wächst</b> – nach der Weihnachtsgeschichte: ab 11. Dezember Maria, Josef, Stall und Schafe; an Heiligabend liegt das Kind darin, mit Engel und Stern, am 25. Dezember kommen die Hirten, am 6. Januar die Weisen. Dazu Karten zum Hintergrund, mit Verheißung und Erfüllung, schon ab dem 1. Advent.</span></li>
       <li>${svg("licht")}<span><b>Adventslichter</b> – gibt es nur im Advent, bei allem, was XP bringt. Sie schmücken die Krippe und bringen dir Rahmen und Titel; den Zeitplan ändern sie nicht.</span></li>
       <li>${svg("tuer")}<span><b>Adventskalender</b> – ab ${esc(adventDatum(dayNum(KAL_START)))} jeden Tag ein Türchen mit großer Belohnung.</span></li>
-      <li>${svg("biblionaer")}<span><b>Weihnachts-Biblionär</b> – Solo, der Woche und Duell, mit weihnachtlichen Pastoren. Bis 6. Januar.</span></li></ul>
+      <li>${svg("biblionaer")}<span><b>Weihnachts-Biblionär</b> – Solo, der Woche und Duell, mit weihnachtlichen Pastoren. Bis 8. Januar.</span></li></ul>
     <button class="btn primary" data-close="los">${svg("kerze")} Zum Advent</button><button class="btn ghost" data-close>Später</button>`, r => { if (r === "los") go("advent"); });
 }
