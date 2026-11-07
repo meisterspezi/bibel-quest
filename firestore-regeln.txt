@@ -1,5 +1,5 @@
 rules_version = '2';
-// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 6.95 – Sammlung talente (Talente-Zählung, nur der Verwalter liest); 6.88 – xpquellen: Regel vereinfacht (Limit 1000 Auswertungen pro Schreibzugriff, ab der 4. Quelle wurde abgelehnt); 6.80 – Sammlungen bibversuch (Biblionär-Wochenrunde einmal je Serverwoche) und spendenxp (XP für Spenden einmal je Talent); 6.79 – xpquellen: neue Quelle spende (Stiftshütte); 6.78 – Sammlung tagestruhe (Schatztruhe einmal je Serverdatum); 6.76 – xpquellen: neue Quelle abgleich; 6.75 – Sammlung xpprotokoll (Einzelprotokoll der XP-Vergaben, nur anlegen); 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 7.3 – Sammlung bethlehem (Weg nach Bethlehem, Advent); 6.95 – Sammlung talente (Talente-Zählung, nur der Verwalter liest); 6.88 – xpquellen: Regel vereinfacht (Limit 1000 Auswertungen pro Schreibzugriff, ab der 4. Quelle wurde abgelehnt); 6.80 – Sammlungen bibversuch (Biblionär-Wochenrunde einmal je Serverwoche) und spendenxp (XP für Spenden einmal je Talent); 6.79 – xpquellen: neue Quelle spende (Stiftshütte); 6.78 – Sammlung tagestruhe (Schatztruhe einmal je Serverdatum); 6.76 – xpquellen: neue Quelle abgleich; 6.75 – Sammlung xpprotokoll (Einzelprotokoll der XP-Vergaben, nur anlegen); 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -230,6 +230,26 @@ service cloud.firestore {
       let n = request.resource.data.s;
       return !(k in n) || (n[k] is int && n[k] >= 0 && n[k] <= 20000
         && (resource == null || !(k in resource.data.s) || n[k] >= resource.data.s[k]));
+    }
+    // 7.3: Weg nach Bethlehem (Advent) – wie die Stiftshütte; s = Talente-Spenden, g = tägliche Wegzehrung. Nur steigend, höchstens 20.000.
+    function gabeFeld(feld, k) {
+      let n = request.resource.data[feld];
+      return !(k in n) || (n[k] is int && n[k] >= 0 && n[k] <= 20000
+        && (resource == null || !(feld in resource.data) || !(k in resource.data[feld]) || n[k] >= resource.data[feld][k]));
+    }
+    function gabeOk(feld) {
+      return request.resource.data[feld] is map && request.resource.data[feld].keys().hasOnly(['1', '2', '3', '4', '5', '6', '7', '8'])
+        && (resource == null || !(feld in resource.data) || request.resource.data[feld].keys().hasAll(resource.data[feld].keys()))
+        && gabeFeld(feld, '1') && gabeFeld(feld, '2') && gabeFeld(feld, '3') && gabeFeld(feld, '4') && gabeFeld(feld, '5') && gabeFeld(feld, '6') && gabeFeld(feld, '7') && gabeFeld(feld, '8');
+    }
+    match /bethlehem/{pid} {
+      allow read: if true;
+      allow create, update: if angemeldet() && besitzer(pid)
+        && request.resource.data.keys().hasOnly(['pid', 'name', 's', 'g', 'updated'])
+        && request.resource.data.pid == pid
+        && request.resource.data.name is string && request.resource.data.name.size() >= 2 && request.resource.data.name.size() <= 20
+        && gabeOk('s') && gabeOk('g');
+      allow delete: if false;
     }
     match /stiftshuette/{pid} {
       allow read: if true;

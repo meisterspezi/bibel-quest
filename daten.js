@@ -1,4 +1,4 @@
-const APP_VERSION = "7.2";
+const APP_VERSION = "7.3";
 /* =====================================================================
    Bibelbuch-Quest – Spieldaten
    Bücher (Schlachter 2000), Lieder, Bibelverse (Schlachter 2000 © Genfer Bibelgesellschaft),
@@ -246,6 +246,7 @@ const RUEST_VEREDEL_PREIS = { guertel: [150, 250], panzer: [170, 290], schuhe: [
 /* ---------- 6.68: Gemeinsamer Bau der Stiftshütte (2. Mose 25–40) ----------
    Jede Woche ab Montag öffnet ein Abschnitt. Ist das Ziel erreicht: „Es ist mehr als genug!“ (2. Mose 36,5-7) –
    der nächste Abschnitt öffnet am folgenden Montag. Spender werden mit Namen genannt, Beträge bleiben verborgen (Matthäus 6,3). */
+const STIFT_AKTIV = false;   /* 7.3: Stiftshütte bleibt im Code, wird aber nicht mehr angezeigt (Advent statt Stiftshütte) */
 const STIFT_START = "2026-11-09";
 const STIFT = [
   { n: "Vorhof aus Leinen", kurz: "Vorhof", v: "2. Mose 27,9-18", ziel: 800, k: "Umhänge aus gezwirntem Leinen, 100 Ellen lang, an Säulen mit silbernen Haken." },

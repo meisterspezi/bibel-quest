@@ -1729,6 +1729,40 @@ details.pf>summary::after{content:"▾";margin-left:2px;color:var(--muted);trans
 .xq-sp .hx{display:flex;flex-direction:column;align-items:flex-end;min-width:44px;color:#f2c14e;flex:none}.xq-sp .hx small{color:var(--muted);font-size:.65rem}
 .xq-pkt{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff5c5c;vertical-align:middle}
 .xq-spbody{padding:4px 0 12px}
+/* ===== 7.3 Advent ===== */
+.adv-mini{border-color:#ffcf5a66;background:linear-gradient(170deg,#3a2a5c,#1c1a40)}
+.adv-mini.kompakt{margin:0;padding:6px 12px}
+.adv-mini.kompakt>svg{width:28px;height:28px}
+.adv-punkt{display:inline-block;width:10px;height:10px;border-radius:50%;background:#ff6b5a;box-shadow:0 0 0 2px #1c1a40;flex:none;margin-right:6px;animation:advPuls 1.8s ease-in-out infinite}
+@keyframes advPuls{50%{transform:scale(1.25)}}
+.adv-kranzbox{margin:2px 0 6px;border-radius:16px;background:linear-gradient(180deg,#14183a,#241c4a);border:1px solid #ffffff18;padding:6px 10px}
+.adv-kranz{display:block;width:100%;height:auto;max-height:130px}
+.adv-kerze.an{filter:drop-shadow(0 0 6px #ffcf5a88)}
+.adv-karte{width:100%;margin:0 0 8px;text-align:left}
+.adv-karte .b-info{display:flex;align-items:center}
+.adv-gabe{margin-top:6px;display:flex;gap:8px;align-items:center;justify-content:center}
+.adv-gabe svg{width:22px;height:22px}
+.adv-tuerfeld{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 10px}
+.adv-tuer{position:relative;aspect-ratio:1/1.05;border-radius:12px;border:1px solid #ffffff22;background:linear-gradient(160deg,#8a2a3a,#5a1a2a);color:#fff;display:grid;place-items:center;padding:4px;cursor:pointer;font-family:var(--display)}
+.adv-tuer b{position:absolute;top:5px;left:8px;font-size:.95rem;color:#ffe39a}
+.adv-tuer svg{width:28px;height:28px;margin-top:12px}
+.adv-tuer.zu{background:linear-gradient(160deg,#2a2f5a,#1c2040);opacity:.65}
+.adv-tuer.heute{box-shadow:0 0 0 2px #ffcf5a,0 0 14px #ffcf5a88;animation:advPuls 2s ease-in-out infinite}
+.adv-tuer.auf{background:linear-gradient(160deg,#2f6b3f,#1f4a2c)}
+.adv-tuer.gross{grid-column:span 2;aspect-ratio:auto;min-height:70px}
+.kal-opt{text-align:left;white-space:normal}
+.kal-opt.richtig{outline:2px solid var(--good,#5fe0b0);background:#2f6b3f55}
+.kal-opt.falsch{outline:2px solid #ff6b5a;opacity:.8}
+.adv-liste{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.adv-liste li{display:flex;gap:10px;align-items:flex-start;font-size:.9rem}
+.adv-liste li>svg{width:30px;height:30px;flex:none}
+.modal p svg,.modal .small svg,.modal .adv-liste svg,.modal #kalInhalt svg{width:18px;height:18px;vertical-align:-4px}
+.modal .adv-liste li>svg{width:30px;height:30px}
+.modal .card:has(#kalInhalt),.modal .card:has(.adv-liste){max-height:88vh;overflow:auto}
+.modal .sh-feier{width:100%}
+.bh-wanderer{animation:bhGeh 3s ease-in-out infinite alternate}
+@keyframes bhGeh{to{transform:translate(2px,-2px)}}
+.sh-feier .sh-bild{border-radius:14px}
 </style>
 </head>
 <body>
@@ -1766,6 +1800,8 @@ details.pf>summary::after{content:"▾";margin-left:2px;color:var(--muted);trans
 <script src="daten.js"></script>
 <script src="bibelquiz.js"></script>
 <script src="symbole.js"></script>
+<script src="advent-daten.js"></script>
+<script src="advent.js"></script>
 <script src="spiel.js"></script>
 <script type="module" src="leaderboard.js"></script>
 </body>

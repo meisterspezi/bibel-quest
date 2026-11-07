@@ -166,6 +166,9 @@ if (!configured) {
     // 6.68: Stiftshütte – Spenden je Spieler {pid, name, s: {"1".."8": Talente}}
     LB.stiftListe = async () => { const q = await fs.getDocs(fs.collection(db, "stiftshuette")); return q.docs.map(d => ({ pid: d.id, ...d.data() })); };
     LB.stiftSetzen = async (pid, name, s) => { await LB.signIn(); await fs.setDoc(ref("stiftshuette", pid), { pid, name, s, updated: fs.serverTimestamp() }); };
+    // 7.3: Weg nach Bethlehem – Gaben je Spieler {pid, name, s: {"1".."8": Talente}, g: {"1".."8": Wegzehrung}}
+    LB.bethListe = async () => { const q = await fs.getDocs(fs.collection(db, "bethlehem")); return q.docs.map(d => ({ pid: d.id, ...d.data() })); };
+    LB.bethSetzen = async (pid, name, s, g) => { await LB.signIn(); await fs.setDoc(ref("bethlehem", pid), { pid, name, s, g, updated: fs.serverTimestamp() }); };
     // 6.73: XP-Quellen je Spieler {pid, name, alt, q:{Quelle:XP}, n:{Quelle:Anzahl}, m:{Quelle:größte Vergabe}, tag:{Tag:XP}, std:{"Tag-Std":XP}, bel:[{z:Zeit(ms), x:XP, t:Talente, a:truhe|gestern, d:Truhen-Tag}]}
     LB.xpListe = async () => { const q = await fs.getDocs(fs.collection(db, "xpquellen")); return q.docs.map(d => ({ pid: d.id, ...d.data() })); };
     // 6.95: Talente-Zählung – talente/<pid> = { pid, name, tal (Guthaben), s (Zählbeginn, Tagesnummer), v (verdient), a (im Laden ausgegeben), p (gespendet),

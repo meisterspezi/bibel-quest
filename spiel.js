@@ -15,7 +15,7 @@ const DEF = {
   songHeard: [], gapPerfect: false, peeked: false, earlyBird: false,
   dq: { day: "", items: [], bonus: false }, questBonusCount: 0, lv: {}, duGes: [], duSiege: 0, duSpiele: 0, duTyp: "vers", duGesendet: 0, duAngenommen: 0, duArten: [], duKetteVoll: false,
   mute: false, beat: true, gapSing: false, atTi: 0, ntTi: 0,
-  ruestStufe: {}, stift: {}, spendeXp: {}, stiftGefeiert: [], stiftEingeweiht: false,
+  ruestStufe: {}, stift: {}, spendeXp: {}, beth: {}, bethG: {}, bethSync: "", bethTage: [], bethGefeiert: [], bethAngekommen: false, kal: {}, advBib: {}, advDu: {}, advDuOk: [], adventIntro: false, stiftGefeiert: [], stiftEingeweiht: false,
   xq: null, lvLohn: 0, lbName: "", pid: "", ownersSet: false, offlineOnly: false, weekKey: "", weekXp: 0, podium: false, wochensieger: false, wochenziel: false,
   ver: 6
 };
@@ -87,6 +87,7 @@ async function allesSenden() {
   const auf = [L.push(S.pid, lbPayload(), {}).catch(() => {})];
   if (S.ownersSet && L.saveState) auf.push(L.saveState(S.pid, spielstandExport()).catch(() => {}));
   try { stiftSenden(); } catch (e) {}
+  try { bethSenden(); } catch (e) {}
   if (S.xq && L.xpSetzen) auf.push(L.xpSetzen(S.pid, S.lbName, xqKuerzen(S.xq)).then(() => { S.xqSync = JSON.stringify(S.xq); lsSchreiben(); }).catch(e => xqNachholen(e)));
   auf.push(xqLogLeeren(S.pid, S.lbName, XQ_LOGKEY()));
   await Promise.all(auf);
@@ -1364,7 +1365,7 @@ function go(name, arg) {
 }
 /* Untere Menüleiste: zu welchem Reiter gehört eine Ansicht? */
 const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Spielen", "bolt"], ["bib", "Biblionär", "biblionaer"], ["duelle", "Arena", "duell"], ["rank", "Gemeinde", "trophy"], ["ich", "Laden", "shop"]];
-const TAB_VON = { stift: "rank", duell: "duelle", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen", biblionaer: "bib",
+const TAB_VON = { stift: "rank", advent: "home", beth: "home", kal: "home", duell: "duelle", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen", biblionaer: "bib",
   shop: "ich" };
 /* rote Zahl am Duell-Reiter: wartende Herausforderungen */
 function tbDuSetzen() { const t = $("tbDu"); if (!t) return; const n = typeof duFuerMich === "function" ? duFuerMich().length : 0; t.hidden = !n; t.textContent = n; }
@@ -1385,7 +1386,7 @@ const backBtn = (to = "home", txt = "Zurück") => `<button class="back" data-go=
 /* Seitenkopf der Hauptbereiche: Titel links, kleine Info rechts */
 const seitenKopf = (titel, info = "") => `<div class="seitenkopf"><h1>${titel}</h1>${info ? `<span class="pill sk-info">${info}</span>` : ""}</div>`;
 /* 6.57: Bereichs-Kopf im Arena-Stil – o: {ic | bild, t, sub, ring:[zahl, text], tafel:[[zahl, text]×3], zeile:{ic,t,p,r}, knopf:{ic,t,attr}} */
-const BK_FARBE = { home: "#f2c14e", lernen: "var(--ar-lernen)", spielen: "var(--ar-spielen)", bib: "#66e0d0", gemeinde: "#5fe0b0", laden: "#b38cff" };
+const BK_FARBE = { home: "#f2c14e", lernen: "var(--ar-lernen)", spielen: "var(--ar-spielen)", bib: "#66e0d0", gemeinde: "#5fe0b0", advent: "#ffcf5a", laden: "#b38cff" };
 const bereichKopf = (m, o) => `<div class="bkopf" style="--bk:${BK_FARBE[m]}">
   <header class="bk-kopf">${o.bild ? `<span class="bk-med bild"><img src="${o.bild}" alt="" width="480" height="455"></span>` : `<span class="bk-med">${svg(o.ic)}</span>`}
     <div class="bk-t"><h1>${o.t}</h1><span>${o.sub}</span></div>
@@ -1464,6 +1465,7 @@ function hilfeZeile(buch) {
    Bildschirme
    ===================================================================== */
 const VIEWS = {};
+VIEWS.advent = VIEWS_ADVENT; VIEWS.beth = VIEWS_BETH; VIEWS.kal = VIEWS_KAL; /* 7.3: Advent (advent.js) */
 
 /* Schatztruhe für den Tagesbonus: zu, solange Aufgaben offen sind; offen mit Lichtschein, wenn alle drei geschafft sind */
 const TRUHE_DEFS = `<defs><linearGradient id="trHolz" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9783c"/><stop offset=".55" stop-color="#8a5226"/><stop offset="1" stop-color="#5a3214"/></linearGradient>
@@ -1595,7 +1597,7 @@ VIEWS.home = () => {
   screen.innerHTML = `<div class="stack start start2">
     ${bereichKopf("home", { ic: "sun", t: "Start", sub: S.lbName ? `Schön, dass du da bist, ${esc(S.lbName)}!` : "Schön, dass du da bist!", ring: [serie, serie === 1 ? "Tag" : "Tage"] })}
     <div class="start-vers">${MONATSVERSE[monatKey()] ? lvKarte(monatKey()) : `<button class="vers-zeile" id="versZeile" aria-expanded="false">${versHtml(vKey, "tag klein")}<span class="vz-mehr">mehr</span></button>`}</div>
-    ${siegel}
+    ${adventMiniHtml(true)}${siegel}
     ${weiter}
     ${bkLabel("target", S.dq.bonus ? "Heute geschafft!" : bereit ? "Die Truhe wartet!" : "Tagesaufgaben")}
     <section class="heute3 ${S.dq.bonus ? "fertig" : ""}" aria-label="Tagesaufgaben, ${erledigt} von 3 erledigt"><ul>${aufg}</ul>${truhe}</section>
@@ -2219,6 +2221,7 @@ function lbSync(now) {
   clearTimeout(lbTimer);
   lbTimer = setTimeout(() => {
     try { stiftSenden(); } catch (e) {} /* 6.68: noch nicht gesendete Spenden */
+    try { bethSenden(); } catch (e) {} /* 7.3: Weg nach Bethlehem */
     try { xqSenden(); } catch (e) {} /* 6.73: XP-Quellen */
     try { talSenden(); } catch (e) {} /* 6.95: Talente-Zählung */
     const opts = {}; if (!S.ownersSet && eigenePid(S.pid)) opts.owners = [L.uid];
@@ -2326,6 +2329,7 @@ function zusammenfuehren(r) {
   /* 6.68: Rüstungs-Stufen und Stiftshütten-Spenden: je Schlüssel das Maximum */
   ["ruestStufe", "stift", "spendeXp"].forEach(k => { const a = S[k] = Object.assign({}, S[k] || {}); Object.entries(r[k] || {}).forEach(([i, v]) => { a[i] = Math.max(a[i] | 0, v | 0); }); });
   S.stiftGefeiert = [...new Set([...(S.stiftGefeiert || []), ...(Array.isArray(r.stiftGefeiert) ? r.stiftGefeiert : [])])]; S.stiftEingeweiht = !!(S.stiftEingeweiht || r.stiftEingeweiht);
+  try { adventMischen(r); } catch (e) {} /* 7.3: Advent */
   if (r.lbName && !S.lbName) S.lbName = r.lbName;
 }
 /* Diesem Gerät ein bestehendes Spielerprofil zuordnen (Kopplungscode oder Zusammenführung durch den Verwalter) */
@@ -2442,6 +2446,8 @@ async function lbStart() {
       bibSiegerPruefen();
       /* 6.68: Stiftshütte – offene Spenden senden, fertige Abschnitte feiern */
       stiftSenden(); stiftLaden().then(() => { if (["home", "rank", "stift"].includes(current)) setTimeout(stiftFeiern, 1500); });
+      /* 7.3: Advent – Gaben senden, Stationen feiern, Willkommen */
+      bethSenden(); bethLaden().then(() => { if (["home", "advent", "beth"].includes(current)) setTimeout(() => { bethFeiern(); adventStartHinweis(); }, 1500); });
     }
   } catch (e) {}
 }
@@ -2539,8 +2545,8 @@ VIEWS.rank = (tab) => {
   const L = window.LB;
   /* 6.58: Kopf im Arena-Stil – Ring = eigener Platz in der gewählten Liste, Tafel Level/Abzeichen/Spieler (nach dem Laden nachgetragen) */
   let html = bereichKopf("gemeinde", { ic: "people", t: "Gemeinde", sub: "Freie Baptisten Eichstätt", ring: ["–", "Platz"], ringId: "bkPlatz",
-    tafel: [[levelOf(S.xp), "Level"], [`${S.badges.length}`, "Abzeichen"], ["–", "Spieler", "bkSpieler"]] }) + `<div id="shMiniBox">${stiftMiniHtml()}</div>` + bkLabel("trophy", "Ranglisten");
-  stiftLaden().then(() => { const b = $("shMiniBox"); if (b && current === "rank") { b.innerHTML = stiftMiniHtml(); wireGo(); } });
+    tafel: [[levelOf(S.xp), "Level"], [`${S.badges.length}`, "Abzeichen"], ["–", "Spieler", "bkSpieler"]] }) + `<div id="shMiniBox">${stiftMiniHtml() || adventMiniHtml()}</div>` + bkLabel("trophy", "Ranglisten");
+  stiftLaden().then(() => { const b = $("shMiniBox"); if (b && current === "rank") { b.innerHTML = stiftMiniHtml() || adventMiniHtml(); wireGo(); } });
   if (!L) { screen.innerHTML = html + `<div class="card"><p class="muted" style="margin:0">Rangliste wird geladen …</p></div>`; wireGo(); return; }
   if (!L.configured) { screen.innerHTML = html + `<div class="card stack"><b>Noch nicht eingerichtet</b><p class="muted small" style="margin:0">Die Rangliste braucht einen gemeinsamen Online-Speicher. Bis dahin kannst du ganz normal spielen – dein Fortschritt wird später übernommen.</p></div>`; wireGo(); return; }
   if (!L.ok) { screen.innerHTML = html + `<div class="card stack"><b>Keine Verbindung</b><p class="muted small" style="margin:0">Für die Rangliste brauchst du Internet. Deine Punkte werden übertragen, sobald du wieder online bist.</p><button class="btn" id="retry">Neu laden</button></div>`; wireGo(); $("retry").onclick = () => location.reload(); return; }
@@ -3277,7 +3283,7 @@ async function duEnde() {
   const gegnerIds = D.neu ? ziele.map(z => z.id) : [D.vonPid];
   if (D.gleichF == null) { D.gleichF = duGleichFaktor(gegnerIds); D.gleichEinzel = D.neu ? Object.fromEntries(ziele.map(z => [z.id, duGleichEinzel(z.id)])) : null; duGleichZaehlen(gegnerIds); }
   xp = duXpWert(D, ziele);
-  const angekommen = () => { if (D.gezaehlt) return; D.gezaehlt = true; if (D.neu) S.duGesendet = (S.duGesendet || 0) + ziele.length; else S.duAngenommen = (S.duAngenommen || 0) + 1; quest("duell", 1); save(); };
+  const angekommen = () => { if (D.gezaehlt) return; D.gezaehlt = true; if (D.neu) S.duGesendet = (S.duGesendet || 0) + ziele.length; else S.duAngenommen = (S.duAngenommen || 0) + 1; quest("duell", 1); try { adventDuell(gegnerIds); } catch (e) {} save(); };
   let titel, zeile, tal = 0, sieg = false, fehler = false, weg = false;
   try {
     if (D.neu) {
@@ -3363,12 +3369,12 @@ const bibWocheTage = () => { const d = new Date(), wt = (d.getDay() + 6) % 7; re
 
 /* Fragen aus dem Startwert: Auswahl, Antwort-Reihenfolge und die Joker-Ergebnisse sind für alle gleich */
 /* stand: Kalenderwoche, aus deren Fragenpool gezogen wird (Duell: Woche der Herausforderung) – neue Fragen mit ab: … ändern so keine alten Runden */
-function bibFragen(seed, stand) {
+function bibFragen(seed, stand, pool) {
   const alt = Math.random; Math.random = rngVon(seed); stand = stand || weekKey();
   try {
-    const alle = QUIZ_THEMEN.flatMap(t => t.fragen.filter(q => (!q.ab || q.ab <= stand) && (!q.bis || stand < q.bis)).map(q => Object.assign({ thema: t.name }, q)));
+    const alle = pool ? pool.map(q => Object.assign({ thema: "Advent" }, q)) : QUIZ_THEMEN.flatMap(t => t.fragen.filter(q => (!q.ab || q.ab <= stand) && (!q.bis || stand < q.bis)).map(q => Object.assign({ thema: t.name }, q)));
     const stufe = st => { const gew = [], themen = []; for (const q of shuffle(alle.filter(x => x.st === st))) {
-        if (gew.length >= 5) break; if (themen.filter(t => t === q.thema).length >= 2) continue; gew.push(q); themen.push(q.thema); }
+        if (gew.length >= 5) break; if (!pool && themen.filter(t => t === q.thema).length >= 2) continue; gew.push(q); themen.push(q.thema); }
       return gew; };
     return [...stufe(1), ...stufe(2), ...stufe(3)].map(q => {
       const loesung = q.a[0], falsche = q.a.slice(1), opts = shuffle(q.a.slice()), weg = shuffle(falsche).slice(0, 2);
@@ -3404,7 +3410,7 @@ function bibZeige(G) {
   if (G.modus !== "duell" && current !== "biblionaer") return;
   const f = G.fragen[G.i], halb = G.halbBei === G.i;
   const lang = f.opts.some(o => o.length > 22);
-  const titel = G.modus === "duell" ? `Duell gegen ${esc(G.gegner)}` : G.modus === "woche" ? `Biblionär der Woche · ${weekKey().split("-W")[1]}. KW` : "Wer wird Biblionär?";
+  const titel = G.modus === "duell" ? `Duell gegen ${esc(G.gegner)}` : G.modus === "woche" ? `Biblionär der Woche · ${weekKey().split("-W")[1]}. KW` : G.modus === "advent" ? `Advents-Biblionär · ${G.adv}. Advent` : "Wer wird Biblionär?";
   screen.innerHTML = `<div class="vl bib">
     <div class="vl-kopf"><button class="vl-x" id="bibX" aria-label="Spiel abbrechen">${svg("back")}</button>
       <button class="bib-leiste" id="bibLeiter" aria-label="Gewinnleiter ansehen"><span>Frage ${G.i + 1}/15</span><b>${pkt(BIB_LEITER[G.i])}</b></button></div>
@@ -3491,11 +3497,12 @@ function bibZeige(G) {
   $("bibX").onclick = () => {
     SFX.tap();
     const text = G.modus === "duell" ? (G.neu ? "Die Herausforderung wird dann nicht gesendet." : "Du kannst später noch einmal neu anfangen.")
-      : G.modus === "woche" ? "Die Wochenrunde hat nur einen Versuch. Wenn du abbrichst, zählt sie mit 0 Punkten." : "Dein Fortschritt in dieser Runde geht verloren.";
+      : (G.modus === "woche" || G.modus === "advent") ? "Die Runde hat nur einen Versuch. Wenn du abbrichst, zählt sie mit 0 Punkten." : "Dein Fortschritt in dieser Runde geht verloren.";
     modal(`<div class="label">Spiel abbrechen?</div><h2>Wer wird Biblionär?</h2><p class="muted">${text}</p><button class="btn primary" data-close="weiter">Weiterspielen</button><button class="btn ghost" data-close="ende">Abbrechen</button>`,
       r => { if (r !== "ende") return; fertig = true; G.abgeschlossen = true; clearTimers();
         if (G.modus === "duell") { duSpiel = null; go(G.heim || "duelle"); }
         else if (G.modus === "woche") { G.gewonnen = 0; G.fertigGrund = "abbruch"; bibErgebnis(G, 0); go("rank", "bibWoche"); }
+        else if (G.modus === "advent") { G.gewonnen = 0; G.fertigGrund = "abbruch"; bibErgebnis(G, 0); go("advent"); }
         else go("bib"); });
   };
 }
@@ -3514,15 +3521,16 @@ function bibErgebnis(G, punkte) {
   if (punkte > (S.bibRekord || 0)) { G.rekord = !!S.bibRekord || punkte > 0; S.bibRekord = punkte; }
   if (punkte >= BIB_LEITER[14]) S.bibMillion = (S.bibMillion || 0) + 1;
   if (G.modus === "woche") { S.bwP = punkte; S.bwFertig = true; }
+  if (G.modus === "advent") S.advBib = Object.assign({}, S.advBib, { [G.adv]: punkte });
   save();
 }
 function bibEnde(G, punkte) {
   bibErgebnis(G, punkte);
-  const grund = G.fertigGrund, million = grund === "biblionaer", woche = G.modus === "woche";
-  if (!woche && !G.wdh) G.wdh = spielWdh("bib-solo");
-  const W = woche ? null : G.wdh;
+  const grund = G.fertigGrund, million = grund === "biblionaer", woche = G.modus === "woche", adv = G.modus === "advent";
+  if (!woche && !adv && !G.wdh) G.wdh = spielWdh("bib-solo");
+  const W = woche || adv ? null : G.wdh;
   const xp = wdhMal(30 + 42 * G.r + (million ? 300 : 0), W);
-  const tal = wdhMal(Math.floor(G.r / 3) + (million ? 25 : 0) + (G.rekord && !woche ? 3 : 0), W) + (woche ? BIB_WOCHE_TAL : 0);
+  const tal = wdhMal(Math.floor(G.r / 3) + (million ? 25 : 0) + (G.rekord && !woche ? 3 : 0), W) + (woche ? BIB_WOCHE_TAL : 0) + (adv ? ADV_BIB_TAL : 0);
   if (!G.belohnt) { G.belohnt = true; richtig(G.r); quest("runde", 1); save(); }
   const titel = million ? "Biblionär!" : grund === "raus" ? "Klug ausgestiegen!" : grund === "zeit" ? "Die Zeit ist um" : "Leider falsch";
   const zeile = million ? "Alle 15 Fragen richtig – du hast die Million!" : grund === "raus" ? `Du nimmst ${pkt(punkte)} Punkte mit.` : `Du fällst auf die Sicherheitsstufe zurück: ${pkt(punkte)} Punkte.`;
@@ -3532,8 +3540,9 @@ function bibEnde(G, punkte) {
     <h1>${titel}</h1><p class="muted">${zeile}</p>
     <div class="bib-gross"><b>${pkt(punkte)}</b><span>Punkte · ${G.r} von 15 richtig${G.rekord && !million ? " · neuer Rekord!" : ""}</span></div>
     ${f && !million ? `<div class="bib-loesung"><span class="small muted">Frage ${G.i + 1}: ${esc(f.f)}</span><b>${svg("check", "var(--good)")} ${esc(f.loesung)}</b><span class="small muted">${svg("book")} ${esc(f.ref)}</span></div>` : ""}
-    <div class="vle-werte"><div><b>+${xp}</b><span>XP</span></div><div><b>+${tal}${TAL_MUENZE}</b><span>Talente</span></div>${woche ? "" : `<div><b>${pkt(S.bibRekord)}</b><span>Rekord</span></div>`}</div>
-    ${woche ? `<p class="small muted" style="margin:0">Alle in der Gemeinde bekommen diese Woche dieselben Fragen. Am Montag gibt es neue.</p>
+    <div class="vle-werte"><div><b>+${xp}</b><span>XP</span></div><div><b>+${tal}${TAL_MUENZE}</b><span>Talente</span></div>${woche || adv ? "" : `<div><b>${pkt(S.bibRekord)}</b><span>Rekord</span></div>`}</div>
+    ${adv ? `<p class="small muted" style="margin:0">Alle in der Gemeinde bekommen dieselben Fragen. Nächsten Sonntag gibt es neue.</p><button class="btn primary breit" data-go="advent">${svg("kerze")} Zurück zum Advent</button>`
+      : woche ? `<p class="small muted" style="margin:0">Alle in der Gemeinde bekommen diese Woche dieselben Fragen. Am Montag gibt es neue.</p>
       <button class="btn primary breit" id="bibRang">${svg("trophy")} Zur Wochen-Rangliste</button><button class="btn ghost breit" data-go="bib">Zurück zu Biblionär</button>`
       : `<button class="btn primary breit" id="bibNochmal">${svg("biblionaer")} Nochmal spielen</button><button class="btn ghost breit" data-go="bib">Zurück zu Biblionär</button>`}
   </div>`;
@@ -3541,7 +3550,7 @@ function bibEnde(G, punkte) {
   if ($("bibNochmal")) $("bibNochmal").onclick = () => { SFX.tap(); bibSolo(); };
   if ($("bibRang")) $("bibRang").onclick = () => { SFX.tap(); go("rank", "bibWoche"); };
   SFX.win(); if (million) rain(140); else if (punkte >= 16000) rain(60);
-  setTimeout(() => { addXp(xp, null, "bib", { t0: G.t0, f: G.r, fm: 15, d: `${woche ? "Wochenrunde" : "Solo"} · ${pkt(punkte)} Punkte${W ? W.d : ""}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350);
+  setTimeout(() => { addXp(xp, null, "bib", { t0: G.t0, f: G.r, fm: 15, d: `${woche ? "Wochenrunde" : adv ? "Advents-Runde" : "Solo"} · ${pkt(punkte)} Punkte${W ? W.d : ""}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350);
 }
 /* Solo-Übung (Spielen): zufällige Fragen */
 VIEWS.biblionaer = () => { screen.innerHTML = ""; };
@@ -5609,11 +5618,13 @@ function stiftNamen(liste) {
 }
 /* Kleine Karte auf dem Gemeinde-Reiter */
 function stiftMiniHtml() {
+  if (!STIFT_AKTIV) return "";
   const st = stiftStand(), a = STIFT[Math.min(st.k, 7)], pz = st.eingeweiht ? 100 : Math.min(100, Math.round(st.sum[st.k] / a.ziel * 100));
   const zeile = st.eingeweiht ? "Eingeweiht – die Wolke erfüllt die Hütte" : st.vorStart ? `Baustart ${stiftMontag(0)}` : st.offen ? `${st.k + 1}/8 · ${a.n}` : `${st.k}/8 fertig · weiter ${stiftMontag(st.k)}`;
   return `<button class="sh-mini" data-go="stift" aria-label="Stiftshütte: ${esc(zeile)}">${svg("zelt")}<span class="sh-mini-tx"><b>Stiftshütte</b><small>${esc(zeile)}</small><i class="sh-balken klein"><i style="width:${st.vorStart ? 0 : pz}%"></i></i></span><span class="sh-pfeil">›</span></button>`;
 }
 VIEWS.stift = () => {
+  if (!STIFT_AKTIV) { go("home"); return; }
   const st = stiftStand(), a = STIFT[Math.min(st.k, 7)], ist = st.eingeweiht ? 0 : st.sum[st.k], rest = st.eingeweiht ? 0 : Math.max(0, a.ziel - ist);
   const pz = st.eingeweiht ? 100 : Math.min(100, Math.round(ist / a.ziel * 100)), online = window.LB && LB.ok && LB.stiftSetzen && S.pid && !S.offlineOnly;
   const tageNoch = 7 - ((dayNum(today()) - dayNum(STIFT_START)) % 7 + 7) % 7;
