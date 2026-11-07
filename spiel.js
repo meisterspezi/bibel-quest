@@ -5143,19 +5143,29 @@ function xqLueckeHtml(a) {
 }
 /* 6.77: gemessene XP pro Minute je Spiel (nur Vergaben ab Version 6.79 mit Spielzeit; 6.89: keine Mindestzeit, alle Spiele immer gelistet, 30 Tage) – Grundlage zum Nachjustieren */
 const XQ_ZIEL_MIN = { solo: 150, duell: 225 };
-function xqRateKarte(z) {
+function xqTagStart() { const t = new Date(); t.setHours(0, 0, 0, 0); return t.getTime(); }
+const XQ_RATE_ZEIT = { heute: "Heute", woche: "7 Tage", monat: "30 Tage" };
+function xqRateInnen(z) {
+  const modus = XQ_RATE_ZEIT[window.__xqRateModus] ? window.__xqRateModus : "heute", seit = modus === "heute" ? xqTagStart() : Date.now() - (modus === "woche" ? 7 : 30) * 864e5;
   const g = {};
-  z.forEach(r => (r.ev || []).forEach(e => { if (!(parseFloat(e.ver) >= 6.79) || !(e.s > 0) || !XQ_BEREICH[e.q] || e.q === "tagesbonus" || e.q === "spickzettel" || e.q === "spende") return;
+  z.forEach(r => (r.ev || []).forEach(e => { if (e.z < seit || !(parseFloat(e.ver) >= 6.79) || !(e.s > 0) || !XQ_BEREICH[e.q] || e.q === "tagesbonus" || e.q === "spickzettel" || e.q === "spende") return;
     const q = e.q === "duelleigen" ? "duell" : e.q;   // 6.90: Duelle auf dem eigenen Profil zählen als Duell
     const o = g[q] || (g[q] = { x: 0, s: 0, n: 0 }); o.x += e.x; o.s += e.s; o.n++; }));
   const ALLE = ["vers", "lektion", "luecke", "blitz", "kette", "duell", "bib"];
   const zeilen = ALLE.map(q => { const o = g[q]; return { q, n: o ? o.n : 0, s: o ? o.s : 0, r: o ? o.x / (o.s / 60) : null }; });
-  if (!zeilen.some(t => t.n)) return `<div class="card small muted">XP pro Minute: Messwerte erscheinen, sobald Spieler die Version 6.79 nutzen und das Protokoll lesbar ist.</div>`;
+  const seg = `<div class="seg xq-evseg" role="tablist" aria-label="Zeitraum" style="grid-template-columns:repeat(3,1fr)">${Object.entries(XQ_RATE_ZEIT).map(([k, t]) => `<button type="button" role="tab" data-ratem="${k}" aria-selected="${k === modus}">${t}</button>`).join("")}</div>`;
+  const kopf = `<div class="topline"><b>XP pro Minute</b><span class="small muted">Ziel ${XQ_ZIEL_MIN.solo} (Duell ${XQ_ZIEL_MIN.duell})</span></div>${seg}`;
+  if (!zeilen.some(t => t.n)) return `${kopf}<div class="small muted">${modus === "heute" ? "Heute" : modus === "woche" ? "In den letzten 7 Tagen" : "In den letzten 30 Tagen"} gibt es noch keine Messwerte. Sie erscheinen, sobald Spieler die Version 6.79 oder neuer nutzen und das Protokoll lesbar ist.</div>`;
   const dauer = sek => sek >= 120 ? Math.round(sek / 60) + " Min" : Math.round(sek) + " s";
   const mit = zeilen.filter(t => t.r != null).sort((a, b) => b.r - a.r), ohne = zeilen.filter(t => t.r == null);
-  return `<div class="card stack"><div class="topline"><b>XP pro Minute</b><span class="small muted">30 Tage · Ziel ${XQ_ZIEL_MIN.solo} (Duell ${XQ_ZIEL_MIN.duell})</span></div>${mit.map(t => {
+  return `${kopf}${mit.map(t => {
     const ziel = t.q === "duell" ? XQ_ZIEL_MIN.duell : XQ_ZIEL_MIN.solo, abw = Math.round((t.r / ziel - 1) * 100);
-    return `<div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:2px 8px;align-items:baseline"><i class="xq-dot" style="background:${XQ_FARBE[t.q] || XQ_FARBE.sonst}"></i><span class="xq-nm">${esc(XQ_QUELLEN[t.q] || t.q)}</span><b>${Math.round(t.r)}</b><span class="small" style="min-width:3.2em;text-align:right;color:${abw >= 0 ? "var(--good,#7fd99a)" : "var(--muted,#9aa)"}">${abw > 0 ? "+" : ""}${abw} %</span><span></span><span class="small muted" style="grid-column:2/5">${t.n}× · ${dauer(t.s)}${t.n < 3 ? " · wenig Daten" : ""}</span></div>`; }).join("")}${ohne.length ? `<div class="small muted">Noch keine Messung: ${ohne.map(t => esc(XQ_QUELLEN[t.q] || t.q)).join(", ")}</div>` : ""}</div>`;
+    return `<div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:2px 8px;align-items:baseline"><i class="xq-dot" style="background:${XQ_FARBE[t.q] || XQ_FARBE.sonst}"></i><span class="xq-nm">${esc(XQ_QUELLEN[t.q] || t.q)}</span><b>${Math.round(t.r)}</b><span class="small" style="min-width:3.2em;text-align:right;color:${abw >= 0 ? "var(--good,#7fd99a)" : "var(--muted,#9aa)"}">${abw > 0 ? "+" : ""}${abw} %</span><span></span><span class="small muted" style="grid-column:2/5">${t.n}× · ${dauer(t.s)}${t.n < 3 ? " · wenig Daten" : ""}</span></div>`; }).join("")}${ohne.length ? `<div class="small muted">Noch keine Messung: ${ohne.map(t => esc(XQ_QUELLEN[t.q] || t.q)).join(", ")}</div>` : ""}`;
+}
+function xqRateKarte(z) { return `<div class="card stack" id="xqRate">${xqRateInnen(z)}</div>`; }
+function xqRateVerdrahten(z) {
+  const box = $("xqRate"); if (!box) return;
+  box.querySelectorAll("[data-ratem]").forEach(b => b.onclick = () => { if (b.dataset.ratem === (window.__xqRateModus || "heute")) return; SFX.tap(); window.__xqRateModus = b.dataset.ratem; box.innerHTML = xqRateInnen(z); xqRateVerdrahten(z); });
 }
 /* 6.95: Talente-Planung (nur Verwalter) – Guthaben je Spieler, verdiente Talente pro Tag und Prognose, wie viel die Gemeinde für Events wie die
    Stiftshütte spenden kann. Datenquellen: Sammlung „talente“ (Zählung ab Version 6.95, siehe talBuchen) und „stiftshuette“ (alle Spenden). */
@@ -5259,6 +5269,7 @@ VIEWS.xppruefung = () => {
       try { await L.abgleichAnfordern(id); m.textContent = "✓ Angefordert – wird beim nächsten Start der App des Spielers ausgeführt."; }
       catch (e) { m.textContent = "✗ Nicht möglich (" + ((e && e.code) || "Fehler") + ") – sind die neuen Firebase-Regeln (6.88) veröffentlicht und ist dieses Gerät als Verwalter eingetragen?"; }
       b.disabled = false; };
+    xqRateVerdrahten(z);
     if ($("xqAnAlle")) $("xqAnAlle").onclick = () => anfordern("_alle", $("xqAnAlle"), $("xqAnAlleM"));
     screen.querySelectorAll("[data-xqan]").forEach(b => b.onclick = () => anfordern(b.dataset.xqan, b, b.parentNode.querySelector("[data-xqanm]")));
     screen.querySelectorAll("[data-xqab]").forEach(b => b.onclick = async () => {
