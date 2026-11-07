@@ -5290,7 +5290,7 @@ VIEWS.xppruefung = () => {
   xpPruefDaten({ seit: Date.now() - 30 * 864e5, limit: 4000 }).then(z => {
    const zeichnen = () => {
     const ohne = !!S.xqOhneAlt;   // 6.80: „Vor der Zählung“ ausblenden → nur gezählte XP, danach sortiert
-    z.sort((a, b) => ohne ? (b.xp - b.alt) - (a.xp - a.alt) : b.xp - a.xp);   // höchste XP oben
+    z.sort((a, b) => (b.level - a.level) || (b.xp - a.xp) || String(a.name).localeCompare(String(b.name), "de"));   // 7.2: höchstes Level oben, bei gleichem Level mehr XP zuerst
     const auffaellig = z.filter(r => r.flags.some(f => f.hart));
     const gesamt = z.length ? `<div class="card stack" id="xqGem">${xqGemInnen(z, ohne)}</div>` : "";
     const warn = auffaellig.length ? `<div class="card stack xq-karte-bad"><b>⚠ Auffälligkeiten (${auffaellig.length})</b>${auffaellig.map(r => `<div class="small"><b>${esc(r.name)}</b> (${zahl(r.xp)} XP)<br>${r.flags.filter(f => f.hart).map(f => esc(f.t)).join("<br>")}</div>`).join("")}</div>` : `<div class="card small muted">Keine Auffälligkeiten.</div>`;
