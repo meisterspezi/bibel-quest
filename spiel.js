@@ -5168,6 +5168,19 @@ function xqGemInnen(z, ohne) {
   const alle = z.flatMap(r => r.ev || []), p = xqZPeriode(alle, m), akt = new Set(alle.filter(e => e.z >= (m === "heute" ? xqTagStart() : Date.now() - (m === "woche" ? 7 : 30) * 864e5)).map(e => e.pid)).size;
   return `<div class="topline"><b>Gemeinde gesamt</b><span class="small muted">${zahl(p.xp)} XP · ${zahl(p.cnt)} Vergaben · ${akt} von ${z.length} Spielern aktiv</span></div>${seg}${p.cnt ? xqAnteilHtml(xqAnteile(p.q, p.n, 0, 0, p.xp)) : `<div class="small muted">${m === "heute" ? "Heute" : m === "woche" ? "In den letzten 7 Tagen" : "In den letzten 30 Tagen"} noch keine protokollierten Vergaben.</div>`}${xqZNotiz(p, z.evOk)}`;
 }
+/* 7.1: Spielerliste der XP-Prüfung eingeklappt – je Spieler eine Zeile (Buchstabe, Name, Level/XP, Mini-Verlauf der letzten 7 Tage, XP heute, roter Rand bei Warnung),
+   Tippen klappt die Details auf. Geöffnete Spieler merkt sich window.__xqOffen, solange die App offen ist. */
+const XQ_CHEV = '<svg class="chev" viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M5 7l5 6 5-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function xqSpielerZeile(r, ohne, evOk) {
+  const zahl = v => (+v || 0).toLocaleString("de-DE"), t0 = xqTagStart(), tage = [0, 0, 0, 0, 0, 0, 0];
+  (r.ev || []).forEach(e => { const i = 6 - Math.floor((t0 + 864e5 - 1 - e.z) / 864e5); if (i >= 0 && i <= 6 && +e.x > 0) tage[i] += +e.x; });
+  const mx = Math.max(1, ...tage), heute = tage[6], hart = r.flags.some(f => f.hart);
+  const sub = `Level ${r.level} · ${r.hat && ohne ? zahl(r.xp - r.alt) + " gezählt" : zahl(r.xp) + " XP"}`;
+  return `<span class="av" aria-hidden="true">${esc(String(r.name || "?").trim().charAt(0).toUpperCase() || "?")}</span>
+    <span class="nm"><b>${esc(r.name)}${r.geteilt && r.geteilt.length ? ` <span class="xq-teilt" title="Spielt auf demselben Gerät wie ${esc(r.geteilt.join(", "))}">${svg("people")}</span>` : ""}${hart ? ` <span class="xq-pkt" title="Auffälligkeit – Details aufklappen" aria-label="Auffälligkeit"></span>` : ""}</b><small>${sub}</small></span>
+    <span class="sp" aria-hidden="true">${tage.map(v => `<i style="height:${evOk ? Math.max(2, Math.round(v / mx * 22)) : 2}px"></i>`).join("")}</span>
+    <span class="hx"><b>${evOk && heute ? "+" + zahl(heute) : "–"}</b><small>heute</small></span>${XQ_CHEV}`;
+}
 function xqSpielerBalken(r, ohne) {
   const m = xqZModus(r.id);
   if (m === "gesamt") return `<div id="xqBar-${esc(r.id)}">${xqAnteilHtml(r.luecke ? xqAnteileLuecke(r, r.luecke, ohne) : ohne ? xqAnteile(r.q, r.n, 0, r.offen, Math.max(0, r.xp - r.alt)) : r.anteile)}</div>`;
@@ -5284,9 +5297,9 @@ VIEWS.xppruefung = () => {
     const hinweis = z.evOk ? "" : `<div class="card small muted">Das Einzelprotokoll ist noch nicht lesbar – sind die neuen Firebase-Regeln (Version 6.75) veröffentlicht?</div>`;
     const csvAlle = `<button class="btn ghost breit" id="xqCsvAlle" style="width:100%">${svg("scroll")} Alle XP-Vergaben als CSV-Datei (Excel)</button><div class="small muted" id="xqCsvMeld" aria-live="polite"></div>`;
     $("xpListe").innerHTML = hinweis + warn + gesamt + xqRateKarte(z) + csvAlle + `<div class="card stack"><button class="btn ghost breit" id="xqAnAlle" style="width:100%">${svg("check")} Zählung für alle Spieler anfordern</button><div class="small muted" id="xqAnAlleM" aria-live="polite">Jede App gleicht beim nächsten Start ihre XP-Zählung mit der Datenbank ab.</div></div>` + z.map(r => {
-      const kopf = `<div class="topline"><b>${esc(r.name)}${r.geteilt && r.geteilt.length ? ` <span class="xq-teilt" title="Spielt auf demselben Gerät wie ${esc(r.geteilt.join(", "))}">${svg("people")} ${esc(r.geteilt.join(", "))}</span>` : ""}</b><span class="small muted">Level ${r.level} · ${ohne && r.hat ? zahl(r.xp - r.alt) + " gezählt · " + zahl(r.xp) + " gesamt" : zahl(r.xp) + " XP"}</span></div>`;
-      if (!r.hat) return `<div class="card">${kopf}<div class="small muted">Noch keine Zählung (neue Version noch nicht geöffnet).</div></div>`;
-      return `<div class="card stack${r.flags.some(f => f.hart) ? " xq-karte-bad" : ""}">${kopf}
+      const zeile = xqSpielerZeile(r, ohne, z.evOk), bad = r.flags.some(f => f.hart), offen = (window.__xqOffen || {})[r.id] ? " open" : "";
+      if (!r.hat) return `<details class="xq-sp" data-spid="${esc(r.id)}"${offen}><summary>${zeile}</summary><div class="xq-spbody small muted">Noch keine Zählung (neue Version noch nicht geöffnet).</div></details>`;
+      return `<details class="xq-sp${bad ? " bad" : ""}" data-spid="${esc(r.id)}"${offen}><summary>${zeile}</summary><div class="xq-spbody stack">
         <div class="stack" id="xqZeit-${esc(r.id)}">${xqZSeg(r.id)}${xqSpielerBalken(r, ohne)}</div>
         ${r.offen > 0 ? `<details data-xqlu="${esc(r.id)}"${r.luecke ? " open" : ""}><summary class="small">Woher kommen die ${zahl(r.offen)} XP „ohne Quelle“?</summary><div class="xq-luliste small muted" style="margin-top:6px">${r.luecke ? xqLueckeHtml(r.luecke) : "Wird beim Öffnen aus dem Protokoll berechnet …"}</div></details>` : ""}
         <div class="small muted">Letzte 24 Stunden: ${zahl(r.h24)} XP · stärkste Stunde: ${zahl(r.spitze)} XP</div>
@@ -5294,7 +5307,7 @@ VIEWS.xppruefung = () => {
         ${r.bel.length ? `<details><summary class="small">Tägliche Belohnung: ${r.bel.length}× erhalten · zuletzt ${esc(xqZeit(r.bel[r.bel.length - 1].z))} (+${r.bel[r.bel.length - 1].x} XP)</summary><div class="small muted" style="margin-top:6px">${r.bel.slice(-14).reverse().map(e => `${esc(xqZeit(e.z))} · +${e.x} XP · +${e.t} Talente · Truhe vom ${esc(xqDatum(e.d || "?"))}${e.a === "gestern" ? " (am Folgetag automatisch geöffnet)" : ""}`).join("<br>")}<br><i>Uhrzeit laut Gerät des Spielers</i></div></details>` : ""}
         ${r.id === S.pid ? `<div><button class="btn ghost mini" data-xqab>${svg("check")} Zählung jetzt abgleichen</button><div class="small muted" data-xqabm aria-live="polite" style="margin-top:4px">${xqFehler ? "Letzter Fehler auf diesem Gerät: " + esc(xqFehler.code) + (xqFehler.msg ? " – " + esc(xqFehler.msg) : "") : ""}</div></div>` : ""}
         ${r.id !== S.pid ? `<div><button class="btn ghost mini" data-xqan="${esc(r.id)}">${svg("check")} Zählung jetzt anfordern</button><div class="small muted" data-xqanm aria-live="polite" style="margin-top:4px">Der Spieler gleicht beim nächsten Start der App ab.</div></div>` : ""}
-        ${r.flags.map(f => `<div class="small" style="color:${f.hart ? "var(--bad,#ff8a5c)" : "var(--muted,#9aa)"}">${f.hart ? "⚠ " : "ℹ "}${esc(f.t)}</div>`).join("")}</div>`;
+        ${r.flags.map(f => `<div class="small" style="color:${f.hart ? "var(--bad,#ff8a5c)" : "var(--muted,#9aa)"}">${f.hart ? "⚠ " : "ℹ "}${esc(f.t)}</div>`).join("")}</div></details>`;
     }).join("") || `<p class="muted">Keine Einträge.</p>`;
     if ($("xqCsvAlle")) $("xqCsvAlle").onclick = async () => {
       SFX.tap(); const k = $("xqCsvAlle"), m = $("xqCsvMeld"); k.disabled = true; m.textContent = "Lade das Protokoll …";
@@ -5307,6 +5320,7 @@ VIEWS.xppruefung = () => {
       catch (e) { m.textContent = "✗ Nicht möglich (" + ((e && e.code) || "Fehler") + ") – sind die neuen Firebase-Regeln (6.88) veröffentlicht und ist dieses Gerät als Verwalter eingetragen?"; }
       b.disabled = false; };
     xqRateVerdrahten(z); xqZVerdrahten(z, ohne);
+    screen.querySelectorAll("details.xq-sp").forEach(d => d.addEventListener("toggle", () => { (window.__xqOffen = window.__xqOffen || {})[d.dataset.spid] = d.open; }));
     if ($("xqAnAlle")) $("xqAnAlle").onclick = () => anfordern("_alle", $("xqAnAlle"), $("xqAnAlleM"));
     screen.querySelectorAll("[data-xqan]").forEach(b => b.onclick = () => anfordern(b.dataset.xqan, b, b.parentNode.querySelector("[data-xqanm]")));
     screen.querySelectorAll("[data-xqab]").forEach(b => b.onclick = async () => {
