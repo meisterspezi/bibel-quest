@@ -1369,7 +1369,7 @@ function go(name, arg) {
 /* 8.0 „Allein und Zusammen“: nur noch vier große Reiter – Laden über die Talente oben, Rangliste unter „Zusammen“ */
 const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Allein", "user"], ["zusammen", "Zusammen", "people"]];
 const TAB_VON = { stift: "zusammen", advent: "home", beth: "home", kal: "home", duell: "zusammen", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen", biblionaer: "zusammen",
-  bib: "zusammen", duelle: "zusammen", rank: "zusammen", shop: "", ich: "", profil: "", badges: "", wer: "", postfach: "" };
+  bib: "zusammen", gegner: "zusammen", duelle: "zusammen", rank: "zusammen", shop: "", ich: "", profil: "", badges: "", wer: "", postfach: "" };
 /* rote Zahl am Duell-Reiter: wartende Herausforderungen */
 function tbDuSetzen() { const t = $("tbDu"); if (!t) return; const n = typeof duFuerMich === "function" ? duFuerMich().length : 0; t.hidden = !n; t.textContent = n; }
 function tabbarSetzen(name) {
@@ -1601,24 +1601,36 @@ VIEWS.home = () => {
   const siegel = (() => { const f = Object.entries(KETTEN).map(([id, k]) => ({ id, k, t: S.meister[id] || [] })).filter(x => x.t.length && siegelRest(x.t) <= 5).sort((a, b) => siegelRest(a.t) - siegelRest(b.t))[0];
       return f ? `<button class="erinnerung" data-go="spielen">${siegelHtml(siegelStufe(f.t), siegelFrisch(f.t), true)}<span><b>${siegelFrisch(f.t) ? `Dein Siegel „${esc(f.k.name)}“ verblasst in ${siegelRest(f.t)} Tag(en)` : `Dein Siegel „${esc(f.k.name)}“ ist verblasst`}</b><span class="small muted">Jetzt die Kette wiederholen und auffrischen${siegelFrisch(f.t) ? "" : ` (+${AUFFRISCH_TAL} Talente)`}</span></span></button>` : ""; })();
   const ezZeile = (go, ar, ic, t, sub, ecke = "") => `<button class="ez" data-ar="${ar}" data-go="${go}"><span class="ez-ic">${ic}</span><span class="ez-tx"><b>${t}</b><small>${sub}</small></span>${ecke}<i class="ez-pf">›</i></button>`;
+  /* 8.1: Kopf wie in den anderen Bereichen (Überschrift, Tagesaufgabe im Untertitel, Truhe als Knopf), dazu Rubrik-Trenner; der Lernvers steht wieder oben, direkt über „Lernen“ */
+  const vorname = esc(String(S.lbName || "").trim().split(/\s+/)[0].slice(0, 14));
+  const sterneAlle = Object.values(S.stars).reduce((x, y) => x + y, 0);
+  const aufgText = S.dq.bonus ? "Heute alles geschafft!" : bereit ? "Die Schatztruhe wartet auf dich!" : `Tagesaufgaben: ${erledigt} von 3 geschafft`;
+  const kopf = bereichKopf("home", { ic: "sun", t: "Dein Tag", sub: `${vorname ? `Hallo ${vorname}! ` : ""}${aufgText}`, ring: [streakNow(), streakNow() === 1 ? "Tag" : "Tage"],
+    tafel: [[levelOf(S.xp), "Level"], [sterneAlle, "Sterne"], [pkt(S.tal || 0), "Talente"]],
+    knopf: bereit ? { ic: "star", t: "Truhe öffnen", attr: 'id="truheKopf"' } : null });
   screen.innerHTML = `<div class="stack start start2 start8">
-    <details class="ez-aufg ${S.dq.bonus ? "fertig" : bereit ? "bereit" : ""}"${bereit ? " open" : ""}>
-      <summary><span class="ez-ic">${svg("target")}</span><span class="ez-tx"><b>${S.dq.bonus ? "Heute geschafft!" : bereit ? "Die Truhe wartet!" : `Heute: ${erledigt} von 3`}</b><small>${S.dq.bonus ? "Morgen gibt es neue Aufgaben" : "Tagesaufgaben – antippen zum Öffnen"}</small></span><span class="ez-keys">${[0, 1, 2].map(i => `<i class="${i < erledigt ? "an" : ""}">${SCHLUESSEL}</i>`).join("")}</span></summary>
+    ${kopf}
+    ${bkLabel("target", "Tagesaufgaben")}
+    <details class="ez-aufg ${S.dq.bonus ? "fertig" : bereit ? "bereit" : ""}">
+      <summary><span class="ez-ic">${svg("target")}</span><span class="ez-tx"><b>${S.dq.bonus ? "Heute geschafft!" : bereit ? "Die Truhe wartet!" : `Heute: ${erledigt} von 3`}</b><small>${S.dq.bonus ? "Morgen gibt es neue Aufgaben" : "Antippen zum Öffnen"}</small></span><span class="ez-keys">${[0, 1, 2].map(i => `<i class="${i < erledigt ? "an" : ""}">${SCHLUESSEL}</i>`).join("")}</span></summary>
       <section class="heute3 ${S.dq.bonus ? "fertig" : ""}" aria-label="Tagesaufgaben, ${erledigt} von 3 erledigt"><ul>${aufg}</ul>${truhe}</section>
     </details>
     ${adventMiniHtml(true)}${siegel}
+    ${bkLabel("scroll", "Lernvers")}
+    <div class="start-vers">${MONATSVERSE[monatKey()] ? lvKarte(monatKey()) : `<button class="vers-zeile" id="versZeile" aria-expanded="false">${versHtml(vKey, "tag klein")}<span class="vz-mehr">mehr</span></button>`}</div>
+    ${bkLabel("play", "Los geht's")}
     <div class="ez-liste">
       ${ezZeile("lernen", "lernen", svg("book"), "Lernen", ni >= 0 ? `Weiter mit: ${esc(GROUPS[ni].name)}` : "Lektionen, Lernvers, Lied")}
       ${ezZeile("spielen", "spielen", svg("user"), "Allein spielen", "Blitz, Kette, Biblionär")}
       ${ezZeile("zusammen", "gemeinde", svg("people"), "Zusammen", duN ? (duN === 1 ? "1 Duell wartet auf dich" : `${duN} Duelle warten auf dich`) : "Duelle, Biblionär der Woche, Rangliste", duN ? `<span class="ez-zahl" aria-label="${duN} ${duN === 1 ? "Duell wartet" : "Duelle warten"}">${duN}</span>` : "")}
     </div>
-    <div class="start-vers">${MONATSVERSE[monatKey()] ? lvKarte(monatKey()) : `<button class="vers-zeile" id="versZeile" aria-expanded="false">${versHtml(vKey, "tag klein")}<span class="vz-mehr">mehr</span></button>`}</div>
     ${entwickler && postfachNeu ? `<button class="erinnerung pf-hinweis" data-go="postfach">${svg("chat")}<span><b>${postfachNeu} ${postfachNeu === 1 ? "neue Meldung" : "neue Meldungen"} im Postkasten</b><span class="small muted">Feedback, Status und Datenbank</span></span></button>` : ""}
     <button class="feedback-link fb-start" id="fbLinkStart">${svg("chat")} Feedback an den Entwickler</button>
   </div>`;
   wireGo();
   $("fbLinkStart").onclick = () => { SFX.tap(); feedbackOeffnen(); };
   const tb = $("truheBtn"); if (tb) tb.onclick = () => truheOeffnen(tb);
+  const tk = $("truheKopf"); if (tk) tk.onclick = () => truheOeffnen(tk);
   const td = $("torDuell"); if (td) td.onclick = () => { SFX.tap(); go("duelle"); };
   lvVerdrahten();
   if (S.lbName) levelNachreichen();
@@ -1691,18 +1703,49 @@ VIEWS.spielen = () => {
   $("alleinBib").onclick = () => { SFX.tap(); bibSolo(weihAktiv()); };
 };
 
-/* ---------- 8.0: Bereich „Zusammen“ – Duelle, Biblionär der Woche/zu zweit, Ranglisten ---------- */
+/* ---------- 8.1: Bereich „Zusammen“ – Schritt 1: Spiel wählen (Lernvers, Blitz, Kette mit Unterwahl, Biblionär als Extra-Knopf), Schritt 2 (Ansicht „gegner“): nur noch der Gegner ---------- */
+let zusKette = false; /* Unterwahl der Kette (Ganze Bibel / AT / NT / Rückwärts) ist aufgeklappt */
+const ZUS_KETTEN = [["kette-bibel", "Ganze Bibel", "kette-bibel"], ["kette-at", "Altes Testament", "kette-at"], ["kette-nt", "Neues Testament", "kette-nt"], ["kette-rueck", "Rückwärts", "kette-rueck"]];
+const ZUS_KURZ = { vers: "8 Fragen", blitz: "60 Sekunden", kette: "Buch für Buch", quiz: "15 Fragen bis zur Million" };
 VIEWS.zusammen = () => {
-  const duN = duFuerMich().length;
-  const k = (go, ar, ic, t, sub, ecke = "") => `<button class="ez" data-ar="${ar}" data-go="${go}"><span class="ez-ic">${ic}</span><span class="ez-tx"><b>${t}</b><small>${sub}</small></span>${ecke}<i class="ez-pf">›</i></button>`;
-  screen.innerHTML = `${bereichKopf("gemeinde", { ic: "people", t: "Zusammen", sub: "Mit der Gemeinde spielen", ring: [levelOf(S.xp), "Level"] })}
+  const duN = duFuerMich().length, online = duOk(), aktivTyp = duTypAktuell();
+  const siege = S.duSiege || 0;
+  const kachel = (id, art, ic, name, extra = "") => `<button class="du-typ t-${art}${extra}" ${online ? "" : "disabled"} data-dtyp="${id}"${id === "kette" ? ` aria-expanded="${zusKette}"` : ""}><span class="dt-ic">${svg(ic)}</span><span class="dt-name">${esc(name)}</span><span class="dt-sub">${ZUS_KURZ[art]}</span>${id === "kette" ? `<i class="dt-pfeil" aria-hidden="true">${zusKette ? "▴" : "▾"}</i>` : ""}</button>`;
+  const kettenWahl = zusKette ? `<div class="zus-ketten t-kette" role="group" aria-label="Welche Kette?">${ZUS_KETTEN.map(([id, n, ic]) => `<button class="zus-kk${aktivTyp === id ? " zuletzt" : ""}" data-dtyp="${id}"><span>${svg(ic)}</span><b>${n}</b></button>`).join("")}</div>` : "";
+  const zeile = (go, ar, ic, t, sub, ecke = "") => `<button class="ez ez-k" data-ar="${ar}" data-go="${go}"><span class="ez-ic">${ic}</span><span class="ez-tx"><b>${t}</b><small>${sub}</small></span>${ecke}<i class="ez-pf">›</i></button>`;
+  const wocheText = bibWocheGespielt() ? `Deine Runde: ${pkt(S.bwP || 0)} Punkte` : `KW ${weekKey().split("-W")[1]} · gleiche Fragen für alle`;
+  screen.innerHTML = `${bereichKopf("gemeinde", { ic: "people", t: "Zusammen", sub: duN ? `${duN} ${duN === 1 ? "Duell wartet" : "Duelle warten"} auf dich!` : "Mit der Gemeinde spielen", ring: [siege, siege === 1 ? "Sieg" : "Siege"],
+    tafel: [[levelOf(S.xp), "Level"], [S.duSpiele || 0, "Duelle"], [siege, siege === 1 ? "Sieg" : "Siege"]] })}
+  ${bkLabel("duell", "Duell – was spielt ihr?")}
+  ${online ? "" : `<p class="small muted zus-hinweis">${window.LB && window.LB.ok ? "Für Duelle brauchst du einen Eintrag in der Gemeinde-Rangliste." : "Für Duelle brauchst du Internet."}</p>`}
+  <div class="du-typen zus-typen" role="group" aria-label="Duell-Spiel">
+    ${kachel("vers", "vers", DU_TYPEN.vers.ic, "Lernvers")}${kachel("blitz", "blitz", DU_TYPEN.blitz.ic, "Blitz")}${kachel("kette", "kette", "link", "Kette")}
+    ${kettenWahl}
+    ${kachel("quiz", "quiz", DU_TYPEN.quiz.ic, DU_TYPEN.quiz.name)}
+  </div>
+  ${bkLabel("people", "Gemeinde")}
   <div class="ez-liste">
-    ${k("duelle", "arena", `<span class="sf-logo">${DUELL_LOGO}</span>`, "Duelle", duN ? `${duN} ${duN === 1 ? "Herausforderung wartet" : "Herausforderungen warten"}` : "Fordere jemanden heraus", duN ? `<span class="ez-zahl">${duN}</span>` : "")}
-    ${k("bib", "bib", svg("biblionaer"), "Wer wird Biblionär?", "Duell zu zweit · Biblionär der Woche")}
-    ${k("rank", "gemeinde", svg("trophy"), "Ranglisten", "Woche, Gesamt, Treue und mehr")}
+    ${zeile("duelle", "arena", `<span class="sf-logo">${DUELL_LOGO}</span>`, "Deine Duelle", duN ? `${duN} ${duN === 1 ? "Herausforderung wartet" : "Herausforderungen warten"}` : "Offene Duelle und Ergebnisse", duN ? `<span class="ez-zahl">${duN}</span>` : "")}
+    ${zeile("bib", "bib", svg("biblionaer"), "Biblionär der Woche", wocheText)}
+    ${zeile("rank", "gemeinde", svg("trophy"), "Ranglisten", "Woche, Gesamt, Treue und mehr")}
   </div>`;
   wireGo();
-  if (typeof duAktualisieren === "function" && duListe === null) duAktualisieren().then(() => { if (current === "zusammen" && duFuerMich().length !== duN) VIEWS.zusammen(); }).catch(() => {});
+  screen.querySelectorAll("[data-dtyp]").forEach(b => b.onclick = () => { SFX.tap(); const id = b.dataset.dtyp;
+    if (id === "kette") { zusKette = !zusKette; VIEWS.zusammen(); return; }
+    S.duTyp = id; duAuswahl = []; duSuche = ""; save(); go("gegner"); });
+  if (online) { if (duGegner === null) duGegnerLaden(); if (duListe === null) duAktualisieren().then(() => { if (current === "zusammen") VIEWS.zusammen(); }).catch(() => {}); }
+  else if (typeof duAktualisieren === "function" && duListe === null) duAktualisieren().catch(() => {});
+};
+/* Schritt 2: nur noch den Gegner wählen – die Duell-Art steht schon fest (S.duTyp) */
+VIEWS.gegner = () => {
+  if (!duOk()) { go("zusammen"); return; }
+  const typ = duTypAktuell(), T = DU_TYPEN[typ];
+  screen.innerHTML = `<div class="gegner-seite">${backBtn("zusammen", "Anderes Spiel")}
+    ${bereichKopf("gemeinde", { ic: T.ic, t: "Gegner", sub: `${esc(T.name)} · wen forderst du heraus?`, ring: [S.duSiege || 0, S.duSiege === 1 ? "Sieg" : "Siege"], tafel: [[levelOf(S.xp), "Level"], [S.duSpiele || 0, "Duelle"], [S.duSiege || 0, "Siege"]] })}
+    ${duGegnerHtml()}</div>`;
+  wireGo(); duGegnerVerdrahten();
+  if (duGegner === null) duGegnerLaden();
+  if (duListe === null) duAktualisieren().then(() => { if (current === "gegner") { const box = $("duGegner"); if (box) { box.outerHTML = duGegnerHtml(); duGegnerVerdrahten(); } } }).catch(() => {});
 };
 
 /* ---------- Geführte Lektion: ansehen → anhören → ordnen ---------- */
@@ -3109,8 +3152,7 @@ VIEWS.duelle = () => {
   const titel = (ic, t, n) => `<div class="ar-label">${svg(ic)}<span>${t}</span>${n ? `<i>${n}</i>` : ""}</div>`;
   screen.innerHTML = `
     ${duArenaHtml(fuerMich)}
-    <button class="ar-start" id="duNeu" ${duWahl ? 'aria-expanded="true"' : ""}>${svg("duell")}<b>${duWahl ? "Gegner wählen" : "In die Arena"}</b>${svg(duWahl ? "nein" : "bolt")}</button>
-    ${duWahl ? duGegnerHtml() : ""}
+    <button class="ar-start" id="duNeu">${svg("duell")}<b>Neues Duell</b>${svg("bolt")}</button>
     ${duFehler ? `<p class="small muted">Die Arena konnte nicht geladen werden. <button class="lv-btn" id="duNeuLaden">Nochmal</button></p>` : ""}
     ${duListe === null && !duFehler ? `<p class="small muted du-laden">${svg("duell")} Lade Arena …</p>` : ""}
     ${fuerMich.length ? titel("bolt", "Du bist dran", fuerMich.length) + `<ul class="ar-liste">${fuerMich.map(dranKarte).join("")}</ul>` : ""}
@@ -3119,8 +3161,8 @@ VIEWS.duelle = () => {
     ${duListe && !liste.length ? `<div class="du-leer"><span class="du-leer-ic">${DUELL_LOGO}</span><b>Die Arena ist bereit</b><p class="small muted">Fordere jemanden aus der Gemeinde heraus – schon das Absenden bringt „Mutig wie David“.</p></div>` : ""}
     <p class="ar-regel">Annehmen +${DU_FAIR_TAL} · Sieg +${DU_SIEG_TAL} · Remis +${DU_REMIS_TAL} Talente · beide bekommen dieselben Fragen · 7 Tage Zeit</p>`;
   if ($("duAlle")) $("duAlle").onclick = () => { SFX.tap(); duAlle = !duAlle; VIEWS.duelle(); };
-  wireGo(); duGegnerVerdrahten();
-  $("duNeu").onclick = () => { SFX.tap(); duWahl = !duWahl; VIEWS.duelle(); if (duWahl) { duGegnerLaden(); const f = $("duSuche"); if (f && !matchMedia("(pointer: coarse)").matches) f.focus(); } };
+  wireGo();
+  $("duNeu").onclick = () => { SFX.tap(); go("zusammen"); };
   if ($("duNeuLaden")) $("duNeuLaden").onclick = () => { duAktualisieren().then(() => current === "duelle" && VIEWS.duelle()); };
   const annehmen = d => duSpielStarten({ id: d.id, seed: d.seed, erstellt: d.erstellt, art: d.art || "vers", k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von, weih: !!(d.opt && d.opt.w) });
   screen.querySelectorAll("[data-an]").forEach(b => b.onclick = () => { SFX.tap(); const d = liste.find(x => x.id === b.dataset.an); if (d) annehmen(d); });
@@ -3139,7 +3181,7 @@ const duTypKacheln = (aktiv, attr = "data-typ", marken = {}) => `<div class="du-
 async function duGegnerLaden() {
   if (duGegner) return;
   try { duGegner = (await window.LB.gegnerListe()).filter(r => r.id !== S.pid && r.name); } catch (e) { duGegner = []; }
-  if (current === "duelle" && duWahl) { const box = $("duGegner"); if (box) { box.outerHTML = duGegnerHtml(); duGegnerVerdrahten(); } }
+  if (current === "gegner") { const box = $("duGegner"); if (box) { box.outerHTML = duGegnerHtml(); duGegnerVerdrahten(); } }
 }
 function duGegnerHtml() {
   const offen = (duListe || []).filter(d => d.von === S.pid && duStatus(d) === "offen");
@@ -3149,11 +3191,8 @@ function duGegnerHtml() {
   const liste = (duGegner || []).filter(r => !q || nameSchluessel(r.name).includes(q)).slice(0, 40);
   return `<div class="card du-gegner" id="duGegner">
     ${!frei ? `<p class="small muted" style="margin:0">Du hast schon ${DU_MAX_OFFEN} offene Herausforderungen – erst müssen diese gespielt werden. Unten bei „Wartet auf Gegner“ kannst du eine abbrechen.</p>` : `
-    <div class="label du-schritt">1 · Duell-Art</div>
-    ${duTypKacheln(typ)}
     ${typ === "quiz" ? weihSchalterHtml() : ""}
-    <p class="small muted du-typ-info">${esc(DU_TYPEN[typ].info)}${typ === "quiz" && weihAktiv() ? " – im Weihnachtsmodus mit Fragen zu Advent und Weihnachten" : ""}</p>
-    <div class="label du-schritt du-schritt2"><span>2 · Gegner</span><i class="du-zahl${n ? " an" : ""}">${n}/${maxWahl}</i></div>
+    <div class="label du-schritt du-schritt2"><span>${esc(DU_TYPEN[typ].name)} · Gegner</span><i class="du-zahl${n ? " an" : ""}">${n}/${maxWahl}</i></div>
     <input class="du-suche" id="duSuche" type="search" placeholder="Name suchen …" value="${esc(duSuche)}" autocomplete="off" aria-label="Gegner suchen">
     ${n ? `<div class="du-chips">${duAuswahl.map(g => `<button class="du-chip" data-raus="${esc(g.id)}" aria-label="${esc(g.name)} abwählen">${esc(g.name)}${svg("nein")}</button>`).join("")}</div>` : ""}
     ${duGegner === null ? `<p class="small muted">Lade Gemeinde …</p>` : `<ul class="du-wahl">${liste.map(r => { const laeuft = offen.some(d => d.an === r.id), an = duAuswahl.some(g => g.id === r.id);
@@ -3166,7 +3205,6 @@ function duGegnerVerdrahten() {
   const neuZeichnen = () => { const box = $("duGegner"); if (!box) return; const alt = box.querySelector(".du-wahl"), top = alt ? alt.scrollTop : 0;
     box.outerHTML = duGegnerHtml(); duGegnerVerdrahten(); const w = $("duGegner") && $("duGegner").querySelector(".du-wahl"); if (w) w.scrollTop = top; };
   const f = $("duSuche"); if (f) f.oninput = () => { duSuche = f.value; const pos = f.selectionStart; neuZeichnen(); const g = $("duSuche"); g.focus(); try { g.setSelectionRange(pos, pos); } catch (e) {} };
-  screen.querySelectorAll("[data-typ]").forEach(b => b.onclick = () => { SFX.tap(); S.duTyp = b.dataset.typ; save(); neuZeichnen(); });
   weihSchalterWire(neuZeichnen);
   screen.querySelectorAll("[data-gegner]").forEach(b => b.onclick = () => { SFX.tap(); const r = (duGegner || []).find(x => x.id === b.dataset.gegner); if (!r) return;
     duAuswahl = duAuswahl.some(g => g.id === r.id) ? duAuswahl.filter(g => g.id !== r.id) : [...duAuswahl, { id: r.id, name: r.name }]; neuZeichnen(); });

@@ -1903,6 +1903,37 @@ details.pf>summary::after{content:"▾";margin-left:2px;color:var(--muted);trans
 .gs-schalter[aria-pressed="true"] .gs-knopf{background:#5fe0b0}.gs-schalter[aria-pressed="true"] .gs-knopf::after{left:21px}
 html.gross{font-size:18.5px}html.gross body{font-size:18.5px}
 html.gross .tabbar{height:84px}html.gross #screen{padding-bottom:110px}
+
+/* ===== 8.1: Start und Zusammen im selben Stil wie Lernen und Allein ===== */
+.zus-typen{gap:8px}
+.zus-typen .du-typ{padding:12px 4px 10px;gap:3px;min-height:92px;justify-content:center}
+.zus-typen .du-typ:disabled{opacity:.5;filter:grayscale(.5);cursor:default}
+.zus-typen .du-typ .dt-ic{width:38px;height:38px}.zus-typen .du-typ .dt-ic svg{width:34px;height:34px}
+.zus-typen .du-typ .dt-name{font-size:.95rem}
+.dt-sub{font:700 .7rem/1.1 var(--body);color:var(--muted);text-align:center}
+.dt-pfeil{position:absolute;top:5px;right:8px;font-style:normal;font-size:.8rem;color:var(--dt)}
+.zus-typen .du-typ.t-quiz{min-height:0;padding:11px 10px;flex-wrap:wrap;column-gap:10px;row-gap:0}
+.zus-typen .du-typ.t-quiz .dt-ic{width:40px;height:40px}.zus-typen .du-typ.t-quiz .dt-ic svg{width:36px;height:36px}
+.zus-typen .du-typ.t-quiz .dt-name{font-size:1.05rem}
+.zus-typen .du-typ.t-quiz .dt-sub{flex-basis:auto;margin-left:2px}
+.zus-ketten{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:8px;border-radius:14px;border:1px solid color-mix(in srgb,var(--dt) 35%,transparent);background:color-mix(in srgb,var(--dt) 9%,var(--surface))}
+.zus-kk{display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 2px 6px;border-radius:11px;border:1px solid color-mix(in srgb,var(--dt) 40%,transparent);background:var(--surface2);color:var(--fg);font:800 .72rem/1.1 var(--body);cursor:pointer;min-width:0}
+.zus-kk span svg{width:30px;height:30px;display:block}
+.zus-kk b{font-weight:800;text-align:center;overflow-wrap:anywhere}
+.zus-kk.zuletzt{border-color:var(--dt);box-shadow:0 0 0 1.5px color-mix(in srgb,var(--dt) 55%,transparent)}
+.zus-hinweis{margin:0 2px 8px}
+.ez.ez-k,.start8 .ez,.start8 .ez-aufg>summary{padding:10px 14px;gap:12px}
+.ez-k .ez-ic,.start8 .ez-ic{width:42px;height:42px}.ez-k .ez-ic svg,.start8 .ez-ic svg{width:30px;height:30px}.ez-k .ez-ic .sf-logo svg{width:40px;height:40px}
+.ez-k .ez-tx b,.start8 .ez-tx b{font-size:1.1rem}.ez-k .ez-tx small,.start8 .ez-tx small{font-size:.86rem;margin-top:0}
+.start8{gap:8px}.start8 .ez-liste{gap:8px}
+.start8 .ez-pf{font-size:1.5rem}
+.gegner-seite{display:flex;flex-direction:column;gap:0}
+.gegner-seite .du-gegner{margin-top:0}
+.gegner-seite .du-gegner{--abz:520px}
+.gegner-seite .du-gegner:has(.du-chips){--abz:566px}
+.gegner-seite .du-gegner:has(.weih-schalter){--abz:572px}
+.gegner-seite .du-gegner:has(.du-chips):has(.weih-schalter){--abz:618px}
+.gegner-seite .du-wahl{max-height:calc(100dvh - var(--abz));min-height:96px}
 </style>
 </head>
 <body>
