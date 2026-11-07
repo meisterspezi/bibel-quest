@@ -548,13 +548,13 @@ function lvKarte(k, ort = "home") {
   else { knopf = `<button class="lv-btn ${s.st < LV_MAX && aktuell ? "gold" : ""}" data-lv="start">${svg("step")} ${s.st < LV_MAX ? "Festigen" : "Wiederholen"}</button>`;
     hinweis = s.b ? "Bewahrt – du kennst diesen Vers auswendig." : s.st < LV_MAX ? (lvHeuteNeu(k) >= LV_STUFEN_TURBO ? `Stark – ${LV_STUFEN_TURBO} Stufen heute! Stufe ${s.st + 1} gibt es morgen.` : `Heute geschafft! Stufe ${s.st + 1} gibt es morgen – oder festige mit ${LV_TURBO_QUOTE} % für den Turbo.`) : aktuell ? `Gemeistert! Ab dem ${lvBewahrAb()}. ${MONATE[new Date().getMonth()]} kommt die Monatsprüfung.` : ""; }
   let fuss = knopf + `<button class="lv-btn rund" data-lv="vorlesen" aria-label="Vorlesen">${svg("sound")}</button>`;
-  if (ort === "home") fuss += `<button class="lv-btn" data-go="lernverse" data-arg="home">${svg("scroll")} Archiv</button>`;
+  if (ort === "home") fuss = fuss + `<button class="lv-btn" data-go="lernverse" data-arg="home">${svg("scroll")} Archiv</button>`;
   const stand = s.b ? `<span class="lv-siegel" aria-label="Bewahrt">${svg("siegel")}</span>` : `<span class="lv-stufe" aria-label="Stufe ${s.st} von ${LV_MAX}">${Array.from({ length: LV_MAX }, (_, i) => `<i class="${i < s.st ? "an" : ""}"></i>`).join("")}</span>`;
   const mt = aktuell ? lvMonatsTage(k) : 0, ziel = lvZiel();
   const monat = aktuell && !s.b ? `<div class="lv-monat"><span class="lvm-woche">Woche ${lvWoche()}/4 · Ziel Stufe ${ziel}${s.st >= ziel ? ` ${svg("check")}` : ""}</span><span class="lvm-tage ${mt ? "an" : ""}">${svg("fire")}${mt} ${mt === 1 ? "Tag" : "Tage"}</span></div>` : "";
-  return `<section class="lv ${s.b ? "bewahrt" : ""}" data-lvk="${k}" aria-label="Lernvers ${esc(monatName(k))}">
-    <div class="lv-kopf"><span class="lv-ic">${svg("scroll")}</span><span class="lv-lab">Lernvers ${esc(monatName(k))}</span>${stand}</div>
-    <div class="lv-text">${esc(v[0])}</div><div class="lv-ref">${esc(v[1])} · ${VERS_QUELLE}</div>
+  return `<section class="lv ${ort === "home" ? "kompakt" : ""} ${s.b ? "bewahrt" : ""}" data-lvk="${k}" aria-label="Lernvers ${esc(monatName(k))}">
+    <div class="lv-kopf"><span class="lv-ic">${svg("scroll")}</span><span class="lv-lab">Lernvers ${esc(monatName(k))}</span>${ort === "home" ? `<span class="lv-ref">${esc(v[1])}</span>` : ""}${stand}</div>
+    <div class="lv-text">${esc(v[0])}</div>${ort === "home" ? "" : `<div class="lv-ref">${esc(v[1])} · ${VERS_QUELLE}</div>`}
     ${monat}${hinweis ? `<div class="lv-hinweis">${hinweis}</div>` : ""}
     <div class="lv-fuss">${fuss}</div></section>`;
 }
@@ -3116,7 +3116,8 @@ function duGegnerHtml() {
     ${!frei ? `<p class="small muted" style="margin:0">Du hast schon ${DU_MAX_OFFEN} offene Herausforderungen – erst müssen diese gespielt werden. Unten bei „Wartet auf Gegner“ kannst du eine abbrechen.</p>` : `
     <div class="label du-schritt">1 · Duell-Art</div>
     ${duTypKacheln(typ)}
-    <p class="small muted du-typ-info">${esc(DU_TYPEN[typ].info)}</p>
+    ${typ === "quiz" ? weihSchalterHtml() : ""}
+    <p class="small muted du-typ-info">${esc(DU_TYPEN[typ].info)}${typ === "quiz" && weihAktiv() ? " – im Weihnachtsmodus mit Fragen zu Advent und Weihnachten" : ""}</p>
     <div class="label du-schritt du-schritt2"><span>2 · Gegner</span><i class="du-zahl${n ? " an" : ""}">${n}/${maxWahl}</i></div>
     <input class="du-suche" id="duSuche" type="search" placeholder="Name suchen …" value="${esc(duSuche)}" autocomplete="off" aria-label="Gegner suchen">
     ${n ? `<div class="du-chips">${duAuswahl.map(g => `<button class="du-chip" data-raus="${esc(g.id)}" aria-label="${esc(g.name)} abwählen">${esc(g.name)}${svg("nein")}</button>`).join("")}</div>` : ""}
@@ -3131,10 +3132,11 @@ function duGegnerVerdrahten() {
     box.outerHTML = duGegnerHtml(); duGegnerVerdrahten(); const w = $("duGegner") && $("duGegner").querySelector(".du-wahl"); if (w) w.scrollTop = top; };
   const f = $("duSuche"); if (f) f.oninput = () => { duSuche = f.value; const pos = f.selectionStart; neuZeichnen(); const g = $("duSuche"); g.focus(); try { g.setSelectionRange(pos, pos); } catch (e) {} };
   screen.querySelectorAll("[data-typ]").forEach(b => b.onclick = () => { SFX.tap(); S.duTyp = b.dataset.typ; save(); neuZeichnen(); });
+  weihSchalterWire(neuZeichnen);
   screen.querySelectorAll("[data-gegner]").forEach(b => b.onclick = () => { SFX.tap(); const r = (duGegner || []).find(x => x.id === b.dataset.gegner); if (!r) return;
     duAuswahl = duAuswahl.some(g => g.id === r.id) ? duAuswahl.filter(g => g.id !== r.id) : [...duAuswahl, { id: r.id, name: r.name }]; neuZeichnen(); });
   screen.querySelectorAll("[data-raus]").forEach(b => b.onclick = () => { SFX.tap(); duAuswahl = duAuswahl.filter(g => g.id !== b.dataset.raus); neuZeichnen(); });
-  if ($("duLos")) $("duLos").onclick = () => { if (!duAuswahl.length) return; SFX.tap(); const wahl = duAuswahl.slice(); duHerausfordern(wahl, duTypAktuell()); };
+  if ($("duLos")) $("duLos").onclick = () => { if (!duAuswahl.length) return; SFX.tap(); const wahl = duAuswahl.slice(); const t = duTypAktuell(); duHerausfordern(wahl, t, t === "quiz" && weihAktiv() ? { weih: true } : {}); };
 }
 /* Duell-Art wählen und herausfordern (Revanche, Profil): die bisherige Art ist markiert, eine andere wird vorgeschlagen */
 function duTypWahl(r, bisher, revanche = false) {
@@ -3146,7 +3148,7 @@ function duTypWahl(r, bisher, revanche = false) {
     <p class="small muted" style="margin:0">${bisher ? "Noch einmal dasselbe – oder diesmal eine andere Duell-Art?" : "Welche Duell-Art?"}</p>
     ${duTypKacheln(wahl, "data-mtyp", marken)}<p class="small muted du-typ-info" id="duMInfo">${esc(DU_TYPEN[wahl].info)}</p>
     <button class="btn primary du-fordern" data-close="los" id="duMLos">${svg("bolt")} ${esc(DU_TYPEN[wahl].name)}-Duell starten</button><button class="btn ghost" data-close>Abbrechen</button>`,
-    x => { if (x !== "los") return; S.duTyp = wahl; save(); const los = () => duHerausfordern(r, wahl); if (duListe) los(); else duAktualisieren().then(los); });
+    x => { if (x !== "los") return; S.duTyp = wahl; save(); const los = () => duHerausfordern(r, wahl, wahl === "quiz" && weihAktiv() ? { weih: true } : {}); if (duListe) los(); else duAktualisieren().then(los); });
   m.dataset.frei = "1";
   m.querySelectorAll("[data-mtyp]").forEach(b => b.onclick = () => { SFX.tap(); wahl = b.dataset.mtyp;
     m.querySelectorAll("[data-mtyp]").forEach(x => x.setAttribute("aria-checked", x === b)); $("duMInfo").textContent = DU_TYPEN[wahl].info;
@@ -3413,7 +3415,7 @@ function bibZeige(G) {
   if (G.modus !== "duell" && current !== "biblionaer") return;
   const f = G.fragen[G.i], halb = G.halbBei === G.i;
   const lang = f.opts.some(o => o.length > 22);
-  const titel = G.modus === "duell" ? `${G.weih ? "Weihnachts-Duell" : "Duell"} gegen ${esc(G.gegner)}` : G.modus === "woche" ? `Biblionär der Woche · ${weekKey().split("-W")[1]}. KW` : G.modus === "advent" ? `Advents-Biblionär · ${G.adv}. Advent` : "Wer wird Biblionär?";
+  const titel = G.modus === "duell" ? `${G.weih ? "Weihnachts-Duell" : "Duell"} gegen ${esc(G.gegner)}` : G.modus === "woche" ? `Biblionär der Woche · ${weekKey().split("-W")[1]}. KW` : G.modus === "advent" ? `Weihnachts-Biblionär · ${advRundeName(G.adv)}` : G.weih ? "Weihnachts-Biblionär" : "Wer wird Biblionär?";
   screen.innerHTML = `<div class="vl bib">
     <div class="vl-kopf"><button class="vl-x" id="bibX" aria-label="Spiel abbrechen">${svg("back")}</button>
       <button class="bib-leiste" id="bibLeiter" aria-label="Gewinnleiter ansehen"><span>Frage ${G.i + 1}/15</span><b>${pkt(BIB_LEITER[G.i])}</b></button></div>
@@ -3554,13 +3556,14 @@ function bibEnde(G, punkte) {
   if ($("bibNochmal")) $("bibNochmal").onclick = () => { SFX.tap(); bibSolo(); };
   if ($("bibRang")) $("bibRang").onclick = () => { SFX.tap(); go("rank", "bibWoche"); };
   SFX.win(); if (million) rain(140); else if (punkte >= 16000) rain(60);
-  setTimeout(() => { if (xp) addXp(xp, null, "bib", { t0: G.t0, f: G.r, fm: 15, d: `${woche ? "Wochenrunde" : adv ? "Advents-Runde" : "Solo"} · ${pkt(punkte)} Punkte${W ? W.d : ""}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350);
+  setTimeout(() => { if (xp) addXp(xp, null, "bib", { t0: G.t0, f: G.r, fm: 15, d: `${woche ? "Wochenrunde" : adv ? "Weihnachts-Woche" : "Solo"} · ${pkt(punkte)} Punkte${W ? W.d : ""}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350);
 }
 /* Solo-Übung (Spielen): zufällige Fragen */
 VIEWS.biblionaer = () => { screen.innerHTML = ""; };
-function bibSolo() {
+function bibSolo(weih) {
   go("biblionaer");
-  const G = { modus: "solo", fragen: bibFragen(crypto.getRandomValues(new Uint32Array(1))[0] % 2147483647) };
+  const w = !!weih && weihnachtsDuellOk();
+  const G = { modus: "solo", weih: w, fragen: bibFragen(crypto.getRandomValues(new Uint32Array(1))[0] % 2147483647, "", w ? ADV_ALLE_FRAGEN : null) };
   countdown(() => bibStart(G));
 }
 /* ---------- 6.80: Wochen-Sicherung (Biblionär der Woche) ----------
@@ -4704,13 +4707,9 @@ function bibGegnerVerdrahten() {
   screen.querySelectorAll("[data-bqg]").forEach(b => b.onclick = () => { SFX.tap(); const r = (duGegner || []).find(x => x.id === b.dataset.bqg); if (r) bibHerausfordern(r); });
 }
 function bibHerausfordern(r) {
-  const los = (weih) => { bibDuWahl = false; duHerausfordern(r, "quiz", { heim: "bib", weih: !!weih }); };
-  /* 7.3: In der Adventszeit kann das Biblionär-Duell im Weihnachtsmodus gespielt werden (Weihnachtsfragen, Pastoren mit Mütze) */
-  if (weihnachtsDuellOk()) { modal(`<div class="label">Biblionär-Duell</div><h2 style="margin:0">Welcher Modus?</h2>
-      <p class="small muted" style="margin:0">Im Weihnachtsmodus gibt es 15 Fragen rund um Advent und Weihnachten. Pastor Willi und Pastor Aaron tragen Weihnachtsmützen und antworten weihnachtlich.</p>
-      <button class="btn primary" data-close="weih">${svg("kerze")} Weihnachtsmodus</button><button class="btn" data-close="norm">${svg("biblionaer")} Normal</button><button class="btn ghost" data-close>Abbrechen</button>`,
-      x => { if (x === "weih" || x === "norm") { if (duListe) los(x === "weih"); else duAktualisieren().then(() => los(x === "weih")); } }).dataset.frei = "1"; return; }
-  if (duListe) los(false); else duAktualisieren().then(() => los(false));
+  /* 7.5: Der Modus (Normal/Weihnachten) kommt vom Schalter im Reiter Biblionär bzw. in der Arena */
+  const los = () => { bibDuWahl = false; duHerausfordern(r, "quiz", { heim: "bib", weih: weihAktiv() }); };
+  if (duListe) los(); else duAktualisieren().then(los);
 }
 /* Revanche nach einem Biblionär-Duell: gleich wieder Biblionär, nur kurz bestätigen */
 function bibRevanche(r, revanche) {
@@ -4729,7 +4728,11 @@ VIEWS.bib = () => {
   const wocheAn = S.lbName && !S.offlineOnly;
   /* 6.49: Wochenrunde als schmale goldene Zeile unter den beiden Startknöpfen */
   /* 6.57: Biblionär der Woche als goldener Kasten mit Kronen-Medaillon und Resttage-Marke */
-  const woche = !wocheAn
+  const ar = advRunde(), advGesp = ar ? advBibGespielt(ar) : true;
+  const woche = weihAktiv()
+    ? (ar ? `<button class="bq4-woche weih" id="bqWoche" aria-label="Weihnachts-Biblionär der Woche – ${advRundeName(ar)}"><span class="bq4-kr">${svg("kerze")}</span><span><b>Biblionär der Woche</b><small>${advGesp ? `Weihnachten · deine Runde ${pkt((A().advBib || {})[ar] | 0)} Punkte` : `Weihnachten · ${advRundeName(ar)} · 1 Versuch`}</small></span>${advGesp ? `<span class="bq4-uhr">${svg("check")}<small>gespielt</small></span>` : `<span class="bq4-uhr">${svg("play")}<small>Start</small></span>`}</button>`
+        : `<div class="bq4-woche aus"><span class="bq4-kr">${svg("kerze")}</span><span><b>Biblionär der Woche</b><small>die Weihnachtsrunden sind vorbei</small></span><span></span></div>`)
+    : !wocheAn
     ? `<div class="bq4-woche aus"><span class="bq4-kr">${svg("crown")}</span><span><b>Biblionär der Woche</b><small>nur mit Eintrag in der Rangliste</small></span><span></span></div>`
     : `<button class="bq4-woche" id="bqWoche" aria-label="${gespielt ? `Biblionär der Woche: deine Runde ${pkt(S.bwP)} Punkte – Rangliste` : `Biblionär der Woche starten – noch ${n} ${n === 1 ? "Tag" : "Tage"}`}"><span class="bq4-kr">${svg("crown")}</span><span><b>Biblionär der Woche</b><small>${gespielt ? `deine Runde · ${pkt(S.bwP)} Punkte` : `${wk.split("-W")[1]}. KW · gleiche Fragen für alle · 1 Versuch`}</small></span>${gespielt ? `<span class="bq4-uhr">${svg("trophy")}<small>Liste</small></span>` : `<span class="bq4-uhr">${n}<small>${n === 1 ? "Tag" : "Tage"}</small></span>`}</button>`;
   const ichKurz = esc(duInitialen(S.lbName || "Ich"));
@@ -4750,9 +4753,10 @@ VIEWS.bib = () => {
       tafel: [[S.bibSpiele || 0, S.bibSpiele === 1 ? "Spiel" : "Spiele"], [pkt(rek), "Rekord"], [S.bibMillion || 0, "Million"]],
       zeile: { ic: "crown", t: "Rekord-Leiter", p: stufe / 15 * 100, r: `${stufe}/15` } })}
     ${bkLabel("play", "Spielen")}
+    ${weihSchalterHtml()}
     <div class="bq3-start">
       <div class="bq4-paar">
-        <button class="bq4-k bq4-solo" id="bqSolo" aria-label="Solo spielen – 1 Spieler"><span class="bq4-chip">${svg("user")}1 Spieler</span><span class="bq4-bild"><span class="bq4-av">${ichKurz}</span></span><b class="bq4-tt">Solo</b><span class="bq4-sub">${rek ? `Rekord ${pkt(rek)}` : "Allein üben"}</span>${svg("play")}</button>
+        <button class="bq4-k bq4-solo" id="bqSolo" aria-label="Solo spielen – 1 Spieler"><span class="bq4-chip">${svg("user")}1 Spieler</span><span class="bq4-bild"><span class="bq4-av">${ichKurz}</span></span><b class="bq4-tt">Solo</b><span class="bq4-sub">${weihAktiv() ? "Weihnachtsfragen" : rek ? `Rekord ${pkt(rek)}` : "Allein üben"}</span>${svg("play")}</button>
         ${online ? `<button class="bq4-k bq4-duell" id="bqNeu" aria-label="${bibDuWahl ? "Gegnerwahl schließen" : "Neues Duell – 2 Spieler"}" ${bibDuWahl ? 'aria-expanded="true"' : ""}><span class="bq4-chip">${svg("people")}2 Spieler</span><span class="bq4-bild"><span class="bq4-av">${ichKurz}</span><span class="bq4-vs">VS</span><span class="bq4-av f">?</span></span><b class="bq4-tt">Duell</b><span class="bq4-sub">${bibDuWahl ? "Unten Namen antippen" : "Gegen die Gemeinde"}</span>${svg(bibDuWahl ? "nein" : "bolt")}</button>`
           : `<div class="bq4-k bq4-duell aus"><span class="bq4-chip">${svg("people")}2 Spieler</span><span class="bq4-bild"><span class="bq4-av">${ichKurz}</span><span class="bq4-vs">VS</span><span class="bq4-av f">?</span></span><b class="bq4-tt">Duell</b><span class="bq4-sub">${window.LB && window.LB.ok ? "Nur mit Eintrag in der Rangliste" : "Nur mit Internet"}</span></div>`}
       </div>
@@ -4771,8 +4775,9 @@ VIEWS.bib = () => {
     </div>
     <button class="bq2-fuss" data-go="rank" data-arg="bibRekord">${svg("trophy")}<span>Joker je 1× pro Spiel · Bestenliste</span><b>Rangliste ›</b></button>`;
   wireGo();
-  $("bqSolo").onclick = () => { SFX.tap(); bibSolo(); };
-  if ($("bqWoche")) $("bqWoche").onclick = () => { SFX.tap(); if (gespielt) go("rank", "bibWoche"); else bibWocheStarten(); };
+  $("bqSolo").onclick = () => { SFX.tap(); bibSolo(weihAktiv()); };
+  weihSchalterWire(() => VIEWS.bib());
+  if ($("bqWoche")) $("bqWoche").onclick = () => { SFX.tap(); if (weihAktiv()) { if (ar) bibAdventStarten(); return; } if (gespielt) go("rank", "bibWoche"); else bibWocheStarten(); };
   if ($("bqNeu")) $("bqNeu").onclick = () => { SFX.tap(); bibDuWahl = !bibDuWahl; VIEWS.bib();
     if (bibDuWahl) { duGegnerLaden().then(() => { if (current !== "bib" || !bibDuWahl) return; const b = $("bqGegner"); if (!b) return;
         const fokus = document.activeElement?.id === "bqSuche"; b.outerHTML = bibGegnerHtml(); bibGegnerVerdrahten(); if (fokus) { const f = $("bqSuche"); f.focus(); f.setSelectionRange(f.value.length, f.value.length); } });

@@ -1,7 +1,7 @@
 /* =====================================================================
    Advent 2026 – Logik und Ansichten (Version 7.4)
    Die Krippe wächst (Gemeinschaftsprojekt, gespendet wird mit Adventslichtern), Adventskalender (ab 1. Dezember),
-   Advents-Biblionär (eine Runde je Adventswoche) und Weihnachts-Duelle. Einstellungen und Inhalte: advent-daten.js.
+   Weihnachts-Biblionär (Solo, der Woche, Duell – bis 6. Januar). Einstellungen und Inhalte: advent-daten.js.
    Wird vor spiel.js geladen; alles, was aus spiel.js gebraucht wird (S, save, go, modal …), wird erst beim Aufruf benutzt.
    Technische Namen mit „beth“ (Sammlung „bethlehem“) bleiben aus Kompatibilität erhalten und meinen die Krippe.
    ===================================================================== */
@@ -38,7 +38,19 @@ const adventTag = () => dayNum(adventHeute());
 const adventSichtbar = () => { const t = adventTag(); return t >= dayNum(ADV_START) && t <= dayNum(ADV_SICHT_BIS); };
 /* 1–4 = Adventswoche (Sonntag bis Samstag), 5 = vorbei, 0 = noch nicht */
 function adventWoche() { const t = adventTag() - dayNum(ADV_START); return t < 0 ? 0 : t >= 28 ? 5 : Math.floor(t / 7) + 1; }
-const advRunde = () => { const w = adventWoche(); return w >= 1 && w <= 4 ? w : 0; };
+/* Biblionär-Runden des Weihnachts-Biblionärs: 1–4 = Adventswochen, 5 = Weihnachtswoche (27.12.–2.1.), 6 = Sternsinger-Tage (3.–6.1.) */
+const advRunde = () => { const t = adventTag() - dayNum(ADV_START); return t < 0 || t > dayNum(ADV_SICHT_BIS) - dayNum(ADV_START) ? 0 : Math.min(6, Math.floor(t / 7) + 1); };
+const advRundeName = w => (w <= 4 ? w + ". Advent" : w === 5 ? "Weihnachtswoche" : "Epiphanias");
+/* Modus „Weihnachten“ für Solo, Woche und Duell – wählbar im Advent, im Reiter Biblionär und in der Arena (nur 1. Advent bis 6. Januar) */
+let weihModus = false;
+const weihAktiv = () => weihModus && weihnachtsDuellOk();
+function weihSchalterHtml() {
+  if (!weihnachtsDuellOk()) return "";
+  return `<div class="weih-schalter" role="radiogroup" aria-label="Biblionär-Modus"><button role="radio" aria-checked="${!weihModus}" data-wm="0">${svg("biblionaer")}Normal</button><button role="radio" aria-checked="${weihModus}" data-wm="1">${svg("kerze")}Weihnachten</button></div>`;
+}
+function weihSchalterWire(neu) {
+  screen.querySelectorAll("[data-wm]").forEach(b => b.onclick = () => { SFX.tap(); weihModus = b.dataset.wm === "1"; neu(); });
+}
 const kalHeuteNr = () => Math.min(24, Math.max(0, adventTag() - dayNum(KAL_START) + 1));
 const adventDatum = tag => datumVon(tag).toLocaleDateString("de-DE", { day: "numeric", month: "long" });
 const adventKurz = tag => datumVon(tag).toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "numeric" });
@@ -335,16 +347,16 @@ const advBibGespielt = w => (A().advBib || {})[w] !== undefined;
 function bibAdventStarten() {
   const w = advRunde();
   if (!w) { toast(`${svg("biblionaer")}<div><b>Der Advent ist vorbei</b><div class="small muted">Frohe Weihnachten!</div></div>`); return; }
-  if (advBibGespielt(w)) { toast(`${svg("biblionaer")}<div><b>Diese Woche schon gespielt</b><div class="small muted">Nächsten Sonntag gibt es neue Fragen.</div></div>`); return; }
-  modal(`<div class="label">Advents-Biblionär</div><h2 style="margin:0">${w}. Advent</h2>
-    <p class="muted">15 Fragen rund um Advent und Weihnachten – für alle in der Gemeinde dieselben. Pastor Willi und Pastor Aaron helfen dir mit Weihnachtsmütze. Du hast <b>einen Versuch pro Adventswoche</b>; wer abbricht, bekommt 0 Punkte. Zusätzlich gibt es ${ADV_BIB_TAL} Talente.${advTestOn() ? " <b>(Testmodus: ohne Belohnung)</b>" : ""}</p>
+  if (advBibGespielt(w)) { toast(`${svg("biblionaer")}<div><b>Diese Woche schon gespielt</b><div class="small muted">${w >= 6 ? "Die Runden sind vorbei – Solo und Duell gehen weiter." : "Nächsten Sonntag gibt es neue Fragen."}</div></div>`); return; }
+  modal(`<div class="label">Weihnachts-Biblionär der Woche</div><h2 style="margin:0">${advRundeName(w)}</h2>
+    <p class="muted">15 Fragen rund um Advent und Weihnachten – für alle in der Gemeinde dieselben. Pastor Willi und Pastor Aaron helfen dir mit Weihnachtsmütze. Du hast <b>einen Versuch pro Woche</b>; wer abbricht, bekommt 0 Punkte. Zusätzlich gibt es ${ADV_BIB_TAL} Talente.${advTestOn() ? " <b>(Testmodus: ohne Belohnung)</b>" : ""}</p>
     <button class="btn primary" data-close="los">${svg("biblionaer")} Los geht's</button><button class="btn ghost" data-close>Später</button>`, r => { if (r === "los") advBibLos(w); });
 }
 function advBibLos(w) {
   if (advBibGespielt(w)) return;
   A().advBib = Object.assign({}, A().advBib, { [w]: 0 }); save();
   go("biblionaer");
-  const G = { modus: "advent", adv: w, weih: true, fragen: bibFragen(hash("advent" + w), "", ADV_BIB_FRAGEN[w]) };
+  const G = { modus: "advent", adv: w, weih: true, fragen: bibFragen(hash("advent" + w), "", ADV_BIB_FRAGEN[w] || ADV_ALLE_FRAGEN) };
   countdown(() => bibStart(G));
 }
 
@@ -364,12 +376,19 @@ function adventMischen(r) {
    Adventskranz und Übersicht
    ===================================================================== */
 function adventKranz(n) {
-  const xs = [76, 134, 190, 248], farbe = ["#8a5cd6", "#8a5cd6", "#e58fb8", "#8a5cd6"];
-  const kerzen = xs.map((x, i) => `<g class="adv-kerze ${i < n ? "an" : ""}"><rect x="${x - 8}" y="46" width="16" height="46" rx="3.5" fill="${farbe[i]}" stroke="#1b2a55" stroke-width="1.2"/><path d="M${x - 8} 56h16" stroke="#fff" stroke-opacity=".25"/>
-    <path d="M${x} 44v-5" stroke="#1b2a55" stroke-width="1.4" stroke-linecap="round"/>${i < n ? `<circle cx="${x}" cy="30" r="15" fill="url(#akGlut)"/><path d="M${x} 20c6 7 7 12 4 15-1.4 1.6-6.6 1.6-8 0-3-3-2-8 4-15z" fill="url(#wrF)" stroke="#7a2a08" stroke-width=".8"/><path d="M${x} 27c2 2.6 2.4 4.4 1.2 5.6-.8.7-2.4.7-2.4 0-1.2-1.2-.8-3 1.2-5.6z" fill="#fff6c8"/>` : ""}</g>`).join("");
-  const nadeln = Array.from({ length: 26 }, (_, i) => { const x = 40 + i * 9.2, y = 98 + Math.sin(i * .9) * 2.4; return `<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="9" ry="4.2" fill="${i % 2 ? "#2f6b3f" : "#3f8a52"}" stroke="#1b3d24" stroke-width=".6" transform="rotate(${(i % 3 - 1) * 14} ${x.toFixed(1)} ${y.toFixed(1)})"/>`; }).join("");
-  return `<svg class="adv-kranz" viewBox="0 0 320 120" role="img" aria-label="Adventskranz: ${n} von 4 Kerzen brennen"><defs><radialGradient id="akGlut"><stop offset="0" stop-color="#fff3c4" stop-opacity=".85"/><stop offset="1" stop-color="#ffb54a" stop-opacity="0"/></radialGradient></defs>
-    ${kerzen}${nadeln}<g fill="#d93a4a" stroke="#6a1420" stroke-width=".6"><circle cx="70" cy="98" r="3"/><circle cx="160" cy="104" r="3"/><circle cx="252" cy="98" r="3"/><circle cx="112" cy="102" r="2.4"/><circle cx="210" cy="102" r="2.4"/></g></svg>`;
+  /* Kleiner, runder Kranz aus Tannengrün mit Beeren und Schleife; vier Kerzen unterschiedlich hoch, drei violett, die dritte rosa */
+  const xs = [60, 98, 142, 180], hoch = [31, 36, 36, 31], farbe = ["#8a5cd6", "#8a5cd6", "#e58fb8", "#8a5cd6"];
+  const nadel = (i, gr) => { const w = i / 52 * Math.PI * 2, x = 120 + 100 * Math.cos(w), y = 70 + 18 * Math.sin(w), dw = Math.atan2(18 * Math.cos(w), -100 * Math.sin(w)) * 180 / Math.PI;
+    return { y, s: `<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="${gr}" ry="4.6" fill="${i % 3 === 0 ? "#2b6a3e" : i % 3 === 1 ? "#3d8a52" : "#4fa066"}" stroke="#16361f" stroke-width=".5" transform="rotate(${(dw + (i % 2 ? 24 : -24)).toFixed(0)} ${x.toFixed(1)} ${y.toFixed(1)})"/>` }; };
+  const alle = Array.from({ length: 52 }, (_, i) => nadel(i, 10.5));
+  const hinten = alle.filter(x => x.y < 70).map(x => x.s).join(""), vorn = alle.filter(x => x.y >= 70).map(x => x.s).join("");
+  const kerzen = xs.map((x, i) => { const h = hoch[i], y = 64 - h, an = i < n;
+    return `<g class="adv-kerze ${an ? "an" : ""}"><rect x="${x - 5}" y="${y}" width="10" height="${h}" rx="2.5" fill="${farbe[i]}" stroke="#1b2a55" stroke-width="1"/><rect x="${x - 3.4}" y="${y + 2}" width="2" height="${h - 6}" rx="1" fill="#fff" fill-opacity=".24"/><path d="M${x} ${y - 0.5}v-4" stroke="#1b2a55" stroke-width="1.2" stroke-linecap="round"/>`
+      + (an ? `<circle cx="${x}" cy="${y - 12}" r="14" fill="url(#akGlut)"/><path d="M${x} ${y - 22}c5 6 6 10 3.2 12.6-1.2 1.3-5.2 1.3-6.4 0-2.6-2.6-1.8-6.6 3.2-12.6z" fill="url(#wrF)" stroke="#7a2a08" stroke-width=".7"/><path d="M${x} ${y - 15}c1.6 2 2 3.4 1 4.4-.7.6-1.9.6-1.9 0-.9-1-.6-2.4.9-4.4z" fill="#fff6c8"/>` : "") + `</g>`; }).join("");
+  const beeren = [[40, 80], [76, 88], [164, 89], [200, 80], [222, 66], [18, 66]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2.8" fill="#d93a4a" stroke="#6a1420" stroke-width=".6"/><circle cx="${x - .8}" cy="${y - .9}" r=".8" fill="#fff" fill-opacity=".7"/>`).join("");
+  const schleife = `<g stroke="#6a1420" stroke-width=".8" stroke-linejoin="round"><path d="M120 88c-8-9-19-7-19 0s11 8 19 0z" fill="#d93a4a"/><path d="M120 88c8-9 19-7 19 0s-11 8-19 0z" fill="#d93a4a"/><path d="M118 90l-6 9 6-2 2 4zM122 90l6 9-6-2-2 4z" fill="#b02a3a"/><circle cx="120" cy="88" r="3.2" fill="#e8505e"/></g>`;
+  return `<svg class="adv-kranz" viewBox="0 0 240 100" role="img" aria-label="Adventskranz: ${n} von 4 Kerzen brennen"><defs><radialGradient id="akGlut"><stop offset="0" stop-color="#fff3c4" stop-opacity=".85"/><stop offset="1" stop-color="#ffb54a" stop-opacity="0"/></radialGradient></defs>
+    ${hinten}${kerzen}${vorn}${beeren}${schleife}</svg>`;
 }
 VIEWS_ADVENT = () => {
   const w = adventWoche(), n = Math.min(4, w), st = bethStand(), nr = kalHeuteNr(), kalOffen = Object.keys(A().kal || {}).length, kalHeute = nr > 0 && (A().kal || {})[nr];
@@ -379,17 +398,22 @@ VIEWS_ADVENT = () => {
   const wegPunkt = st.offen && !st.alle && !bethHeuteGegeben();
   const kalUnter = !nr ? `Ab ${esc(adventDatum(dayNum(KAL_START)))}` : kalHeute ? "Heute schon geöffnet" : `Türchen ${nr} wartet`;
   const vf = nr > 0 ? KAL_ERF[nr - 1].map(vfTeil) : [["Jesaja 9,1", "Das Volk, das im Finstern wandelt, sieht ein großes Licht."], ["Lukas 2,11", "Euch ist heute der Retter geboren, der Christus, der Herr."]];
+  const bibUnter = !r ? "Die Runden sind vorbei" : bibGesp ? `${pkt((A().advBib || {})[r] | 0)} Punkte` : `${advRundeName(r)} · 1 Versuch`;
+  const modus = (id, ic, titel, unter, an) => `<button class="adv-modus ${an ? "offen" : ""}" id="${id}" aria-label="${titel}: ${unter}"><span class="am-ic">${svg(ic)}</span><b>${titel}</b><small>${unter}</small>${an ? `<i class="adv-punkt" aria-hidden="true"></i>` : ""}</button>`;
   screen.innerHTML = `${backBtn("home", "Start")}${bereichKopf("advent", { ic: "kerze", t: "Advent", sub: w === 5 ? "Frohe Weihnachten!" : `${n}. Advent – Gott kommt zu uns`, ring: [n, n === 1 ? "Kerze" : "Kerzen"] })}${advTestLeiste()}
-    <div class="adv-kranzbox">${adventKranz(n)}</div>
-    <div class="adv-licht-zeile">${svg("licht")}<span><b>${advLichtText()} Adventslichter</b><small>Gibt es nur im Advent: 1 Licht je ${ADV_LICHT_XP} XP bei jedem Spiel. Damit baust du die Krippe.</small></span></div>
+    <div class="adv-kranzbox">${adventKranz(n)}<div class="adv-licht-chip" aria-label="${advLichtText()} Adventslichter">${svg("licht")}<b>${advLichtText()}</b><small>Lichter</small></div></div>
     ${karte("krippe", "Die Krippe wächst", wegUnter, `${st.fertig}/8`, `data-go="beth"`, wegPunkt)}
     ${karte("tuer", "Adventskalender", kalUnter, `${kalOffen}/24`, `data-go="kal"`, nr > 0 && !kalHeute)}
-    ${karte("biblionaer", "Advents-Biblionär", !r ? "Die Runden sind vorbei" : bibGesp ? `Diese Woche: ${pkt((A().advBib || {})[r] | 0)} Punkte` : `${r}. Advent · 15 Fragen, 1 Versuch`, r ? `${Object.keys(A().advBib || {}).length}/4` : "–", `id="advBib"`, r && !bibGesp)}
-    ${karte("duell", "Weihnachts-Duell", "Biblionär-Duell im Weihnachtsmodus", "›", `data-go="bib"`, false)}
+    ${bkLabel("biblionaer", "Weihnachts-Biblionär")}
+    <div class="adv-modi">${modus("advSolo", "user", "Solo", "Allein üben", false)}${modus("advBib", "crown", "Der Woche", bibUnter, !!r && !bibGesp)}${modus("advDuell", "duell", "Duell", "Gegen die Gemeinde", false)}</div>
     ${vfKarte(vf[0], vf[1], "Gott hat versprochen", "In Jesus erfüllt")}
-    <p class="small muted sh-fuss">Jede Adventswoche beginnt am Sonntag. Im Weihnachtsmodus tragen Pastor Willi und Pastor Aaron Weihnachtsmützen und antworten weihnachtlich.</p>`;
+    <p class="adv-erklaer">${svg("licht")}<span><b>Adventslichter:</b> Du bekommst 1 Licht je ${ADV_LICHT_XP} XP bei jedem Spiel – nur im Advent. Damit baust du die Krippe; die Gemeinde legt ${Math.round(BETH_ZUSCHUSS * 100)} % dazu.</span></p>`;
   wireGo(); advTestWire(VIEWS_ADVENT);
-  const b = $("advBib"); if (b) b.onclick = () => { SFX.tap(); bibAdventStarten(); };
+  $("advSolo").onclick = () => { SFX.tap(); weihModus = true; bibSolo(true); };
+  $("advBib").onclick = () => { SFX.tap(); bibAdventStarten(); };
+  $("advDuell").onclick = () => { SFX.tap();
+    if (!duOk()) { toast(`${svg("duell")}<div><b>Duell nur online</b><div class="small muted">Dafür brauchst du Internet und einen Eintrag in der Gemeinde-Rangliste.</div></div>`); return; }
+    weihModus = true; bibDuWahl = true; go("bib"); duGegnerLaden().then(() => { if (current === "bib" && bibDuWahl) VIEWS.bib(); }); };
   bethLaden().then(() => { if (current === "advent" && !document.querySelector(".modal")) { const alt = st.fertig; if (bethStand().fertig !== alt) VIEWS_ADVENT(); } });
 };
 
@@ -414,6 +438,6 @@ function adventStartHinweis() {
     <ul class="adv-liste"><li>${svg("krippe")}<span><b>Die Krippe wächst</b> – die Gemeinde baut gemeinsam Stall, Maria, Josef, Schafe, Hirten, Engel, Stern und Weise. Am Heiligabend liegt das Kind darin.</span></li>
       <li>${svg("licht")}<span><b>Adventslichter</b> – gibt es nur im Advent, bei allem, was XP bringt. Mit ihnen baust du die Krippe; die Gemeinde legt ${Math.round(BETH_ZUSCHUSS * 100)} % dazu.</span></li>
       <li>${svg("tuer")}<span><b>Adventskalender</b> – ab ${esc(adventDatum(dayNum(KAL_START)))} jeden Tag ein Türchen mit großer Belohnung.</span></li>
-      <li>${svg("biblionaer")}<span><b>Advents-Biblionär und Weihnachts-Duelle</b> – mit weihnachtlichen Pastoren.</span></li></ul>
+      <li>${svg("biblionaer")}<span><b>Weihnachts-Biblionär</b> – Solo, der Woche und Duell, mit weihnachtlichen Pastoren. Bis 6. Januar.</span></li></ul>
     <button class="btn primary" data-close="los">${svg("kerze")} Zum Advent</button><button class="btn ghost" data-close>Später</button>`, r => { if (r === "los") go("advent"); });
 }
