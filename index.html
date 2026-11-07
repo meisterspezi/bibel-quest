@@ -501,7 +501,7 @@ textarea.field{resize:vertical;min-height:110px;font:inherit}.fb-name{display:fl
 .pf-art.art-status{background:color-mix(in srgb,var(--ar-lernen) 30%,transparent)}.pf-art.art-datenbank{background:color-mix(in srgb,var(--ar-spielen) 30%,transparent)}
 .pf.pk-status{border-left:3px solid var(--ar-lernen)}.pf.pk-datenbank{border-left:3px solid var(--ar-spielen)}.pf.pk-feedback{border-left:3px solid var(--ar-gemeinde)}
 /* Bereichsfarben – dezente Orientierung: Lernen blau, Spielen bernstein, Gemeinde grün, Belohnungen violett */
-:root{--ar-lernen:#7fc8ff;--ar-spielen:#ffb54a;--ar-gemeinde:#5fe0b0;--ar-lohn:#b38cff;--ar:var(--accent)}
+:root{--ar-lernen:#7fc8ff;--ar-spielen:#b38cff;--ar-gemeinde:#ff8a5c;--ar-lohn:#b38cff;--ar:var(--accent)}
 [data-go="lernen"],[data-go="lernverse"],[data-go="lied"],[data-go="learn"],[data-go="lektion"],[data-go="path"]{--ar:var(--ar-lernen)}
 [data-go="spielen"],[data-go="blitz"],[data-go="chain"],[data-go="gap"]{--ar:var(--ar-spielen)}
 [data-go="rank"],[data-go="profil"],[data-go="share"],[data-go="postfach"]{--ar:var(--ar-gemeinde)}
@@ -1062,9 +1062,9 @@ body[data-acc="perle"]::after{-webkit-mask:none;mask:none;background:url("data:i
 .du-label{margin:18px 2px 8px}
 .du-liste{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .du-zeile{display:grid;grid-template-columns:36px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-radius:16px;border:1px solid #ffffff1c;background:linear-gradient(160deg,#ffffff10,#ffffff04 60%),var(--surface)}
-.du-ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:#ffffff10;color:var(--ar-spielen)}.du-ic svg{width:20px;height:20px}
+.du-ic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:#ffffff10;color:var(--ar-gemeinde)}.du-ic svg{width:20px;height:20px}
 .du-tx{display:flex;flex-direction:column;min-width:0}.du-tx b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.du-tx span{font-size:.8rem;color:var(--muted)}
-.du-zeile.dran{border-color:color-mix(in srgb,var(--ar-spielen) 60%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--ar-spielen) 14%,transparent)}
+.du-zeile.dran{border-color:color-mix(in srgb,var(--ar-gemeinde) 60%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--ar-gemeinde) 14%,transparent)}
 .du-zeile.sieg .du-ic{color:#f2c14e;background:#f2c14e22}.du-zeile.nieder .du-ic{color:var(--muted)}
 .du-zeile.grau{opacity:.6}.du-zeile.grau .du-ic{color:var(--muted)}
 .du-knoepfe{display:flex;gap:6px}
@@ -1074,16 +1074,16 @@ body[data-acc="perle"]::after{-webkit-mask:none;mask:none;background:url("data:i
 .du-wahl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:330px;overflow:auto}
 .du-person{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;width:100%;text-align:left;padding:6px 8px;border-radius:12px;border:0;background:#ffffff08;color:inherit;font:inherit;cursor:pointer}
 .du-person:disabled{opacity:.5;cursor:default}
-.du-los{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--ar-spielen) 25%,transparent);color:var(--ar-spielen)}.du-los svg{width:18px;height:18px}
-.erinnerung.du-hinweis>svg{flex:0 0 34px;width:34px;height:34px;color:var(--ar-spielen);filter:drop-shadow(0 0 8px #ffb54a88)}
+.du-los{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--ar-gemeinde) 25%,transparent);color:var(--ar-gemeinde)}.du-los svg{width:18px;height:18px}
+.erinnerung.du-hinweis>svg{flex:0 0 34px;width:34px;height:34px;color:var(--ar-gemeinde);filter:drop-shadow(0 0 8px #ff8a5c88)}
 .du-zeile .du-tx span{white-space:normal}
-.du-fordern{background:linear-gradient(180deg,#ffd38a,#ffb54a 55%,#c9802a);color:#2a1700}
+.du-fordern{background:linear-gradient(180deg,#ffc0a0,#ff8a5c 55%,#c9502a);color:#2a0d00}
 /* Mehrfach-Herausforderung (6.44) */
 .du-schritt2{display:flex;align-items:center;justify-content:space-between}
-.du-zahl{font-style:normal;font-size:.7rem;font-weight:800;padding:2px 8px;border-radius:99px;background:#ffffff12;color:var(--muted)}.du-zahl.an{background:color-mix(in srgb,var(--ar-spielen) 30%,transparent);color:var(--ar-spielen)}
+.du-zahl{font-style:normal;font-size:.7rem;font-weight:800;padding:2px 8px;border-radius:99px;background:#ffffff12;color:var(--muted)}.du-zahl.an{background:color-mix(in srgb,var(--ar-gemeinde) 30%,transparent);color:var(--ar-gemeinde)}
 .du-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
-.du-chip{display:inline-flex;align-items:center;gap:4px;max-width:100%;padding:4px 6px 4px 10px;border-radius:99px;border:1px solid color-mix(in srgb,var(--ar-spielen) 55%,transparent);background:color-mix(in srgb,var(--ar-spielen) 16%,transparent);color:var(--fg);font:700 .78rem var(--body);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.du-chip svg{width:14px;height:14px;flex:none}
-.du-person.gewaehlt{background:color-mix(in srgb,var(--ar-spielen) 16%,transparent);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--ar-spielen) 70%,transparent)}
+.du-chip{display:inline-flex;align-items:center;gap:4px;max-width:100%;padding:4px 6px 4px 10px;border-radius:99px;border:1px solid color-mix(in srgb,var(--ar-gemeinde) 55%,transparent);background:color-mix(in srgb,var(--ar-gemeinde) 16%,transparent);color:var(--fg);font:700 .78rem var(--body);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.du-chip svg{width:14px;height:14px;flex:none}
+.du-person.gewaehlt{background:color-mix(in srgb,var(--ar-gemeinde) 16%,transparent);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--ar-gemeinde) 70%,transparent)}
 .du-haken{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;border:2px solid #ffffff38;box-sizing:border-box}.du-haken svg{width:24px;height:24px}
 .du-person.gewaehlt .du-haken{border:0}
 .du-los-knopf{width:100%;margin-top:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.du-los-knopf:disabled{opacity:.5;filter:grayscale(.6);cursor:default}
@@ -1091,9 +1091,9 @@ body[data-acc="perle"]::after{-webkit-mask:none;mask:none;background:url("data:i
 .ar-stop.gesperrt svg,.bq-stop.gesperrt svg{opacity:.45;filter:grayscale(1)}.ar-stop.gesperrt{border-color:#ffffff18}
 .bq-dran .ar-tx>span{white-space:normal;line-height:1.15}
 .bq-warte .du-chip{color:var(--fg)}.bq-warte .du-chip svg{width:14px;height:14px}
-.du-titel{color:var(--ar-spielen)}
-.du-bar i{background:linear-gradient(180deg,#ffe2b0,var(--ar-spielen) 55%,#c9802a)}
-.du-punkte{min-width:40px;text-align:right;font:900 1rem var(--body);color:var(--ar-spielen)}
+.du-titel{color:var(--ar-gemeinde)}
+.du-bar i{background:linear-gradient(180deg,#ffe2b0,var(--ar-gemeinde) 55%,#c9802a)}
+.du-punkte{min-width:40px;text-align:right;font:900 1rem var(--body);color:var(--ar-gemeinde)}
 .du-zeit{height:6px;border-radius:3px;background:#ffffff12;overflow:hidden}
 .du-zeit i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--bad),#ffb54a 40%,var(--good));transform-origin:left;animation:duZeit linear forwards}
 @keyframes duZeit{to{transform:scaleX(0)}}
@@ -1120,11 +1120,11 @@ body[data-acc="perle"]::after{-webkit-mask:none;mask:none;background:url("data:i
 .modal .du-typen{margin-top:6px}
 .du-marke{display:inline-block;font:800 .7rem/1 var(--body);font-style:normal;padding:3px 7px;border-radius:8px;color:var(--dt);background:color-mix(in srgb,var(--dt) 16%,transparent);border:1px solid color-mix(in srgb,var(--dt) 40%,transparent);vertical-align:1px;white-space:nowrap}
 .du-rechts{display:flex;align-items:center;gap:8px}
-.du-rev svg{color:var(--ar-spielen)}
+.du-rev svg{color:var(--ar-gemeinde)}
 .du-art-zeile{display:flex;flex-direction:column;align-items:center;gap:4px;margin:-4px 0 4px;padding:0 14px;text-align:center}
 .du-zeit i.global{animation:none;transition:width .1s linear}
 .du-frage-buch{display:flex;flex-direction:column;align-items:center;gap:4px;padding:18px 8px 10px;text-align:center}
-.du-buch{font:800 2rem/1.15 var(--display);color:var(--fg);text-shadow:0 0 18px color-mix(in srgb,var(--ar-spielen) 35%,transparent)}
+.du-buch{font:800 2rem/1.15 var(--display);color:var(--fg);text-shadow:0 0 18px color-mix(in srgb,var(--ar-gemeinde) 35%,transparent)}
 .du-blitz .du-buch{text-shadow:0 0 18px #ff8a5c55}
 .du-buecher{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .du-buecher .vl-opt{text-align:center}
@@ -1879,9 +1879,6 @@ details.pf>summary::after{content:"▾";margin-left:2px;color:var(--muted);trans
 .hud-tal .tb-punkt{position:absolute;top:-3px;right:-3px}
 .bk-zk{grid-column:3;display:flex;flex-direction:column;align-items:center;gap:1px;background:none;border:1px solid #ffffff2a;border-radius:14px;color:var(--muted);font:800 .72rem var(--body);padding:6px 4px;cursor:pointer}
 .bk-zk svg{width:20px;height:20px}
-.bkopf:not(.zahlen) .bk-ring,.bkopf:not(.zahlen) .bk-tafel{display:none}
-.bkopf.zahlen .bk-zk{display:none}
-.bk-t span{font-size:.92rem;white-space:normal}
 .ez-liste{display:grid;gap:10px}
 .ez,.ez-aufg>summary{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:14px 16px;border-radius:18px;border:1.5px solid color-mix(in srgb,var(--ar,#f2c14e) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--ar,#f2c14e) 16%,var(--surface)),var(--surface));color:var(--fg);font:inherit;cursor:pointer;position:relative}
 .ez[data-ar="lernen"]{--ar:var(--ar-lernen)}.ez[data-ar="spielen"]{--ar:var(--ar-spielen)}.ez[data-ar="gemeinde"]{--ar:var(--ar-gemeinde)}.ez[data-ar="bib"]{--ar:#66e0d0}.ez[data-ar="arena"]{--ar:#ff8a5c}
@@ -1934,6 +1931,42 @@ html.gross .tabbar{height:84px}html.gross #screen{padding-bottom:110px}
 .gegner-seite .du-gegner:has(.weih-schalter){--abz:572px}
 .gegner-seite .du-gegner:has(.du-chips):has(.weih-schalter){--abz:618px}
 .gegner-seite .du-wahl{max-height:calc(100dvh - var(--abz));min-height:96px}
+
+/* ===== 8.2: eigene Farben (Allein = Violett, Zusammen = Koralle), Kopf ohne Zusatzinfos, gemeinsame Spielauswahl ===== */
+.bk-kopf{grid-template-columns:58px minmax(0,1fr)}
+.bk-ring,.bk-tafel{display:none!important}
+.bk-t span{font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tabbar [data-tab="spielen"]{--ar:var(--ar-spielen)}.tabbar [data-tab="zusammen"]{--ar:var(--ar-gemeinde)}
+/* Start: Der Kopf ist die Tagesaufgabe (Truhe statt Sonne) */
+.start-aufg{margin:0}
+.start-aufg .bk-aufg{grid-template-columns:58px minmax(0,1fr) auto;width:100%;box-sizing:border-box;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer;list-style:none}
+.start-aufg summary.bk-aufg::-webkit-details-marker{display:none}
+.start-aufg .bk-med.truhe{background:none;box-shadow:none;width:62px;height:58px;filter:drop-shadow(0 0 8px #f2c14e66)}
+.start-aufg .bk-med.truhe svg{width:100%;height:100%}
+.start-aufg .ez-keys i{width:20px;height:20px}
+.start-aufg .bk-aufg.bereit .bk-t span{color:#fff1c2}
+.start-aufg .bk-aufg.bereit .bk-med.truhe{animation:truheWipp 1.6s ease-in-out infinite}
+@keyframes truheWipp{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+@media (prefers-reduced-motion:reduce){.start-aufg .bk-aufg.bereit .bk-med.truhe{animation:none}}
+.start-aufg .heute3{margin:0 0 6px}
+/* Spielauswahl (Allein und Zusammen identisch) */
+.sp-menue{--ar:var(--ar-spielen)}
+.sp-menue .bk-label:first-child{margin-top:2px}
+.sp-gitter{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.sp-k{width:100%;cursor:pointer;color:var(--fg);font:inherit;padding:9px 12px!important}
+.sp-gitter .sp-k{grid-template-columns:40px minmax(0,1fr);gap:10px;padding:8px 10px!important;min-height:56px}
+.sp-gitter .sp-k .b-ic{width:40px;height:40px}.sp-gitter .sp-k .b-ic svg{width:30px!important;height:30px!important}
+.sp-k .b-tx b{font-size:.98rem!important}
+.sp-gitter .sp-k .b-tx b{font-size:.9rem!important;line-height:1.15}
+.sp-k .b-tx span{font-size:.78rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sp-k .b-ic .sf-logo svg{width:34px;height:34px}
+.sp-duo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.sp-duo .sp-k{grid-template-columns:40px minmax(0,1fr);gap:10px;padding:8px 10px!important;min-height:56px;position:relative}
+.sp-duo .sp-k .b-ic{width:40px;height:40px}.sp-duo .sp-k .b-ic svg{width:30px!important;height:30px!important}
+.sp-zahl{position:absolute;top:-6px;right:-4px;min-width:22px;height:22px;padding:0 6px;box-sizing:border-box;border-radius:11px;background:#e5484d;color:#fff;font:900 .78rem/22px var(--body);font-style:normal;text-align:center}
+.sp-aus{opacity:.5;filter:grayscale(.4)}
+.sp-menue + .bk-label{margin-top:10px}
+.btn.primary.du-fordern,.du-los-knopf.btn.primary{background:linear-gradient(180deg,#ffc0a0,#ff8a5c 55%,#c9502a);color:#2a0d00}
 </style>
 </head>
 <body>

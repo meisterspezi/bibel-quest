@@ -138,6 +138,18 @@ const armorCount = (owned = S.owned) => RUESTUNG.filter(r => owned.includes("ar-
 /* Zentrale Symbole aus index.html: Talent-Münze und Regenbogen (Laden-Kategorie Farben) */
 ICONS.tal = '<use href="#i-tal"/>'; ICONS.regenbogen = '<use href="#i-regenbogen"/>';
 const svg = (k, c) => `<svg viewBox="0 0 24 24" aria-hidden="true" style="color:${c || "currentColor"}">${ICONS[k] || ""}</svg>`;
+/* 8.2: eigene Bereichsfarben – Allein = Violett, Zusammen = Koralle; die beiden Menschen-Symbole bekommen dieselben Farben (Verläufe aus „lohn“ bzw. „gemeinde“ umgefärbt) */
+(function () {
+  const host = document.getElementById("wr-defs"), defs = host && host.querySelector("defs");
+  if (!defs || !ICONS.user || !ICONS.people) return;
+  const kopie = (von, nach, tausch) => [...defs.children].filter(e => e.id && e.id.endsWith("_" + von)).forEach(e => {
+    let h = e.outerHTML.replace(new RegExp("_" + von + "\\b", "g"), "_" + nach); Object.entries(tausch || {}).forEach(([a, b]) => { h = h.split(a).join(b); });
+    defs.insertAdjacentHTML("beforeend", h); });
+  kopie("lohn", "allein");
+  kopie("gemeinde", "zus", { "#e6fff5": "#fff0e8", "#5fe0b0": "#ff8a5c", "#138a68": "#c0431f", "#2fb58a": "#e8643a", "#0b5a45": "#7a2410", "#a8f5d8": "#ffc9b0", "#139a72": "#c8481c", "#8ff0cc": "#ffb394" });
+  ICONS.user = ICONS.user.replace(/gemeinde/g, "allein");
+  ICONS.people = ICONS.people.replace(/gemeinde/g, "zus");
+})();
 const STAR = on => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" fill="${on ? "#f2c14e" : "#3a4380"}"/></svg>`;
 const MONATE = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 /* Lernvers der Gemeinde für den laufenden Monat (statt „Vers des Tages“) */
@@ -1389,19 +1401,17 @@ const backBtn = (to = "home", txt = "Zurück") => `<button class="back" data-go=
 /* Seitenkopf der Hauptbereiche: Titel links, kleine Info rechts */
 const seitenKopf = (titel, info = "") => `<div class="seitenkopf"><h1>${titel}</h1>${info ? `<span class="pill sk-info">${info}</span>` : ""}</div>`;
 /* 6.57: Bereichs-Kopf im Arena-Stil – o: {ic | bild, t, sub, ring:[zahl, text], tafel:[[zahl, text]×3], zeile:{ic,t,p,r}, knopf:{ic,t,attr}} */
-const BK_FARBE = { home: "#f2c14e", lernen: "var(--ar-lernen)", spielen: "var(--ar-spielen)", bib: "#66e0d0", gemeinde: "#5fe0b0", advent: "#ffcf5a", laden: "#b38cff" };
-const BK_ZAHLEN = "bq-zahlen";
-const bkZahlenAn = () => { try { return localStorage.getItem(BK_ZAHLEN) === "1"; } catch (e) { return false; } };
-const bereichKopf = (m, o) => `<div class="bkopf${bkZahlenAn() ? " zahlen" : ""}" style="--bk:${BK_FARBE[m]}">
+const BK_FARBE = { home: "#f2c14e", lernen: "var(--ar-lernen)", spielen: "var(--ar-spielen)", bib: "#66e0d0", gemeinde: "var(--ar-gemeinde)", advent: "#ffcf5a", laden: "#b38cff" };
+/* 8.2: Zusatzinfos im Kopf (Ring, Zahlentafel, „Zahlen“-Knopf) entfallen – ruhiger. Die Elemente bleiben unsichtbar im Dokument, damit Stellen, die Werte nachtragen (ringId, Tafel-IDs), weiter funktionieren. */
+const bereichKopf = (m, o) => `<div class="bkopf" style="--bk:${BK_FARBE[m]}">
   <header class="bk-kopf">${o.bild ? `<span class="bk-med bild"><img src="${o.bild}" alt="" width="480" height="455"></span>` : `<span class="bk-med">${svg(o.ic)}</span>`}
     <div class="bk-t"><h1>${o.t}</h1><span>${o.sub}</span></div>
-    <div class="bk-ring" aria-label="${o.ring[0]} ${o.ring[1]}"><b${o.ringId ? ` id="${o.ringId}"` : ""}>${o.ring[0]}</b><small>${o.ring[1]}</small></div>
-    <button class="bk-zk" data-bkzahlen aria-label="Meine Zahlen ein- oder ausblenden">${svg("star")}<span>Zahlen</span></button></header>
-  ${o.tafel ? `<div class="bk-tafel">${o.tafel.map(([z, t, id]) => `<span><b${id ? ` id="${id}"` : ""}>${z}</b> ${t}</span>`).join("")}${o.zeile ? `<span class="bk-zeile">${svg(o.zeile.ic)}<em>${o.zeile.t}</em><i class="bk-bar"><i style="width:${Math.max(4, Math.round(o.zeile.p))}%"></i></i><small>${o.zeile.r}</small></span>` : ""}</div>` : ""}
+    ${o.ring ? `<div class="bk-ring" aria-hidden="true"><b${o.ringId ? ` id="${o.ringId}"` : ""}>${o.ring[0]}</b><small>${o.ring[1]}</small></div>` : ""}</header>
+  ${o.tafel ? `<div class="bk-tafel" aria-hidden="true">${o.tafel.map(([z, t, id]) => `<span><b${id ? ` id="${id}"` : ""}>${z}</b> ${t}</span>`).join("")}</div>` : ""}
   ${o.knopf ? `<button class="bk-start" ${o.knopf.attr}>${svg(o.knopf.ic)}<b>${o.knopf.t}</b>${svg("bolt")}</button>` : ""}</div>`;
 const bkLabel = (ic, t, n) => `<div class="bk-label">${svg(ic)}<span>${t}</span>${n ? `<i>${n}</i>` : ""}</div>`;
 function wireGo() { screen.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { SFX.tap(); go(b.dataset.go, b.dataset.arg); });
-  screen.querySelectorAll("[data-bkzahlen]").forEach(b => b.onclick = () => { SFX.tap(); const an = !bkZahlenAn(); try { localStorage.setItem(BK_ZAHLEN, an ? "1" : "0"); } catch (e) {} screen.querySelectorAll(".bkopf").forEach(k => k.classList.toggle("zahlen", an)); }); }
+}
 
 /* ---------- Antwortmöglichkeiten ---------- */
 /* Antwortmöglichkeiten: das richtige Buch + 3 Ablenker, die zumindest denkbar sind.
@@ -1601,20 +1611,18 @@ VIEWS.home = () => {
   const siegel = (() => { const f = Object.entries(KETTEN).map(([id, k]) => ({ id, k, t: S.meister[id] || [] })).filter(x => x.t.length && siegelRest(x.t) <= 5).sort((a, b) => siegelRest(a.t) - siegelRest(b.t))[0];
       return f ? `<button class="erinnerung" data-go="spielen">${siegelHtml(siegelStufe(f.t), siegelFrisch(f.t), true)}<span><b>${siegelFrisch(f.t) ? `Dein Siegel „${esc(f.k.name)}“ verblasst in ${siegelRest(f.t)} Tag(en)` : `Dein Siegel „${esc(f.k.name)}“ ist verblasst`}</b><span class="small muted">Jetzt die Kette wiederholen und auffrischen${siegelFrisch(f.t) ? "" : ` (+${AUFFRISCH_TAL} Talente)`}</span></span></button>` : ""; })();
   const ezZeile = (go, ar, ic, t, sub, ecke = "") => `<button class="ez" data-ar="${ar}" data-go="${go}"><span class="ez-ic">${ic}</span><span class="ez-tx"><b>${t}</b><small>${sub}</small></span>${ecke}<i class="ez-pf">›</i></button>`;
-  /* 8.1: Kopf wie in den anderen Bereichen (Überschrift, Tagesaufgabe im Untertitel, Truhe als Knopf), dazu Rubrik-Trenner; der Lernvers steht wieder oben, direkt über „Lernen“ */
-  const vorname = esc(String(S.lbName || "").trim().split(/\s+/)[0].slice(0, 14));
-  const sterneAlle = Object.values(S.stars).reduce((x, y) => x + y, 0);
-  const aufgText = S.dq.bonus ? "Heute alles geschafft!" : bereit ? "Die Schatztruhe wartet auf dich!" : `Tagesaufgaben: ${erledigt} von 3 geschafft`;
-  const kopf = bereichKopf("home", { ic: "sun", t: "Dein Tag", sub: `${vorname ? `Hallo ${vorname}! ` : ""}${aufgText}`, ring: [streakNow(), streakNow() === 1 ? "Tag" : "Tage"],
-    tafel: [[levelOf(S.xp), "Level"], [sterneAlle, "Sterne"], [pkt(S.tal || 0), "Talente"]],
-    knopf: bereit ? { ic: "star", t: "Truhe öffnen", attr: 'id="truheKopf"' } : null });
+  /* 8.2: „Dein Tag“ entfällt – der Kopf IST die Tagesaufgabe (Truhe statt Sonne, Schlüssel rechts), darunter wie gewohnt der Kringel-Bogen.
+     Antippen klappt die drei Aufgaben auf; ist die Truhe bereit, öffnet der Kopf direkt die Truhe. */
+  const keysH = `<span class="ez-keys" aria-hidden="true">${[0, 1, 2].map(i => `<i class="${i < erledigt ? "an" : ""}">${SCHLUESSEL}</i>`).join("")}</span>`;
+  const kopfTitel = S.dq.bonus ? "Geschafft!" : bereit ? "Öffnen!" : `Heute ${erledigt}/3`;
+  const kopfSub = S.dq.bonus ? "Morgen neue Aufgaben" : bereit ? "Truhe antippen zum Öffnen" : "Tagesaufgaben antippen";
+  const kopfInnen = `<span class="bk-med truhe">${S.dq.bonus ? TRUHE_AUF : truheZu(bereit ? 3 : erledigt)}</span><div class="bk-t"><h1>${kopfTitel}</h1><span>${kopfSub}</span></div>${keysH}`;
+  const kopf = bereit
+    ? `<div class="bkopf start-aufg" style="--bk:#f2c14e"><button class="bk-kopf bk-aufg bereit" id="truheKopf" aria-label="Schatztruhe mit drei Schlüsseln öffnen">${kopfInnen}</button></div>`
+    : `<div class="bkopf start-aufg" style="--bk:#f2c14e"><details class="bk-aufg-d"><summary class="bk-kopf bk-aufg" aria-label="Tagesaufgaben: ${erledigt} von 3 geschafft">${kopfInnen}</summary>
+        <section class="heute3 ${S.dq.bonus ? "fertig" : ""}" aria-label="Tagesaufgaben, ${erledigt} von 3 erledigt"><ul>${aufg}</ul>${truhe}</section></details></div>`;
   screen.innerHTML = `<div class="stack start start2 start8">
     ${kopf}
-    ${bkLabel("target", "Tagesaufgaben")}
-    <details class="ez-aufg ${S.dq.bonus ? "fertig" : bereit ? "bereit" : ""}">
-      <summary><span class="ez-ic">${svg("target")}</span><span class="ez-tx"><b>${S.dq.bonus ? "Heute geschafft!" : bereit ? "Die Truhe wartet!" : `Heute: ${erledigt} von 3`}</b><small>${S.dq.bonus ? "Morgen gibt es neue Aufgaben" : "Antippen zum Öffnen"}</small></span><span class="ez-keys">${[0, 1, 2].map(i => `<i class="${i < erledigt ? "an" : ""}">${SCHLUESSEL}</i>`).join("")}</span></summary>
-      <section class="heute3 ${S.dq.bonus ? "fertig" : ""}" aria-label="Tagesaufgaben, ${erledigt} von 3 erledigt"><ul>${aufg}</ul>${truhe}</section>
-    </details>
     ${adventMiniHtml(true)}${siegel}
     ${bkLabel("scroll", "Lernvers")}
     <div class="start-vers">${MONATSVERSE[monatKey()] ? lvKarte(monatKey()) : `<button class="vers-zeile" id="versZeile" aria-expanded="false">${versHtml(vKey, "tag klein")}<span class="vz-mehr">mehr</span></button>`}</div>
@@ -1622,7 +1630,7 @@ VIEWS.home = () => {
     <div class="ez-liste">
       ${ezZeile("lernen", "lernen", svg("book"), "Lernen", ni >= 0 ? `Weiter mit: ${esc(GROUPS[ni].name)}` : "Lektionen, Lernvers, Lied")}
       ${ezZeile("spielen", "spielen", svg("user"), "Allein spielen", "Blitz, Kette, Biblionär")}
-      ${ezZeile("zusammen", "gemeinde", svg("people"), "Zusammen", duN ? (duN === 1 ? "1 Duell wartet auf dich" : `${duN} Duelle warten auf dich`) : "Duelle, Biblionär der Woche, Rangliste", duN ? `<span class="ez-zahl" aria-label="${duN} ${duN === 1 ? "Duell wartet" : "Duelle warten"}">${duN}</span>` : "")}
+      ${ezZeile("zusammen", "gemeinde", svg("people"), "Zusammen", duN ? (duN === 1 ? "1 Duell wartet auf dich" : `${duN} Duelle warten auf dich`) : "Duelle und Rangliste", duN ? `<span class="ez-zahl" aria-label="${duN} ${duN === 1 ? "Duell wartet" : "Duelle warten"}">${duN}</span>` : "")}
     </div>
     ${entwickler && postfachNeu ? `<button class="erinnerung pf-hinweis" data-go="postfach">${svg("chat")}<span><b>${postfachNeu} ${postfachNeu === 1 ? "neue Meldung" : "neue Meldungen"} im Postkasten</b><span class="small muted">Feedback, Status und Datenbank</span></span></button>` : ""}
     <button class="feedback-link fb-start" id="fbLinkStart">${svg("chat")} Feedback an den Entwickler</button>
@@ -1651,7 +1659,7 @@ VIEWS.lernen = (teil) => {
   const sterne = Object.values(S.stars).reduce((a, b) => a + b, 0);
   const lektion = (g, i) => { const st = S.stars[i] || 0, jetzt = i === ni; return `<button class="lek ${st ? "done" : ""} ${jetzt ? "jetzt" : ""}" data-go="lektion" data-arg="${i}"><span class="lek-nr" aria-label="Lektion ${i + 1}">${svg("lek-" + (i + 1))}</span><span class="lek-tx"><b>${g.name}</b><span>${g.books.length} Bücher · ${g.books[0]} – ${g.books[g.books.length - 1]}</span></span>${jetzt ? `<span class="jetzt-chip">${st ? "Sterne holen" : "Weiter"} ›</span>` : `<span class="stars">${STAR(st >= 1)}${STAR(st >= 2)}${STAR(st >= 3)}</span>`}</button>`; };
   const at = lernTeil === "at", P = at ? atP : ntP, T = at ? AT_TITEL : NT_TITEL;
-  screen.innerHTML = `${bereichKopf("lernen", { ic: "book", t: "Lernen", sub: ni >= 0 ? `Weiter mit: ${esc(GROUPS[ni].name)}` : "Alles geschafft – jetzt wiederholen!", ring: [sterne, sterne === 1 ? "Stern" : "Sterne"],
+  screen.innerHTML = `${bereichKopf("lernen", { ic: "book", t: "Lernen", sub: ni >= 0 ? `Weiter mit: ${esc(GROUPS[ni].name)}` : "Alles geschafft!", ring: [sterne, sterne === 1 ? "Stern" : "Sterne"],
     tafel: [[atP + "%", "AT"], [ntP + "%", "NT"], [`${S.songHeard.length}/8`, "Lied"]],
     knopf: ni >= 0 ? { ic: "book", t: "Weiterlernen", attr: `data-go="lektion" data-arg="${ni}"` } : null })}
   ${bkLabel("book", "Lektionen")}
@@ -1660,10 +1668,10 @@ VIEWS.lernen = (teil) => {
   <div class="stack lek-liste">${(at ? GROUPS.slice(0, 5) : GROUPS.slice(5)).map((g, k) => lektion(g, at ? k : k + 5)).join("")}</div>
   ${bkLabel("music", "Lernhilfen")}
   <div class="duo">
-    <button class="mini-karte" data-go="lied"><span class="lek-nr">${svg("music")}</span><b>Lied</b><span>${S.songHeard.length}/8 Strophen</span></button>
+    <button class="mini-karte" data-go="lied"><span class="lek-nr">${svg("music")}</span><b>Lied</b><span>Zum Mitsingen</span></button>
     <button class="mini-karte" data-go="learn"><span class="lek-nr">${svg("eye")}</span><b>Spickzettel</b><span>Alle 66 Bücher</span></button>
   </div>
-  <button class="bereich klein lv-zugang" data-go="lernverse"><span class="b-ic">${svg("scroll")}</span><span class="b-tx"><b>Lernverse</b><span>Vers des Monats und frühere Verse</span></span><span class="b-info">${Object.keys(MONATSVERSE).filter(k => k <= monatKey() && lvStand(k).st >= LV_MAX).length}/${Object.keys(MONATSVERSE).filter(k => k <= monatKey()).length}</span></button>`;
+  <button class="bereich klein lv-zugang" data-go="lernverse"><span class="b-ic">${svg("scroll")}</span><span class="b-tx"><b>Lernverse</b><span>Vers des Monats und frühere Verse</span></span></button>`;
   wireGo();
   screen.querySelectorAll("[data-teil]").forEach(b => b.onclick = () => { SFX.tap(); lernTeil = b.dataset.teil; VIEWS.lernen(); });
 };
@@ -1679,69 +1687,53 @@ VIEWS.lernverse = (zurueck) => {
   wireGo(); lvVerdrahten();
 };
 
-/* ---------- Bereich Spielen ---------- */
-VIEWS.spielen = () => {
-  const siegelZahl = Object.keys(KETTEN).filter(id => siegelStufe(S.meister[id] || [])).length;
-  const besteKette = Math.max(0, ...Object.values(KETTEN).map(k => kettenBuecher(k.key)));
-  screen.innerHTML = `${bereichKopf("spielen", { ic: "user", t: "Allein", sub: S.bestBlitz ? `Knackst du heute ${S.bestBlitz}?` : "Wie weit kommst du heute?", ring: [`${siegelZahl}/${Object.keys(KETTEN).length}`, "Siegel"],
-    tafel: [[S.bestBlitz || 0, "Blitz"], [besteKette, "Kette"], [siegelZahl, "Siegel"]],
-    knopf: { ic: "bolt", t: "Blitz-Runde", attr: `data-go="blitz" aria-label="Blitz-Runde: 60 Sekunden – was kommt danach?"` } })}
-  <div class="stack">
+/* ---------- 8.2: Spielauswahl – Allein und Zusammen sehen gleich aus (Kette · Blitz · Biblionär · Lied bzw. Lernvers), je mit Rubrik-Trenner ---------- */
+const spKachel = (attr, ic, t, sub = "", extra = "") => `<button class="bereich klein sp-k ${extra}" ${attr}><span class="b-ic">${ic}</span><span class="b-tx"><b>${t}</b>${sub ? `<span>${sub}</span>` : ""}</span></button>`;
+function spielMenue(zus) {
+  const kette = Object.entries(KETTEN).map(([id, k]) => { const t = S.meister[id] || [], st = siegelStufe(t), fr = siegelFrisch(t);
+    return spKachel(zus ? `data-dtyp="kette-${id}"` : `data-k="${id}"`, st ? siegelHtml(st, fr) : svg("kette-" + id), k.name, st ? (fr ? `${SIEGEL[st].name}-Siegel` : "Siegel auffrischen!") : "", "sp-ketten"); }).join("");
+  const sp = (id, attr, ic, t, sub) => spKachel(zus ? `data-dtyp="${id}"` : attr, svg(ic), t, sub);
+  return `<div class="sp-menue" style="--ar:var(--ar-${zus ? "gemeinde" : "spielen"})">
+    ${bkLabel("link", "Kette")}
+    <div class="sp-gitter">${kette}</div>
+    ${bkLabel("bolt", "Blitz")}
+    ${sp("blitz", 'data-go="blitz"', "bolt", "Blitz-Runde", "60 Sekunden – was kommt danach?")}
     ${bkLabel("biblionaer", "Wer wird Biblionär?")}
-    <button class="bereich klein" id="alleinBib"><span class="b-ic">${svg("biblionaer")}</span><span class="b-tx"><b>Biblionär allein</b><span>15 Bibelfragen bis zur Million${S.bibRekord ? ` · Rekord ${pkt(S.bibRekord)}` : ""}</span></span></button>
-    <details class="erklaer"><summary>${bkLabel("link", "Die Kette · ein Fehler beendet sie")}<span class="ek-i" aria-label="Erklärung">?</span></summary>
-    <p class="small muted">Wer eine Kette komplett schafft, bekommt ein Siegel. Wiederhole sie in verschiedenen Wochen und Monaten für Silber, Gold und Diamant. Nach ${SIEGEL_FRISCH} Tagen verblasst ein Siegel – dann einfach auffrischen.</p></details>
-    ${Object.entries(KETTEN).map(([id, k]) => { const max = k.seq.length, rec = kettenBuecher(k.key), voll = rec >= max, t = S.meister[id] || [], st = siegelStufe(t), fr = siegelFrisch(t);
-      return `<button class="kette-karte ${voll ? "voll" : ""}" data-k="${id}"><div class="ic">${st ? siegelHtml(st, fr) : svg("kette-" + id)}</div>
-        <div class="kk-text"><b>${k.name}</b><span class="small muted">${st ? `${SIEGEL[st].name}-Siegel · ${fr ? "frisch noch " + siegelRest(t) + " Tage" : "verblasst – auffrischen!"}` : k.info}</span><span class="progress kk"><i style="width:${rec / max * 100}%"></i></span></div>
-        <div class="kk-rec"><b>${rec}</b><span class="small muted">/ ${max}</span></div></button>`; }).join("")}
-    ${bkLabel("music", "Lied")}
-    <button class="bereich klein" data-go="gap" data-arg="alle"><span class="b-ic">${svg("music")}</span><span class="b-tx"><b>Lied-Lückenquiz</b><span>Welches Buch fehlt in der Liedzeile?</span></span></button>
+    ${sp("quiz", 'id="alleinBib"', "biblionaer", zus ? "Biblionär-Duell" : "Biblionär allein", "15 Bibelfragen bis zur Million")}
+    ${zus ? `${bkLabel("scroll", "Lernvers")}${sp("vers", "", "scroll", "Lernvers-Duell", "8 Fragen zum Vers des Monats")}`
+          : `${bkLabel("music", "Lied")}${sp("", 'data-go="gap" data-arg="alle"', "music", "Lied-Lückenquiz", "Welches Buch fehlt in der Liedzeile?")}`}
   </div>`;
+}
+VIEWS.spielen = () => {
+  screen.innerHTML = `${bereichKopf("spielen", { ic: "user", t: "Allein", sub: "Wie weit kommst du heute?" })}${spielMenue(false)}`;
   wireGo();
   screen.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playChain(b.dataset.k)); });
   $("alleinBib").onclick = () => { SFX.tap(); bibSolo(weihAktiv()); };
 };
 
-/* ---------- 8.1: Bereich „Zusammen“ – Schritt 1: Spiel wählen (Lernvers, Blitz, Kette mit Unterwahl, Biblionär als Extra-Knopf), Schritt 2 (Ansicht „gegner“): nur noch der Gegner ---------- */
-let zusKette = false; /* Unterwahl der Kette (Ganze Bibel / AT / NT / Rückwärts) ist aufgeklappt */
-const ZUS_KETTEN = [["kette-bibel", "Ganze Bibel", "kette-bibel"], ["kette-at", "Altes Testament", "kette-at"], ["kette-nt", "Neues Testament", "kette-nt"], ["kette-rueck", "Rückwärts", "kette-rueck"]];
-const ZUS_KURZ = { vers: "8 Fragen", blitz: "60 Sekunden", kette: "Buch für Buch", quiz: "15 Fragen bis zur Million" };
+/* ---------- 8.2: Bereich „Zusammen“ – Schritt 1: Spiel wählen (genau wie bei Allein), Schritt 2 (Ansicht „gegner“): nur noch der Gegner ---------- */
 VIEWS.zusammen = () => {
-  const duN = duFuerMich().length, online = duOk(), aktivTyp = duTypAktuell();
-  const siege = S.duSiege || 0;
-  const kachel = (id, art, ic, name, extra = "") => `<button class="du-typ t-${art}${extra}" ${online ? "" : "disabled"} data-dtyp="${id}"${id === "kette" ? ` aria-expanded="${zusKette}"` : ""}><span class="dt-ic">${svg(ic)}</span><span class="dt-name">${esc(name)}</span><span class="dt-sub">${ZUS_KURZ[art]}</span>${id === "kette" ? `<i class="dt-pfeil" aria-hidden="true">${zusKette ? "▴" : "▾"}</i>` : ""}</button>`;
-  const kettenWahl = zusKette ? `<div class="zus-ketten t-kette" role="group" aria-label="Welche Kette?">${ZUS_KETTEN.map(([id, n, ic]) => `<button class="zus-kk${aktivTyp === id ? " zuletzt" : ""}" data-dtyp="${id}"><span>${svg(ic)}</span><b>${n}</b></button>`).join("")}</div>` : "";
-  const zeile = (go, ar, ic, t, sub, ecke = "") => `<button class="ez ez-k" data-ar="${ar}" data-go="${go}"><span class="ez-ic">${ic}</span><span class="ez-tx"><b>${t}</b><small>${sub}</small></span>${ecke}<i class="ez-pf">›</i></button>`;
-  const wocheText = bibWocheGespielt() ? `Deine Runde: ${pkt(S.bwP || 0)} Punkte` : `KW ${weekKey().split("-W")[1]} · gleiche Fragen für alle`;
-  screen.innerHTML = `${bereichKopf("gemeinde", { ic: "people", t: "Zusammen", sub: duN ? `${duN} ${duN === 1 ? "Duell wartet" : "Duelle warten"} auf dich!` : "Mit der Gemeinde spielen", ring: [siege, siege === 1 ? "Sieg" : "Siege"],
-    tafel: [[levelOf(S.xp), "Level"], [S.duSpiele || 0, "Duelle"], [siege, siege === 1 ? "Sieg" : "Siege"]] })}
-  ${bkLabel("duell", "Duell – was spielt ihr?")}
+  const duN = duFuerMich().length, online = duOk();
+  screen.innerHTML = `${bereichKopf("gemeinde", { ic: "people", t: "Zusammen", sub: duN ? `${duN} ${duN === 1 ? "Duell wartet" : "Duelle warten"} auf dich!` : "Mit der Gemeinde spielen" })}
   ${online ? "" : `<p class="small muted zus-hinweis">${window.LB && window.LB.ok ? "Für Duelle brauchst du einen Eintrag in der Gemeinde-Rangliste." : "Für Duelle brauchst du Internet."}</p>`}
-  <div class="du-typen zus-typen" role="group" aria-label="Duell-Spiel">
-    ${kachel("vers", "vers", DU_TYPEN.vers.ic, "Lernvers")}${kachel("blitz", "blitz", DU_TYPEN.blitz.ic, "Blitz")}${kachel("kette", "kette", "link", "Kette")}
-    ${kettenWahl}
-    ${kachel("quiz", "quiz", DU_TYPEN.quiz.ic, DU_TYPEN.quiz.name)}
-  </div>
+  <div class="${online ? "" : "sp-aus"}">${spielMenue(true)}</div>
   ${bkLabel("people", "Gemeinde")}
-  <div class="ez-liste">
-    ${zeile("duelle", "arena", `<span class="sf-logo">${DUELL_LOGO}</span>`, "Deine Duelle", duN ? `${duN} ${duN === 1 ? "Herausforderung wartet" : "Herausforderungen warten"}` : "Offene Duelle und Ergebnisse", duN ? `<span class="ez-zahl">${duN}</span>` : "")}
-    ${zeile("bib", "bib", svg("biblionaer"), "Biblionär der Woche", wocheText)}
-    ${zeile("rank", "gemeinde", svg("trophy"), "Ranglisten", "Woche, Gesamt, Treue und mehr")}
+  <div class="sp-duo" style="--ar:var(--ar-gemeinde)">
+    <button class="bereich klein sp-k" data-go="duelle"><span class="b-ic"><span class="sf-logo">${DUELL_LOGO}</span></span><span class="b-tx"><b>Duelle</b><span>${duN ? `${duN} ${duN === 1 ? "wartet" : "warten"} auf dich` : "Alle Duelle"}</span></span>${duN ? `<i class="sp-zahl">${duN}</i>` : ""}</button>
+    <button class="bereich klein sp-k" data-go="rank"><span class="b-ic">${svg("trophy")}</span><span class="b-tx"><b>Rangliste</b><span>Alle im Überblick</span></span></button>
   </div>`;
   wireGo();
-  screen.querySelectorAll("[data-dtyp]").forEach(b => b.onclick = () => { SFX.tap(); const id = b.dataset.dtyp;
-    if (id === "kette") { zusKette = !zusKette; VIEWS.zusammen(); return; }
-    S.duTyp = id; duAuswahl = []; duSuche = ""; save(); go("gegner"); });
+  screen.querySelectorAll("[data-dtyp]").forEach(b => b.onclick = () => { SFX.tap(); if (!online) { toast(`${svg("duell", "var(--muted)")}<div>Für Duelle brauchst du Internet und einen Eintrag in der Rangliste.</div>`); return; }
+    S.duTyp = b.dataset.dtyp; duAuswahl = []; duSuche = ""; save(); go("gegner"); });
   if (online) { if (duGegner === null) duGegnerLaden(); if (duListe === null) duAktualisieren().then(() => { if (current === "zusammen") VIEWS.zusammen(); }).catch(() => {}); }
   else if (typeof duAktualisieren === "function" && duListe === null) duAktualisieren().catch(() => {});
 };
-/* Schritt 2: nur noch den Gegner wählen – die Duell-Art steht schon fest (S.duTyp) */
+/* Schritt 2: nur noch den Gegner wählen – das Spiel steht schon fest (S.duTyp) */
 VIEWS.gegner = () => {
   if (!duOk()) { go("zusammen"); return; }
   const typ = duTypAktuell(), T = DU_TYPEN[typ];
   screen.innerHTML = `<div class="gegner-seite">${backBtn("zusammen", "Anderes Spiel")}
-    ${bereichKopf("gemeinde", { ic: T.ic, t: "Gegner", sub: `${esc(T.name)} · wen forderst du heraus?`, ring: [S.duSiege || 0, S.duSiege === 1 ? "Sieg" : "Siege"], tafel: [[levelOf(S.xp), "Level"], [S.duSpiele || 0, "Duelle"], [S.duSiege || 0, "Siege"]] })}
+    ${bereichKopf("gemeinde", { ic: T.ic, t: "Gegner", sub: esc(T.name) })}
     ${duGegnerHtml()}</div>`;
   wireGo(); duGegnerVerdrahten();
   if (duGegner === null) duGegnerLaden();
@@ -3110,12 +3102,8 @@ function duArenaHtml(fuerMich) {
   return `<header class="ar-kopf">
       <span class="ar-logo">${DUELL_LOGO}</span>
       <div class="ar-titel"><h1>Arena</h1><span>${ruf}</span></div>
-      <div class="ar-siege" aria-label="${siege} ${siege === 1 ? "Sieg" : "Siege"}"><b>${siege}</b><small>${siege === 1 ? "Sieg" : "Siege"}</small></div>
     </header>
-    <div class="ar-tafel">
-      <span><b>${spiele}</b> Duelle</span><span><b>${quote}%</b> Quote</span><span class="${serie >= 2 ? "heiss" : ""}"><b>${serie}</b> in Folge</span>
-      ${ziel ? `<span class="ar-ziel" title="${esc(ziel.b.d)}">${svg(ziel.b.ic)}<em>${esc(ziel.b.name)}</em><i class="ar-fort"><i style="width:${Math.max(6, Math.round(ziel.ist / ziel.ziel * 100))}%"></i></i><small>${ziel.ist}/${ziel.ziel}</small></span>` : ""}
-    </div>`;
+`;
 }
 
 VIEWS.duelle = () => {
