@@ -4585,6 +4585,7 @@ function pastorAntwort(f, halb, id = "gastredner") {
   if (P.sw && !/Star Wars|Jedi|Yoda|Macht|Todesstern|Han Solo|Luke|Vader|Tatooine|Chewbacca|C-3PO|Lichtschwert|Kamino|Falke|Mos Eisley|Obi-Wan|Hoth/.test(extra) && rnd() < .6) saetze.push(esc(wahl(P.sw)));
   saetze.push(wahl(P.tschuess));
   telMerken(zuletzt);
+  if (id.startsWith("gastredner") && !telEichstaett()) for (let k = 0; k < saetze.length; k++) saetze[k] = saetze[k].replace(/Gastredner/g, "Pastor"); /* 9.11: außerhalb Eichstätts heißt er nur „Pastor“ */
   return { saetze, tipp: kurz(tipp), grad, richtig: tipp === r, wer: id.replace(/-w$/, ""), weih };
 }
 
@@ -5174,7 +5175,7 @@ const PASTOREN = {
     hallo: WILLI_HALLO, sicher: WILLI_SICHER, ziemlich: WILLI_ZIEMLICH, sicherOhne: WILLI_SICHER_OHNE, ziemlichOhne: WILLI_ZIEMLICH_OHNE, schwank: WILLI_SCHWANK, geraten: WILLI_GERATEN, thema: WILLI_THEMA, themen: WILLI_THEMEN, allg: WILLI_ALLG, tschuess: WILLI_TSCHUESS },
   aaron: { name: "Pastor Aaron", kurz: "Aaron", info: "Bibelkenner & Star-Wars-Experte", bild: () => AARON_BILD, salt: 0x2c1b3c6d, quoten: [[.9, .98, .995], [.6, .85, .93], [.36, .62, .8]],
     hallo: AARON_HALLO, sicher: AARON_SICHER, ziemlich: AARON_ZIEMLICH, sicherOhne: AARON_SICHER_OHNE, ziemlichOhne: AARON_ZIEMLICH_OHNE, schwank: AARON_SCHWANK, geraten: AARON_GERATEN, thema: AARON_THEMA, themen: AARON_THEMEN, allg: AARON_ALLG, tschuess: AARON_TSCHUESS, sw: AARON_SW },
-  gastredner: { name: "Gastredner", kurz: "Gastredner", info: "Baptisten-Pastor auf Besuch", bild: () => GASTREDNER_BILD, salt: 0x7a3d91e5, quoten: [[.88, .97, .99], [.58, .83, .92], [.34, .6, .79]],
+  gastredner: { get name() { return telEichstaett() ? "Gastredner" : "Pastor"; }, get kurz() { return telEichstaett() ? "Gastredner" : "Pastor"; }, info: "Baptisten-Pastor auf Besuch", bild: () => GASTREDNER_BILD, salt: 0x7a3d91e5, quoten: [[.88, .97, .99], [.58, .83, .92], [.34, .6, .79]],
     hallo: GASTREDNER_HALLO, sicher: GASTREDNER_SICHER, ziemlich: GASTREDNER_ZIEMLICH, sicherOhne: GASTREDNER_SICHER_OHNE, ziemlichOhne: GASTREDNER_ZIEMLICH_OHNE, schwank: GASTREDNER_SCHWANK, geraten: GASTREDNER_GERATEN, thema: GASTREDNER_THEMA, themen: GASTREDNER_THEMEN, allg: GASTREDNER_ALLG, tschuess: GASTREDNER_TSCHUESS }
 };
 /* 9.11: Willi und Aaron haben persönliche Inhalte und rufen nur für Spieler aus Eichstätt an (Gemeinde „fbg“).
@@ -5306,7 +5307,7 @@ VIEWS.bib = () => {
     <div class="bq2-joker" aria-label="Deine Joker – je einmal pro Spiel">
       <span><b class="bq2-j5">50:50</b><span><b>Halbieren</b><small>2 falsche weg</small></span></span>
       <span>${svg("people")}<span><b>Gemeinde</b><small>alle stimmen ab</small></span></span>
-      <span>${svg("telefon")}<span><b>Telefon</b><small>${telEichstaett() ? "Willi, Aaron, Gast" : "Gastredner"}</small></span></span>
+      <span>${svg("telefon")}<span><b>Telefon</b><small>${telEichstaett() ? "Willi, Aaron, Gast" : "Pastor"}</small></span></span>
     </div>
     <button class="bq2-fuss" data-go="rank" data-arg="bibRekord">${svg("trophy")}<span>Joker je 1× pro Spiel · Bestenliste</span><b>Rangliste ›</b></button>`;
   wireGo();
