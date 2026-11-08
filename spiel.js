@@ -1418,13 +1418,13 @@ const TABS = [["home", "Start", "sun"], ["lernen", "Lektionen", "book"], ["spiel
 const TAB_VON = { stift: "rank", advent: "home", beth: "home", kal: "home", duell: "duelle", zusammen: "duelle", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen", biblionaer: "bib",
   bib: "bib", gemverwaltung: "", gegner: "duelle", duelle: "duelle", rank: "rank", shop: "rank", ich: "", profil: "", stat: "", badges: "", wer: "", postfach: "", neuigkeiten: "", nachrichten: "" };
 /* rote Zahl am Duell-Reiter: wartende Herausforderungen */
-function tbDuSetzen() { const t = $("tbDu"); if (!t) return; const n = typeof duFuerMich === "function" ? duFuerMich().length : 0; t.hidden = !n; t.textContent = n; }
+function tbDuSetzen() { let a = 0, b = 0; try { a = duFuerMich().length; b = duFuerBib().length; } catch (e) {} [["tbDu", a], ["tbBib", b]].forEach(([id, n]) => { const t = $(id); if (!t) return; t.hidden = !n; t.textContent = n; }); }
 function tabbarSetzen(name) {
   const nav = $("tabbar"); if (!nav) return;
   const aktiv = name in TAB_VON ? TAB_VON[name] : name;
   document.body.dataset.tab = name === "name" ? "" : (aktiv || "frei");
   if (!nav.dataset.fertig) {
-    nav.innerHTML = TABS.map(([k, t, i]) => `<button data-tab="${k}" aria-label="${t}"><span class="tb-ic">${i === "arena" ? DUELL_LOGO : svg(i)}</span><span>${t}</span>${k === "duelle" ? `<span class="tb-du" id="tbDu" hidden></span>` : ""}</button>`).join("");
+    nav.innerHTML = TABS.map(([k, t, i]) => `<button data-tab="${k}" aria-label="${t}"><span class="tb-ic">${i === "arena" ? DUELL_LOGO : svg(i)}</span><span>${t}</span>${k === "duelle" ? `<span class="tb-du" id="tbDu" hidden></span>` : k === "bib" ? `<span class="tb-du" id="tbBib" hidden></span>` : ""}</button>`).join("");
     nav.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { SFX.tap(); go(b.dataset.tab); });
     nav.dataset.fertig = "1";
   }
@@ -1626,7 +1626,7 @@ VIEWS.home = () => {
   neuerTag(); save();
   const vKey = VERS_DES_TAGES[dayNum(today()) % VERS_DES_TAGES.length];
   const geschafft = GROUPS.filter((_, k) => S.stars[k]).length;
-  const ni = naechsteLektion(), duN = duFuerMich().length;
+  const ni = naechsteLektion(), duN = duFuerMich().length, bibN = duFuerBib().length;
   /* Seit 6.43: vier gleich große Felder (2×2) – Lernen, Spielen, Biblionär, Arena */
   const felder = [
     { go: "lernen", ar: "lernen", ic: svg("book"), t: "Lektionen", info: `<b>${geschafft}/${GROUPS.length}</b> · ${ni >= 0 ? esc(GROUPS[ni].name) : "Alles geschafft!"}`, ecke: "" },
@@ -1672,7 +1672,7 @@ VIEWS.home = () => {
     <div class="ez-liste">
       ${ezZeile("lernen", "lernen", svg("book"), "Lektionen", ni >= 0 ? `Weiter mit: ${esc(GROUPS[ni].name)}` : "Lektionen, Lernvers, Lied")}
       ${ezZeile("spielen", "spielen", svg("user"), "Solo spielen", "Blitz, Ketten, Lernvers")}
-      ${ezZeile("bib", "bib", svg("biblionaer"), "Biblionär", S.bibRekord ? `Rekord ${pkt(S.bibRekord)}` : "15 Fragen zur Million")}
+      ${ezZeile("bib", "bib", svg("biblionaer"), "Biblionär", bibN ? (bibN === 1 ? "1 Duell wartet auf dich" : `${bibN} Duelle warten auf dich`) : S.bibRekord ? `Rekord ${pkt(S.bibRekord)}` : "15 Fragen zur Million", bibN ? `<span class="ez-zahl" aria-label="${bibN} Biblionär-Duell${bibN === 1 ? "" : "le"} warten">${bibN}</span>` : "")}
       ${ezZeile("duelle", "gemeinde", DUELL_LOGO, "Arena", duN ? (duN === 1 ? "1 Duell wartet auf dich" : `${duN} Duelle warten auf dich`) : "Fordere jemanden heraus", duN ? `<span class="ez-zahl" aria-label="${duN} ${duN === 1 ? "Duell wartet" : "Duelle warten"}">${duN}</span>` : "")}
     </div>
     ${entwickler && postfachNeu ? `<button class="erinnerung pf-hinweis" data-go="postfach">${svg("chat")}<span><b>${postfachNeu} ${postfachNeu === 1 ? "neue Meldung" : "neue Meldungen"} im Postkasten</b><span class="small muted">Feedback, Status und Datenbank</span></span></button>` : ""}
@@ -2702,7 +2702,8 @@ async function lbStart() {
       /* Duelle im Hintergrund laden: Hinweis auf der Startseite, Zahl im Bereich Spielen */
       duAktualisieren().then(() => {
         const td = $("torDuell"), n = duFuerMich().length; if (td && current === "home") { const pk = td.querySelector(".du-punkt"); if (pk) pk.remove(); if (n) { td.insertAdjacentHTML("beforeend", `<i class="du-punkt">${n}</i>`); td.setAttribute("aria-label", `Arena – ${n} ${n === 1 ? "Herausforderung wartet" : "Herausforderungen warten"}`); } }
-        if ((current === "spielen" || current === "duelle") && !document.querySelector(".modal") && !duSpiel) go(current);
+        tbDuSetzen();
+        if (["spielen", "duelle", "home"].includes(current) && !document.querySelector(".modal") && !duSpiel) go(current);
       });
       bibSiegerPruefen();
       /* 6.68: Stiftshütte – offene Spenden senden, fertige Abschnitte feiern */
@@ -3660,7 +3661,10 @@ function duZaehlen() {
   if (S.duSiege !== vorher[0] || S.duSpiele !== vorher[1]) { save(); checkBadges(); lbSync(); }
 }
 const duStatus = d => (d.status === "offen" && d.ablauf && Date.now() > d.ablauf ? "abgelaufen" : d.status);
-const duFuerMich = () => (duListe || []).filter(d => d.an === S.pid && duStatus(d) === "offen");
+/* 9.14: Arena (alle Arten außer Biblionär) und Biblionär getrennt – annehmbare Biblionär-Duelle stehen nur im Biblionär-Reiter */
+const duOffenFuerMich = () => (duListe || []).filter(d => d.an === S.pid && duStatus(d) === "offen");
+const duFuerMich = () => duOffenFuerMich().filter(d => !bibIstQuiz(d));
+const duFuerBib = () => duOffenFuerMich().filter(bibIstQuiz);
 const duNeueErgebnisse = () => (duListe || []).filter(d => d.von === S.pid && d.status === "fertig" && !(S.duGes || []).includes(d.id));
 /* Herausforderer bekommt seinen Sieg, sobald er das Ergebnis zum ersten Mal sieht */
 function duBelohnen() {
@@ -4632,7 +4636,7 @@ function bibRevanche(r, revanche) {
 VIEWS.bib = () => {
   /* 6.45: kompakt ohne Scrollen – Kopf mit Logo + Rekord-Leiter, Solo/Woche als zwei Kacheln, ein Duell-Kasten, Joker mit Erklärung */
   const online = duOk(), wk = weekKey(), n = bibWocheTage(), gespielt = bibWocheGespielt();
-  const liste = (duListe || []).filter(bibIstQuiz), alleDran = duFuerMich(), dran = alleDran.filter(bibIstQuiz), andere = alleDran.length - dran.length;
+  const liste = (duListe || []).filter(bibIstQuiz), dran = duFuerBib(), andere = duFuerMich().length;
   const warte = liste.filter(d => d.von === S.pid && duStatus(d) === "offen");
   const fertig = liste.filter(d => d.status === "fertig" && d.vonErg && d.anErg).slice(0, 2);
   const rek = S.bibRekord || 0, stufe = BIB_LEITER.filter(p => p <= rek).length;
