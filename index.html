@@ -2185,6 +2185,22 @@ body[data-tab="rank"]{--ar-gemeinde:#5fe0b0;--ar:#5fe0b0}
 .kt-tx b{display:block;font:800 1.2rem var(--display);letter-spacing:.04em;color:#fff3dc;text-shadow:0 2px 0 #0006}
 .kt-tx small{display:inline-block;max-width:100%;box-sizing:border-box;margin-top:7px;padding:3px 9px;border-radius:999px;background:color-mix(in srgb,var(--c) 22%,transparent);border:1px solid color-mix(in srgb,var(--c) 55%,transparent);font:700 .66rem var(--body);color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kt-n{position:absolute;top:-52px;right:-4px;min-width:24px;height:24px;padding:0 6px;box-sizing:border-box;border-radius:12px;background:var(--bad);color:#fff;font:900 .8rem/24px var(--body);text-align:center;font-style:normal;box-shadow:0 2px 6px #0008;z-index:3}
+/* 9.16: Start-Kacheln – Symbole passen sich der Bildschirmhöhe an, damit Start ohne Scrollen passt (auch kleine Handys) */
+.kt-grid{--kl:clamp(40px,calc(35dvh - 212px),96px);gap:calc(var(--kl)*.5 + 8px) 12px;padding:calc(var(--kl)*.5) 0 4px}
+.kt{min-height:0;padding:calc(var(--kl)*.62) 6px clamp(7px,1.3dvh,14px);border-radius:20px}
+.kt::before{top:calc(var(--kl)*-.58);width:calc(var(--kl)*1.35);height:calc(var(--kl)*1.35)}
+.kt-logo{top:calc(var(--kl)*-.47);width:var(--kl);height:var(--kl)}
+.kt-n{top:calc(var(--kl)*-.47)}
+.kt-tx b{font-size:clamp(.92rem,2.4dvh,1.2rem)}
+.kt-tx small{margin-top:clamp(2px,.6dvh,7px);padding:2px 8px;font-size:clamp(.56rem,1.4dvh,.66rem)}
+@media (max-height:720px){
+  .kt-grid{--kl:48px;gap:calc(var(--kl)*.5 + 6px) 10px}.kt-tx small{display:none}.kt{padding-bottom:8px}
+  .start8{gap:6px}
+  .start-aufg .bk-med.truhe{width:46px;height:44px}.start-aufg .bk-aufg{grid-template-columns:48px minmax(0,1fr) auto}
+  .start-aufg .bk-t h1{font-size:1.5rem}.start-aufg .bk-t span{font-size:.85rem}
+  .start2 .start-vers .lv{padding-top:6px;padding-bottom:6px}
+}
+@media (max-height:620px){.kt-grid{--kl:34px}.start-vers .lv-wdh,.start-vers .lv .sub{display:none}}
 </style>
 </head>
 <body>
