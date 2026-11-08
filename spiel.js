@@ -2248,8 +2248,8 @@ function ichMenue() {
   const gs = m.querySelector("#gsSchalter"); if (gs) gs.onclick = () => { SFX.tap(); grossSetzen(!grossAn()); gs.setAttribute("aria-pressed", grossAn()); gs.querySelector("small").textContent = grossAn() ? "an" : "aus"; };
 }
 /* 8.0: Große Schrift – je Gerät, alles ca. 15 % größer */
-const GROSS_KEY = "bq-gross2"; /* 9.4: neuer Schlüssel – Große Schrift ist jetzt für alle standardmäßig an */
-function grossAn() { try { return localStorage.getItem(GROSS_KEY) !== "0"; } catch (e) { return true; } }
+const GROSS_KEY = "bq-gross3"; /* 9.8: neuer Schlüssel – Große Schrift ist für alle standardmäßig AUS und nur noch manuell zuschaltbar (alte Werte aus bq-gross2 zählen nicht mehr) */
+function grossAn() { try { return localStorage.getItem(GROSS_KEY) === "1"; } catch (e) { return false; } }
 function grossSetzen(an) { try { localStorage.setItem(GROSS_KEY, an ? "1" : "0"); } catch (e) {} document.documentElement.classList.toggle("gross", an); }
 document.documentElement.classList.toggle("gross", grossAn());
 
