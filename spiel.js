@@ -138,14 +138,14 @@ const armorCount = (owned = S.owned) => RUESTUNG.filter(r => owned.includes("ar-
 /* Zentrale Symbole aus index.html: Talent-Münze und Regenbogen (Laden-Kategorie Farben) */
 ICONS.tal = '<use href="#i-tal"/>'; ICONS.regenbogen = '<use href="#i-regenbogen"/>';
 const svg = (k, c) => `<svg viewBox="0 0 24 24" aria-hidden="true" style="color:${c || "currentColor"}">${ICONS[k] || ""}</svg>`;
-/* 8.2: eigene Bereichsfarben – Solo = Rosa, Zusammen = Koralle; die beiden Menschen-Symbole bekommen dieselben Farben (Verläufe aus „lohn“ bzw. „gemeinde“ umgefärbt) */
+/* 8.2: eigene Bereichsfarben – Solo = Violett, Zusammen = Koralle; die beiden Menschen-Symbole bekommen dieselben Farben (Verläufe aus „lohn“ bzw. „gemeinde“ umgefärbt) */
 (function () {
   const host = document.getElementById("wr-defs"), defs = host && host.querySelector("defs");
   if (!defs || !ICONS.user || !ICONS.people) return;
   const kopie = (von, nach, tausch) => [...defs.children].filter(e => e.id && e.id.endsWith("_" + von)).forEach(e => {
     let h = e.outerHTML.replace(new RegExp("_" + von + "\\b", "g"), "_" + nach); Object.entries(tausch || {}).forEach(([a, b]) => { h = h.split(a).join(b); });
     defs.insertAdjacentHTML("beforeend", h); });
-  kopie("lohn", "allein", { "#3a1a7a": "#7a1a52", "#5a2fb0": "#b02f80", "#6a3ad0": "#d03a96", "#8a5ae0": "#e05aaa", "#b38cff": "#ff7ac8", "#c9a8ff": "#ffa8dc", "#dcc8ff": "#ffc8ea", "#f4ecff": "#fff0f8" });
+  kopie("lohn", "allein");
   kopie("gemeinde", "zus", { "#e6fff5": "#fff0e8", "#5fe0b0": "#ff8a5c", "#138a68": "#c0431f", "#2fb58a": "#e8643a", "#0b5a45": "#7a2410", "#a8f5d8": "#ffc9b0", "#139a72": "#c8481c", "#8ff0cc": "#ffb394" });
   ICONS.user = ICONS.user.replace(/gemeinde/g, "allein");
   ICONS.people = ICONS.people.replace(/gemeinde/g, "zus");
