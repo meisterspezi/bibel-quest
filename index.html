@@ -446,6 +446,11 @@ textarea.field{resize:vertical;min-height:110px;font:inherit}.fb-name{display:fl
 /* Rangliste: Level-Münze am Avatar, edle Sockel, Krone und Lichtkranz für Platz 1 */
 .avw{position:relative;display:inline-grid;place-items:center}
 .lvc{position:absolute;right:-4px;bottom:-4px;min-width:20px;height:20px;border-radius:10px;background:linear-gradient(135deg,#fff6c8,#f2c14e 45%,#a8781a);color:#2a1d00;font:900 11px/20px var(--body);text-align:center;box-shadow:0 0 0 2px var(--surface),0 2px 5px #0008;padding:0 3px;z-index:2}
+.gmc{position:absolute;left:-4px;bottom:-4px;z-index:2;line-height:0;border-radius:50%;box-shadow:0 0 0 2px var(--surface),0 2px 5px #0008;background:var(--surface)}
+.gmc .gem-logo{--s:20px!important;width:20px;height:20px}
+.rrow .gmc{left:-5px;bottom:-5px}.rrow .gmc .gem-logo{width:17px;height:17px}
+.hav .gem-mini{position:absolute;left:-5px;bottom:-5px;z-index:1;line-height:0;border-radius:50%;box-shadow:0 0 0 2px var(--bg),0 2px 6px #0008;background:var(--bg)}
+.hav .gem-mini .gem-logo{width:22px;height:22px}
 .rrow .avw{margin-right:6px}.rrow .lvc{min-width:17px;height:17px;font-size:10px;line-height:17px;right:-5px;bottom:-5px}
 .pod{position:relative}
 .pod.p1::before{content:"";position:absolute;left:50%;top:-14px;width:190px;height:190px;transform:translateX(-50%);background:repeating-conic-gradient(from 0deg,#fff3b03a 0deg 8deg,transparent 8deg 22.5deg);border-radius:50%;-webkit-mask:radial-gradient(closest-side,#000 35%,transparent);mask:radial-gradient(closest-side,#000 35%,transparent);pointer-events:none;animation:podStrahlen 30s linear infinite}
@@ -2151,7 +2156,7 @@ body[data-tab="rank"]{--ar-gemeinde:#5fe0b0;--ar:#5fe0b0}
 <div class="app" id="app">
   <div class="hud">
     <button class="hud-wer" id="hWer" aria-label="Wer spielt? Spieler wechseln">
-      <span class="hav" id="hRing"><span class="hav-in" id="hAvatar"></span><span class="lvl-mini" id="hLvl" aria-label="Level">1</span></span>
+      <span class="hav" id="hRing"><span class="hav-in" id="hAvatar"></span><span class="gem-mini" id="hGem" aria-label="Gemeinde"></span><span class="lvl-mini" id="hLvl" aria-label="Level">1</span></span>
       <span class="xpbox">
         <span class="xptitle" id="hTitle">Schriftrollen-Lehrling</span>
         <span class="xpnum" id="hXp">0 / 100 XP</span><span class="hlvl-t" id="hLvlT">Level 1</span>

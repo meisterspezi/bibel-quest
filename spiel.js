@@ -1321,7 +1321,7 @@ window.addEventListener("resize", () => { try { hudNameAnpassen(); } catch (e) {
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { try { hudNameAnpassen(); } catch (e) {} });
 function renderHud() {
   const n = levelOf(S.xp), lo = cum(n), hi = cum(n + 1);
-  $("hLvl").textContent = n; $("hAvatar").innerHTML = avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "?" }, 44);
+  $("hLvl").textContent = n; if ($("hGem")) $("hGem").innerHTML = gemLogoHtml(meineGem() === "gast" ? null : gemInfo(meineGem()), 22); $("hAvatar").innerHTML = avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "?" }, 44);
   const rang = entwickler ? ENTW_RANG : titleOf(n);
   $("hTitle").textContent = S.lbName || rang; $("hXp").textContent = S.lbName ? rang : "Level " + n; $("hXpZ").textContent = `${S.xp - lo} / ${hi - lo} XP`;
   $("hRing").style.setProperty("--p", Math.max(0, Math.min(100, (S.xp - lo) / (hi - lo) * 100)).toFixed(1));
@@ -1366,7 +1366,9 @@ function avatarHtml(p, size = 44) {
   return `<span class="av fr-${esc(fr)}" style="--s:${size}px">${inner}${rahmen}</span>`;
 }
 /* Avatar mit Rahmen und Level-Münze (Rangliste) */
-const avatarLv = (p, size) => `<span class="avw">${avatarHtml(p, size)}<span class="lvc" title="Level ${p.level || 1}">${p.level || 1}</span></span>`;
+/* 9.11.1: Gemeindelogo als Kreis links unten (gleiche Größe wie die Level-Münze rechts unten) */
+const gemMuenze = pid => { const id = gemVon(pid), g = id === "gast" ? null : gemInfo(id); return `<span class="gmc" title="${esc(g ? g.name : "Gast")}">${gemLogoHtml(g, 20)}</span>`; };
+const avatarLv = (p, size) => `<span class="avw">${avatarHtml(p, size)}${gemMuenze(p.id || S.pid)}<span class="lvc" title="Level ${p.level || 1}">${p.level || 1}</span></span>`;
 const titelName = id => { const t = TITEL.find(x => x.id === id); return t && t.id !== "none" ? t.name : ""; };
 const ENTW_RANG = "Entwickler";
 /* Angezeigter Rang eines Ranglisten-Eintrags bzw. (ohne r) des eigenen Profils */
@@ -3228,7 +3230,7 @@ VIEWS.rank = (tab) => {
     const mv = myIdx > -1 ? rankWert(rows[myIdx]) : 0;
     const vor = myIdx > -1 && meinPlatz > 1 ? rows.filter((_, i) => platz[i] === meinPlatz - 1) : [];
     const ahead = vor.length ? rankWert(vor[0]) - mv : 0;
-    const ich = myIdx > -1 ? rows[myIdx] : { name: S.lbName, avatar: S.avatar, frame: S.frame, level: levelOf(S.xp) };
+    const ich = myIdx > -1 ? rows[myIdx] : { id: S.pid, name: S.lbName, avatar: S.avatar, frame: S.frame, level: levelOf(S.xp) };
     if ($("bkPlatz")) $("bkPlatz").textContent = meinPlatz || "–";
     if ($("bkSpieler")) $("bkSpieler").textContent = rows.length;
     $("rme").innerHTML = `${avatarLv(ich, 36)}<div class="du-tx"><b>Platz ${meinPlatz || "–"} · ${pkt(mv)} ${esc(unit || "")}</b><span>${vor.length ? `Noch ${pkt(ahead + 1)} bis Platz ${meinPlatz - 1} (${esc(vor[0].name)}${vor.length > 1 ? " u. a." : ""})` : meinPlatz === 1 ? "Du bist an der Spitze!" : rankTab === "bibWoche" ? (bibWocheGespielt() ? "Deine Runde ist gespielt" : "Spiel die Wochenrunde für deinen Platz") : "Spiel eine Runde für deinen Platz"}</span></div>${meinPlatz === 1 ? `<span class="du-krone">${svg("crown")}</span>` : ""}`;
