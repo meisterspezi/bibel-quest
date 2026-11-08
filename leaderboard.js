@@ -256,6 +256,12 @@ if (!configured) {
     LB.freigabeEntfernen = async (uids) => { await LB.signIn(); for (const u of uids) await fs.deleteDoc(ref("freigabe", u)); };
     LB.jokerSchluessel = async () => { await LB.signIn(); const d = await fs.getDoc(ref("geheim", "joker")); return d.exists() ? String(d.data().k || "") : ""; };
     LB.jokerSchluesselSetzen = async (k) => { await LB.signIn(); await fs.setDoc(ref("geheim", "joker"), { k: String(k).slice(0, 120) }); };
+    // 9.11 Gespräche zwischen Verwalter und einzelnen Spielern (Sammlung dialoge): von = "dev" (Verwalter) oder "spieler"
+    const dlgZeile = d => { const x = d.data(); return { id: d.id, pid: x.pid, name: x.name || "", von: x.von, text: x.text || "", zeit: x.zeit && x.zeit.toMillis ? x.zeit.toMillis() : 0 }; };
+    LB.dialogHolen = async (pid) => (await fs.getDocs(fs.query(fs.collection(db, "dialoge"), fs.where("pid", "==", pid), fs.limit(200)))).docs.map(dlgZeile).sort((a, b) => a.zeit - b.zeit);
+    LB.dialogAlle = async () => (await fs.getDocs(fs.query(fs.collection(db, "dialoge"), fs.limit(1000)))).docs.map(dlgZeile).sort((a, b) => a.zeit - b.zeit);
+    LB.dialogSenden = async (pid, name, von, text) => { await LB.signIn(); await fs.addDoc(fs.collection(db, "dialoge"), { pid, name: String(name || "").slice(0, 20), von, text: String(text).slice(0, 1000), zeit: fs.serverTimestamp() }); };
+    LB.dialogLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("dialoge", id)); };
     LB.gemLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("gemeinden", id)); };
 
     // 9.7 Nachrichten des Entwicklers an die Spieler (Patchnotes u. Ä.): nur der Verwalter schreibt, angemeldete Spieler lesen

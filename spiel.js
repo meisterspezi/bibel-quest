@@ -16,7 +16,7 @@ const DEF = {
   dq: { day: "", items: [], bonus: false }, questBonusCount: 0, lv: {}, duGes: [], duSiege: 0, duSpiele: 0, duTyp: "vers", duGesendet: 0, duAngenommen: 0, duArten: [], duKetteVoll: false,
   mute: false, beat: true, gapSing: false, atTi: 0, ntTi: 0,
   ruestStufe: {}, stift: {}, spendeXp: {}, advTest: { on: false, d: "2026-11-29" }, advT: null, beth: {}, bethG: {}, bethSync: "", bethTage: [], bethGefeiert: [], bethAngekommen: false, kal: {}, advBib: {}, advLv: 0, advLr: 0, adventIntro: false, stiftGefeiert: [], stiftEingeweiht: false,
-  xq: null, lvLohn: 0, gem: null, gemNeu: false, nachGel: [], nachAb: 0, gemGesendet: "", rankScope: "", duAlle: false, lbName: "", pid: "", ownersSet: false, offlineOnly: false, weekKey: "", weekXp: 0, podium: false, wochensieger: false, wochenziel: false,
+  xq: null, dlgGesehen: 0, dlgDev: {}, lvLohn: 0, gem: null, gemNeu: false, nachGel: [], nachAb: 0, gemGesendet: "", rankScope: "", duAlle: false, lbName: "", pid: "", ownersSet: false, offlineOnly: false, weekKey: "", weekXp: 0, podium: false, wochensieger: false, wochenziel: false,
   ver: 6
 };
 let S = JSON.parse(JSON.stringify(DEF));
@@ -2314,7 +2314,7 @@ function ichMenue() {
   const m = modal(`<div class="im-kopf">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName }, 56)}<div><b>${esc(S.lbName)}</b><small>${esc(rangVon())} · Level ${levelOf(S.xp)}</small></div></div>
     ${xpInfoHtml()}
     <div class="im-liste">${z("wer", "people", "Wer spielt?", "Spieler wechseln")}${z("profil", "user", "Mein Profil", "Name, Gemeinde, Statistik")}
-    <button class="im-zeile gs-schalter" id="gsSchalter" aria-pressed="${grossAn()}">${svg("eye")}<span><b>Große Schrift</b><small>${grossAn() ? "an" : "aus"}</small></span><i class="gs-knopf"></i></button>${z("badges", "medal", "Abzeichen", `${S.badges.length} von ${BADGES.length}`)}${z("share", "share", "Mit Freunden teilen", "QR-Code")}${NACH && NACH.some(nachSichtbar) ? z("neuigkeiten", "chat", "Neuigkeiten", nachUngelesen().length ? nachUngelesen().length + " neu" : "") : ""}${entwickler ? z("postfach", "post", "Postkasten", postfachNeu ? postfachNeu + " neu" : "") : ""}${deferredInstall && !S.appBonus ? z("install", "down", "App installieren", `+${APP_BONUS} Talente`) : ""}${z("feedback", "chat", "Feedback an den Entwickler")}</div>
+    <button class="im-zeile gs-schalter" id="gsSchalter" aria-pressed="${grossAn()}">${svg("eye")}<span><b>Große Schrift</b><small>${grossAn() ? "an" : "aus"}</small></span><i class="gs-knopf"></i></button>${z("badges", "medal", "Abzeichen", `${S.badges.length} von ${BADGES.length}`)}${z("share", "share", "Mit Freunden teilen", "QR-Code")}${NACH && NACH.some(nachSichtbar) ? z("neuigkeiten", "chat", "Neuigkeiten", nachUngelesen().length ? nachUngelesen().length + " neu" : "") : ""}${DLG && DLG.length ? z("dialog", "chat", "Post vom Entwickler", dlgNeuSpieler() ? dlgNeuSpieler() + " neu" : "Gespräch öffnen") : ""}${entwickler ? z("postfach", "post", "Postkasten", postfachNeu ? postfachNeu + " neu" : "") : ""}${deferredInstall && !S.appBonus ? z("install", "down", "App installieren", `+${APP_BONUS} Talente`) : ""}${z("feedback", "chat", "Feedback an den Entwickler")}</div>
     <button class="btn ghost" data-close="">Schließen</button>`, r => {
       if (r === "feedback") feedbackOeffnen();
       else if (r === "install") { deferredInstall.prompt(); deferredInstall.userChoice.catch(() => {}).then(() => { deferredInstall = null; }); }
@@ -2832,6 +2832,7 @@ function gemBeitreten() {
         return;
       }
       if (w && w === pwNorm(gemPw(g))) {
+        if (gemPruef(meineGem()) && !g.pruef) { jokerSperren(); const L = window.LB; if (L && L.ok && L.uid && L.freigabeEntfernen) L.freigabeEntfernen([L.uid]).catch(() => {}); } /* Willi und Aaron gibt es nur für Eichstätt */
         S.gem = g.id; S.gemNeu = false; S.gemGesendet = ""; save(); gemSenden(); GEM_ZUORD[S.pid] = g.id;
         m.remove(); SFX.coin(); toast(`${svg("people")}<div>Willkommen bei ${esc(g.name)}!</div>`); gemNeuZeichnen();
       } else {
@@ -2975,6 +2976,73 @@ VIEWS.antraege = () => {
     wireGo();
   }).catch(() => { if ($("anBox")) $("anBox").innerHTML = `<p class="muted">Die Anträge konnten nicht geladen werden (Firebase-Regeln von 9.11 eingespielt?).</p>`; });
 };
+/* ---------- 9.11: Gespräche – der Verwalter schreibt einzelne Spieler an, der Spieler antwortet direkt, und so weiter ----------
+   Sammlung dialoge: pid (Spieler), von ("dev" | "spieler"), text, zeit. Ungelesen wird auf dem Gerät gemerkt:
+   S.dlgGesehen = Zeit der letzten gesehenen Nachricht (Spieler), S.dlgDev[pid] = dasselbe je Spieler (Verwalter). */
+let DLG = null, DLG_ALLE = [], dlgGezeigt = 0;
+const dlgNeuSpieler = () => (DLG || []).filter(m => m.von === "dev" && m.zeit > (S.dlgGesehen || 0)).length;
+const dlgNeuDev = () => { const n = {}; DLG_ALLE.forEach(m => { if (m.von === "spieler" && m.zeit > ((S.dlgDev || {})[m.pid] || 0)) n[m.pid] = 1; }); return Object.keys(n).length; };
+const dlgZeit = z => z ? new Date(z).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "jetzt";
+function dlgBlasen(liste, ichBin) {
+  return liste.length ? liste.map(m => `<div class="dlg-b ${m.von === ichBin ? "ich" : "du"}"><div class="dlg-t">${esc(m.text).replace(/\n/g, "<br>")}</div><div class="dlg-z small muted">${m.von === "dev" ? "Entwickler" : esc(m.name || "Spieler")} · ${dlgZeit(m.zeit)}</div></div>`).join("") : `<p class="muted small">Noch keine Nachrichten.</p>`;
+}
+/* Spieler: Gespräch laden; bei neuer Nachricht vom Entwickler ein Fenster zeigen (nur auf ruhigen Hauptseiten) */
+function dlgPruefen() {
+  const L = window.LB; if (!S.lbName || !S.pid || !S.ownersSet || !L || !L.ok || !L.dialogHolen || gesperrt) return;
+  if (Date.now() - dlgGezeigt < 5 * 60000 && DLG) return; dlgGezeigt = Date.now();
+  L.dialogHolen(S.pid).then(l => {
+    DLG = l; const n = dlgNeuSpieler(); if (!n) return;
+    if (!["home", "lernen", "spielen", "zusammen", "rank"].includes(current) || document.querySelector(".modal") || document.body.classList.contains("spiel-laeuft")) return;
+    const letzte = l.filter(m => m.von === "dev").pop();
+    modal(`<div class="label">Nachricht vom Entwickler</div><h2 style="margin:0">${n === 1 ? "Neue Nachricht" : n + " neue Nachrichten"}</h2>
+      <div class="card" style="margin:0"><p style="margin:0">${esc(letzte.text).replace(/\n/g, "<br>")}</p></div>
+      <button class="btn primary" data-close="antwort">Antworten</button><button class="btn ghost" data-close="">Später</button>`, r => { S.dlgGesehen = Math.max(...l.map(m => m.zeit), 0); save(); renderHud(); if (r === "antwort") go("dialog"); });
+    SFX.coin && SFX.coin();
+  }).catch(() => {});
+}
+/* Gespräch (Spieler: sein eigenes; Verwalter: mit dem Spieler arg) */
+VIEWS.dialog = (arg) => {
+  const L = window.LB, dev = entwickler && !!arg, pid = dev ? arg : S.pid;
+  if (!L || !L.ok || !pid || !L.dialogHolen) { go("home"); return; }
+  const zurueck = dev ? backBtn("dialoge", "Gespräche") : backBtn("home", "Start");
+  screen.innerHTML = `${zurueck}<h1 id="dlgKopf">${dev ? "Gespräch" : "Post vom Entwickler"}</h1><div class="stack" id="dlgListe"><p class="muted">Lade …</p></div>
+    <div class="card stack dlg-neu"><label class="label" for="dlgText">${dev ? "Antwort an den Spieler" : "Deine Antwort"}</label><textarea class="field" id="dlgText" rows="4" maxlength="1000" placeholder="Nachricht schreiben …"></textarea>
+    <div class="small muted" id="dlgZahl">0 / 1000 Zeichen</div><button class="btn primary" id="dlgSend">Senden</button></div>`;
+  wireGo(); let name = dev ? "" : S.lbName;
+  const zeichne = l => {
+    if (current !== "dialog") return; if (dev) { const m = l.find(x => x.von === "spieler"); name = (m && m.name) || (DLG_ALLE.find(x => x.pid === pid) || {}).name || name; if (name && $("dlgKopf")) $("dlgKopf").textContent = name; }
+    $("dlgListe").innerHTML = `<div class="dlg-liste">${dlgBlasen(l, dev ? "dev" : "spieler")}</div>`;
+    const ende = Math.max(0, ...l.map(m => m.zeit)); if (dev) { S.dlgDev = Object.assign({}, S.dlgDev, { [pid]: ende }); } else { S.dlgGesehen = ende; DLG = l; } save(); renderHud();
+    window.scrollTo(0, document.body.scrollHeight);
+  };
+  const laden = () => L.dialogHolen(pid).then(l => { if (dev) DLG_ALLE = DLG_ALLE.filter(m => m.pid !== pid).concat(l); zeichne(l); }).catch(() => { if ($("dlgListe")) $("dlgListe").innerHTML = `<p class="muted">Das Gespräch konnte nicht geladen werden (Firebase-Regeln von 9.11 eingespielt?).</p>`; });
+  if (dev) { const m = DLG_ALLE.find(x => x.pid === pid); name = m ? m.name : ""; }
+  laden();
+  $("dlgText").oninput = () => { $("dlgZahl").textContent = `${$("dlgText").value.length} / 1000 Zeichen`; };
+  $("dlgSend").onclick = () => { const t = $("dlgText").value.trim(); if (!t) { SFX.wrong(); return; } const b = $("dlgSend"); b.disabled = true;
+    L.dialogSenden(pid, dev ? name : S.lbName, dev ? "dev" : "spieler", t).then(() => { SFX.coin(); $("dlgText").value = ""; $("dlgZahl").textContent = "0 / 1000 Zeichen"; b.disabled = false; return laden(); })
+      .catch(() => { b.disabled = false; toast(`${svg("nein")}<div>Das hat nicht geklappt (Firebase-Regeln von 9.11 eingespielt?).</div>`); }); };
+};
+/* Verwalter: alle Gespräche + neue Nachricht an einen Spieler */
+VIEWS.dialoge = () => {
+  const L = window.LB; if (!entwickler || !L || !L.ok || !L.dialogAlle) { go("home"); return; }
+  screen.innerHTML = `${backBtn("postfach", "Postkasten")}<h1>Gespräche</h1><div id="dgBox"><p class="muted">Lade …</p></div>`;
+  Promise.all([L.dialogAlle(), L.alleSpieler().catch(() => [])]).then(([alle, spieler]) => {
+    if (current !== "dialoge") return; DLG_ALLE = alle; renderHud();
+    const faden = {}; alle.forEach(m => { (faden[m.pid] = faden[m.pid] || []).push(m); });
+    const namen = {}; spieler.forEach(r => { namen[r.id] = r.name; }); alle.forEach(m => { if (m.von === "spieler" && m.name) namen[m.pid] = m.name; });
+    const reihe = Object.entries(faden).map(([pid, l]) => ({ pid, l, letzte: l[l.length - 1], neu: l.some(m => m.von === "spieler" && m.zeit > ((S.dlgDev || {})[pid] || 0)) })).sort((a, b) => b.letzte.zeit - a.letzte.zeit);
+    $("dgBox").innerHTML = `<div class="card stack"><b>Neue Nachricht</b>
+      <select class="du-suche" id="dgSp">${spieler.slice().sort((a, b) => String(a.name).localeCompare(String(b.name), "de")).map(r => `<option value="${esc(r.id)}">${esc(r.name)}</option>`).join("")}</select>
+      <textarea class="field" id="dgText" rows="4" maxlength="1000" placeholder="Nachricht an den Spieler …"></textarea><button class="btn primary" id="dgSend">Senden</button></div>
+      <h2 style="margin:16px 0 8px">Gespräche</h2>
+      ${reihe.length ? `<div class="stack">${reihe.map(r => `<button class="pk-pin" data-dlg="${esc(r.pid)}" data-ampel="${r.neu ? "orange" : "gruen"}"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${esc(namen[r.pid] || r.pid)}</b><span class="small muted">${r.letzte.von === "dev" ? "Du: " : ""}${esc(r.letzte.text.slice(0, 60))} · ${dlgZeit(r.letzte.zeit)}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button>`).join("")}</div>` : `<p class="muted small">Noch keine Gespräche.</p>`}`;
+    screen.querySelectorAll("[data-dlg]").forEach(b => b.onclick = () => { SFX.tap(); go("dialog", b.dataset.dlg); });
+    $("dgSend").onclick = () => { const pid = $("dgSp").value, t = $("dgText").value.trim(); if (!pid || !t) { SFX.wrong(); toast(`${svg("nein")}<div>Bitte Spieler und Text angeben.</div>`); return; } const b = $("dgSend"); b.disabled = true;
+      L.dialogSenden(pid, namen[pid] || "", "dev", t).then(() => { SFX.coin(); go("dialog", pid); }).catch(() => { b.disabled = false; toast(`${svg("nein")}<div>Das hat nicht geklappt (Firebase-Regeln von 9.11 eingespielt?).</div>`); }); };
+    wireGo();
+  }).catch(() => { if ($("dgBox")) $("dgBox").innerHTML = `<p class="muted">Die Gespräche konnten nicht geladen werden (Firebase-Regeln von 9.11 eingespielt?).</p>`; });
+};
 /* ---------- 9.7: Nachrichten des Entwicklers an die Spieler (Patchnotes, Mitteilungen) – Sammlung „nachrichten“ ----------
    Der Verwalter schreibt im Postkasten („Nachricht an Spieler“), Empfänger: alle, nur Gäste oder eine Gemeinde. Spieler sehen ungelesene Nachrichten
    beim Öffnen der App als Fenster „Neuigkeiten“; danach unter Menü → Neuigkeiten. Gelesen-Liste im Spielstand (S.nachGel). */
@@ -3005,6 +3073,7 @@ function nachPruefen() {
     if (!["home", "lernen", "spielen", "zusammen", "rank"].includes(current) || document.querySelector(".modal") || document.body.classList.contains("spiel-laeuft")) return;
     const u = nachUngelesen().filter(n => !nachGezeigt.has(n.id)); if (u.length) nachZeigen(u);
   }).catch(() => {});
+  dlgPruefen();
 }
 VIEWS.neuigkeiten = () => {
   screen.innerHTML = `${backBtn("home", "Start")}<h1>Neuigkeiten</h1><div id="nkListe"><p class="muted">Lade …</p></div>`; wireGo();
@@ -4573,7 +4642,8 @@ async function entwicklerPruefen() {
     await xpBerichte();
     const liste = await L.feedbackListe(); postfachNeu = liste.filter(f => !f.erledigt).length;
     try { antragOffen = L.antragListe ? (await L.antragListe()).filter(a => a.status === "offen").length : 0; } catch (e) { antragOffen = 0; }
-    pkOffenPruef = liste.filter(f => !f.erledigt && (pkIstXp(f) || pkIstDup(f))).length + antragOffen; renderHud();
+    try { if (L.dialogAlle) DLG_ALLE = await L.dialogAlle(); } catch (e) {}
+    pkOffenPruef = liste.filter(f => !f.erledigt && (pkIstXp(f) || pkIstDup(f))).length + antragOffen + dlgNeuDev(); renderHud();
     if (["home", "profil"].includes(current) && !document.querySelector(".modal")) go(current);
   } catch (e) { entwickler = false; }
 }
@@ -4621,7 +4691,7 @@ VIEWS.postfach = (kat) => {
   screen.innerHTML = `${backBtn("home", "Start")}<div class="pk-kopf"><h1>Postkasten</h1><span class="pk-ikonen">
     <button class="iconbtn" id="pkLupe" aria-label="Suchen" aria-pressed="${pkSuchOffen}"><span aria-hidden="true">🔍</span></button>
     <button class="iconbtn" id="pkWahl" aria-label="Auswählen" aria-pressed="${pkAuswahl}">☑</button></span></div>
-  <div class="pk-pins" aria-label="Prüfungen">${zeile("pkXp", "medal", "XP-Prüfung", xpTag, 'data-go="xppruefung"')}${zeile("pkDup", "people", "Doppelte Namen", dupTag, 'id2="x"')}<button class="pk-pin" id="pkAnt" data-go="antraege"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("people")} Beitrittsanträge</b><span class="small muted" data-pkinfo>${antragOffen ? antragOffen + " offen" : "Freischaltung für neue Mitglieder"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGem" data-go="gemverwaltung"><span class="pk-pt"><b>${svg("people")} Gemeinden</b><span class="small muted">Gemeinden anlegen, Spieler zuordnen</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkTal" data-go="talente"><span class="pk-pt"><b>${svg("tal")} Talente-Planung</b><span class="small muted">Guthaben, Ø pro Tag, Spenden-Prognose</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkNach" data-go="nachrichten"><span class="pk-pt"><b>${svg("chat")} Nachricht an Spieler</b><span class="small muted">Patchnotes und Mitteilungen senden</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button></div>
+  <div class="pk-pins" aria-label="Prüfungen">${zeile("pkXp", "medal", "XP-Prüfung", xpTag, 'data-go="xppruefung"')}${zeile("pkDup", "people", "Doppelte Namen", dupTag, 'id2="x"')}<button class="pk-pin" id="pkAnt" data-go="antraege"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("people")} Beitrittsanträge</b><span class="small muted" data-pkinfo>${antragOffen ? antragOffen + " offen" : "Freischaltung für neue Mitglieder"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkDlg" data-go="dialoge"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("chat")} Gespräche mit Spielern</b><span class="small muted" data-pkinfo>${dlgNeuDev() ? dlgNeuDev() + " neue Antwort" + (dlgNeuDev() === 1 ? "" : "en") : "Einzelne Spieler anschreiben"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGem" data-go="gemverwaltung"><span class="pk-pt"><b>${svg("people")} Gemeinden</b><span class="small muted">Gemeinden anlegen, Spieler zuordnen</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkTal" data-go="talente"><span class="pk-pt"><b>${svg("tal")} Talente-Planung</b><span class="small muted">Guthaben, Ø pro Tag, Spenden-Prognose</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkNach" data-go="nachrichten"><span class="pk-pt"><b>${svg("chat")} Nachricht an Spieler</b><span class="small muted">Patchnotes und Mitteilungen senden</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button></div>
   <div class="card rk-liste" style="margin-top:10px">
     <div class="pk-suchzeile" ${pkSuchOffen ? "" : "hidden"}><input type="search" id="pkSuche" placeholder="Suchen (Text, Name, Version)" value="${esc(pkSuche)}" aria-label="Post durchsuchen" autocomplete="off"></div>
     <div class="pk-filter"><div class="rk-var" role="group" aria-label="Filter">${[["neu", "Neu"], ["alle", "Alle"], ["erledigt", "Erledigt"]].map(([k, n]) => `<button data-pf="${k}" aria-pressed="${k === postfachFilter}">${n}<i class="pk-n" data-pfn="${k}"></i></button>`).join("")}</div>
