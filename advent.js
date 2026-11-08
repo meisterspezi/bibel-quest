@@ -367,7 +367,7 @@ function bibAdventStarten() {
   if (!w) { toast(`${svg("biblionaer")}<div><b>Der Advent ist vorbei</b><div class="small muted">Frohe Weihnachten!</div></div>`); return; }
   if (advBibGespielt(w)) { toast(`${svg("biblionaer")}<div><b>Diese Woche schon gespielt</b><div class="small muted">${w >= 6 ? "Die Runden sind vorbei – Solo und Duell gehen weiter." : "Nächsten Sonntag gibt es neue Fragen."}</div></div>`); return; }
   modal(`<div class="label">Weihnachts-Biblionär der Woche</div><h2 style="margin:0">${advRundeName(w)}</h2>
-    <p class="muted">15 Fragen rund um Advent und Weihnachten – für alle in der Gemeinde dieselben. Pastor Willi und Pastor Aaron helfen dir mit Weihnachtsmütze. Du hast <b>einen Versuch pro Woche</b>; wer abbricht, bekommt 0 Punkte. Zusätzlich gibt es ${ADV_BIB_TAL} Talente.${advTestOn() ? " <b>(Testmodus: ohne Belohnung)</b>" : ""}</p>
+    <p class="muted">15 Fragen rund um Advent und Weihnachten – für alle in der Gemeinde dieselben. ${meineGem() === GEM_STANDARD ? "Pastor Willi, Pastor Aaron und der Gastredner helfen dir" : "Der Gastredner hilft dir"} mit Weihnachtsmütze. Du hast <b>einen Versuch pro Woche</b>; wer abbricht, bekommt 0 Punkte. Zusätzlich gibt es ${ADV_BIB_TAL} Talente.${advTestOn() ? " <b>(Testmodus: ohne Belohnung)</b>" : ""}</p>
     <button class="btn primary" data-close="los">${svg("biblionaer")} Los geht's</button><button class="btn ghost" data-close>Später</button>`, r => { if (r === "los") advBibLos(w); });
 }
 function advBibLos(w) {

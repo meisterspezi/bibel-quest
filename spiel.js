@@ -3881,12 +3881,13 @@ function bibZeige(G) {
       $("bibHilfe").innerHTML = G.hilfe;
     }
   });
-  /* Telefonjoker: erst Kontakt wählen (Willi oder Aaron), dann telefonieren – die Uhr steht dabei */
+  /* Telefonjoker: erst Kontakt wählen (Eichstätt: Willi, Aaron oder Gastredner; sonst nur Gastredner), dann telefonieren – die Uhr steht dabei */
   function telefonJoker(b) {
     SFX.tap(); zeitPause();
     telefonWahl(id => {
       if (fertig || G.abgeschlossen) return;
       G.joker.tel = true; SFX.coin(); b.disabled = true;
+      if (!telKontakte().includes(id)) id = "gastredner"; /* 9.11: Willi/Aaron nur für Eichstätt */
       const w = pastorAntwort(f, G.halbBei === G.i, id);
       pastorAnruf(w, () => {
         G.hilfe = `<div class="bib-stelle bib-willi">${svg("telefon")}<span>${PASTOREN[id].kurz} tippt auf <b>${esc(w.tipp)}</b> · ${w.grad}</span></div>`;
@@ -4536,8 +4537,8 @@ const WILLI_TSCHUESS = [
 const TEL_ZULETZT_KEY = "bq-telefon-zuletzt";
 function telZuletzt() { try { const a = JSON.parse(localStorage.getItem(TEL_ZULETZT_KEY) || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
 function telMerken(liste) { try { localStorage.setItem(TEL_ZULETZT_KEY, JSON.stringify(liste.slice(-150))); } catch (e) {} }
-function pastorAntwort(f, halb, id = "willi") {
-  const P0 = PASTOREN[id] || PASTOREN.willi, weih = !!f.weih && !!ADV_PASTOREN[id]; /* 7.3: Weihnachtsmodus – Mütze und weihnachtliche Antworten */
+function pastorAntwort(f, halb, id = "gastredner") {
+  const P0 = PASTOREN[id] || PASTOREN.gastredner, weih = !!f.weih && !!ADV_PASTOREN[id]; /* 7.3: Weihnachtsmodus – Mütze und weihnachtliche Antworten */
   const P = weih ? Object.assign({}, P0, ADV_PASTOREN[id], { sicherOhne: null, ziemlichOhne: null }) : P0; if (weih) id = id + "-w";
   const rnd = rngVon((f.ws || hash(f.f)) ^ (halb ? 0x5bd1e995 : 0) ^ P.salt), zuletzt = telZuletzt();
   /* wahl: zufälliger Eintrag; ist er kürzlich gekommen, der nächste noch nicht gehörte. Gesperrt wird je Liste
@@ -5046,16 +5047,144 @@ const AARON_THEMEN = {
   "Orte & Reisen": ["Ich bin von Iowa über Berlin nach Eichstätt gekommen – Paulus wäre stolz auf diese Reiseroute.", "Die Bibel hat mehr Schauplätze als die ganze Star-Wars-Saga – und alle sind echt!", "In Berlin war die U-Bahn manchmal wie die Wüstenwanderung: lang, und keiner weiß, wann man ankommt."],
   "Wer sagte das?": ["Zitate zuordnen? Bei Star Wars kann ich jeden Satz. Bei der Bibel arbeite ich noch dran.", "Wer sagte das? Bei uns zu Hause meistens Eliza: „Aaron, weniger Star Wars!“", "Die Bibel hat die stärksten Sätze der Geschichte – stärker als „Ich bin dein Vater“."]
 };
+/* ---------- 9.11: Dritter Kontakt „Gastredner“ – ein typischer Baptisten-Pastor ohne persönliche Geschichten.
+   Willi und Aaron kennen nur die Spieler aus Eichstätt; alle anderen (andere Gemeinden, Gäste) rufen den Gastredner an. ---------- */
+const GASTREDNER_HALLO = [
+  "Gelobt sei der Herr! Hier ist der Gastredner – für eine Bibelfrage habe ich immer Zeit.",
+  "Liebe Schwester, lieber Bruder – hier spricht der Gastredner. Wie kann ich dienen?",
+  "Gottes Segen! Gastredner am Apparat. Ich war gerade bei der Predigtvorbereitung – genau der richtige Moment.",
+  "Guten Tag, hier ist der Gastredner! Ich sitze im Gemeindehaus, der Kaffee ist noch warm. Schieß los!",
+  "Der Herr sei mit dir! Hier der Gastredner – eine Bibel in der Hand und ein Gedanke im Herzen.",
+  "Hallo, Gastredner hier! Ich bin heute mal wieder zu Gast in einer Gemeinde – wie praktisch. Was liegt an?",
+  "Friede sei mit dir! Gastredner am Telefon. Die Frage klingt, als hätte ich dazu schon einmal gepredigt.",
+  "Ja, hier ist der Gastredner. Moment, ich leg nur schnell mein Predigtmanuskript beiseite – Punkt drei ist ohnehin noch nicht fertig."
+];
+const GASTREDNER_SICHER = [
+  x => `Da brauche ich keine drei Punkte: ${x.X}. Das steht in ${x.ref}.`,
+  x => `${x.X}! Darüber habe ich schon gepredigt – ${x.ref}. Amen!`,
+  x => `Ganz klar ${x.X}. Schlag ${x.ref} auf, da steht es schwarz auf weiß.`,
+  x => `${x.X} – so sicher wie das Amen nach dem Gebet. Lies ${x.ref} nach.`,
+  x => `${x.X}! Diese Stelle ist mir so vertraut wie der Kaffee nach dem Gottesdienst. Sie steht in ${x.ref}.`,
+  x => `Ohne Zweifel: ${x.X}. Ich habe ${x.ref} schon in mancher Gemeinde ausgelegt – und es wird nie langweilig.`,
+  x => `${x.X}. Das lernt man schon im Kindergottesdienst – ${x.ref}.`,
+  x => `Gelobt sei der Herr, das weiß ich genau: ${x.X}! Nachzulesen in ${x.ref}.`
+];
+const GASTREDNER_SICHER_OHNE = [
+  x => `${x.X}. Das weiß ich so sicher wie das Amen in der Kirche.`,
+  x => `Ganz klar ${x.X} – die Bibelbücher haben wir in der Jungschar rauf und runter aufgesagt.`,
+  x => `${x.X}! Dafür muss ich nicht einmal die Bibel aufschlagen – obwohl ich es trotzdem täte.`,
+  x => `Ohne Zweifel: ${x.X}. Das sitzt wie ein Lieblingslied im Gesangbuch.`
+];
+const GASTREDNER_ZIEMLICH = [
+  x => `Ich bin ziemlich sicher: ${x.X}. Ich glaube, das steht in ${x.ref} – schau aber lieber nochmal nach.`,
+  x => `Hm, ich würde ${x.X} sagen. Müsste ${x.ref} sein – meine Bibel liegt leider noch auf der Kanzel.`,
+  x => `Ich tippe auf ${x.X}. Wenn mich mein Gedächtnis nicht täuscht, ist es ${x.ref}.`,
+  x => `Ziemlich sicher ${x.X} – ${x.ref}, meine ich. Das haben wir mal in der Bibelstunde durchgenommen.`,
+  x => `Mein Herz sagt ${x.X}, und ${x.ref} spricht dafür, wenn ich mich recht erinnere.`,
+  x => `Zu neunzig Prozent ${x.X}. Die restlichen zehn Prozent überlasse ich dem Heiligen Geist. Wohl ${x.ref}.`
+];
+const GASTREDNER_ZIEMLICH_OHNE = [
+  x => `Ich bin ziemlich sicher: ${x.X}. Aber zähl zur Sicherheit nochmal nach.`,
+  x => `Hm … ${x.X}, würde ich sagen. Das klingt jedenfalls vertraut.`,
+  x => `Ziemlich sicher ${x.X}. Ein Bibelkundler wüsste es genauer – aber ich bin nah dran.`
+];
+const GASTREDNER_SCHWANK = [
+  x => `Das ist knifflig. ${x.X} oder ${x.Y}? Ich würde ${x.X} nehmen, aber ganz sicher bin ich nicht.`,
+  x => `Ich blättere gedanklich in meiner Bibel … ${x.X}? Oder ${x.Y}? Ich entscheide mich für ${x.X} – im Gebet bin ich dabei.`,
+  x => `${x.X} oder ${x.Y} – das ist wie die Frage, ob nach dem Gottesdienst erst der Kuchen oder erst der Kaffee kommt. Ich sage ${x.X}.`,
+  x => `Da bin ich hin- und hergerissen: ${x.X} oder ${x.Y}. Ich tendiere zu ${x.X}, aber prüf es lieber selbst.`,
+  x => `Hm, ${x.Y} könnte auch stimmen. Trotzdem mein Tipp: ${x.X}. Ohne Gewähr – wie jede Predigtprognose.`,
+  x => `Ich muss kurz beten … ${x.X}? ${x.Y}? Ich nehme ${x.X}, aber verlass dich nicht allein auf mich.`
+];
+const GASTREDNER_GERATEN = [
+  x => `Oje, da bin ich überfragt. Aus dem Bauch heraus ${x.X} – aber verlass dich nicht drauf!`,
+  x => `Ehrlich gesagt weiß ich es nicht. Vielleicht ${x.X}? Das musst du am Ende selbst entscheiden.`,
+  x => `Das habe ich wohl in der Bibelstunde verpasst. Ich rate ${x.X}.`,
+  x => `Da muss ich passen. ${x.X} – aber das ist nur geraten, nicht gepredigt.`,
+  x => `Ich stochere im Nebel. Vielleicht ${x.X}? Frag lieber noch jemanden aus der Gemeinde.`
+];
+const GASTREDNER_THEMA = [
+  [/David|Goliat/, "David gegen Goliat (1. Samuel 17) – für mich die schönste Mutgeschichte: Nicht Größe zählt, sondern Gottvertrauen."],
+  [/Noah|Arche|Sintflut/, "Noah hat über Jahre eine Arche gebaut, bevor der erste Tropfen fiel. Das nenne ich Glaubensgehorsam (1. Mose 6–9)."],
+  [/Jona|Ninive/, "Jona wollte in die andere Richtung – wer von uns kennt das nicht? Gott lässt trotzdem nicht locker (Jona 1–4)."],
+  [/Psalm 23|Hirte/, "„Der HERR ist mein Hirte“ (Psalm 23,1) – Predigtstoff für ein ganzes Leben, nicht nur für Beerdigungen."],
+  [/Schilfmeer|Passah|Auszug/, "Gott führte sein Volk durchs Schilfmeer (2. Mose 14). Wo wir keinen Weg sehen, schafft er einen."],
+  [/Paulus|Saulus|Damaskus/, "Aus Saulus wurde Paulus (Apostelgeschichte 9) – kein Mensch ist zu weit weg für Gottes Gnade."],
+  [/verlorene Sohn|Lukas 15/, "Das Gleichnis vom verlorenen Sohn (Lukas 15) – eigentlich ist es die Geschichte vom liebenden Vater."],
+  [/Bergpredigt|Matthäus 5|Seligpreisung/, "Die Bergpredigt (Matthäus 5–7) – die beste Predigt, die je gehalten wurde. Und sie ist nicht einmal zu lang."],
+  [/Taufe|taufen|Jordan/, "Als Baptist sage ich: erst der Glaube, dann die Taufe (Apostelgeschichte 8,36-38) – ein froher Schritt der Nachfolge."],
+  [/eingeborenen Sohn|Johannes 3,16/, "Johannes 3,16 – das Evangelium in einem Satz. Da bekommt jeder Pastor Gänsehaut."],
+  [/Vaterunser|Matthäus 6/, "Das Vaterunser (Matthäus 6,9-13) – kurz genug zum Auswendiglernen, tief genug für ein ganzes Leben."],
+  [/Pfingst|Heiliger Geist|Apostelgeschichte 2/, "An Pfingsten kam der Heilige Geist (Apostelgeschichte 2) – an diesem Tag wurde die Gemeinde geboren."],
+  [/Auferstehung|Ostern|leere Grab/, "Das leere Grab ist das Fundament unseres Glaubens (1. Korinther 15,14) – ohne Ostern wäre jede Predigt umsonst."],
+  [/Missionsbefehl|Gehet hin|alle Völker/, "Der Missionsbefehl (Matthäus 28,19-20) – für uns Baptisten ein echtes Herzensanliegen."],
+  [/Daniel|Löwen/, "Daniel in der Löwengrube (Daniel 6) – er hat gebetet, obwohl es verboten war. Treue lohnt sich."],
+  [/Ruth|Boas|Noomi/, "„Wo du hingehst, da will auch ich hingehen“ (Ruth 1,16) – Treue, die Teil der Familiengeschichte des Messias wurde."],
+  [/Salomo|Weisheit|Sprüche/, "Die Sprüche sind Lebensweisheit in Kurzform – Gottesfurcht ist der Anfang der Erkenntnis (Sprüche 1,7)."],
+  [/Bileam|Eselin/, "Gott hat Humor: Er ließ sogar die Eselin Bileams sprechen (4. Mose 22,28). Seitdem traue ich jeder Zuhörerschaft etwas zu."]
+];
+const GASTREDNER_THEMEN = {
+  "Bibelkunde": ["Bibelkunde ist wie Kirchenkaffee: Man lernt dabei die ganze Gemeinde kennen – hier eben alle 66 Bücher.", "66 Bücher – ein Bibliothekar hätte seine Freude. Ich auch."],
+  "Propheten": ["Die Propheten haben oft unbequeme Predigten gehalten – und hatten trotzdem recht.", "Prophetenbücher sind lang, aber lohnend – wie eine gute Predigtreihe."],
+  "Psalmen & Weisheit": ["Die Psalmen sind das Gesangbuch der Bibel – und das ehrlichste Gebetbuch dazu.", "Die Sprüche sind Lebensweisheit in Kurzform – leider ohne drei Punkte, aber dafür auf den Punkt."],
+  "Briefe & Offenbarung": ["Die Briefe des Neuen Testaments sind die ersten Gemeindebriefe. Pünktlich gedruckt wurden sie damals auch nicht.", "Die Offenbarung endet mit dem Sieg Jesu. Das lese ich jedem Skeptiker gern vor."],
+  "Apostel & erste Gemeinde": ["Die erste Gemeinde war arm, mutig und voller Gebet – davon kann jede Gemeinde lernen.", "In der Apostelgeschichte wird die Gemeinde gegründet – ohne Gemeindeausschuss, aber mit Heiligem Geist."],
+  "Orte & Reisen": ["Die Bibel ist ein Reisebuch – von Ur bis Rom. Ich bin als Gastredner ja auch viel unterwegs.", "Paulus war der erste Vielreisende der Gemeinde – ohne Auto, aber mit Auftrag."]
+};
+const GASTREDNER_ALLG = [
+  "Ich habe gerade die Bibelstunde vorbereitet – da kommt so eine Frage wie gerufen.",
+  "Nach dem Gottesdienst gibt es bei uns Kirchenkaffee. Den eigentlichen Gemeindeaufbau erlebt man dort.",
+  "Wenn du die Million holst, spendier ich dir beim nächsten Gemeindefest ein Stück Kuchen. Vielleicht auch zwei.",
+  "Ein Pastor hat immer drei Punkte – und alle drei fangen meist mit demselben Buchstaben an.",
+  "Kleiner Tipp vom Prediger: Ein Kapitel am Tag – und du bist in gut drei Jahren einmal durch die ganze Bibel.",
+  "Beim Gemeindefest bringt jeder etwas mit. Ich bringe immer die Bibel mit – die anderen den Nudelsalat.",
+  "Man sagt, Baptisten treffen sich zum Beten – und bleiben zum Essen.",
+  "Mein Predigtmanuskript hat zwölf Seiten. Die Gemeinde hofft auf sechs.",
+  "In der Bibelstunde sagt immer einer: „Das hab ich auch gerade gedacht!“ – meistens war er kurz eingenickt.",
+  "„Das Wort des Christus wohne reichlich in euch“ (Kolosser 3,16) – wichtiger als jeder Punktestand.",
+  "Wenn du Fragen hast, frag ruhig weiter. Jesus hat sich auch nie über Fragen beschwert.",
+  "Als Gastredner komme ich von Gemeinde zu Gemeinde – und überall gibt es einen Kuchen, der gleich geheimnisvoll aussieht."
+];
+const GASTREDNER_TSCHUESS = [
+  "Der Herr segne dich und behüte dich (4. Mose 6,24). Amen!",
+  "Gott befohlen – und viel Erfolg!",
+  "Ich bete für dich. Auf Wiederhören!",
+  "So, jetzt rufen drei Punkte und eine Kanzel. Gottes Segen!",
+  "Friede sei mit dir – und gutes Gelingen!",
+  "Auf Wiederhören – und grüß die Gemeinde von mir!",
+  "Gottes Segen, und denk dran: Am Ende zählt nicht die Million, sondern die Ewigkeit.",
+  "Der Kuchen ruft – und die Kanzel auch. Gott befohlen!",
+  "Amen – und jetzt tipp mutig!"
+];
+/* Porträt: grauer Haarkranz, Brille, dunkler Anzug mit Krawatte, kleine Bibel */
+const GASTREDNER_BILD = `<svg class="willi-bild" viewBox="0 0 96 96" aria-hidden="true"><defs><radialGradient id="gsH" cx=".5" cy=".5" r=".5"><stop offset=".55" stop-color="#b38cff" stop-opacity=".45"/><stop offset="1" stop-color="#b38cff" stop-opacity="0"/></radialGradient><linearGradient id="gsHaut" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe2c4"/><stop offset="1" stop-color="#e9b88e"/></linearGradient><linearGradient id="gsHaar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e4e6ee"/><stop offset="1" stop-color="#a9aebf"/></linearGradient><linearGradient id="gsAnzug" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3a4478"/><stop offset="1" stop-color="#1a2147"/></linearGradient></defs>
+<circle cx="48" cy="48" r="47" fill="url(#gsH)"/><circle cx="48" cy="48" r="38" fill="#1b2146" stroke="url(#wrG)" stroke-width="3"/>
+<clipPath id="gsK"><circle cx="48" cy="48" r="36.5"/></clipPath><g clip-path="url(#gsK)">
+<path d="M18 92c2-17 14-24 30-24s28 7 30 24z" fill="url(#gsAnzug)" stroke="#1b2a55" stroke-width="1.4"/><path d="M40 69l8 12 8-12z" fill="#fff" stroke="#1b2a55" stroke-width="1.2"/><path d="M46.5 74h3l2 14-3.5 3.5L44.5 88z" fill="#b23a48" stroke="#5e1822" stroke-width="1"/>
+<circle cx="48" cy="42" r="16" fill="url(#gsHaut)" stroke="#1b2a55" stroke-width="1.4"/>
+<path d="M32 38c-2-12 6-19 16-19s18 7 16 19c-2-5-6-8-16-8s-14 3-16 8z" fill="url(#gsHaar)" stroke="#1b2a55" stroke-width="1.2"/>
+<path d="M32.5 40c-1.6 3-1.2 7 .6 9M63.5 40c1.6 3 1.2 7-.6 9" stroke="#a9aebf" stroke-width="3" fill="none" stroke-linecap="round"/>
+<circle cx="41.5" cy="41" r="4.6" fill="#fff" fill-opacity=".25" stroke="#1b2a55" stroke-width="1.4"/><circle cx="54.5" cy="41" r="4.6" fill="#fff" fill-opacity=".25" stroke="#1b2a55" stroke-width="1.4"/><path d="M46.1 41h3.8" stroke="#1b2a55" stroke-width="1.4"/>
+<circle cx="41.5" cy="41" r="1.7" fill="#1b2a55"/><circle cx="54.5" cy="41" r="1.7" fill="#1b2a55"/>
+<path d="M42 50q6 4.5 12 0" fill="none" stroke="#7a3b2c" stroke-width="1.8" stroke-linecap="round"/>
+<path d="M37 28q3-5 9-6" stroke="#fff" stroke-opacity=".6" stroke-width="2" fill="none" stroke-linecap="round"/></g>
+<g transform="rotate(-12 77 64)"><rect x="67" y="51" width="20" height="26" rx="2.5" fill="#2d3a78" stroke="#1b2a55" stroke-width="1.2"/><path d="M77 56v14M71.5 61h11" stroke="url(#wrG)" stroke-width="2.2" stroke-linecap="round"/></g></svg>`;
 const PASTOREN = {
   willi: { name: "Pastor Willi", kurz: "Willi", info: "Bibelkenner & Grillmeister", bild: () => WILLI_BILD, salt: 0, quoten: [[.9, .98, .995], [.62, .86, .94], [.38, .64, .82]],
     hallo: WILLI_HALLO, sicher: WILLI_SICHER, ziemlich: WILLI_ZIEMLICH, sicherOhne: WILLI_SICHER_OHNE, ziemlichOhne: WILLI_ZIEMLICH_OHNE, schwank: WILLI_SCHWANK, geraten: WILLI_GERATEN, thema: WILLI_THEMA, themen: WILLI_THEMEN, allg: WILLI_ALLG, tschuess: WILLI_TSCHUESS },
   aaron: { name: "Pastor Aaron", kurz: "Aaron", info: "Bibelkenner & Star-Wars-Experte", bild: () => AARON_BILD, salt: 0x2c1b3c6d, quoten: [[.9, .98, .995], [.6, .85, .93], [.36, .62, .8]],
-    hallo: AARON_HALLO, sicher: AARON_SICHER, ziemlich: AARON_ZIEMLICH, sicherOhne: AARON_SICHER_OHNE, ziemlichOhne: AARON_ZIEMLICH_OHNE, schwank: AARON_SCHWANK, geraten: AARON_GERATEN, thema: AARON_THEMA, themen: AARON_THEMEN, allg: AARON_ALLG, tschuess: AARON_TSCHUESS, sw: AARON_SW }
+    hallo: AARON_HALLO, sicher: AARON_SICHER, ziemlich: AARON_ZIEMLICH, sicherOhne: AARON_SICHER_OHNE, ziemlichOhne: AARON_ZIEMLICH_OHNE, schwank: AARON_SCHWANK, geraten: AARON_GERATEN, thema: AARON_THEMA, themen: AARON_THEMEN, allg: AARON_ALLG, tschuess: AARON_TSCHUESS, sw: AARON_SW },
+  gastredner: { name: "Gastredner", kurz: "Gastredner", info: "Baptisten-Pastor auf Besuch", bild: () => GASTREDNER_BILD, salt: 0x7a3d91e5, quoten: [[.88, .97, .99], [.58, .83, .92], [.34, .6, .79]],
+    hallo: GASTREDNER_HALLO, sicher: GASTREDNER_SICHER, ziemlich: GASTREDNER_ZIEMLICH, sicherOhne: GASTREDNER_SICHER_OHNE, ziemlichOhne: GASTREDNER_ZIEMLICH_OHNE, schwank: GASTREDNER_SCHWANK, geraten: GASTREDNER_GERATEN, thema: GASTREDNER_THEMA, themen: GASTREDNER_THEMEN, allg: GASTREDNER_ALLG, tschuess: GASTREDNER_TSCHUESS }
 };
+/* 9.11: Willi und Aaron haben persönliche Inhalte und rufen nur für Spieler aus Eichstätt an (Gemeinde „fbg“).
+   Alle anderen – andere Gemeinden und Gäste – haben den allgemeinen Gastredner. Eichstätter können ihn ebenfalls anrufen. */
+const telEichstaett = () => meineGem() === GEM_STANDARD;
+const telKontakte = () => telEichstaett() ? ["willi", "aaron", "gastredner"] : ["gastredner"];
 /* Wen rufst du an? Erst nach der Wahl ist der Joker verbraucht – Abbrechen gibt ihn zurück. */
 function telefonWahl(weiter, abbruch, weih) {
   const m = modal(`<div class="label">Telefonjoker</div><h2 style="margin:0">Wen rufst du an?</h2>
-    <div class="tel-wahl">${Object.entries(PASTOREN).map(([id, P]) => `<button class="tel-kontakt" data-tel="${id}">${pastorBild(P, weih)}<span><b>${P.name}</b><small>${P.info}</small></span>${svg("telefon")}</button>`).join("")}</div>
+    <div class="tel-wahl">${Object.entries(PASTOREN).filter(([id]) => telKontakte().includes(id)).map(([id, P]) => `<button class="tel-kontakt" data-tel="${id}">${pastorBild(P, weih)}<span><b>${P.name}</b><small>${P.info}</small></span>${svg("telefon")}</button>`).join("")}</div>
     <p class="small muted" style="margin:0">Die Uhr steht, solange du telefonierst. Du hast nur einen Anruf.</p>
     <button class="btn ghost" data-close>Doch nicht</button>`, x => { if (x !== "gewaehlt") abbruch(); });
   m.classList.add("willi-modal");
@@ -5076,7 +5205,7 @@ const WILLI_BILD = `<svg class="willi-bild" viewBox="0 0 96 96" aria-hidden="tru
 /* Das Telefonat: es klingelt, dann erzählt Willi Satz für Satz. Die Bedenkzeit steht so lange. */
 const pastorBild = (P, weih) => weih ? weihBild(P.bild()) : P.bild();
 function pastorAnruf(w, weiter) {
-  const P = PASTOREN[w.wer] || PASTOREN.willi;
+  const P = PASTOREN[w.wer] || PASTOREN.gastredner;
   const ruhig = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const m = modal(`<div class="willi">
       <div class="willi-kopf">${pastorBild(P, w.weih)}<div><div class="label">Telefonjoker</div><b>${P.name}</b><small id="wStatus"><i class="w-ring"></i> Es klingelt …</small></div></div>
@@ -5177,7 +5306,7 @@ VIEWS.bib = () => {
     <div class="bq2-joker" aria-label="Deine Joker – je einmal pro Spiel">
       <span><b class="bq2-j5">50:50</b><span><b>Halbieren</b><small>2 falsche weg</small></span></span>
       <span>${svg("people")}<span><b>Gemeinde</b><small>alle stimmen ab</small></span></span>
-      <span>${svg("telefon")}<span><b>Telefon</b><small>Willi oder Aaron</small></span></span>
+      <span>${svg("telefon")}<span><b>Telefon</b><small>${telEichstaett() ? "Willi, Aaron, Gast" : "Gastredner"}</small></span></span>
     </div>
     <button class="bq2-fuss" data-go="rank" data-arg="bibRekord">${svg("trophy")}<span>Joker je 1× pro Spiel · Bestenliste</span><b>Rangliste ›</b></button>`;
   wireGo();
