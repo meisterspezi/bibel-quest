@@ -245,8 +245,13 @@ if (!configured) {
     LB.gemListe = async () => (await fs.getDocs(fs.collection(db, "gemeinden"))).docs.map(d => ({ id: d.id, ...d.data() }));
     LB.mitgliedListe = async () => (await fs.getDocs(fs.query(fs.collection(db, "mitglied"), fs.limit(1000)))).docs.map(d => ({ id: d.id, g: d.data().g }));
     LB.gemSetzen = async (pid, name, g) => { await LB.signIn(); await fs.setDoc(ref("mitglied", pid), { pid, name, g, updated: fs.serverTimestamp() }); };
-    LB.gemAnlegen = async (id, name, ord) => { await LB.signIn(); await fs.setDoc(ref("gemeinden", id), { name, ord: ord | 0 }); };
+    LB.gemAnlegen = async (id, name, ord, extra) => { await LB.signIn(); const d = { name, ord: ord | 0 }; if (extra && extra.pw) d.pw = String(extra.pw).slice(0, 30); if (extra && extra.logo) d.logo = String(extra.logo).slice(0, 30000); await fs.setDoc(ref("gemeinden", id), d); };
     LB.gemLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("gemeinden", id)); };
+
+    // 9.7 Nachrichten des Entwicklers an die Spieler (Patchnotes u. Ä.): nur der Verwalter schreibt, angemeldete Spieler lesen
+    LB.nachrichtenListe = async () => (await fs.getDocs(fs.query(fs.collection(db, "nachrichten"), fs.orderBy("zeit", "desc"), fs.limit(30)))).docs.map(d => { const x = d.data(); return { id: d.id, art: x.art || "info", titel: x.titel || "", text: x.text || "", g: x.g || "alle", ver: x.ver || "", zeit: x.zeit && x.zeit.toMillis ? x.zeit.toMillis() : 0 }; });
+    LB.nachrichtSenden = async (n) => { await LB.signIn(); const d = { art: n.art === "patch" ? "patch" : "info", titel: String(n.titel).slice(0, 60), text: String(n.text).slice(0, 2000), g: String(n.g || "alle").slice(0, 30), zeit: fs.serverTimestamp() }; if (n.ver) d.ver = String(n.ver).slice(0, 20); await fs.addDoc(fs.collection(db, "nachrichten"), d); };
+    LB.nachrichtLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("nachrichten", id)); };
 
     // Live-Listen
     const FELD = { gesamt: "xp", kette_bibel: "bestChain", kette_at: "chainAT", kette_nt: "chainNT", kette_rueck: "chainRueck", treue: "t28", bewaehrt: "bew", abzeichen: "badges", blitz: "blitz", combo: "combo", duSiege: "duS", duSpiele: "duG", bibRekord: "bib" };

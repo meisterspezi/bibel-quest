@@ -2039,6 +2039,56 @@ body[data-tab="rank"]{--ar-gemeinde:#5fe0b0;--ar:#5fe0b0}
 .kb-item small{overflow-wrap:anywhere;hyphens:auto;max-width:100%;font-size:.64rem}
 .kb-info b{overflow-wrap:anywhere;hyphens:auto;max-width:100%;font-size:clamp(1.05rem,5vw,1.35rem)}
 .pf-gross{width:100%;box-sizing:border-box;margin:0 0 8px}
+
+/* ===== 9.7: Laden-Symbol bei den Talenten, Gemeinde-Karte im Profil, Logos, Gemeinde-Wertung, Spielkacheln mit Fortschritt, Neuigkeiten ===== */
+.hud-tal{gap:5px;padding:6px 12px 6px 9px}
+.hud-shop{display:inline-grid;place-items:center;padding-right:7px;margin-right:2px;border-right:1px solid #f2c14e55}
+.hud-shop svg{width:24px!important;height:24px!important}
+.gem-logo{--s:40px;display:inline-grid;place-items:center;flex:none;width:var(--s);height:var(--s);border-radius:50%;overflow:hidden;background:#ffffff12;border:1px solid #ffffff2a;box-sizing:border-box}
+.gem-logo img{width:100%;height:100%;object-fit:contain;display:block}
+.gem-logo.gem-init{background:linear-gradient(145deg,hsl(var(--h) 55% 38%),hsl(var(--h) 55% 24%));border-color:hsl(var(--h) 60% 60%/.6);font:900 calc(var(--s)*.34)/1 var(--display);letter-spacing:.02em;color:#fff}
+.gem-logo.gem-gast svg{width:60%;height:60%}
+.pf-gem{display:grid;gap:10px;padding:10px 12px;margin:8px 0}
+.pf-gem-zeile{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center}
+.pf-gem-tx{display:grid;gap:1px;min-width:0}.pf-gem-tx b{font:800 1.02rem/1.2 var(--body);overflow-wrap:anywhere}
+.pf-gem .row-btns{margin:0}
+.gb-liste{display:grid;gap:8px;max-height:46vh;overflow:auto}
+.gb-opt{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;text-align:left;padding:9px 12px;border-radius:14px;border:1px solid #ffffff22;background:#ffffff0a;color:var(--fg);font:inherit;cursor:pointer;min-height:56px}
+.gb-opt b{font:800 1rem/1.2 var(--body);overflow-wrap:anywhere}.gb-opt i{font-style:normal;color:var(--muted);font-size:1.3rem}
+.gb-pw{display:grid;gap:8px}.gb-kopf{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center}.gb-kopf b{font:800 1rem/1.2 var(--body);overflow-wrap:anywhere}
+.gb-fehler{color:#ff9a8a;font-weight:700;font-size:.85rem;min-height:1.2em}
+@keyframes gbWackel{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.gb-wackel{animation:gbWackel .35s}
+.gw-liste{display:grid;gap:10px}
+.gw-zeile{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 12px;align-items:center;padding:12px;border-radius:16px;border:1px solid #ffffff1a;background:#ffffff08}
+.gw-zeile.me{border-color:#5fe0b0aa;background:#5fe0b01c}
+.gw-zeile.p1{border-color:#f2c14e88;background:linear-gradient(135deg,#f2c14e1f,#ffffff06)}
+.gw-logo{position:relative;display:grid}
+.gw-pl{position:absolute;left:-5px;top:-5px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:900 .78rem/1 var(--body);font-style:normal;background:#2a3566;color:#fff;border:2px solid var(--surface,#1b2146);box-sizing:border-box}
+.gw-zeile.p1 .gw-pl{background:linear-gradient(145deg,#ffe28a,#e0a82a);color:#3a2600}
+.gw-zeile.p2 .gw-pl{background:linear-gradient(145deg,#f1f4ff,#aab4d0);color:#1b2342}
+.gw-zeile.p3 .gw-pl{background:linear-gradient(145deg,#f0b27a,#b86a2c);color:#2f1704}
+.gw-tx{display:grid;gap:3px;min-width:0}
+.gw-tx b{font:800 1rem/1.2 var(--body);white-space:normal;overflow-wrap:anywhere}.gw-tx b.lang{font-size:.88rem;line-height:1.22}.gw-n{white-space:nowrap}
+.gw-tx .small{white-space:normal}
+.gw-tx .you{display:inline-block;justify-self:start;margin:0;font:800 .62rem var(--body);padding:2px 7px;border-radius:8px;background:#5fe0b0;color:#06241a}
+.gw-sum{text-align:right}.gw-sum b{display:block;font:900 1.15rem var(--body)}.gw-sum small{color:var(--muted);font-size:.68rem}
+.gw-zeile .gw-balken{grid-column:1/-1;display:block;height:6px;border-radius:4px;background:#ffffff14;overflow:hidden}
+.gw-zeile .gw-balken>i{display:block;height:100%;background:linear-gradient(90deg,#5fe0b0,#f2c14e)}
+.gv-karte{display:grid;gap:8px}.gv-kopf{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center}.gv-kopf b{overflow-wrap:anywhere}
+.gv-logozeile{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.gv-logozeile input[type=file]{font-size:.78rem;max-width:100%}
+.sp-k{position:relative}
+.sp-fort{position:absolute;left:12px;right:12px;bottom:3px;height:3px;border-radius:3px;background:#ffffff1c;overflow:hidden;pointer-events:none}
+.sp-fort>i{display:block;height:100%;border-radius:3px;background:var(--ar,var(--gold,#f2c14e))}
+.sp-gitter .sp-k .sp-fort,.sp-duo .sp-k .sp-fort{left:10px;right:10px}
+.nach-liste{display:grid;gap:10px;max-height:56vh;overflow:auto}
+.nach-karte{text-align:left;display:grid;gap:5px;padding:12px;border-radius:14px;border:1px solid #ffffff22;background:#ffffff0a}
+.nach-karte .nk-kopf{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.72rem;color:var(--muted)}
+.nach-karte .nk-art{font:800 .66rem var(--body);padding:2px 8px;border-radius:8px;background:#7fc8ff;color:#06202e}
+.nach-karte .nk-art.info{background:#f2c14e;color:#2c2000}
+.nach-karte h3{margin:0;font:800 1.05rem/1.25 var(--display)}
+.nach-karte p{margin:0;font-size:.92rem;line-height:1.45;overflow-wrap:anywhere}
+.nach-neu{display:inline-block;margin-left:6px;font:800 .62rem var(--body);padding:2px 7px;border-radius:8px;background:#ff6b57;color:#fff;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -2062,7 +2112,7 @@ body[data-tab="rank"]{--ar-gemeinde:#5fe0b0;--ar:#5fe0b0}
       </span>
     </button>
     <div class="pills">
-      <button class="pill hud-tal" id="hTalBtn" aria-label="Talente – zum Laden"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tal"/></svg><span id="hTal">0</span><span class="tb-punkt" id="tbTal" hidden aria-label="Im Laden ist etwas kaufbar"></span></button>
+      <button class="pill hud-tal" id="hTalBtn" aria-label="Talente – zum Laden"><span class="hud-shop" id="hShop" aria-hidden="true"></span><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tal"/></svg><span id="hTal">0</span><span class="tb-punkt" id="tbTal" hidden aria-label="Im Laden ist etwas kaufbar"></span></button>
       <button class="iconbtn pk-btn" id="pkBtn" hidden aria-label="Postkasten" onclick="go('postfach')"></button>
       <button class="iconbtn hud-ton" id="muteBtn" aria-label="Ton an oder aus"></button>
     </div>
