@@ -2127,51 +2127,7 @@ const TKETTEN = {
       { t: "Licht und Finsternis", d: "Gott spricht: „Es werde Licht!“ Er trennt das Licht von der Finsternis und nennt das Licht Tag und die Finsternis Nacht.", r: "1. Mose 1,3–5" }, { t: "Himmelsfeste: Wasser oben und unten", d: "Gott schafft die Weite des Himmels und trennt das Wasser unter ihr vom Wasser über ihr.", r: "1. Mose 1,6–8" }, { t: "Land, Meer und Pflanzen", d: "Das Wasser sammelt sich zu Meeren, trockenes Land erscheint. Die Erde lässt Gras, Kräuter und fruchttragende Bäume wachsen.", r: "1. Mose 1,9–13" },
       { t: "Sonne, Mond und Sterne", d: "Gott setzt Sonne, Mond und Sterne an den Himmel – als Lichter für Tag und Nacht, für Zeiten, Tage und Jahre.", r: "1. Mose 1,14–19" }, { t: "Fische und Vögel", d: "Das Wasser wimmelt von Leben, Vögel fliegen unter dem Himmel. Gott segnet sie: Seid fruchtbar und mehrt euch.", r: "1. Mose 1,20–23" }, { t: "Landtiere und der Mensch", d: "Gott schafft die Landtiere – und zuletzt den Menschen als sein Ebenbild, als Mann und Frau. Alles war sehr gut.", r: "1. Mose 1,24–31" }, { t: "Gott ruht", d: "Gott vollendet sein Werk und ruht am siebten Tag. Er segnet diesen Tag und heiligt ihn.", r: "1. Mose 2,2–3" }] }
 };
-/* ---------- 9.13: Bilder und Beschreibungen für die Themen-Ketten (Zeitleiste oben, größer in der Auflösung) ---------- */
-const TK_VERBOT = '<circle cx="32" cy="32" r="23" fill="none" stroke="#e53935" stroke-width="5"/><path d="M16 48L48 16" stroke="#e53935" stroke-width="5" stroke-linecap="round"/>';
-const TK_BILD = {
-  schoepfung: [
-    /* Tag 1 – Licht und Finsternis */
-    '<rect width="64" height="64" fill="#1a2150"/><rect x="32" width="32" height="64" fill="#ffe27a"/><circle cx="14" cy="14" r="1.6" fill="#fff"/><circle cx="21" cy="46" r="1.3" fill="#fff"/><circle cx="12" cy="31" r="1.1" fill="#fff"/><circle cx="24" cy="22" r="1" fill="#fff"/><circle cx="32" cy="32" r="14" fill="#fff6c8"/><g stroke="#fff6c8" stroke-width="2.6" stroke-linecap="round"><path d="M32 8v6M32 50v6M12 32h6M46 32h6M18 18l4 4M42 42l4 4M46 18l-4 4M22 42l-4 4"/></g>',
-    /* Tag 2 – Himmelsfeste, Wasser oben und unten */
-    '<rect width="64" height="64" fill="#7fc4ff"/><rect y="38" width="64" height="26" fill="#2b6fd6"/><path d="M0 38q8-5 16 0t16 0 16 0 16 0v5H0z" fill="#4f95ee"/><g fill="#fff"><circle cx="18" cy="16" r="7"/><circle cx="28" cy="13" r="9"/><circle cx="38" cy="17" r="6.5"/><rect x="13" y="16" width="31" height="7" rx="3.5"/></g><g fill="#fff" opacity=".8"><circle cx="50" cy="12" r="1.6"/><circle cx="54" cy="19" r="1.3"/><circle cx="47" cy="22" r="1.1"/></g>',
-    /* Tag 3 – Land, Meer, Pflanzen */
-    '<rect width="64" height="64" fill="#bfe8ff"/><rect y="44" width="64" height="20" fill="#2f86d8"/><path d="M18 64V47q14-14 46-2v19z" fill="#4caf50"/><rect x="40" y="27" width="4" height="17" fill="#7a4a1e"/><circle cx="42" cy="22" r="10" fill="#2e9e44"/><circle cx="35" cy="27" r="6" fill="#3bb556"/><circle cx="49" cy="27" r="5" fill="#3bb556"/><g stroke="#2e9e44" stroke-width="2.2" stroke-linecap="round"><path d="M26 52v-7M30 54v-9M22 54v-6"/></g><circle cx="29" cy="43" r="2" fill="#ff6f91"/>',
-    /* Tag 4 – Sonne, Mond, Sterne */
-    '<rect width="64" height="64" fill="#0f1b4d"/><circle cx="22" cy="24" r="11" fill="#ffd54a"/><g stroke="#ffd54a" stroke-width="2.4" stroke-linecap="round"><path d="M22 5v4M22 39v4M3 24h4M37 24h4M8 10l3 3M33 35l3 3M36 10l-3 3M11 35l-3 3"/></g><path d="M47 33a10 10 0 1 0 9 14a8.5 8.5 0 1 1-9-14z" fill="#e8eefc"/><g fill="#fff"><path d="M50 12l1.5 3.5 3.5 1.5-3.5 1.5L50 22l-1.5-3.5L45 17l3.5-1.5z"/><path d="M12 48l1.2 2.8 2.8 1.2-2.8 1.2L12 56l-1.2-2.8L8 52l2.8-1.2z"/><circle cx="58" cy="26" r="1.4"/><circle cx="34" cy="52" r="1.3"/></g>',
-    /* Tag 5 – Fische und Vögel */
-    '<rect width="64" height="64" fill="#a8e0ff"/><rect y="38" width="64" height="26" fill="#1f78c8"/><path d="M0 38q8-4 16 0t16 0 16 0 16 0v4H0z" fill="#3b95e0"/><path d="M10 22q6-8 12 0q6-8 12 0" fill="none" stroke="#33414f" stroke-width="2.6" stroke-linecap="round"/><path d="M38 12q4-5 8 0q4-5 8 0" fill="none" stroke="#33414f" stroke-width="2.2" stroke-linecap="round"/><path d="M14 50q9-9 20 0q-11 9-20 0z" fill="#ff9a3c"/><path d="M34 50l9-7v14z" fill="#ff9a3c"/><circle cx="20" cy="49" r="1.5" fill="#222"/><path d="M44 54q6-5 12 0q-6 5-12 0z" fill="#ffd54a"/>',
-    /* Tag 6 – Landtiere und der Mensch */
-    '<rect width="64" height="64" fill="#d7f0c0"/><rect y="46" width="64" height="18" fill="#6bbf59"/><circle cx="19" cy="17" r="6" fill="#f3c9a0"/><path d="M19 24v15M19 28l-7 8M19 28l7 8M19 39l-5 10M19 39l5 10" stroke="#3d5a99" stroke-width="3.6" stroke-linecap="round" fill="none"/><ellipse cx="46" cy="40" rx="11" ry="6.5" fill="#c98a3b"/><circle cx="58" cy="33" r="5.5" fill="#c98a3b"/><path d="M56 29l-2-5M60 29l2-5" stroke="#8a5a1f" stroke-width="2.2" stroke-linecap="round"/><path d="M38 45v8M43 46v8M49 46v8M54 45v8" stroke="#8a5a1f" stroke-width="3" stroke-linecap="round"/><circle cx="59" cy="32" r="1.1" fill="#222"/>',
-    /* Tag 7 – Gott ruht */
-    '<rect width="64" height="64" fill="#2a2f6b"/><circle cx="32" cy="30" r="22" fill="#ffd978" opacity=".22"/><circle cx="32" cy="30" r="14" fill="#ffd978"/><g stroke="#fff3c0" stroke-width="2.4" stroke-linecap="round"><path d="M32 6v5M32 49v5M8 30h5M51 30h5M15 13l3.5 3.5M45.5 43.5L49 47M49 13l-3.5 3.5M18.5 43.5L15 47"/></g><path d="M0 50q16-9 32 0t32 0v14H0z" fill="#1b2050"/><g fill="#fff"><circle cx="9" cy="12" r="1.3"/><circle cx="56" cy="10" r="1.5"/><circle cx="52" cy="36" r="1.1"/></g>'
-  ],
-  gebote: [
-    /* 1 – keine anderen Götter */
-    '<rect width="64" height="64" fill="#2a2a6b"/><g stroke="#ffd54a" stroke-width="2.4" stroke-linecap="round"><path d="M32 6v6M13 14l4 4M51 14l-4 4M6 30h6M52 30h6"/></g><path d="M14 46V26l9 10 9-14 9 14 9-10v20z" fill="#ffd54a"/><rect x="14" y="46" width="36" height="6" rx="2" fill="#e0a800"/><circle cx="14" cy="24" r="3" fill="#fff6c8"/><circle cx="32" cy="20" r="3" fill="#fff6c8"/><circle cx="50" cy="24" r="3" fill="#fff6c8"/><circle cx="32" cy="42" r="3" fill="#e53935"/>',
-    /* 2 – kein Götzenbild */
-    '<rect width="64" height="64" fill="#3a3f55"/><circle cx="32" cy="18" r="8" fill="#b7bcc9"/><path d="M20 28h24l4 24H16z" fill="#9aa0b0"/><rect x="14" y="50" width="36" height="6" rx="2" fill="#7b8194"/><circle cx="29" cy="17" r="1.4" fill="#3a3f55"/><circle cx="35" cy="17" r="1.4" fill="#3a3f55"/>' + '<!--v-->',
-    /* 3 – Namen nicht missbrauchen */
-    '<rect width="64" height="64" fill="#274a7c"/><path d="M12 14h40a4 4 0 0 1 4 4v18a4 4 0 0 1-4 4H30l-10 10v-10h-8a4 4 0 0 1-4-4V18a4 4 0 0 1 4-4z" fill="#fff"/><path d="M32 20v10" stroke="#274a7c" stroke-width="4.5" stroke-linecap="round"/><circle cx="32" cy="35" r="2.6" fill="#274a7c"/>' + '<!--v-->',
-    /* 4 – Sabbat */
-    '<rect width="64" height="64" fill="#1f3b73"/><g fill="#6d86bd"><circle cx="9" cy="40" r="4"/><circle cx="19" cy="40" r="4"/><circle cx="29" cy="40" r="4"/><circle cx="39" cy="40" r="4"/><circle cx="49" cy="40" r="4"/></g><circle cx="50" cy="22" r="11" fill="#ffd54a"/><g stroke="#ffd54a" stroke-width="2.4" stroke-linecap="round"><path d="M50 4v4M34 22h4M62 22h-2M38 10l3 3M62 10l-3 3"/></g><circle cx="57" cy="40" r="5" fill="#ffd54a"/><path d="M8 54h48" stroke="#6d86bd" stroke-width="2.4" stroke-linecap="round"/><path d="M10 14h18M10 21h12" stroke="#a9bbe0" stroke-width="2.4" stroke-linecap="round"/>',
-    /* 5 – Vater und Mutter ehren */
-    '<rect width="64" height="64" fill="#8d4f7b"/><circle cx="18" cy="22" r="6.5" fill="#f3c9a0"/><path d="M8 52v-16q10-8 20 0v16z" fill="#3d5a99"/><circle cx="44" cy="22" r="6.5" fill="#f3c9a0"/><path d="M34 52v-16q10-8 20 0v16z" fill="#d1495b"/><circle cx="31" cy="37" r="4.6" fill="#f3c9a0"/><path d="M25 52v-9q6-5 12 0v9z" fill="#ffd54a"/><path d="M31 18c-2.4-4-8-1.2-5 3.2L31 26l5-4.8c3-4.4-2.6-7.2-5-3.2z" fill="#ff6f91"/>',
-    /* 6 – nicht töten */
-    '<rect width="64" height="64" fill="#4a2030"/><path d="M32 8l6 24-6 4-6-4z" fill="#d7dce8"/><rect x="22" y="34" width="20" height="4" rx="2" fill="#ffd54a"/><rect x="29.5" y="38" width="5" height="14" rx="2" fill="#8a5a1f"/>' + '<!--v-->',
-    /* 7 – nicht die Ehe brechen (Ringe) */
-    '<rect width="64" height="64" fill="#5b2a5e"/><circle cx="24" cy="38" r="13" fill="none" stroke="#ffd54a" stroke-width="5"/><circle cx="40" cy="38" r="13" fill="none" stroke="#f2a900" stroke-width="5"/><path d="M32 16c-2.6-5-9.6-1.4-6 4l6 6 6-6c3.6-5.4-3.4-9-6-4z" fill="#ff6f91"/>',
-    /* 8 – nicht stehlen */
-    '<rect width="64" height="64" fill="#2c4a3b"/><circle cx="32" cy="32" r="16" fill="#ffd54a"/><circle cx="32" cy="32" r="11" fill="none" stroke="#e0a800" stroke-width="2.4"/><path d="M32 24v16M28 27.5h6a3 3 0 0 1 0 6h-5a3 3 0 0 0 0 6h7" fill="none" stroke="#e0a800" stroke-width="2.6" stroke-linecap="round"/>' + '<!--v-->',
-    /* 9 – kein falsches Zeugnis (Waage) */
-    '<rect width="64" height="64" fill="#4a3b6b"/><path d="M32 12v38M22 52h20" stroke="#ffd54a" stroke-width="4" stroke-linecap="round"/><path d="M12 22h40" stroke="#ffd54a" stroke-width="3.4" stroke-linecap="round"/><path d="M12 22l-6 16h12zM52 22l-6 16h12z" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/><path d="M5 38q7 8 14 0zM45 38q7 8 14 0z" fill="#ffd54a"/><circle cx="32" cy="12" r="3.4" fill="#fff6c8"/>',
-    /* 10 – nicht begehren */
-    '<rect width="64" height="64" fill="#3b5b3b"/><path d="M12 54V34l20-16 20 16v20z" fill="#e7c9a0"/><path d="M8 36l24-20 24 20" fill="none" stroke="#a85a3b" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><rect x="27" y="40" width="10" height="14" rx="1.5" fill="#8a5a1f"/><rect x="16" y="38" width="8" height="8" rx="1" fill="#9fd4ff"/><rect x="40" y="38" width="8" height="8" rx="1" fill="#9fd4ff"/>'
-  ].map(x => x)
-};
-/* Gebote 2, 3, 6, 8 sind Verbote: rote Streichung darüber */
-[1, 2, 5, 7].forEach(k => { TK_BILD.gebote[k] = TK_BILD.gebote[k].replace("<!--v-->", TK_VERBOT); });
-const tkBildSvg = (id, k) => `<svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">${TK_BILD[id][k]}</svg>`;
+/* Bilder der Themen-Ketten: tk-bilder.js (TK_BILD, tkBildSvg) */
 /* Zeitleiste: leere Felder (keine Vorschau, die die Antwort verraten würde), bis die Frage richtig beantwortet ist; ziel = das Glied, das gerade gefragt wird; neu = gerade aufgedecktes Glied */
 function tkZeitleiste(id, erreicht, ziel, neu) {
   const K = TKETTEN[id], n = K.items.length;
