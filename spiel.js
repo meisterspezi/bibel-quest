@@ -1400,7 +1400,7 @@ function clearTimers() { timers.forEach(clearInterval); timers = []; }
 /* 8.3: Nach einem Spiel (fertig oder abgebrochen) geht es dorthin zurück, wo es gestartet wurde */
 const HAUPT_ANSICHTEN = ["home", "lernen", "lernverse", "spielen", "zusammen", "gegner", "duelle", "bib"];
 let ursprung = "";
-const HEIM_NAME = { home: "Start", lernen: "Lernen", lernverse: "Lernverse", spielen: "Allein", zusammen: "Zusammen", duelle: "Duelle", bib: "Biblionär" };
+const HEIM_NAME = { home: "Start", lernen: "Lektionen", lernverse: "Lernverse", spielen: "Solo", zusammen: "Zusammen", duelle: "Duelle", bib: "Biblionär" };
 const heimAnsicht = fb => { const u = ursprung === "gegner" ? "zusammen" : ursprung; return u && HEIM_NAME[u] ? u : fb; };
 const heimName = fb => HEIM_NAME[heimAnsicht(fb)];
 function go(name, arg) {
@@ -1414,7 +1414,7 @@ function go(name, arg) {
 }
 /* Untere Menüleiste: zu welchem Reiter gehört eine Ansicht? */
 /* 8.0 „Allein und Zusammen“: nur noch vier große Reiter – Laden über die Talente oben, Rangliste unter „Zusammen“ */
-const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Allein", "user"], ["bib", "Biblionär", "biblionaer"], ["duelle", "Arena", "arena"], ["rank", "Rangliste", "trophy"]]; /* 9.14: Arena + Biblionär statt „Zusammen“ (VIEWS.zusammen bleibt im Code, ist aber nicht mehr im Menü) */
+const TABS = [["home", "Start", "sun"], ["lernen", "Lektionen", "book"], ["spielen", "Solo", "user"], ["bib", "Biblionär", "biblionaer"], ["duelle", "Arena", "arena"], ["rank", "Rangliste", "trophy"]]; /* 9.14: Arena + Biblionär statt „Zusammen“ (VIEWS.zusammen bleibt im Code, ist aber nicht mehr im Menü) */
 const TAB_VON = { stift: "rank", advent: "home", beth: "home", kal: "home", duell: "duelle", zusammen: "duelle", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen", biblionaer: "bib",
   bib: "bib", gemverwaltung: "", gegner: "duelle", duelle: "duelle", rank: "rank", shop: "rank", ich: "", profil: "", stat: "", badges: "", wer: "", postfach: "", neuigkeiten: "", nachrichten: "" };
 /* rote Zahl am Duell-Reiter: wartende Herausforderungen */
@@ -1629,7 +1629,7 @@ VIEWS.home = () => {
   const ni = naechsteLektion(), duN = duFuerMich().length;
   /* Seit 6.43: vier gleich große Felder (2×2) – Lernen, Spielen, Biblionär, Arena */
   const felder = [
-    { go: "lernen", ar: "lernen", ic: svg("book"), t: "Lernen", info: `<b>${geschafft}/${GROUPS.length}</b> · ${ni >= 0 ? esc(GROUPS[ni].name) : "Alles geschafft!"}`, ecke: "" },
+    { go: "lernen", ar: "lernen", ic: svg("book"), t: "Lektionen", info: `<b>${geschafft}/${GROUPS.length}</b> · ${ni >= 0 ? esc(GROUPS[ni].name) : "Alles geschafft!"}`, ecke: "" },
     { go: "spielen", ar: "spielen", ic: svg("bolt"), t: "Spielen", info: S.bestBlitz ? `Blitz · Kette · Lücke<br>Rekord <b>${S.bestBlitz}</b>` : "Blitz · Kette · Lücke", ecke: "" },
     { go: "bib", ar: "bib", ic: svg("biblionaer"), t: "Biblionär", info: S.bibRekord ? `Rekord <b>${pkt(S.bibRekord)}</b>` : "15 Fragen zur Million", ecke: "" },
     { id: "torDuell", ar: "arena", ic: `<span class="sf-logo">${DUELL_LOGO}</span>`, t: "Arena", info: duN ? `<b>${duN}</b> ${duN === 1 ? "Duell wartet" : "Duelle warten"}` : "Fordere jemanden heraus", ecke: duN ? `<i class="du-punkt">${duN}</i>` : "" }];
@@ -1670,8 +1670,8 @@ VIEWS.home = () => {
     <div class="start-vers">${MONATSVERSE[monatKey()] ? lvKarte(monatKey()) : `<button class="vers-zeile" id="versZeile" aria-expanded="false">${versHtml(vKey, "tag klein")}<span class="vz-mehr">mehr</span></button>`}</div>
     ${bkLabel("play", "Los geht's")}
     <div class="ez-liste">
-      ${ezZeile("lernen", "lernen", svg("book"), "Lernen", ni >= 0 ? `Weiter mit: ${esc(GROUPS[ni].name)}` : "Lektionen, Lernvers, Lied")}
-      ${ezZeile("spielen", "spielen", svg("user"), "Allein spielen", "Blitz, Kette, Lücke")}
+      ${ezZeile("lernen", "lernen", svg("book"), "Lektionen", ni >= 0 ? `Weiter mit: ${esc(GROUPS[ni].name)}` : "Lektionen, Lernvers, Lied")}
+      ${ezZeile("spielen", "spielen", svg("user"), "Solo spielen", "Blitz, Ketten, Lernvers")}
       ${ezZeile("bib", "bib", svg("biblionaer"), "Biblionär", S.bibRekord ? `Rekord ${pkt(S.bibRekord)}` : "15 Fragen zur Million")}
       ${ezZeile("duelle", "gemeinde", DUELL_LOGO, "Arena", duN ? (duN === 1 ? "1 Duell wartet auf dich" : `${duN} Duelle warten auf dich`) : "Fordere jemanden heraus", duN ? `<span class="ez-zahl" aria-label="${duN} ${duN === 1 ? "Duell wartet" : "Duelle warten"}">${duN}</span>` : "")}
     </div>
@@ -1702,7 +1702,7 @@ VIEWS.lernen = (teil) => {
   const sterne = Object.values(S.stars).reduce((a, b) => a + b, 0);
   const lektion = (g, i) => { const st = S.stars[i] || 0, jetzt = i === ni; return `<button class="lek ${st ? "done" : ""} ${jetzt ? "jetzt" : ""}" data-go="lektion" data-arg="${i}"><span class="lek-nr" aria-label="Lektion ${i + 1}">${svg("lek-" + (i + 1))}</span><span class="lek-tx"><b>${g.name}</b><span>${g.books.length} Bücher · ${g.books[0]} – ${g.books[g.books.length - 1]}</span></span>${jetzt ? `<span class="jetzt-chip">${st ? "Sterne holen" : "Weiter"} ›</span>` : `<span class="stars">${STAR(st >= 1)}${STAR(st >= 2)}${STAR(st >= 3)}</span>`}</button>`; };
   const at = lernTeil === "at", P = at ? atP : ntP, T = at ? AT_TITEL : NT_TITEL;
-  screen.innerHTML = `${bereichKopf("lernen", { ic: "book", t: "Lernen", sub: ni >= 0 ? `Weiter mit: ${esc(GROUPS[ni].name)}` : "Alles geschafft!", ring: [sterne, sterne === 1 ? "Stern" : "Sterne"],
+  screen.innerHTML = `${bereichKopf("lernen", { ic: "book", t: "Lektionen", sub: ni >= 0 ? `Weiter mit: ${esc(GROUPS[ni].name)}` : "Alles geschafft!", ring: [sterne, sterne === 1 ? "Stern" : "Sterne"],
     tafel: [[atP + "%", "AT"], [ntP + "%", "NT"], [`${S.songHeard.length}/8`, "Lied"]],
     knopf: ni >= 0 ? { ic: "book", t: "Weiterlernen", attr: `data-go="lektion" data-arg="${ni}"` } : null })}
   ${bkLabel("book", "Lektionen")}
@@ -1753,19 +1753,17 @@ function spielMenue(zus) {
     ${bkLabel("scroll", "Themen-Ketten")}<div class="sp-gitter">${Object.entries(TKETTEN).map(([id, k]) => { const n = Math.min(k.items.length, S[k.key] ? S[k.key] + 1 : 0); return spKachel(zus ? `data-dtyp="kette-${id}"` : `data-tk="${id}"`, svg(k.ic), k.name, n ? `${n} von ${k.items.length}` : "Los geht's!", "sp-ketten", n / k.items.length * 100); }).join("")}</div>
     ${bkLabel("bolt", "Blitz")}
     ${sp("blitz", 'data-go="blitz"', "bolt", "Blitz-Runde")}
-    ${bkLabel("biblionaer", "Wer wird Biblionär?")}
-    ${sp("quiz", 'id="alleinBib"', "biblionaer", "Biblionär")}
+    ${zus ? `${bkLabel("biblionaer", "Biblionär")}${sp("quiz", 'id="alleinBib"', "biblionaer", "Biblionär")}` : ""}
     ${bkLabel("scroll", "Lernvers")}
     ${sp("vers", 'data-go="verslektion"', "scroll", "Lernvers")}
-    ${zus ? "" : `${bkLabel("music", "Lied")}${sp("", 'data-go="gap" data-arg="alle"', "music", "Lied-Lückenquiz")}`}
   </div>`;
 }
 VIEWS.spielen = () => {
-  screen.innerHTML = `${bereichKopf("spielen", { ic: "user", t: "Allein", sub: "Wie weit kommst du heute?" })}${spielMenue(false)}`;
+  screen.innerHTML = `${bereichKopf("spielen", { ic: "user", t: "Solo", sub: "Wie weit kommst du heute?" })}${spielMenue(false)}`;
   wireGo();
   screen.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playChain(b.dataset.k)); });
   screen.querySelectorAll("[data-tk]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playThemenKette(b.dataset.tk)); });
-  $("alleinBib").onclick = () => { SFX.tap(); bibSolo(weihAktiv()); };
+  if ($("alleinBib")) $("alleinBib").onclick = () => { SFX.tap(); bibSolo(weihAktiv()); };
 };
 
 /* ---------- 8.2: Bereich „Zusammen“ – Schritt 1: Spiel wählen (genau wie bei Allein), Schritt 2 (Ansicht „gegner“): nur noch der Gegner ---------- */
@@ -1866,7 +1864,7 @@ VIEWS.path = VIEWS.lernen; VIEWS.stage = VIEWS.lektion;
 VIEWS.bibelsong = () => go("lied"); /* alter Link → Lied */
 VIEWS.lied = () => {
   aufnahmenPruefen();
-  let html = `${backBtn("lernen", "Lernen")}<h1>In des Alten Bundes Schriften</h1>
+  let html = `${backBtn("lernen", "Lektionen")}<h1>In des Alten Bundes Schriften</h1>
   <div class="card stack">
     <p class="small muted" style="margin:0">Traditioneller Merkvers, angepasst an die Reihenfolge der Schlachter 2000 (<span class="neu">so markiert</span>). Die App singt ihn mit einer eigenen, flotten Melodie – die gesungene Zeile und das Buch leuchten mit. Farben: <span class="bk-geschichte">Geschichte</span>, <span class="bk-lehre">Lehre &amp; Poesie</span>, <span class="bk-prophetie">Prophetie</span>.</p>
     <div class="row-btns">
@@ -2199,7 +2197,7 @@ function playThemenKette(id) {
 
 /* ---------- Spickzettel ---------- */
 VIEWS.learn = () => {
-  let n = 0, html = `${backBtn("lernen", "Lernen")}<h1>Spickzettel</h1>
+  let n = 0, html = `${backBtn("lernen", "Lektionen")}<h1>Spickzettel</h1>
   <p class="muted small" style="margin:0 0 12px">Tippe ein Buch an, um es zu verdecken. Oder verdecke alle und prüfe dich selbst.</p>
   <div class="topline" style="margin-bottom:12px"><button class="btn" id="hideAll">Alle verdecken</button><button class="btn ghost" id="showAll">Alle zeigen</button></div><div class="card stack">`;
   GROUPS.forEach((g, gi) => {
@@ -3468,7 +3466,7 @@ const DU_TYPEN = {
   "kette-rueck": { art: "kette", k: "rueck", name: "Rückwärts", ic: "kette-rueck", info: "Offenbarung bis 1. Mose · für Profis" },
   "kette-gebote": { art: "kette", k: "gebote", name: "Zehn Gebote", ic: "scroll", info: "2. Mose 20,3–17 · ein Fehler beendet sie" },
   "kette-schoepfung": { art: "kette", k: "schoepfung", name: "Schöpfung", ic: "sun", info: "Die sieben Schöpfungstage · ein Fehler beendet sie" },
-  quiz: { art: "quiz", k: "leiter", name: "Wer wird Biblionär?", kurz: "Biblionär", ic: "biblionaer", info: "15 Bibelfragen bis 1 Million Punkte · 3 Joker · Aussteigen erlaubt" }
+  quiz: { art: "quiz", k: "leiter", name: "Biblionär", kurz: "Biblionär", ic: "biblionaer", info: "15 Bibelfragen bis 1 Million Punkte · 3 Joker · Aussteigen erlaubt" }
 };
 let duListe = null, duFehler = "", duSpiel = null, duWahl = false, duGegner = null, duSuche = "", duAlle = false;
 /* Mehrfach-Herausforderung (6.44): bis zu 10 Gegner auf einmal – jeder bekommt ein eigenes Duell mit denselben Fragen */
@@ -4040,7 +4038,7 @@ async function duEnde() {
   if (!aufl) xpGeben(350);
 }
 
-/* ---------- „Wer wird Biblionär?“ (v6.40) ----------
+/* ---------- Biblionär (v6.40) ----------
    15 Bibelfragen (5 leicht, 5 mittel, 5 schwer) mit Gewinnleiter wie im Fernsehen, 3 Joker, Aussteigen ab Frage 2.
    Drei Wege ins Spiel: Arena-Duell (gleiche Fragen über den Startwert), Solo-Übung (Spielen) und
    „Biblionär der Woche“ (gleiche Fragen für alle in dieser Kalenderwoche, ein Versuch, Rangliste unter Gemeinde). */
@@ -4099,7 +4097,7 @@ function bibZeige(G) {
   if (G.modus !== "duell" && current !== "biblionaer") return;
   const f = G.fragen[G.i], halb = G.halbBei === G.i;
   const lang = f.opts.some(o => o.length > 22);
-  const titel = G.modus === "duell" ? `${G.weih ? "Weihnachts-Duell" : "Duell"} gegen ${esc(G.gegner)}` : G.modus === "woche" ? `Biblionär der Woche · ${weekKey().split("-W")[1]}. KW` : G.modus === "advent" ? `Weihnachts-Biblionär · ${advRundeName(G.adv)}` : G.weih ? "Weihnachts-Biblionär" : "Wer wird Biblionär?";
+  const titel = G.modus === "duell" ? `${G.weih ? "Weihnachts-Duell" : "Duell"} gegen ${esc(G.gegner)}` : G.modus === "woche" ? `Biblionär der Woche · ${weekKey().split("-W")[1]}. KW` : G.modus === "advent" ? `Weihnachts-Biblionär · ${advRundeName(G.adv)}` : G.weih ? "Weihnachts-Biblionär" : "Biblionär";
   screen.innerHTML = `<div class="vl bib">
     <div class="vl-kopf"><button class="vl-x" id="bibX" aria-label="Spiel abbrechen">${svg("back")}</button>
       <button class="bib-leiste" id="bibLeiter" aria-label="Gewinnleiter ansehen"><span>Frage ${G.i + 1}/15</span><b>${pkt(BIB_LEITER[G.i])}</b></button></div>
@@ -4188,7 +4186,7 @@ function bibZeige(G) {
     SFX.tap();
     const text = G.modus === "duell" ? (G.neu ? "Die Herausforderung wird dann nicht gesendet." : "Du kannst später noch einmal neu anfangen.")
       : (G.modus === "woche" || G.modus === "advent") ? "Die Runde hat nur einen Versuch. Wenn du abbrichst, zählt sie mit 0 Punkten." : "Dein Fortschritt in dieser Runde geht verloren.";
-    modal(`<div class="label">Spiel abbrechen?</div><h2>Wer wird Biblionär?</h2><p class="muted">${text}</p><button class="btn primary" data-close="weiter">Weiterspielen</button><button class="btn ghost" data-close="ende">Abbrechen</button>`,
+    modal(`<div class="label">Spiel abbrechen?</div><h2>Biblionär</h2><p class="muted">${text}</p><button class="btn primary" data-close="weiter">Weiterspielen</button><button class="btn ghost" data-close="ende">Abbrechen</button>`,
       r => { if (r !== "ende") return; fertig = true; G.abgeschlossen = true; clearTimers();
         if (G.modus === "duell") { duSpiel = null; go(G.heim || heimAnsicht("duelle")); }
         else if (G.modus === "woche") { G.gewonnen = 0; G.fertigGrund = "abbruch"; bibErgebnis(G, 0); go("rank", "bibWoche"); }
@@ -4685,8 +4683,7 @@ VIEWS.bib = () => {
       <span><b class="bq2-j5">50:50</b><span><b>Halbieren</b><small>2 falsche weg</small></span></span>
       <span>${svg("people")}<span><b>Gemeinde</b><small>alle stimmen ab</small></span></span>
       <span>${svg("telefon")}<span><b>Telefon</b><small>${jokerBeschreibung()}</small></span></span>
-    </div>
-    <button class="bq2-fuss" data-go="rank" data-arg="bibRekord">${svg("trophy")}<span>Joker je 1× pro Spiel · Bestenliste</span><b>Rangliste ›</b></button>`;
+    </div>`;
   wireGo();
   $("bqSolo").onclick = () => { SFX.tap(); bibSolo(weihAktiv()); };
   weihSchalterWire(() => VIEWS.bib());

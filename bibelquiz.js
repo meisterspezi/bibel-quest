@@ -1,4 +1,4 @@
-/* „Wer wird Biblionär?“ – Fragenpool (Schlachter 2000, Stand Version 6.52)
+/* Biblionär – Fragenpool (Schlachter 2000, Stand Version 6.52)
    Aufbau je Frage: { f: Frage, a: [richtig, falsch, falsch, falsch], ref: Bibelstelle, st: Schwierigkeit 1–3 }
    Die richtige Antwort steht immer zuerst; die App mischt die Reihenfolge (im Duell und in der Wochenrunde mit gemeinsamem Startwert).
    Achtung: Wer Fragen ändert, ändert die Fragen laufender Duelle und der laufenden Wochenrunde – neue Fragen darum am besten montags ergänzen.
