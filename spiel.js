@@ -2172,12 +2172,12 @@ const TK_BILD = {
 /* Gebote 2, 3, 6, 8 sind Verbote: rote Streichung darüber */
 [1, 2, 5, 7].forEach(k => { TK_BILD.gebote[k] = TK_BILD.gebote[k].replace("<!--v-->", TK_VERBOT); });
 const tkBildSvg = (id, k) => `<svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">${TK_BILD[id][k]}</svg>`;
-/* Zeitleiste: alles grau, bis die Frage richtig beantwortet ist; ziel = das Glied, das gerade gefragt wird; neu = gerade aufgedecktes Glied */
+/* Zeitleiste: leere Felder (keine Vorschau, die die Antwort verraten würde), bis die Frage richtig beantwortet ist; ziel = das Glied, das gerade gefragt wird; neu = gerade aufgedecktes Glied */
 function tkZeitleiste(id, erreicht, ziel, neu) {
   const K = TKETTEN[id], n = K.items.length;
   return `<div class="tk-zl tk-${id}" style="--n:${n}" role="list" aria-label="${esc(K.name)}">${K.items.map((x, k) => {
     const auf = k <= erreicht, kl = ["tk-t", auf ? "auf" : "zu", k === ziel ? "ziel" : "", k === neu ? "neu" : ""].filter(Boolean).join(" ");
-    return `<div class="${kl}" role="listitem" aria-label="${esc(K.sub(k))}${auf ? ": " + esc(x.t) : ""}"><span class="tk-bild">${tkBildSvg(id, k)}</span><b>${id === "gebote" ? k + 1 + "." : "Tag " + (k + 1)}</b></div>`;
+    return `<div class="${kl}" role="listitem" aria-label="${esc(K.sub(k))}${auf ? ": " + esc(x.t) : ""}"><span class="tk-bild">${auf ? tkBildSvg(id, k) : ""}</span><b>${id === "gebote" ? k + 1 + "." : "Tag " + (k + 1)}</b></div>`;
   }).join("")}</div>`;
 }
 
