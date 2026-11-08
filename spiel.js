@@ -1477,6 +1477,13 @@ function optsSeq(seq, pos) {
 }
 const FWD = ALL.map((_, i) => i);
 const makeOpts = i => optsSeq(FWD, i);
+/* 9.12: Auch das erste Glied der Kette muss erraten werden („Womit beginnt …?“) – Antworten: das richtige und drei andere Glieder der Kette */
+const KETTE_START = { bibel: "Womit beginnt die Bibel?", at: "Womit beginnt das Alte Testament?", nt: "Womit beginnt das Neue Testament?", rueck: "Welches Buch steht am Ende der Bibel?" };
+function optsStart(seq) {
+  const correct = ALL[seq[0]].b;
+  const rest = shuffle(seq.slice(1).map(k => ALL[k].b).filter(t => t !== correct)).slice(0, 3);
+  return shuffle([correct, ...rest]);
+}
 
 /* ---------- Lied: Darstellung ---------- */
 /* Zeile als HTML; luecke = Segment-Index, der als Lücke erscheint */
@@ -1742,7 +1749,7 @@ function spielMenue(zus) {
   return `<div class="sp-menue" style="--ar:var(--ar-${zus ? "gemeinde" : "spielen"})">
     ${bkLabel("link", "Kette")}
     <div class="sp-gitter">${kette}</div>
-    ${zus ? "" : `${bkLabel("scroll", "Themen-Ketten")}<div class="sp-gitter">${Object.entries(TKETTEN).map(([id, k]) => { const n = Math.min(k.items.length, S[k.key] ? S[k.key] + 1 : 0); return spKachel(`data-tk="${id}"`, svg(k.ic), k.name, n ? `${n} von ${k.items.length}` : "Los geht's!", "sp-ketten", n / k.items.length * 100); }).join("")}</div>`}
+    ${bkLabel("scroll", "Themen-Ketten")}<div class="sp-gitter">${Object.entries(TKETTEN).map(([id, k]) => { const n = Math.min(k.items.length, S[k.key] ? S[k.key] + 1 : 0); return spKachel(zus ? `data-dtyp="kette-${id}"` : `data-tk="${id}"`, svg(k.ic), k.name, n ? `${n} von ${k.items.length}` : "Los geht's!", "sp-ketten", n / k.items.length * 100); }).join("")}</div>
     ${bkLabel("bolt", "Blitz")}
     ${sp("blitz", 'data-go="blitz"', "bolt", "Blitz-Runde")}
     ${bkLabel("biblionaer", "Wer wird Biblionär?")}
@@ -1766,11 +1773,7 @@ VIEWS.zusammen = () => {
   screen.innerHTML = `${bereichKopf("gemeinde", { ic: "people", t: "Zusammen", sub: duN ? `${duN} ${duN === 1 ? "Duell wartet" : "Duelle warten"} auf dich!` : "Mit der Gemeinde spielen" })}
   ${online ? "" : `<p class="small muted zus-hinweis">${window.LB && window.LB.ok ? "Für Duelle brauchst du einen Eintrag in der Gemeinde-Rangliste." : "Für Duelle brauchst du Internet."}</p>`}
   ${dran}
-  <div class="${online ? "" : "sp-aus"}">${spielMenue(true)}</div>
-  ${dran ? "" : `${bkLabel("people", "Gemeinde")}
-  <div class="sp-duo sp-breit" style="--ar:var(--ar-gemeinde)">
-    <button class="bereich klein sp-k" data-go="duelle"><span class="b-ic"><span class="sf-logo">${DUELL_LOGO}</span></span><span class="b-tx"><b>Duelle</b><span>${duN ? `${duN} ${duN === 1 ? "wartet" : "warten"} auf dich` : "Alle Duelle"}</span></span>${duN ? `<i class="sp-zahl">${duN}</i>` : ""}</button>
-  </div>`}`;
+  <div class="${online ? "" : "sp-aus"}">${spielMenue(true)}</div>`;
   wireGo(); duDranVerdrahten();
   screen.querySelectorAll("[data-dtyp]").forEach(b => b.onclick = () => { SFX.tap(); if (!online) { toast(`${svg("duell", "var(--muted)")}<div>Für Duelle brauchst du Internet und einen Eintrag in der Rangliste.</div>`); return; }
     S.duTyp = b.dataset.dtyp; duAuswahl = []; duSuche = ""; save(); go("gegner"); });
@@ -2063,18 +2066,19 @@ VIEWS._chainAlt = () => {
   screen.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playChain(b.dataset.k)); });
 };
 function playChain(mode) {
-  const K = KETTEN[mode], seq = K.seq; let i = 0, xp = 0, lock = false; const t0 = Date.now();
+  const K = KETTEN[mode], seq = K.seq; let i = -1, xp = 0, lock = false; const t0 = Date.now();
   screen.innerHTML = `<div class="stack"><div class="topline"><span><span id="cp">1</span> / ${seq.length}</span><span class="small muted">${K.name}</span><span id="cx">0 XP</span></div>
   <div class="progress"><i id="cbar"></i></div>
-  <div class="card stack"><div class="qsub">${K.rueck ? "Was steht davor?" : "Was kommt nach"}</div><div class="q" id="cq"></div><div class="qsub" id="cm"></div>
+  <div class="card stack"><div class="qsub" id="cs">${K.rueck ? "Was steht davor?" : "Was kommt nach"}</div><div class="q" id="cq"></div><div class="qsub" id="cm"></div>
     <div class="combo" id="cc"></div><div class="opts" id="co"></div></div>
   <div class="topline" style="justify-content:flex-end"><button class="btn ghost mini" data-go="${heimAnsicht("spielen")}">Abbrechen</button></div></div>`;
   wireGo(); show();
   function show() {
     lock = false;
-    const b = seq[i]; $("cq").textContent = ALL[b].b; $("cm").textContent = `${ALL[b].t === "AT" ? "Altes" : "Neues"} Testament · ${GROUPS[ALL[b].gi].name}`;
-    $("cp").textContent = i + 1; $("cbar").style.width = (i / (seq.length - 1) * 100) + "%";
-    const o = $("co"); o.innerHTML = ""; optsSeq(seq, i).forEach(t => { const btn = document.createElement("button"); btn.className = "opt"; btn.textContent = t; btn.onclick = () => ans(btn, t); o.appendChild(btn); });
+    $("cp").textContent = i + 2; $("cbar").style.width = ((i + 1) / (seq.length - 1) * 100) + "%";
+    if (i < 0) { $("cs").textContent = KETTE_START[mode]; $("cq").textContent = ""; $("cm").textContent = K.info; }
+    else { const b = seq[i]; $("cs").textContent = K.rueck ? "Was steht davor?" : "Was kommt nach"; $("cq").textContent = ALL[b].b; $("cm").textContent = `${ALL[b].t === "AT" ? "Altes" : "Neues"} Testament · ${GROUPS[ALL[b].gi].name}`; }
+    const o = $("co"); o.innerHTML = ""; (i < 0 ? optsStart(seq) : optsSeq(seq, i)).forEach(t => { const btn = document.createElement("button"); btn.className = "opt"; btn.textContent = t; btn.onclick = () => ans(btn, t); o.appendChild(btn); });
   }
   function ans(btn, t) {
     if (lock) return; const correct = ALL[seq[i + 1]].b;
@@ -2093,52 +2097,54 @@ function playChain(mode) {
   }
   function done(full, correct) {
     const rec = i > (S[K.key] || 0); if (rec) S[K.key] = i;
-    let tal = Math.floor(i / 10) + (full ? K.tal : 0); if (full) xp += K.bonus;
+    let tal = Math.floor(Math.max(0, i) / 10) + (full ? K.tal : 0); if (full) xp += K.bonus;
     const W = spielWdh("kette-" + mode); xp = wdhMal(xp, W); tal = wdhMal(tal, W);
     quest("ketteGespielt", 1); quest("runde", 1);
     const sieg = full ? meisterErfolg(mode) : null;
-    const vorher = ALL[seq[i]].b;
+    const vorher = i < 0 ? "" : ALL[seq[i]].b;
     screen.innerHTML = `<div class="card result stack"><div class="label">${full ? "Großartig" : "Kette gerissen"}</div><div class="big">${i + 1} / ${seq.length}</div>
-      <div class="muted">${full ? `${esc(K.name)} komplett in der richtigen Reihenfolge!` : `${K.rueck ? "Vor" : "Nach"} „${esc(vorher)}“ ${K.rueck ? "steht" : "kommt"} „${esc(correct)}“.`}</div>${rec && !full ? '<h2>Neuer Rekord!</h2>' : ''}
+      <div class="muted">${full ? `${esc(K.name)} komplett in der richtigen Reihenfolge!` : i < 0 ? `${esc(KETTE_START[mode])} „${esc(correct)}“.` : `${K.rueck ? "Vor" : "Nach"} „${esc(vorher)}“ ${K.rueck ? "steht" : "kommt"} „${esc(correct)}“.`}</div>${rec && !full ? '<h2>Neuer Rekord!</h2>' : ''}
       ${!full && BUCH_IM_LIED[seq[i + 1]] ? `<div class="hilfe"><div class="label">So geht's im Lied</div>${singBox(zeileHtml(BUCH_IM_LIED[seq[i + 1]].v, BUCH_IM_LIED[seq[i + 1]].l))}</div>` : ""}
       ${sieg ? `<div class="siegel-box">${siegelHtml(sieg.nachher, true, true)}<div><b>${SIEGEL[sieg.nachher].name}-Siegel</b><div class="small muted">${sieg.nachher < 4 ? "Nächstes: " + SIEGEL[sieg.nachher + 1].name + " – " + SIEGEL[sieg.nachher + 1].text : "Höchste Stufe!"}<br>Bleibt ${SIEGEL_FRISCH} Tage frisch – danach einfach wiederholen.</div></div></div>` : ""}
       <div class="rewards"><span class="pill">+${xp} XP</span><span class="pill">+${tal + (sieg ? sieg.tal : 0)} Talente</span></div>${W.hinweis}
       <button class="btn primary" id="cagain">Nochmal</button><button class="btn ghost" data-go="${heimAnsicht("spielen")}">Andere Kette</button></div>`; wireGo(); wireSing();
     $("cagain").onclick = () => { SFX.tap(); vorlesenStop(); countdown(() => playChain(mode)); };
     if (full) { SFX.level(); rain(200); } else if (rec) SFX.win();
-    if (xp) addXp(xp, null, "kette", { t0, f: i, fm: seq.length - 1, d: `${K.name}${full ? " · komplett" : " · gerissen"}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
+    if (xp) addXp(xp, null, "kette", { t0, f: Math.max(0, i), fm: seq.length - 1, d: `${K.name}${full ? " · komplett" : " · gerissen"}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
   }
 }
 
 /* ---------- 9.11: Themen-Ketten – feste Reihenfolge mit klarer biblischer Grundlage (Zehn Gebote, Schöpfungstage) ----------
    Wie die Buch-Ketten: immer das, was als Nächstes kommt – ein Fehler beendet die Kette. Rekord je Kette in S[key] (Index des letzten richtigen Gliedes). */
 const TKETTEN = {
-  gebote: { name: "Zehn Gebote", info: "2. Mose 20,3–17", key: "chainGebote", bonus: 30, tal: 8, ic: "scroll", frage: "Welches Gebot kommt nach", sub: n => `${n + 1}. Gebot`,
+  gebote: { name: "Zehn Gebote", info: "2. Mose 20,3–17", key: "chainGebote", bonus: 30, tal: 8, ic: "scroll", frage: "Welches Gebot kommt nach", start: "Wie lautet das 1. Gebot?", sub: n => `${n + 1}. Gebot`,
     items: [
       { t: "Keine anderen Götter neben dem HERRN", r: "2. Mose 20,3" }, { t: "Kein Götzenbild machen", r: "2. Mose 20,4–6" }, { t: "Den Namen des HERRN nicht missbrauchen", r: "2. Mose 20,7" },
       { t: "Den Sabbat heiligen", r: "2. Mose 20,8–11" }, { t: "Vater und Mutter ehren", r: "2. Mose 20,12" }, { t: "Nicht töten", r: "2. Mose 20,13" },
       { t: "Nicht die Ehe brechen", r: "2. Mose 20,14" }, { t: "Nicht stehlen", r: "2. Mose 20,15" }, { t: "Kein falsches Zeugnis reden", r: "2. Mose 20,16" }, { t: "Nicht begehren, was dem Nächsten gehört", r: "2. Mose 20,17" }] },
-  schoepfung: { name: "Schöpfung", info: "Die sieben Schöpfungstage · 1. Mose 1,1–2,3", key: "chainSchoepfung", bonus: 24, tal: 6, ic: "sun", frage: "Was folgt auf", sub: n => `${n + 1}. Tag`,
+  schoepfung: { name: "Schöpfung", info: "Die sieben Schöpfungstage · 1. Mose 1,1–2,3", key: "chainSchoepfung", bonus: 24, tal: 6, ic: "sun", frage: "Was folgt auf", start: "Was schuf Gott am 1. Tag?", sub: n => `${n + 1}. Tag`,
     items: [
       { t: "Licht und Finsternis", r: "1. Mose 1,3–5" }, { t: "Himmelsfeste: Wasser oben und unten", r: "1. Mose 1,6–8" }, { t: "Land, Meer und Pflanzen", r: "1. Mose 1,9–13" },
       { t: "Sonne, Mond und Sterne", r: "1. Mose 1,14–19" }, { t: "Fische und Vögel", r: "1. Mose 1,20–23" }, { t: "Landtiere und der Mensch", r: "1. Mose 1,24–31" }, { t: "Gott ruht", r: "1. Mose 2,2–3" }] }
 };
 function playThemenKette(id) {
-  const K = TKETTEN[id], seq = K.items; let i = 0, xp = 0, lock = false; const t0 = Date.now();
+  const K = TKETTEN[id], seq = K.items; let i = -1, xp = 0, lock = false; const t0 = Date.now();
   screen.innerHTML = `<div class="stack"><div class="topline"><span><span id="cp">1</span> / ${seq.length}</span><span class="small muted">${esc(K.name)}</span><span id="cx">0 XP</span></div>
   <div class="progress"><i id="cbar"></i></div>
-  <div class="card stack"><div class="qsub">${K.frage}</div><div class="q" id="cq"></div><div class="qsub" id="cm"></div>
+  <div class="card stack"><div class="qsub" id="cs">${K.frage}</div><div class="q" id="cq"></div><div class="qsub" id="cm"></div>
     <div class="combo" id="cc"></div><div class="opts" id="co"></div></div>
   <div class="topline" style="justify-content:flex-end"><button class="btn ghost mini" data-go="${heimAnsicht("spielen")}">Abbrechen</button></div></div>`;
   wireGo(); show();
   function opts() {
+    if (i < 0) return shuffle([seq[0].t, ...shuffle(seq.slice(1).map(x => x.t)).slice(0, 3)]);
     const richtig = seq[i + 1].t, rest = shuffle(seq.map(x => x.t).filter(t => t !== richtig && t !== seq[i].t)).slice(0, 3);
     return shuffle([richtig, ...rest]);
   }
   function show() {
     lock = false;
-    $("cq").textContent = seq[i].t; $("cm").textContent = `${K.sub(i)} · ${seq[i].r}`;
-    $("cp").textContent = i + 1; $("cbar").style.width = (i / (seq.length - 1) * 100) + "%";
+    if (i < 0) { $("cs").textContent = K.start; $("cq").textContent = ""; $("cm").textContent = K.info; }
+    else { $("cs").textContent = K.frage; $("cq").textContent = seq[i].t; $("cm").textContent = `${K.sub(i)} · ${seq[i].r}`; }
+    $("cp").textContent = i + 2; $("cbar").style.width = ((i + 1) / (seq.length - 1) * 100) + "%";
     const o = $("co"); o.innerHTML = ""; opts().forEach(t => { const btn = document.createElement("button"); btn.className = "opt"; btn.textContent = t; btn.onclick = () => ans(btn, t); o.appendChild(btn); });
   }
   function ans(btn, t) {
@@ -2156,16 +2162,16 @@ function playThemenKette(id) {
   }
   function done(full, correct) {
     const rec = i > (S[K.key] || 0); if (rec) S[K.key] = i;
-    let tal = Math.floor(i / 5) + (full ? K.tal : 0); if (full) xp += K.bonus;
+    let tal = Math.floor(Math.max(0, i) / 5) + (full ? K.tal : 0); if (full) xp += K.bonus;
     const W = spielWdh("tk-" + id); xp = wdhMal(xp, W); tal = wdhMal(tal, W);
     quest("ketteGespielt", 1); quest("runde", 1);
     screen.innerHTML = `<div class="card result stack"><div class="label">${full ? "Großartig" : "Kette gerissen"}</div><div class="big">${i + 1} / ${seq.length}</div>
-      <div class="muted">${full ? `${esc(K.name)} komplett in der richtigen Reihenfolge! (${esc(K.info)})` : `Nach „${esc(seq[i].t)}“ kommt „${esc(correct)}“ (${esc(seq[i + 1].r)}).`}</div>${rec && !full ? "<h2>Neuer Rekord!</h2>" : ""}
+      <div class="muted">${full ? `${esc(K.name)} komplett in der richtigen Reihenfolge! (${esc(K.info)})` : i < 0 ? `${esc(K.start)} „${esc(correct)}“ (${esc(seq[0].r)}).` : `Nach „${esc(seq[i].t)}“ kommt „${esc(correct)}“ (${esc(seq[i + 1].r)}).`}</div>${rec && !full ? "<h2>Neuer Rekord!</h2>" : ""}
       <div class="rewards"><span class="pill">+${xp} XP</span><span class="pill">+${tal} Talente</span></div>${W.hinweis}
       <button class="btn primary" id="cagain">Nochmal</button><button class="btn ghost" data-go="${heimAnsicht("spielen")}">Andere Kette</button></div>`; wireGo();
     $("cagain").onclick = () => { SFX.tap(); countdown(() => playThemenKette(id)); };
     if (full) { SFX.level(); rain(200); } else if (rec) SFX.win();
-    if (xp) addXp(xp, null, "kette", { t0, f: i, fm: seq.length - 1, d: `${K.name}${full ? " · komplett" : " · gerissen"}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
+    if (xp) addXp(xp, null, "kette", { t0, f: Math.max(0, i), fm: seq.length - 1, d: `${K.name}${full ? " · komplett" : " · gerissen"}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
   }
 }
 
@@ -3415,6 +3421,8 @@ const DU_TYPEN = {
   "kette-at": { art: "kette", k: "at", name: "Kette AT", ic: "kette-at", info: "1. Mose bis Maleachi · ein Fehler beendet sie" },
   "kette-nt": { art: "kette", k: "nt", name: "Kette NT", ic: "kette-nt", info: "Matthäus bis Offenbarung · ein Fehler beendet sie" },
   "kette-rueck": { art: "kette", k: "rueck", name: "Rückwärts", ic: "kette-rueck", info: "Offenbarung bis 1. Mose · für Profis" },
+  "kette-gebote": { art: "kette", k: "gebote", name: "Zehn Gebote", ic: "scroll", info: "2. Mose 20,3–17 · ein Fehler beendet sie" },
+  "kette-schoepfung": { art: "kette", k: "schoepfung", name: "Schöpfung", ic: "sun", info: "Die sieben Schöpfungstage · ein Fehler beendet sie" },
   quiz: { art: "quiz", k: "leiter", name: "Wer wird Biblionär?", kurz: "Biblionär", ic: "biblionaer", info: "15 Bibelfragen bis 1 Million Punkte · 3 Joker · Aussteigen erlaubt" }
 };
 let duListe = null, duFehler = "", duSpiel = null, duWahl = false, duGegner = null, duSuche = "", duAlle = false;
@@ -3509,8 +3517,12 @@ function duFragen(seed, art, k, stand, weih) {
   if (art === "quiz") { Math.random = alt; return bibFragen(seed, stand, weih ? ADV_ALLE_FRAGEN : null); }
   try {
     if (art === "kette") {
+      if (TKETTEN[k]) { const T = TKETTEN[k], it = T.items;
+        return [{ start: T.start, opts: shuffle([it[0].t, ...shuffle(it.slice(1).map(x => x.t)).slice(0, 3)]), loesung: it[0].t },
+          ...it.slice(0, -1).map((_, pos) => ({ buch: it[pos].t, label: T.frage, opts: shuffle([it[pos + 1].t, ...shuffle(it.map(x => x.t).filter(t => t !== it[pos + 1].t && t !== it[pos].t)).slice(0, 3)]), loesung: it[pos + 1].t }))]; }
       const seq = (KETTEN[k] || KETTEN.bibel).seq;
-      return seq.slice(0, -1).map((_, pos) => ({ buch: ALL[seq[pos]].b, opts: optsSeq(seq, pos), loesung: ALL[seq[pos + 1]].b }));
+      return [{ start: KETTE_START[k] || KETTE_START.bibel, opts: optsStart(seq), loesung: ALL[seq[0]].b },
+        ...seq.slice(0, -1).map((_, pos) => ({ buch: ALL[seq[pos]].b, opts: optsSeq(seq, pos), loesung: ALL[seq[pos + 1]].b }))];
     }
     if (art === "blitz") {
       const idx = ALL.map((_, i) => i).slice(0, -1); let cur = -1;
@@ -3831,9 +3843,10 @@ function duZeige() {
       <div class="vl-bar du-bar"><i style="width:${fortschritt * 100}%"></i></div><span class="du-punkte">${D.p}</span></div>
     <span class="vl-titel du-titel">${svg(blitz ? "bolt" : kette ? "link" : "bolt")} ${esc(D.gegner)} · ${titel}</span>
     <div class="du-zeit">${blitz ? `<i id="duZeit" class="global" style="width:${D.rest / DU_BLITZ_SEK * 100}%"></i>` : `<i id="duZeit" style="animation-duration:${sek}s"></i>`}</div>
-    ${f.buch ? `<div class="du-frage-buch"><span class="qsub">Was kommt nach</span><b class="du-buch">${esc(f.buch)}</b>${f.gruppe ? `<span class="qsub">${esc(f.gruppe)}</span>` : ""}</div>`
+    ${f.start ? `<div class="du-frage-buch"><span class="qsub">${esc(f.start)}</span></div>`
+      : f.buch ? `<div class="du-frage-buch"><span class="qsub">${esc(f.label || "Was kommt nach")}</span><b class="du-buch">${esc(f.buch)}</b>${f.gruppe ? `<span class="qsub">${esc(f.gruppe)}</span>` : ""}</div>`
       : `<h2 class="vl-frage">${f.frage}</h2><div class="vl-vers">${f.vers}</div>`}
-    <div class="vl-wahl ${f.lang ? "" : "du-kurz"} ${f.buch ? "du-buecher" : ""}">${f.opts.map((o, j) => `<button class="vl-opt" data-o="${j}">${esc(o)}</button>`).join("")}</div>
+    <div class="vl-wahl ${f.lang ? "" : "du-kurz"} ${f.buch || f.start ? "du-buecher" : ""}">${f.opts.map((o, j) => `<button class="vl-opt" data-o="${j}">${esc(o)}</button>`).join("")}</div>
   </div>`;
   const start = performance.now(); let fertig = false;
   const antworten = (j, el) => {
