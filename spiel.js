@@ -138,14 +138,14 @@ const armorCount = (owned = S.owned) => RUESTUNG.filter(r => owned.includes("ar-
 /* Zentrale Symbole aus index.html: Talent-Münze und Regenbogen (Laden-Kategorie Farben) */
 ICONS.tal = '<use href="#i-tal"/>'; ICONS.regenbogen = '<use href="#i-regenbogen"/>';
 const svg = (k, c) => `<svg viewBox="0 0 24 24" aria-hidden="true" style="color:${c || "currentColor"}">${ICONS[k] || ""}</svg>`;
-/* 8.2: eigene Bereichsfarben – Allein = Violett, Zusammen = Koralle; die beiden Menschen-Symbole bekommen dieselben Farben (Verläufe aus „lohn“ bzw. „gemeinde“ umgefärbt) */
+/* 8.2: eigene Bereichsfarben – Solo = Rosa, Zusammen = Koralle; die beiden Menschen-Symbole bekommen dieselben Farben (Verläufe aus „lohn“ bzw. „gemeinde“ umgefärbt) */
 (function () {
   const host = document.getElementById("wr-defs"), defs = host && host.querySelector("defs");
   if (!defs || !ICONS.user || !ICONS.people) return;
   const kopie = (von, nach, tausch) => [...defs.children].filter(e => e.id && e.id.endsWith("_" + von)).forEach(e => {
     let h = e.outerHTML.replace(new RegExp("_" + von + "\\b", "g"), "_" + nach); Object.entries(tausch || {}).forEach(([a, b]) => { h = h.split(a).join(b); });
     defs.insertAdjacentHTML("beforeend", h); });
-  kopie("lohn", "allein");
+  kopie("lohn", "allein", { "#3a1a7a": "#7a1a52", "#5a2fb0": "#b02f80", "#6a3ad0": "#d03a96", "#8a5ae0": "#e05aaa", "#b38cff": "#ff7ac8", "#c9a8ff": "#ffa8dc", "#dcc8ff": "#ffc8ea", "#f4ecff": "#fff0f8" });
   kopie("gemeinde", "zus", { "#e6fff5": "#fff0e8", "#5fe0b0": "#ff8a5c", "#138a68": "#c0431f", "#2fb58a": "#e8643a", "#0b5a45": "#7a2410", "#a8f5d8": "#ffc9b0", "#139a72": "#c8481c", "#8ff0cc": "#ffb394" });
   ICONS.user = ICONS.user.replace(/gemeinde/g, "allein");
   ICONS.people = ICONS.people.replace(/gemeinde/g, "zus");
@@ -1436,7 +1436,7 @@ const backBtn = (to = "home", txt = "Zurück") => `<button class="back" data-go=
 /* Seitenkopf der Hauptbereiche: Titel links, kleine Info rechts */
 const seitenKopf = (titel, info = "") => `<div class="seitenkopf"><h1>${titel}</h1>${info ? `<span class="pill sk-info">${info}</span>` : ""}</div>`;
 /* 6.57: Bereichs-Kopf im Arena-Stil – o: {ic | bild, t, sub, ring:[zahl, text], tafel:[[zahl, text]×3], zeile:{ic,t,p,r}, knopf:{ic,t,attr}} */
-const BK_FARBE = { home: "#f2c14e", lernen: "var(--ar-lernen)", spielen: "var(--ar-spielen)", bib: "#66e0d0", gemeinde: "var(--ar-gemeinde)", advent: "#ffcf5a", laden: "var(--ar-gemeinde)" };
+const BK_FARBE = { home: "#f2c14e", lernen: "var(--ar-lernen)", spielen: "var(--ar-spielen)", bib: "#7be04a", gemeinde: "var(--ar-gemeinde)", advent: "#ffcf5a", laden: "var(--ar-gemeinde)" };
 /* 8.2: Zusatzinfos im Kopf (Ring, Zahlentafel, „Zahlen“-Knopf) entfallen – ruhiger. Die Elemente bleiben unsichtbar im Dokument, damit Stellen, die Werte nachtragen (ringId, Tafel-IDs), weiter funktionieren. */
 const bereichKopf = (m, o) => `<div class="bkopf" style="--bk:${BK_FARBE[m]}">
   <header class="bk-kopf">${o.bild ? `<span class="bk-med bild"><img src="${o.bild}" alt="" width="480" height="455"></span>` : `<span class="bk-med">${svg(o.ic)}</span>`}
@@ -4926,7 +4926,7 @@ const xqDauer = s => (s == null || !Number.isFinite(+s)) ? "–" : Math.floor(s 
 const xqMs = t => (t && t.toMillis) ? t.toMillis() : (t && t.seconds ? t.seconds * 1000 : 0);
 const xqProzent = p => (+p || 0).toLocaleString("de-DE", { maximumFractionDigits: 1 }) + " %";
 /* Farben wie in der App: Lernen = Saphir, Spielen = Bernstein, Arena (Duell) = Koralle, Biblionär = Türkis, Belohnungen = Gold */
-const XQ_FARBE = { vers: "#7fc8ff", lektion: "#7fc8ff", spickzettel: "#7fc8ff", luecke: "#ffb54a", blitz: "#ffb54a", kette: "#ffb54a", duell: "#ff8a5c", duelleigen: "#ff8a5c", bib: "#66e0d0", tagesbonus: "#f2c14e", spende: "#f4a6c8", abgleich: "#b39ddb", sonst: "#b8c0d8", alt: "#6b7399", offen: "#ff5c5c" };
+const XQ_FARBE = { vers: "#7fc8ff", lektion: "#7fc8ff", spickzettel: "#7fc8ff", luecke: "#ffb54a", blitz: "#ffb54a", kette: "#ffb54a", duell: "#ff8a5c", duelleigen: "#ff8a5c", bib: "#7be04a", tagesbonus: "#f2c14e", spende: "#f4a6c8", abgleich: "#b39ddb", sonst: "#b8c0d8", alt: "#6b7399", offen: "#ff5c5c" };
 const XQ_BEREICH = { spende: "Gemeinschaft", vers: "Lernen", lektion: "Lernen", spickzettel: "Lernen", luecke: "Spielen", blitz: "Spielen", kette: "Spielen", duell: "Arena", duelleigen: "Arena", bib: "Biblionär", tagesbonus: "Belohnung", abgleich: "anderes Gerät" };
 /* höchste ehrliche XP je Sekunde und Quelle (Richtwerte, absichtlich großzügig) – und kürzeste Zeit je Antwort (0,3 s) */
 const XQ_RATE = { vers: 45, lektion: 60, luecke: 75, blitz: 105, kette: 75, duell: 45, duelleigen: 45, bib: 24, sonst: 30 };
