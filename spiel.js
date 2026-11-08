@@ -2303,7 +2303,7 @@ VIEWS.profil = () => {
       ${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "Du" }, 84)}
       <div class="pf2-namebox" id="pfNameBox"><h2>${esc(S.lbName || "Noch ohne Namen")}</h2>${S.lbName ? `<button class="pf2-edit" id="rename" aria-label="Namen ändern">${PF_IC.stift}</button>` : ""}</div>
       <span class="pf2-rang">${esc(rangVon())} · Level ${li.n}</span>
-      <div class="pf2-xp" aria-label="Fortschritt bis Level ${li.n + 1}"><div class="pf2-bar"><i style="width:${li.p.toFixed(1)}%"></i></div><span>noch ${pkt(li.fehlt)} XP bis Level ${li.n + 1}</span></div>
+      <div class="pf2-xp" aria-label="Fortschritt bis Level ${li.n + 1}"><div class="pf2-bar"><i style="width:${li.p.toFixed(1)}%"></i></div><span><b>${pkt(Math.round(S.xp))} XP</b> · noch ${pkt(li.fehlt)} bis Level ${li.n + 1}</span></div>
       ${!S.pid && !S.offlineOnly ? `<div class="small muted">Erscheint in der Rangliste, sobald Internet da ist.</div>` : ""}
       ${pfTrenner("Spieler")}<button class="pf2-btn" id="wechseln">${PF_IC.tausch}${svg("people")}<span>Spieler wechseln</span></button>
       ${pfTrenner("Gemeinde")}${gemKarteHtml()}
@@ -2354,8 +2354,7 @@ VIEWS.stat = (tab) => {
   const m = lbPayload(), { atP, ntP } = fortschritt(), li = pfLevel(), h = dayNum(today());
   const TABS = ["Überblick", "Titel", "Rekorde", "Abzeichen"];
   const teile = [
-    () => `<div class="pf2-karte gold pf2-levelkarte">${pfRing(li.p, 92, "Level " + li.n)}<div><b class="pf2-gross">${esc(rangVon())}</b><div class="small muted">${pkt(Math.round(S.xp))} XP gesamt</div><div class="small muted">noch ${pkt(li.fehlt)} XP bis Level ${li.n + 1}</div></div></div>
-      <div class="pf2-g2">${pfKachel("fire", (m.streak || 0) + (m.streak === 1 ? " Tag" : " Tage"), "Serie")}${pfKachel("sun", m.t28 || 0, "Spieltage in 4 Wochen")}${pfKachel("medal", S.badges.length, "Abzeichen")}${pfKachel("ar-schild", armorCount() + "/6", "Waffenrüstung")}</div>
+    () => `<div class="pf2-g2">${pfKachel("fire", (m.streak || 0) + (m.streak === 1 ? " Tag" : " Tage"), "Serie")}${pfKachel("sun", m.t28 || 0, "Spieltage in 4 Wochen")}${pfKachel("medal", S.badges.length, "Abzeichen")}${pfKachel("ar-schild", armorCount() + "/6", "Waffenrüstung")}</div>
       <div class="pf2-karte"><div class="pf2-vz"><span>Spieltage der letzten 4 Wochen</span><b>${m.t28 || 0}</b></div><div class="pf2-tage" role="img" aria-label="${m.t28 || 0} Spieltage in den letzten 4 Wochen">${Array.from({ length: 28 }, (_, i) => `<i class="${S.tage.includes(h - 27 + i) ? "an" : ""}"></i>`).join("")}</div></div>`,
     () => `<div class="pf2-karte pf2-zls">${pfTitel(AT_TITEL, atP, "AT")}${pfTrenner("")}${pfTitel(NT_TITEL, ntP, "NT")}</div>
       <div class="pf2-karte"><div class="label" style="margin:0 0 8px">Siegel</div><div class="pf2-sg">${siegelReihe(m)}</div></div>`,
