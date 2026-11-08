@@ -2210,6 +2210,11 @@ body[data-tab="rank"]{--ar-gemeinde:#5fe0b0;--ar:#5fe0b0}
   .start-aufg .bk-kopf{padding-bottom:12px;margin-bottom:4px}
 }
 @media (max-height:620px){.kt-grid{--kl:32px}.start-aufg .bk-t h1{font-size:1.3rem}.start-aufg .bk-med.truhe{width:40px;height:38px}.start-vers .lv-text{font-size:.98rem;line-height:1.28}.start-vers .lv-btn{height:28px}.start-vers .lv-btn.rund{width:28px}}
+/* 9.17: Bibelstelle am Lernvers immer vollständig – Fortschrittspunkte weichen auf kleinen Handys */
+@media (max-width:400px),(max-height:720px){.start-vers .lv-kopf .lv-stufe{display:none}}
+@media (max-width:340px){.start-vers .lv-kopf .lv-ic{display:none}}
+.start2 .lv .lv-kopf .lv-ref{flex:0 0 auto;overflow:visible;text-overflow:clip;white-space:nowrap}
+.start2 .lv .lv-kopf .lv-lab{flex:0 1 auto;min-width:0}
 </style>
 </head>
 <body>
