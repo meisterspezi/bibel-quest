@@ -2420,7 +2420,7 @@ VIEWS.profil = () => {
   if ($("rename")) $("rename").onclick = () => {
     SFX.tap(); const box = $("pfNameBox"); box.classList.add("bearbeiten");
     box.innerHTML = `<input class="field pf2-input" id="rn" maxlength="20" value="${esc(S.lbName)}" aria-label="Neuer Spitzname"><button class="pf2-edit ok" id="rnSave" aria-label="Speichern">${PF_IC.ok}</button><button class="pf2-edit" id="rnNo" aria-label="Abbrechen">${PF_IC.zu}</button>`;
-    const speichern = () => { const n = $("rn").value.trim().replace(/\s+/g, " "); if (n.length < 2) { SFX.wrong(); $("rn").focus(); return; } if (n !== S.lbName) { S.lbName = n; save(); lbSync(true); SFX.coin(); } go("profil"); };
+    const speichern = () => { const n = $("rn").value.trim().replace(/\s+/g, " "); if (n.length < 2) { SFX.wrong(); $("rn").focus(); return; } if (n !== S.lbName) { S.lbName = n; S.gemGesendet = ""; save(); lbSync(true); gemSenden(); SFX.coin(); } go("profil"); };
     $("rnSave").onclick = speichern; $("rnNo").onclick = () => { SFX.tap(); go("profil"); };
     $("rn").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); speichern(); } else if (e.key === "Escape") go("profil"); };
     $("rn").focus(); $("rn").select();
@@ -2743,7 +2743,7 @@ async function offlineNamePruefen() {
     if (a === "ja") { try { await profilBeitreten(r.id, {}); toast(`${svg("people", accent())}<div><b>Willkommen zurück, ${esc(S.lbName)}!</b></div>`); go(current); } catch (e) {} return; }
     modal(`<div class="label">Anderer Name</div><h2>Wie sollen dich die anderen sehen?</h2><p class="muted small">Damit man euch unterscheiden kann, z. B. mit Anfangsbuchstaben: „${esc(S.lbName)} K.“</p><input class="field" id="nn" maxlength="20" value="${esc(S.lbName)} "><button class="btn primary" data-close="ok">Speichern</button>`, () => {
       const n = (document.getElementById("nn") ? document.getElementById("nn").value : "").trim().replace(/\s+/g, " ");
-      if (n.length >= 2) S.lbName = n; save(); renderHud(); lbSync(true); go(current);
+      if (n.length >= 2 && n !== S.lbName) { S.lbName = n; S.gemGesendet = ""; } save(); renderHud(); lbSync(true); gemSenden(); go(current);
     });
     setTimeout(() => { const f = document.getElementById("nn"); if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); } }, 50);
   });
@@ -3394,9 +3394,9 @@ function spielerUmbenennen(key) {
     if (GERAET.liste.some(x => x.key !== key && String(x.name).toLowerCase() === n.toLowerCase())) return err(`„${n}“ spielt schon auf diesem Gerät.`);
     const L = window.LB;
     if (n !== p.name && L && L.ok && L.findeName) { try { const t = (await L.findeName(n)).filter(r => r.id !== p.pid); if (t.length && $("umErr").dataset.warn !== n) { $("umErr").dataset.warn = n; $("umErr").style.color = "var(--fg)"; $("umErr").innerHTML = `<b>„${esc(n)}“ gibt es schon in der Rangliste.</b> Nimm besser einen unterscheidbaren Namen – oder tippe nochmal auf Speichern.`; return; } } catch (e) {} }
-    if (key === GERAET.aktiv) { S.lbName = n; save(); renderHud(); lbSync(true); }
+    if (key === GERAET.aktiv) { S.lbName = n; S.gemGesendet = ""; save(); renderHud(); lbSync(true); gemSenden(); }
     else {
-      try { const k = lsKey(key), st = JSON.parse(localStorage.getItem(k) || "{}"); st.lbName = n; localStorage.setItem(k, JSON.stringify(st)); } catch (e) {}
+      try { const k = lsKey(key), st = JSON.parse(localStorage.getItem(k) || "{}"); st.lbName = n; st.gemGesendet = ""; localStorage.setItem(k, JSON.stringify(st)); } catch (e) {}
       p.name = n; geraetSchreiben(g => { const q = g.liste.find(x => x.key === key); if (q) q.name = n; });
     }
     document.querySelectorAll(".modal").forEach(m => m.remove()); SFX.coin(); go("wer");
