@@ -2434,7 +2434,7 @@ function lbPayload() {
   const wk = weekKey();
   return {
     name: S.lbName, xp: Math.round(S.xp), level: levelOf(S.xp),
-    bestChain: Math.min(S.bestChain | 0, 65), chainAT: Math.min(S.chainAT | 0, 38), chainNT: Math.min(S.chainNT | 0, 26), chainRueck: Math.min(S.chainRueck | 0, 65), chainGebote: Math.min(S.chainGebote | 0, 9), chainSchoepfung: Math.min(S.chainSchoepfung | 0, 6),
+    bestChain: Math.min(S.bestChain | 0, 65), chainAT: Math.min(S.chainAT | 0, 38), chainNT: Math.min(S.chainNT | 0, 26), chainRueck: Math.min(S.chainRueck | 0, 65),
     stars: Math.min(Object.values(S.stars).reduce((a, b) => a + b, 0), 24), badges: S.badges.length, badgeIds: S.badges.slice(0, 80),
     streak: streakNow() | 0, bestStreak: S.bestStreak | 0, blitz: S.bestBlitz | 0, combo: Math.min(S.bestCombo | 0, 1000),
     week: wk, weekXp: S.weekKey === wk ? Math.round(S.weekXp) : 0,
