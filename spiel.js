@@ -1305,6 +1305,20 @@ function xpInfoHtml(kompakt) {
     <div class="xi-balken" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(p)}"><i style="width:${p.toFixed(1)}%"></i></div>
     ${kompakt ? `<div class="xi-eine"><span><b>${pkt(im)}</b> XP geschafft</span><span>noch <b>${pkt(fehlt)}</b> XP</span><span>gesamt <b>${pkt(Math.round(S.xp))}</b></span></div>` : `<div class="xi-zeilen"><span>Schon geschafft</span><b>${pkt(im)} XP</b><span>Noch bis Level ${n + 1}</span><b>${pkt(fehlt)} XP</b><span>Dieses Level umfasst</span><b>${pkt(gesamt)} XP</b><span>XP insgesamt</span><b>${pkt(Math.round(S.xp))} XP</b></div>`}</div>`;
 }
+/* Kopfzeile: langer Spielername. Erst die Schrift schrittweise verkleinern, passt er dann noch nicht, in zwei Zeilen
+   (kleinere Schrift) – die Höhe der Kopfzeile bleibt gleich. */
+function hudNameAnpassen() {
+  const el = $("hTitle"), hud = document.querySelector(".hud"); if (!el || !hud || !el.clientWidth) return;
+  const box = el.parentElement; el.classList.remove("zwei"); box.classList.remove("zweizeilig"); el.style.fontSize = "";
+  const basis = hud.offsetHeight;
+  if (el.scrollWidth <= el.clientWidth + 1) return;
+  const start = parseFloat(getComputedStyle(el).fontSize) || 19, min = Math.max(14, start * 0.8);
+  for (let px = start - 0.5; px >= min; px -= 0.5) { el.style.fontSize = px.toFixed(1) + "px"; if (el.scrollWidth <= el.clientWidth + 1) return; }
+  el.classList.add("zwei"); box.classList.add("zweizeilig");
+  for (let px = Math.min(start, 16); px >= 11; px -= 0.5) { el.style.fontSize = px.toFixed(1) + "px"; if (el.scrollHeight <= el.clientHeight + 1 && el.scrollWidth <= el.clientWidth + 1 && hud.offsetHeight <= basis) return; }
+}
+window.addEventListener("resize", () => { try { hudNameAnpassen(); } catch (e) {} });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { try { hudNameAnpassen(); } catch (e) {} });
 function renderHud() {
   const n = levelOf(S.xp), lo = cum(n), hi = cum(n + 1);
   $("hLvl").textContent = n; $("hAvatar").innerHTML = avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "?" }, 44);
@@ -1316,6 +1330,7 @@ function renderHud() {
   $("hTal").textContent = S.tal; const tbP = $("tbTal"); if (tbP) tbP.hidden = !etwasKaufbar();
   $("hLvlT").textContent = "Level " + n;
   { const pz = Math.max(0, Math.min(100, (S.xp - lo) / (hi - lo) * 100)); const lt = $("hLvlT"); lt.style.setProperty("--lp", pz.toFixed(1) + "%"); lt.title = `Level ${n}: ${Math.round(S.xp) - lo} von ${hi - lo} XP (noch ${Math.max(0, hi - Math.round(S.xp))} bis Level ${n + 1})`; }
+  hudNameAnpassen();
   const pk = $("pkBtn"); if (pk) { pk.hidden = !entwickler; pk.innerHTML = `${svg("post")}${pkOffenPruef ? `<i class="pk-ap" aria-hidden="true"></i>` : ""}${postfachNeu ? `<span class="pk-zahl">${postfachNeu > 99 ? "99+" : postfachNeu}</span>` : ""}`; pk.setAttribute("aria-label", `Postkasten${postfachNeu ? ", " + postfachNeu + " neu" : ""}`); }
 }
 /* Was ist im Laden gerade kaufbar? (je Kategorie, Reihenfolge-Regeln wie im Laden) */
