@@ -2948,10 +2948,12 @@ function freischaltungEinschalten(g, idx, spieler, pw) {
     const t = toast(`${svg("people")}<div>Bestand wird übernommen …</div>`);
     try {
       const mit = spieler.filter(r => gemVon(r.id) === g.id);
+      /* 9.11.2: Die Gemeinde muss in Firestore existieren, bevor Spieler ihr zugeordnet werden (Regel exists) – zuerst ohne Freischaltung anlegen */
+      await L.gemAnlegen(g.id, g.name, idx, { pw: pw || gemPw(g), logo: g.logo && g.logo.startsWith("data:") ? g.logo : "" });
       for (const r of mit) { if (!GEM_ZUORD[r.id]) await L.gemSetzen(r.id, r.name, g.id); await L.freigabeSetzen((Array.isArray(r.owners) && r.owners.length ? r.owners : [r.id]).filter(x => typeof x === "string" && x), g.id, r.id); GEM_ZUORD[r.id] = g.id; }
       await L.gemAnlegen(g.id, g.name, idx, { pw: pw || gemPw(g), logo: g.logo && g.logo.startsWith("data:") ? g.logo : "", pruef: true });
       SFX.coin(); toast(`${svg("check")}<div><b>Freischaltung ist an.</b><div class="small muted">${mit.length} Spieler übernommen.</div></div>`); gemGeladen = false; VIEWS.gemverwaltung();
-    } catch (e) { toast(`${svg("nein")}<div>Das hat nicht geklappt (Firebase-Regeln von 9.11 eingespielt?).</div>`); }
+    } catch (e) { toast(`${svg("nein")}<div>Das hat nicht geklappt (${esc(String((e && e.code) || (e && e.message) || "Fehler").slice(0, 60))}) – Firebase-Regeln von 9.11 eingespielt?</div>`); }
   });
 }
 /* 9.11: Beitrittsanträge – der Verwalter schaltet frei oder lehnt ab */
