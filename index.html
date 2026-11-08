@@ -2041,8 +2041,8 @@ body[data-tab="rank"]{--ar-gemeinde:#5fe0b0;--ar:#5fe0b0}
 .pf-gross{width:100%;box-sizing:border-box;margin:0 0 8px}
 
 /* ===== 9.7: Laden-Symbol bei den Talenten, Gemeinde-Karte im Profil, Logos, Gemeinde-Wertung, Spielkacheln mit Fortschritt, Neuigkeiten ===== */
-.hud-tal{gap:5px;padding:6px 12px 6px 9px}
-.hud-shop{display:inline-grid;place-items:center;padding-right:7px;margin-right:2px;border-right:1px solid #f2c14e55}
+.hud-tal{gap:5px;padding:6px 9px 6px 12px}
+.hud-shop{display:inline-grid;place-items:center;padding-left:7px;margin-left:2px;border-left:1px solid #f2c14e55}
 .hud-shop svg{width:24px!important;height:24px!important}
 .gem-logo{--s:40px;display:inline-grid;place-items:center;flex:none;width:var(--s);height:var(--s);border-radius:50%;overflow:hidden;background:#ffffff12;border:1px solid #ffffff2a;box-sizing:border-box}
 .gem-logo img{width:100%;height:100%;object-fit:contain;display:block}
@@ -2115,7 +2115,7 @@ body[data-tab="rank"]{--ar-gemeinde:#5fe0b0;--ar:#5fe0b0}
       </span>
     </button>
     <div class="pills">
-      <button class="pill hud-tal" id="hTalBtn" aria-label="Talente – zum Laden"><span class="hud-shop" id="hShop" aria-hidden="true"></span><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tal"/></svg><span id="hTal">0</span><span class="tb-punkt" id="tbTal" hidden aria-label="Im Laden ist etwas kaufbar"></span></button>
+      <button class="pill hud-tal" id="hTalBtn" aria-label="Talente – zum Laden"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tal"/></svg><span id="hTal">0</span><span class="hud-shop" id="hShop" aria-hidden="true"></span><span class="tb-punkt" id="tbTal" hidden aria-label="Im Laden ist etwas kaufbar"></span></button>
       <button class="iconbtn pk-btn" id="pkBtn" hidden aria-label="Postkasten" onclick="go('postfach')"></button>
       <button class="iconbtn hud-ton" id="muteBtn" aria-label="Ton an oder aus"></button>
     </div>
