@@ -2887,7 +2887,7 @@ function gemWarnung(ziel, weiter) {
   const folgen = [
     ziel ? `Du gehörst dann zu <b>${esc(zn)}</b> und nicht mehr zu <b>${esc(gemName(id))}</b>.` : `Du bist dann <b>Gast</b> und gehörst zu keiner Gemeinde mehr.`,
     `Du zählst nicht mehr für die Wertung von ${esc(gemName(id))} und erscheinst nicht mehr in deren Gemeinde-Rangliste. In der Welt-Rangliste bist du weiter dabei.`,
-    ...(pruef ? [`Die <b>Freischaltung</b> durch den Verwalter geht verloren. <b>Willi und Aaron</b> (Telefonjoker) stehen dir nicht mehr zur Verfügung – stattdessen hilft dir ${ziel ? "der anonyme Pastor" : "der anonyme Gastprediger"}.`,
+    ...(pruef ? [`Die <b>Freischaltung</b> durch den Verwalter geht verloren.`,
       `Zum Zurückkommen brauchst du das Passwort <b>und eine neue Freischaltung</b> durch den Verwalter. Das kann dauern.`] : [`Zum Zurückkommen brauchst du wieder das Passwort der Gemeinde.`]),
     `Dein Spielstand bleibt erhalten: XP, Level, Abzeichen, Ketten und Rekorde.`
   ];
@@ -2940,6 +2940,7 @@ VIEWS.gemverwaltung = () => {
     const fehler = t => toast(`${svg("nein")}<div>${t}</div>`);
     $("gvBox").innerHTML = `<p class="small muted" style="margin:0 0 8px">Das Passwort zum Beitreten ist der Ort der Gemeinde. Ohne eigenes Passwort gilt das letzte Wort des Namens.</p>
       <div class="stack">${GEM.map(g => `<div class="card gv-karte" data-g="${esc(g.id)}"><div class="gv-kopf">${gemLogoHtml(g, 52)}<div><b>${esc(g.name)}</b><div class="small muted">${zahl(g.id)} Spieler · ${esc(g.id)}</div></div></div>
+        <label class="label">Name der Gemeinde</label><input class="du-suche" data-name value="${esc(g.name)}" maxlength="40" autocomplete="off">
         <label class="label">Passwort (Ort)</label><input class="du-suche" data-pw value="${esc(gemPw(g))}" maxlength="30" autocomplete="off">
         <label class="small" style="display:flex;gap:8px;align-items:center;margin:6px 0"><input type="checkbox" data-pruef ${g.pruef ? "checked" : ""} ${g.id === GEM_STANDARD && !g.pruef ? "disabled" : ""}> Neue Mitglieder müssen von mir freigeschaltet werden</label>
         ${g.id === GEM_STANDARD && !g.pruef ? `<button class="btn" data-pruefein>Freischaltung einschalten …</button><p class="small muted" style="margin:4px 0 0">Alle bisherigen Spieler dieser Gemeinde bleiben Mitglied. Danach brauchen nur neue Spieler eine Freischaltung.</p>` : ""}
@@ -2960,9 +2961,12 @@ VIEWS.gemverwaltung = () => {
     screen.querySelectorAll("[data-g]").forEach(k => {
       const id = k.dataset.g, g = gemInfo(id), idx = GEM.findIndex(x => x.id === id);
       logoWahl(k.querySelector("[data-logo]"), id);
+      const neuerName = () => k.querySelector("[data-name]").value.trim().replace(/\s+/g, " ");
       k.querySelector("[data-save]").onclick = () => { const pw = k.querySelector("[data-pw]").value.trim(); if (pwNorm(pw).length < 2) { fehler("Bitte ein Passwort (Ort) eingeben."); return; }
-        L.gemAnlegen(id, g.name, idx, { pw, logo: logos[id] || eigenesLogo(g), pruef: k.querySelector("[data-pruef]").checked }).then(() => { SFX.coin(); VIEWS.gemverwaltung(); }).catch(() => fehler(fehlerText())); };
-      const pe = k.querySelector("[data-pruefein]"); if (pe) pe.onclick = () => { SFX.tap(); freischaltungEinschalten(g, idx, spieler, k.querySelector("[data-pw]").value.trim()); };
+        const name = neuerName(); if (name.length < 2 || name.length > 40) { fehler("Der Name braucht 2 bis 40 Zeichen."); return; }
+        if (GEM.some(x => x.id !== id && String(x.name).toLowerCase() === name.toLowerCase())) { fehler("Eine andere Gemeinde heißt schon so."); return; }
+        L.gemAnlegen(id, name, idx, { pw, logo: logos[id] || eigenesLogo(g), pruef: k.querySelector("[data-pruef]").checked }).then(() => { SFX.coin(); VIEWS.gemverwaltung(); }).catch(() => fehler(fehlerText())); };
+      const pe = k.querySelector("[data-pruefein]"); if (pe) pe.onclick = () => { SFX.tap(); freischaltungEinschalten(Object.assign({}, g, { name: neuerName() || g.name }), idx, spieler, k.querySelector("[data-pw]").value.trim()); };
       const w = k.querySelector("[data-weg]"); if (w) w.onclick = () => { SFX.tap(); L.gemLoeschen(id).then(() => VIEWS.gemverwaltung()).catch(() => {}); };
     });
     logoWahl($("gvLogo"), "_neu");
