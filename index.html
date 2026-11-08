@@ -2194,13 +2194,22 @@ body[data-tab="rank"]{--ar-gemeinde:#5fe0b0;--ar:#5fe0b0}
 .kt-tx b{font-size:clamp(.92rem,2.4dvh,1.2rem)}
 .kt-tx small{margin-top:clamp(2px,.6dvh,7px);padding:2px 8px;font-size:clamp(.56rem,1.4dvh,.66rem)}
 @media (max-height:720px){
-  .kt-grid{--kl:48px;gap:calc(var(--kl)*.5 + 6px) 10px}.kt-tx small{display:none}.kt{padding-bottom:8px}
+  .kt-grid{--kl:44px;gap:calc(var(--kl)*.5 + 6px) 10px}.kt{padding-bottom:7px}.kt-tx small{margin-top:2px;padding:1px 7px;font-size:.58rem}
   .start8{gap:6px}
   .start-aufg .bk-med.truhe{width:46px;height:44px}.start-aufg .bk-aufg{grid-template-columns:48px minmax(0,1fr) auto}
   .start-aufg .bk-t h1{font-size:1.5rem}.start-aufg .bk-t span{font-size:.85rem}
-  .start2 .start-vers .lv{padding-top:6px;padding-bottom:6px}
+  /* Lernvers-Kasten schrumpft (Text bleibt vollständig): weniger Rand, engere Zeilen, flachere Knöpfe */
+  .start-vers .lv{padding:8px 12px 8px;border-radius:16px}
+  .start-vers .lv-kopf{margin-bottom:3px}.start-vers .lv-ic{flex-basis:22px;width:22px;height:22px;border-radius:7px}.start-vers .lv-ic svg{width:16px;height:16px}
+  .start-vers .lv-text{font-size:1.04rem;line-height:1.32;margin:0 0 6px}
+  .start-vers .lv-btn{height:30px;font-size:.76rem}.start-vers .lv-btn.rund{width:30px}
 }
-@media (max-height:620px){.kt-grid{--kl:34px}.start-vers .lv-wdh,.start-vers .lv .sub{display:none}}
+@media (max-height:680px){
+  .kt-grid{--kl:36px}
+  .start8>.bk-label:has(+.start-vers){display:none}/* der Kasten heißt selbst „Lernvers …“ */
+  .start-aufg .bk-kopf{padding-bottom:12px;margin-bottom:4px}
+}
+@media (max-height:620px){.kt-grid{--kl:32px}.start-aufg .bk-t h1{font-size:1.3rem}.start-aufg .bk-med.truhe{width:40px;height:38px}.start-vers .lv-text{font-size:.98rem;line-height:1.28}.start-vers .lv-btn{height:28px}.start-vers .lv-btn.rund{width:28px}}
 </style>
 </head>
 <body>
