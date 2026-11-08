@@ -2173,6 +2173,18 @@ body[data-tab="rank"]{--ar-gemeinde:#5fe0b0;--ar:#5fe0b0}
 .bq4-solo{background:linear-gradient(150deg,#e4d8ff,#a98bff 45%,#5a3bc0);box-shadow:inset 0 1px 0 #fff8,inset 0 0 0 1.5px #fff3,0 4px 0 #35207a,0 12px 24px -8px #a98bff77;color:#1a0a30}.bq4-solo:active{transform:translateY(2px);box-shadow:inset 0 1px 0 #fff8,0 2px 0 #35207a}
 /* 9.14: Duell-Knopf im dunklen Arena-Rot */
 .bq4-duell{background:linear-gradient(150deg,#e8554a,#b82323 48%,#7d1212);box-shadow:inset 0 1px 0 #ffffff66,inset 0 0 0 1.5px #ffffff26,0 4px 0 #4a0a0a,0 12px 24px -10px #c0392b99;color:#fff}.bq4-duell:active{transform:translateY(2px);box-shadow:inset 0 1px 0 #ffffff66,0 2px 0 #4a0a0a}.bq4-duell[aria-expanded="true"]{box-shadow:inset 0 1px 0 #ffffff66,inset 0 0 0 2px #fff,0 4px 0 #4a0a0a}.bq4-duell .bq4-chip{color:#fff}.bq4-duell b,.bq4-duell small,.bq4-duell span{text-shadow:0 1px 0 #4a0a0a99}
+/* 9.15: Startseite – 2×2-Kacheln mit herausragendem Logo (Glas + Leuchthof) */
+.kt-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:64px 14px;padding:58px 0 8px}
+.kt{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;text-align:center;min-height:132px;padding:78px 8px 16px;border-radius:26px;border:1.5px solid color-mix(in srgb,var(--c) 55%,transparent);background:linear-gradient(180deg,#ffffff12,#ffffff05),#141845;box-shadow:0 0 0 1px #0006,0 0 28px -8px var(--c),inset 0 1px 0 #ffffff25;color:var(--fg);font:inherit;cursor:pointer;min-width:0}
+.kt:active{transform:scale(.97)}
+.kt::before{content:"";position:absolute;top:-62px;left:50%;width:150px;height:150px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--c) 55%,transparent),transparent 68%);pointer-events:none}
+.kt::after{content:"";position:absolute;left:18%;right:18%;bottom:-1.5px;height:3px;border-radius:3px;background:var(--c);box-shadow:0 0 12px var(--c)}
+.kt-logo{position:absolute;top:-52px;left:50%;transform:translateX(-50%);width:110px;height:110px;display:grid;place-items:center;filter:drop-shadow(0 10px 12px #000b);z-index:1}
+.kt-logo svg,.kt-logo img{width:100%;height:100%;display:block;object-fit:contain}
+.kt-tx{width:100%;display:block}
+.kt-tx b{display:block;font:800 1.2rem var(--display);letter-spacing:.04em;color:#fff3dc;text-shadow:0 2px 0 #0006}
+.kt-tx small{display:inline-block;max-width:100%;box-sizing:border-box;margin-top:7px;padding:3px 9px;border-radius:999px;background:color-mix(in srgb,var(--c) 22%,transparent);border:1px solid color-mix(in srgb,var(--c) 55%,transparent);font:700 .66rem var(--body);color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kt-n{position:absolute;top:-52px;right:-4px;min-width:24px;height:24px;padding:0 6px;box-sizing:border-box;border-radius:12px;background:var(--bad);color:#fff;font:900 .8rem/24px var(--body);text-align:center;font-style:normal;box-shadow:0 2px 6px #0008;z-index:3}
 </style>
 </head>
 <body>

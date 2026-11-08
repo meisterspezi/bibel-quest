@@ -1652,6 +1652,8 @@ VIEWS.home = () => {
     : `<div class="tz-truhe" aria-label="Schatztruhe – ${erledigt} von 3 Schlüsseln">${truheZu(erledigt)}<span class="tz-keys">${[0, 1, 2].map(i => `<i class="${i < erledigt ? "an" : ""}">${SCHLUESSEL}</i>`).join("")}</span><span class="tz-lohn">+${AUFGABE_BONUS_XP} XP · +${AUFGABE_BONUS}${TAL_MUENZE}</span></div>`;
   const siegel = (() => { const f = Object.entries(KETTEN).map(([id, k]) => ({ id, k, t: S.meister[id] || [] })).filter(x => x.t.length && siegelRest(x.t) <= 5).sort((a, b) => siegelRest(a.t) - siegelRest(b.t))[0];
       return f ? `<button class="erinnerung" data-go="spielen">${siegelHtml(siegelStufe(f.t), siegelFrisch(f.t), true)}<span><b>${siegelFrisch(f.t) ? `Dein Siegel „${esc(f.k.name)}“ verblasst in ${siegelRest(f.t)} Tag(en)` : `Dein Siegel „${esc(f.k.name)}“ ist verblasst`}</b><span class="small muted">Jetzt die Kette wiederholen und auffrischen${siegelFrisch(f.t) ? "" : ` (+${AUFFRISCH_TAL} Talente)`}</span></span></button>` : ""; })();
+  /* 9.15: Startseite – vier Kacheln 2×2, Logo ragt oben heraus */
+  const ktKachel = (go, c, logo, titel, sub, n = 0) => `<button class="kt" data-go="${go}" style="--c:${c}" aria-label="${titel}${n ? ` – ${n} ${n === 1 ? "Duell wartet" : "Duelle warten"}` : ""}"><span class="kt-logo">${logo}</span><span class="kt-tx"><b>${titel}</b><small>${sub}</small></span>${n ? `<i class="kt-n">${n}</i>` : ""}</button>`;
   const ezZeile = (go, ar, ic, t, sub, ecke = "") => `<button class="ez" data-ar="${ar}" data-go="${go}"><span class="ez-ic">${ic}</span><span class="ez-tx"><b>${t}</b><small>${sub}</small></span>${ecke}<i class="ez-pf">›</i></button>`;
   /* 8.2: „Dein Tag“ entfällt – der Kopf IST die Tagesaufgabe (Truhe statt Sonne, Schlüssel rechts), darunter wie gewohnt der Kringel-Bogen.
      Antippen klappt die drei Aufgaben auf; ist die Truhe bereit, öffnet der Kopf direkt die Truhe. */
@@ -1669,11 +1671,11 @@ VIEWS.home = () => {
     ${bkLabel("scroll", "Lernvers")}
     <div class="start-vers">${MONATSVERSE[monatKey()] ? lvKarte(monatKey()) : `<button class="vers-zeile" id="versZeile" aria-expanded="false">${versHtml(vKey, "tag klein")}<span class="vz-mehr">mehr</span></button>`}</div>
     ${bkLabel("play", "Los geht's")}
-    <div class="ez-liste">
-      ${ezZeile("lernen", "lernen", svg("book"), "Lektionen", ni >= 0 ? `Weiter mit: ${esc(GROUPS[ni].name)}` : "Lektionen, Lernvers, Lied")}
-      ${ezZeile("spielen", "spielen", svg("user"), "Solo spielen", "Blitz, Ketten, Lernvers")}
-      ${ezZeile("bib", "bib", svg("biblionaer"), "Biblionär", bibN ? (bibN === 1 ? "1 Duell wartet auf dich" : `${bibN} Duelle warten auf dich`) : S.bibRekord ? `Rekord ${pkt(S.bibRekord)}` : "15 Fragen zur Million", bibN ? `<span class="ez-zahl" aria-label="${bibN} Biblionär-Duell${bibN === 1 ? "" : "le"} warten">${bibN}</span>` : "")}
-      ${ezZeile("duelle", "gemeinde", DUELL_LOGO, "Arena", duN ? (duN === 1 ? "1 Duell wartet auf dich" : `${duN} Duelle warten auf dich`) : "Fordere jemanden heraus", duN ? `<span class="ez-zahl" aria-label="${duN} ${duN === 1 ? "Duell wartet" : "Duelle warten"}">${duN}</span>` : "")}
+    <div class="kt-grid">
+      ${ktKachel("lernen", "var(--ar-lernen)", svg("book"), "Lektionen", "66 Bücher der Bibel")}
+      ${ktKachel("spielen", "var(--ar-spielen)", svg("user"), "Solo", "Blitz · Ketten · Lernvers")}
+      ${ktKachel("bib", "#7be04a", `<img src="icons/biblionaer-logo.webp" alt="">`, "Biblionär", bibN ? (bibN === 1 ? "1 Duell wartet" : `${bibN} Duelle warten`) : "15 Fragen zur Million", bibN)}
+      ${ktKachel("duelle", "#e0463c", DUELL_LOGO, "Arena", duN ? (duN === 1 ? "1 Duell wartet" : `${duN} Duelle warten`) : "Fordere jemand heraus", duN)}
     </div>
     ${entwickler && postfachNeu ? `<button class="erinnerung pf-hinweis" data-go="postfach">${svg("chat")}<span><b>${postfachNeu} ${postfachNeu === 1 ? "neue Meldung" : "neue Meldungen"} im Postkasten</b><span class="small muted">Feedback, Status und Datenbank</span></span></button>` : ""}
     <button class="feedback-link fb-start" id="fbLinkStart">${svg("chat")} Feedback an den Entwickler</button>
