@@ -2229,11 +2229,11 @@ function playThemenKette(id) {
     let tal = Math.floor(Math.max(0, i) / 5) + (full ? K.tal : 0); if (full) xp += K.bonus;
     const W = spielWdh("tk-" + id); xp = wdhMal(xp, W); tal = wdhMal(tal, W);
     quest("ketteGespielt", 1); quest("runde", 1);
-    screen.innerHTML = `<div class="card result stack"><div class="label">${full ? "Großartig" : "Kette gerissen"}</div><div class="big">${i + 1} / ${seq.length}</div>
+    screen.innerHTML = `${backBtn(heimAnsicht("spielen"), heimName("spielen"))}<div class="card result stack"><div class="label">${full ? "Großartig" : "Kette gerissen"}</div><div class="big">${i + 1} / ${seq.length}</div>
       <div class="muted">${full ? `${esc(K.name)} komplett in der richtigen Reihenfolge! (${esc(K.info)})` : i < 0 ? `${esc(K.start)} „${esc(correct)}“ (${esc(seq[0].r)}).` : `Nach „${esc(seq[i].t)}“ kommt „${esc(correct)}“ (${esc(seq[i + 1].r)}).`}</div>${rec && !full ? "<h2>Neuer Rekord!</h2>" : ""}
-      ${tkErgebnis(id, i, full)}
       <div class="rewards"><span class="pill">+${xp} XP</span><span class="pill">+${tal} Talente</span></div>${W.hinweis}
-      <button class="btn primary" id="cagain">Nochmal</button><button class="btn ghost" data-go="${heimAnsicht("spielen")}">Andere Kette</button></div>`; wireGo();
+      <div class="tk-knoepfe"><button class="btn primary" id="cagain">Nochmal</button><button class="btn ghost" data-go="${heimAnsicht("spielen")}">Andere Kette</button></div>
+      ${tkErgebnis(id, i, full)}</div>`; wireGo();
     $("cagain").onclick = () => { SFX.tap(); countdown(() => playThemenKette(id)); };
     if (full) { SFX.level(); rain(200); } else if (rec) SFX.win();
     if (xp) addXp(xp, null, "kette", { t0, f: Math.max(0, i), fm: seq.length - 1, d: `${K.name}${full ? " · komplett" : " · gerissen"}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
