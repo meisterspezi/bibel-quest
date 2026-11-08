@@ -1414,7 +1414,7 @@ function go(name, arg) {
 }
 /* Untere Menüleiste: zu welchem Reiter gehört eine Ansicht? */
 /* 8.0 „Allein und Zusammen“: nur noch vier große Reiter – Laden über die Talente oben, Rangliste unter „Zusammen“ */
-const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Allein", "user"], ["duelle", "Arena", "arena"], ["bib", "Biblionär", "biblionaer"], ["rank", "Rangliste", "trophy"]]; /* 9.14: Arena + Biblionär statt „Zusammen“ (VIEWS.zusammen bleibt im Code, ist aber nicht mehr im Menü) */
+const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Allein", "user"], ["bib", "Biblionär", "biblionaer"], ["duelle", "Arena", "arena"], ["rank", "Rangliste", "trophy"]]; /* 9.14: Arena + Biblionär statt „Zusammen“ (VIEWS.zusammen bleibt im Code, ist aber nicht mehr im Menü) */
 const TAB_VON = { stift: "rank", advent: "home", beth: "home", kal: "home", duell: "duelle", zusammen: "duelle", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen", biblionaer: "bib",
   bib: "bib", gemverwaltung: "", gegner: "duelle", duelle: "duelle", rank: "rank", shop: "rank", ich: "", profil: "", stat: "", badges: "", wer: "", postfach: "", neuigkeiten: "", nachrichten: "" };
 /* rote Zahl am Duell-Reiter: wartende Herausforderungen */
@@ -1672,8 +1672,8 @@ VIEWS.home = () => {
     <div class="ez-liste">
       ${ezZeile("lernen", "lernen", svg("book"), "Lernen", ni >= 0 ? `Weiter mit: ${esc(GROUPS[ni].name)}` : "Lektionen, Lernvers, Lied")}
       ${ezZeile("spielen", "spielen", svg("user"), "Allein spielen", "Blitz, Kette, Lücke")}
-      ${ezZeile("duelle", "gemeinde", DUELL_LOGO, "Arena", duN ? (duN === 1 ? "1 Duell wartet auf dich" : `${duN} Duelle warten auf dich`) : "Fordere jemanden heraus", duN ? `<span class="ez-zahl" aria-label="${duN} ${duN === 1 ? "Duell wartet" : "Duelle warten"}">${duN}</span>` : "")}
       ${ezZeile("bib", "bib", svg("biblionaer"), "Biblionär", S.bibRekord ? `Rekord ${pkt(S.bibRekord)}` : "15 Fragen zur Million")}
+      ${ezZeile("duelle", "gemeinde", DUELL_LOGO, "Arena", duN ? (duN === 1 ? "1 Duell wartet auf dich" : `${duN} Duelle warten auf dich`) : "Fordere jemanden heraus", duN ? `<span class="ez-zahl" aria-label="${duN} ${duN === 1 ? "Duell wartet" : "Duelle warten"}">${duN}</span>` : "")}
     </div>
     ${entwickler && postfachNeu ? `<button class="erinnerung pf-hinweis" data-go="postfach">${svg("chat")}<span><b>${postfachNeu} ${postfachNeu === 1 ? "neue Meldung" : "neue Meldungen"} im Postkasten</b><span class="small muted">Feedback, Status und Datenbank</span></span></button>` : ""}
     <button class="feedback-link fb-start" id="fbLinkStart">${svg("chat")} Feedback an den Entwickler</button>
