@@ -1414,7 +1414,7 @@ function go(name, arg) {
 /* 8.0 „Allein und Zusammen“: nur noch vier große Reiter – Laden über die Talente oben, Rangliste unter „Zusammen“ */
 const TABS = [["home", "Start", "sun"], ["lernen", "Lernen", "book"], ["spielen", "Allein", "user"], ["zusammen", "Zusammen", "people"], ["rank", "Rangliste", "trophy"]];
 const TAB_VON = { stift: "rank", advent: "home", beth: "home", kal: "home", duell: "zusammen", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen", biblionaer: "zusammen",
-  bib: "zusammen", gemverwaltung: "", gegner: "zusammen", duelle: "zusammen", rank: "rank", shop: "rank", ich: "", profil: "", badges: "", wer: "", postfach: "", neuigkeiten: "", nachrichten: "" };
+  bib: "zusammen", gemverwaltung: "", gegner: "zusammen", duelle: "zusammen", rank: "rank", shop: "rank", ich: "", profil: "", stat: "", badges: "", wer: "", postfach: "", neuigkeiten: "", nachrichten: "" };
 /* rote Zahl am Duell-Reiter: wartende Herausforderungen */
 function tbDuSetzen() { const t = $("tbDu"); if (!t) return; const n = typeof duFuerMich === "function" ? duFuerMich().length : 0; t.hidden = !n; t.textContent = n; }
 function tabbarSetzen(name) {
@@ -2252,7 +2252,7 @@ function ichMenue() {
   const z = (wert, ic, t, info = "") => `<button class="im-zeile" data-close="${wert}">${svg(ic)}<span><b>${t}</b>${info ? `<small>${info}</small>` : ""}</span><i>›</i></button>`;
   const m = modal(`<div class="im-kopf">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName }, 56)}<div><b>${esc(S.lbName)}</b><small>${esc(rangVon())} · Level ${levelOf(S.xp)}</small></div></div>
     ${xpInfoHtml()}
-    <div class="im-liste">${z("wer", "people", "Wer spielt?", "Spieler wechseln")}${z("profil", "user", "Mein Profil", "Titel, Siegel, Werte")}
+    <div class="im-liste">${z("wer", "people", "Wer spielt?", "Spieler wechseln")}${z("profil", "user", "Mein Profil", "Name, Gemeinde, Statistik")}
     <button class="im-zeile gs-schalter" id="gsSchalter" aria-pressed="${grossAn()}">${svg("eye")}<span><b>Große Schrift</b><small>${grossAn() ? "an" : "aus"}</small></span><i class="gs-knopf"></i></button>${z("badges", "medal", "Abzeichen", `${S.badges.length} von ${BADGES.length}`)}${z("share", "share", "Mit Freunden teilen", "QR-Code")}${NACH && NACH.some(nachSichtbar) ? z("neuigkeiten", "chat", "Neuigkeiten", nachUngelesen().length ? nachUngelesen().length + " neu" : "") : ""}${entwickler ? z("postfach", "post", "Postkasten", postfachNeu ? postfachNeu + " neu" : "") : ""}${deferredInstall && !S.appBonus ? z("install", "down", "App installieren", `+${APP_BONUS} Talente`) : ""}${z("feedback", "chat", "Feedback an den Entwickler")}</div>
     <button class="btn ghost" data-close="">Schließen</button>`, r => {
       if (r === "feedback") feedbackOeffnen();
@@ -2282,42 +2282,90 @@ function titelKarte(liste, p, tag) {
   return `<div class="titelkarte"><div class="topline"><span><span class="tag ${tag.toLowerCase()}">${tag}</span> <b>${esc(t[1])}</b></span><span class="small muted">${p}%</span></div>
     <span class="tbar"><i style="width:${p}%"></i></span><div class="small muted">${esc(t[2])}</div>${next ? `<div class="small">Nächster Titel bei ${next[0]}%: <b>${esc(next[1])}</b></div>` : ""}</div>`;
 }
+/* 9.10: Profil neu (Spielerausweis) + eigene Seite „Errungenschaften und Statistik“ */
+const PF_IC = {
+  stift: '<svg class="pf2-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l1-4L16.5 4.5a2 2 0 0 1 3 3L8 19z"/><path d="M14.5 6.5l3 3"/></svg>',
+  tausch: '<svg class="pf2-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h14l-3-3M20 16H6l3 3"/></svg>',
+  pfeil: '<svg class="pf2-pf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>',
+  ok: '<svg class="pf2-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  zu: '<svg class="pf2-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+};
+const pfTrenner = t => `<div class="pf2-tr" role="separator"><i></i><b></b><span>${t}</span><b></b><i></i></div>`;
+function pfLevel() { const n = levelOf(S.xp), lo = cum(n), hi = cum(n + 1); return { n, lo, hi, p: Math.max(0, Math.min(100, (S.xp - lo) / (hi - lo) * 100)), fehlt: Math.max(0, hi - Math.round(S.xp)) }; }
+function pfRing(p, px, txt) {
+  const r = px / 2 - 6, c = 2 * Math.PI * r;
+  return `<div class="pf2-ring" style="width:${px}px;height:${px}px"><svg width="${px}" height="${px}" aria-hidden="true"><circle cx="${px / 2}" cy="${px / 2}" r="${r}" fill="none" stroke="#ffffff1a" stroke-width="6"/><circle cx="${px / 2}" cy="${px / 2}" r="${r}" fill="none" stroke="#f2c14e" stroke-width="6" stroke-linecap="round" stroke-dasharray="${(c * Math.max(0, Math.min(100, p)) / 100).toFixed(1)} ${c.toFixed(1)}"/></svg><b>${txt}</b></div>`;
+}
 VIEWS.profil = () => {
-  const me = lbPayload(), { atP, ntP } = fortschritt();
-  const L = window.LB, online = L && L.ok;
-  screen.innerHTML = `${backBtn("home", "Start")}
-  <div class="card profil-kopf pf-kompakt">${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "Du" }, 58)}
-    <div class="pf-name"><h2 style="margin:0">${esc(S.lbName || "Noch ohne Namen")}</h2><div class="muted small">${esc(rangVon())}</div>${!S.pid && !S.offlineOnly ? `<div class="small muted">Erscheint in der Rangliste, sobald Internet da ist.</div>` : ""}</div>
-    <button class="btn primary pf-wechsel" id="wechseln">${svg("people")}<span>Spieler wechseln</span></button></div>
-  ${gemKarteHtml()}
-  <div class="card" style="margin:8px 0">${xpInfoHtml(true)}</div>
-  <button class="im-zeile gs-schalter pf-gross" id="gsSchalterP" aria-pressed="${grossAn()}">${svg("eye")}<span><b>Große Schrift</b><small>${grossAn() ? "an" : "aus"}</small></span><i class="gs-knopf"></i></button>
-  <div class="card stack pf-karte">${titelKarte(AT_TITEL, atP, "AT")}${titelKarte(NT_TITEL, ntP, "NT")}</div>
-  <div class="card stack pf-karte" style="margin-top:8px"><b>Meine Siegel</b>${siegelReihe(Object.assign({}, me))}</div>
-  <div class="row-btns" style="margin:8px 0"><button class="btn ghost" data-go="badges">Meine Abzeichen</button><button class="btn ghost" data-go="share">Mit Freunden teilen</button></div>
-  ${deferredInstall && !S.appBonus ? `<div class="row-btns" style="margin:0 0 8px"><button class="btn ghost" id="pfInstall">App installieren (+${APP_BONUS})</button></div>` : ""}
-  <details class="card pf-det"><summary>Alle Werte</summary><table class="werte">${statsZeilen(me).map(([k, v]) => `<tr><th>${k}</th><td>${esc(v)}</td></tr>`).join("")}</table></details>
-  <details class="card pf-det"><summary>Hinweise zu Titeln und Siegeln</summary><p class="small muted">Die Titel wachsen mit deinen Sternen in den Lektionen und deiner Kette im AT bzw. NT. Siegel: Bronze 1-mal · Silber in 3 Wochen · Gold in 3 Monaten · Diamant 12 Monate am Stück. Ein Siegel bleibt ${SIEGEL_FRISCH} Tage frisch.</p></details>
-  <details class="card pf-det"><summary>Auf einem weiteren Gerät spielen</summary><p class="small muted">Öffne die App auf dem anderen Gerät und wähle <b>Ich spiele schon mit</b> (spielt dort schon jemand: oben auf Level/Namen tippen → Weiteren Spieler hinzufügen). Dann tippe deinen Namen an. Dann spielst du dort mit demselben Spielstand weiter.</p></details>
-  <div class="row-btns" style="margin-top:8px"><button class="btn ghost mini" id="rename">Namen ändern</button>${S.pid && online && !S.offlineOnly ? `<button class="btn ghost mini" id="leave">Aus der Rangliste austreten</button>` : ""}</div><div id="pextra">
-  ${entwickler && (advTestOn() || dayNum(today()) < dayNum(ADV_START)) ? `<button class="btn" id="advTestBtn" style="margin-top:12px;width:100%">${svg("kerze")} Advent-Testmodus: ${advTestOn() ? "an – öffnen" : "starten"}</button>` : ""}
-  ${entwickler ? `<button class="btn" data-go="postfach" style="margin-top:12px;width:100%">${svg("post")} Postkasten${postfachNeu ? ` (${postfachNeu} neu)` : ""}</button>` : ""}
-  <button class="feedback-link" id="fbLink2">${svg("chat")} Feedback an den Entwickler</button>
-  ${online ? kennungHtml("kennProfil") : ""}
-  <p class="small muted" style="margin-top:14px">Bibelverse: ${VERS_QUELLE} © Genfer Bibelgesellschaft.</p></div>`;
-  wireGo(); if ($("gemBeitritt")) $("gemBeitritt").onclick = () => { SFX.tap(); gemBeitreten(); }; if ($("gemWeg")) $("gemWeg").onclick = () => { SFX.tap(); gemVerlassen(); };
-  gemLaden().then(ch => { if (ch && current === "profil" && !document.querySelector(".modal")) { const k = $("pfGem"); if (k) { k.outerHTML = gemKarteHtml(); if ($("gemBeitritt")) $("gemBeitritt").onclick = () => { SFX.tap(); gemBeitreten(); }; if ($("gemWeg")) $("gemWeg").onclick = () => { SFX.tap(); gemVerlassen(); }; } } });
+  const li = pfLevel(), online = window.LB && window.LB.ok;
+  screen.innerHTML = `${backBtn("home", "Start")}<div class="pf2">
+    <section class="pf2-ausweis">
+      ${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "Du" }, 84)}
+      <div class="pf2-namebox" id="pfNameBox"><h2>${esc(S.lbName || "Noch ohne Namen")}</h2>${S.lbName ? `<button class="pf2-edit" id="rename" aria-label="Namen ändern">${PF_IC.stift}</button>` : ""}</div>
+      <span class="pf2-rang">${esc(rangVon())} · Level ${li.n}</span>
+      <div class="pf2-xp" aria-label="Fortschritt bis Level ${li.n + 1}"><div class="pf2-bar"><i style="width:${li.p.toFixed(1)}%"></i></div><span>noch ${pkt(li.fehlt)} XP bis Level ${li.n + 1}</span></div>
+      ${!S.pid && !S.offlineOnly ? `<div class="small muted">Erscheint in der Rangliste, sobald Internet da ist.</div>` : ""}
+      ${pfTrenner("Spieler")}<button class="pf2-btn" id="wechseln">${PF_IC.tausch}${svg("people")}<span>Spieler wechseln</span></button>
+      ${pfTrenner("Gemeinde")}${gemKarteHtml()}
+    </section>
+    ${pfTrenner("Anzeige")}
+    <button class="im-zeile gs-schalter pf-gross" id="gsSchalterP" aria-pressed="${grossAn()}">${svg("eye")}<span><b>Große Schrift</b><small>${grossAn() ? "an" : "aus"}</small></span><i class="gs-knopf"></i></button>
+    <button class="pf2-stat" data-go="stat">${pfRing(li.p, 58, li.n)}<span><b>Errungenschaften und Statistik</b><small>Level ${li.n} · ${S.badges.length} von ${BADGES.length} Abzeichen</small></span>${PF_IC.pfeil}</button>
+    ${pfTrenner("Mehr")}
+    <button class="pf2-zeile" data-go="share">${svg("share")}<span><b>Mit Freunden teilen</b><small>QR-Code</small></span>${PF_IC.pfeil}</button>
+    ${deferredInstall && !S.appBonus ? `<button class="pf2-zeile" id="pfInstall">${svg("down")}<span><b>App installieren</b><small>+${APP_BONUS} Talente</small></span>${PF_IC.pfeil}</button>` : ""}
+    <button class="pf2-zeile" id="fbLink2">${svg("chat")}<span><b>Feedback an den Entwickler</b></span>${PF_IC.pfeil}</button>
+    ${entwickler && (advTestOn() || dayNum(today()) < dayNum(ADV_START)) ? `<button class="pf2-zeile" id="advTestBtn">${svg("kerze")}<span><b>Advent-Testmodus</b><small>${advTestOn() ? "an – öffnen" : "starten"}</small></span>${PF_IC.pfeil}</button>` : ""}
+    ${entwickler && online ? kennungHtml("kennProfil") : ""}
+    <p class="small muted" style="margin:6px 0 0">Bibelverse: ${VERS_QUELLE} © Genfer Bibelgesellschaft.</p></div>`;
+  wireGo(); pfGemVerdrahten();
+  gemLaden().then(ch => { if (ch && current === "profil" && !document.querySelector(".modal")) { const k = $("pfGem"); if (k) { k.outerHTML = gemKarteHtml(); pfGemVerdrahten(); } } });
   $("wechseln").onclick = () => { SFX.tap(); go("wer"); };
   $("gsSchalterP").onclick = () => { SFX.tap(); const b = $("gsSchalterP"); grossSetzen(!grossAn()); b.setAttribute("aria-pressed", grossAn()); b.querySelector("small").textContent = grossAn() ? "an" : "aus"; };
   $("fbLink2").onclick = () => { SFX.tap(); feedbackOeffnen(); };
   if ($("pfInstall")) $("pfInstall").onclick = () => { SFX.tap(); deferredInstall.prompt(); deferredInstall.userChoice.catch(() => {}).then(() => { deferredInstall = null; }); };
   if ($("advTestBtn")) $("advTestBtn").onclick = () => { SFX.tap(); if (!advTestOn()) advTestSchalten(true); go("advent"); };
   kennungKopierenVerdrahten(screen);
-  if ($("rename")) $("rename").onclick = () => { SFX.tap(); $("pextra").innerHTML = `<div class="card stack"><label class="label" for="rn">Neuer Spitzname</label><input class="field" id="rn" maxlength="20" value="${esc(S.lbName)}"><button class="btn primary" id="rnSave">Speichern</button></div>`;
-    $("rnSave").onclick = () => { const n = $("rn").value.trim().replace(/\s+/g, " "); if (n.length < 2) { SFX.wrong(); return; } S.lbName = n; save(); lbSync(true); SFX.coin(); go("profil"); }; };
-  if ($("leave")) $("leave").onclick = () => { SFX.tap(); $("pextra").innerHTML = `<div class="card stack"><b>Aus der Rangliste austreten?</b><p class="small muted" style="margin:0">Dein Eintrag wird für alle gelöscht. Dein Spielstand auf diesem Gerät bleibt erhalten.</p><div class="topline"><button class="btn" id="lvNo">Abbrechen</button><button class="btn primary" id="lvYes">Austreten</button></div></div>`;
-    $("lvNo").onclick = () => { $("pextra").innerHTML = ""; };
-    $("lvYes").onclick = async () => { try { if (S.pid) await L.remove(S.pid); } catch (e) {} S.pid = ""; S.ownersSet = false; S.offlineOnly = true; save(); go("profil"); }; };
+  /* Name direkt am Namen ändern */
+  if ($("rename")) $("rename").onclick = () => {
+    SFX.tap(); const box = $("pfNameBox"); box.classList.add("bearbeiten");
+    box.innerHTML = `<input class="field pf2-input" id="rn" maxlength="20" value="${esc(S.lbName)}" aria-label="Neuer Spitzname"><button class="pf2-edit ok" id="rnSave" aria-label="Speichern">${PF_IC.ok}</button><button class="pf2-edit" id="rnNo" aria-label="Abbrechen">${PF_IC.zu}</button>`;
+    const speichern = () => { const n = $("rn").value.trim().replace(/\s+/g, " "); if (n.length < 2) { SFX.wrong(); $("rn").focus(); return; } if (n !== S.lbName) { S.lbName = n; save(); lbSync(true); SFX.coin(); } go("profil"); };
+    $("rnSave").onclick = speichern; $("rnNo").onclick = () => { SFX.tap(); go("profil"); };
+    $("rn").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); speichern(); } else if (e.key === "Escape") go("profil"); };
+    $("rn").focus(); $("rn").select();
+  };
+};
+function pfGemVerdrahten() {
+  if ($("gemBeitritt")) $("gemBeitritt").onclick = () => { SFX.tap(); gemBeitreten(); };
+  if ($("gemWeg")) $("gemWeg").onclick = () => { SFX.tap(); gemVerlassen(); };
+}
+
+/* ---------- Errungenschaften und Statistik (9.10) ---------- */
+let statTab = 0;
+function pfBalken(t, v, max, kl) { return `<div class="pf2-zl"><div class="pf2-vz"><span>${t}</span><b>${v}/${max}</b></div><div class="pf2-bar ${kl || ""}"><i style="width:${Math.min(100, v / max * 100).toFixed(0)}%"></i></div></div>`; }
+function pfTitel(liste, p, tag) {
+  const i = titelIndex(liste, p), t = liste[i], nx = liste[i + 1];
+  return `<div class="pf2-zl"><div class="pf2-vz"><span><span class="tag ${tag.toLowerCase()}">${tag}</span> <b>${esc(t[1])}</b></span><b>${p}%</b></div><div class="pf2-bar ${tag.toLowerCase()}"><i style="width:${p}%"></i></div>${nx ? `<div class="small muted">Nächster Titel bei ${nx[0]}%: ${esc(nx[1])}</div>` : `<div class="small muted">Höchster Titel erreicht</div>`}</div>`;
+}
+function pfKachel(ic, n, t) { return `<div class="pf2-kachel">${svg(ic)}<div class="n">${n}</div><div class="t">${t}</div></div>`; }
+VIEWS.stat = (tab) => {
+  if (typeof tab === "number") statTab = tab;
+  const m = lbPayload(), { atP, ntP } = fortschritt(), li = pfLevel(), h = dayNum(today());
+  const TABS = ["Überblick", "Titel", "Rekorde", "Abzeichen"];
+  const teile = [
+    () => `<div class="pf2-karte gold pf2-levelkarte">${pfRing(li.p, 92, "Level " + li.n)}<div><b class="pf2-gross">${esc(rangVon())}</b><div class="small muted">${pkt(Math.round(S.xp))} XP gesamt</div><div class="small muted">noch ${pkt(li.fehlt)} XP bis Level ${li.n + 1}</div></div></div>
+      <div class="pf2-g2">${pfKachel("fire", (m.streak || 0) + (m.streak === 1 ? " Tag" : " Tage"), "Serie")}${pfKachel("sun", m.t28 || 0, "Spieltage in 4 Wochen")}${pfKachel("medal", S.badges.length, "Abzeichen")}${pfKachel("ar-schild", armorCount() + "/6", "Waffenrüstung")}</div>
+      <div class="pf2-karte"><div class="pf2-vz"><span>Spieltage der letzten 4 Wochen</span><b>${m.t28 || 0}</b></div><div class="pf2-tage" role="img" aria-label="${m.t28 || 0} Spieltage in den letzten 4 Wochen">${Array.from({ length: 28 }, (_, i) => `<i class="${S.tage.includes(h - 27 + i) ? "an" : ""}"></i>`).join("")}</div></div>`,
+    () => `<div class="pf2-karte pf2-zls">${pfTitel(AT_TITEL, atP, "AT")}${pfTrenner("")}${pfTitel(NT_TITEL, ntP, "NT")}</div>
+      <div class="pf2-karte"><div class="label" style="margin:0 0 8px">Siegel</div><div class="pf2-sg">${siegelReihe(m)}</div></div>`,
+    () => `<div class="pf2-karte pf2-zls">${pfBalken("Kette Bibel", m.bestChain ? m.bestChain + 1 : 0, 66)}${pfBalken("Kette AT", m.chainAT ? m.chainAT + 1 : 0, 39, "at")}${pfBalken("Kette NT", m.chainNT ? m.chainNT + 1 : 0, 27, "nt")}${pfBalken("Kette rückwärts", m.chainRueck ? m.chainRueck + 1 : 0, 66)}</div>
+      <div class="pf2-g2">${pfKachel("bolt", m.blitz || 0, "Blitz-Rekord")}${pfKachel("bolt", m.combo != null ? m.combo : "–", "Blitz in Folge")}${pfKachel("duell", (m.duS || 0) + " / " + (m.duG || 0), "Arena-Siege / Duelle")}${pfKachel("biblionaer", pkt(m.bib || 0), "Biblionär-Rekord")}</div>`,
+    () => `<div class="pf2-karte"><div class="pf2-vz"><span>Gesammelt</span><b>${S.badges.length} von ${BADGES.length}</b></div><div class="pf2-bar"><i style="width:${(S.badges.length / BADGES.length * 100).toFixed(0)}%"></i></div></div>${badgeGrid(S.badges)}`
+  ];
+  screen.innerHTML = `${backBtn("profil", "Profil")}<h1 class="pf2-h1">Errungenschaften und Statistik</h1><div class="pf2"><div class="pf2-seg" role="tablist">${TABS.map((t, i) => `<button role="tab" aria-selected="${i === statTab}" class="${i === statTab ? "an" : ""}" data-st="${i}">${t}</button>`).join("")}</div>${teile[statTab]()}</div>`;
+  wireGo();
+  screen.querySelectorAll("[data-st]").forEach(b => b.onclick = () => { SFX.tap(); VIEWS.stat(+b.dataset.st); window.scrollTo(0, 0); });
 };
 
 /* ---------- Gemeinde-Rangliste ---------- */
@@ -2725,8 +2773,8 @@ function gemVerlassen() {
 /* Karte oben im Profil (wie „Spieler wechseln“): eintragen · wechseln · verlassen */
 function gemKarteHtml() {
   const id = meineGem(), gast = id === "gast", g = gast ? null : gemInfo(id);
-  return `<div class="card pf-gem" id="pfGem"><div class="pf-gem-zeile">${gemLogoHtml(g, 48)}<div class="pf-gem-tx"><span class="label">Gemeinde</span><b>${gast ? "Gast" : esc(gemName(id))}</b><span class="small muted">${gast ? "Mit dem Passwort deiner Gemeinde kannst du beitreten." : "Du zählst für die Gemeinde-Wertung."}</span></div></div>
-    <div class="row-btns">${gast ? `<button class="btn primary" id="gemBeitritt">${svg("people")}<span>Gemeinde eintragen</span></button>` : `<button class="btn" id="gemBeitritt">${svg("people")}<span>Wechseln</span></button><button class="btn ghost" id="gemWeg">Verlassen</button>`}</div></div>`;
+  return `<div class="pf2-gem" id="pfGem"><div class="pf2-gem-zeile">${gemLogoHtml(g, 48)}<div class="pf2-gem-tx"><span class="label">Gemeinde</span><b>${gast ? "Gast" : esc(gemName(id))}</b>${gast ? `<span class="small muted">Mit dem Passwort deiner Gemeinde kannst du beitreten.</span>` : ""}</div></div>
+    <button class="pf2-btn" id="gemBeitritt">${gast ? "" : PF_IC.tausch}${svg("people")}<span>${gast ? "Gemeinde eintragen" : "Gemeinde wechseln"}</span></button>${gast ? "" : `<button class="pf2-link" id="gemWeg">Gemeinde verlassen</button>`}</div>`;
 }
 /* Logo aus einer Bilddatei: quadratisch skaliert, klein genug für die Datenbank (höchstens ca. 28 000 Zeichen) */
 function logoLesen(file) {
@@ -5825,7 +5873,7 @@ document.addEventListener("pointerdown", () => { ac(); }, { once: true });
 const APP_BONUS = 100;
 const alsApp = () => { try { return matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches || navigator.standalone === true; } catch (e) { return false; } };
 const istIos = () => { const u = navigator.userAgent || ""; return /iPhone|iPad|iPod/.test(u) || (/Macintosh/.test(u) && navigator.maxTouchPoints > 1); };
-const AH_REITER = ["home", "lernen", "spielen", "zusammen", "bib", "duelle", "rank", "ich", "profil", "badges"];
+const AH_REITER = ["home", "lernen", "spielen", "zusammen", "bib", "duelle", "rank", "ich", "profil", "stat", "badges"];
 const ahKey = "bq-app-hinweis-zu";
 function ahZuHeute() { try { return localStorage.getItem(ahKey) === today(); } catch (e) { return false; } }
 function appBonusPruefen() {
