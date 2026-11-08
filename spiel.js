@@ -2861,9 +2861,13 @@ function gemBeitreten() {
         return;
       }
       if (w && w === pwNorm(gemPw(g))) {
-        if (gemPruef(meineGem()) && !g.pruef) { jokerSperren(); const L = window.LB; if (L && L.ok && L.uid && L.freigabeEntfernen) L.freigabeEntfernen([L.uid]).catch(() => {}); } /* Willi und Aaron gibt es nur für Eichstätt */
-        S.gem = g.id; S.gemNeu = false; S.gemGesendet = ""; save(); gemSenden(); GEM_ZUORD[S.pid] = g.id;
-        m.remove(); SFX.coin(); toast(`${svg("people")}<div>Willkommen bei ${esc(g.name)}!</div>`); gemNeuZeichnen();
+        const fertig = () => {
+          if (gemPruef(meineGem()) && !g.pruef) { jokerSperren(); const L = window.LB; if (L && L.ok && L.uid && L.freigabeEntfernen) L.freigabeEntfernen([L.uid]).catch(() => {}); } /* Willi und Aaron gibt es nur für Eichstätt */
+          S.gem = g.id; S.gemNeu = false; S.gemGesendet = ""; save(); gemSenden(); GEM_ZUORD[S.pid] = g.id;
+          m.remove(); SFX.coin(); toast(`${svg("people")}<div>Willkommen bei ${esc(g.name)}!</div>`); gemNeuZeichnen();
+        };
+        if (meineGem() !== "gast") gemWarnung(g, fertig); /* 9.13.1: Wechsel aus einer Gemeinde – erst warnen, mit Abbrechen */
+        else fertig();
       } else {
         SFX.wrong(); $("gbFehler").textContent = "Das Passwort stimmt nicht. Tipp: Es ist der Ort der Gemeinde.";
         const i = $("gbPw"); i.classList.remove("gb-wackel"); void i.offsetWidth; i.classList.add("gb-wackel"); i.select();
@@ -2877,13 +2881,28 @@ function gemBeitreten() {
   liste();
   gemLaden(true).then(ch => { if (ch && document.body.contains(m) && box.dataset.schritt === "liste") liste(); });
 }
+/* 9.13.1: Warnung mit den Folgen, bevor jemand eine Gemeinde endgültig verlässt (Verlassen oder Wechsel) – mit Abbrechen */
+function gemWarnung(ziel, weiter) {
+  const id = meineGem(), g = gemInfo(id), pruef = gemPruef(id), zn = ziel ? ziel.name : "";
+  const folgen = [
+    ziel ? `Du gehörst dann zu <b>${esc(zn)}</b> und nicht mehr zu <b>${esc(gemName(id))}</b>.` : `Du bist dann <b>Gast</b> und gehörst zu keiner Gemeinde mehr.`,
+    `Du zählst nicht mehr für die Wertung von ${esc(gemName(id))} und erscheinst nicht mehr in deren Gemeinde-Rangliste. In der Welt-Rangliste bist du weiter dabei.`,
+    ...(pruef ? [`Die <b>Freischaltung</b> durch den Verwalter geht verloren. <b>Willi und Aaron</b> (Telefonjoker) stehen dir nicht mehr zur Verfügung – stattdessen hilft dir ${ziel ? "der anonyme Pastor" : "der anonyme Gastprediger"}.`,
+      `Zum Zurückkommen brauchst du das Passwort <b>und eine neue Freischaltung</b> durch den Verwalter. Das kann dauern.`] : [`Zum Zurückkommen brauchst du wieder das Passwort der Gemeinde.`]),
+    `Dein Spielstand bleibt erhalten: XP, Level, Abzeichen, Ketten und Rekorde.`
+  ];
+  modal(`<div class="gb-kopf">${gemLogoHtml(g, 52)}<div><div class="label" style="color:#ff8a8a">Achtung – bitte lesen</div><b>${ziel ? "Gemeinde wechseln?" : "Gemeinde wirklich verlassen?"}</b></div></div>
+    <div class="gw-warn"><ul>${folgen.map(f => `<li>${f}</li>`).join("")}</ul></div>
+    <p class="small muted" style="margin:0">Das lässt sich nicht einfach rückgängig machen.</p>
+    <button class="btn primary" data-close="">Abbrechen – ich bleibe</button><button class="btn ghost gw-ja" data-close="ja">${ziel ? "Ja, endgültig wechseln" : "Ja, endgültig verlassen"}</button>`,
+    r => { if (r === "ja") weiter(); });
+}
 function gemVerlassen() {
-  const g = gemInfo(meineGem());
-  modal(`<div class="gb-kopf">${gemLogoHtml(g, 52)}<div><div class="label">Gemeinde verlassen?</div><b>${esc(gemName(meineGem()))}</b></div></div>
-    <p class="muted small" style="margin:0">Du bist dann Gast: Du zählst nicht mehr für die Gemeinde-Wertung und erscheinst nicht mehr in der Gemeinde-Rangliste. In der Welt-Rangliste bist du weiter dabei. ${gemPruef(meineGem()) ? "Zum Zurückkommen brauchst du eine neue Freischaltung durch den Verwalter." : "Mit dem Passwort kannst du jederzeit wieder beitreten."}</p>
-    <button class="btn" data-close="ja">Gemeinde verlassen</button><button class="btn ghost" data-close="">Abbrechen</button>`,
-    r => { if (r !== "ja") return; const warPruef = gemPruef(meineGem()); S.gem = "gast"; S.gemNeu = false; S.gemGesendet = ""; save(); gemSenden(); GEM_ZUORD[S.pid] = "gast";
-      if (warPruef) { jokerSperren(); const L = window.LB; if (L && L.ok && L.uid && L.freigabeEntfernen) L.freigabeEntfernen([L.uid]).catch(() => {}); } toast(`${svg("user")}<div>Du bist jetzt Gast.</div>`); gemNeuZeichnen(); });
+  gemWarnung(null, () => {
+    const warPruef = gemPruef(meineGem()); S.gem = "gast"; S.gemNeu = false; S.gemGesendet = ""; save(); gemSenden(); GEM_ZUORD[S.pid] = "gast";
+    if (warPruef) { jokerSperren(); const L = window.LB; if (L && L.ok && L.uid && L.freigabeEntfernen) L.freigabeEntfernen([L.uid]).catch(() => {}); }
+    toast(`${svg("user")}<div>Du bist jetzt Gast.</div>`); gemNeuZeichnen();
+  });
 }
 /* Karte oben im Profil (wie „Spieler wechseln“): eintragen · wechseln · verlassen */
 function gemKarteHtml() {
