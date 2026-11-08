@@ -2940,14 +2940,14 @@ VIEWS.gemverwaltung = () => {
     const fehler = t => toast(`${svg("nein")}<div>${t}</div>`);
     $("gvBox").innerHTML = `<p class="small muted" style="margin:0 0 8px">Das Passwort zum Beitreten ist der Ort der Gemeinde. Ohne eigenes Passwort gilt das letzte Wort des Namens.</p>
       <div class="stack">${GEM.map(g => `<div class="card gv-karte" data-g="${esc(g.id)}"><div class="gv-kopf">${gemLogoHtml(g, 52)}<div><b>${esc(g.name)}</b><div class="small muted">${zahl(g.id)} Spieler · ${esc(g.id)}</div></div></div>
-        <label class="label">Name der Gemeinde</label><input class="du-suche" data-name value="${esc(g.name)}" maxlength="40" autocomplete="off">
+        <label class="label">Name der Gemeinde</label><input class="du-suche" data-name value="${esc(g.name)}" maxlength="50" autocomplete="off">
         <label class="label">Passwort (Ort)</label><input class="du-suche" data-pw value="${esc(gemPw(g))}" maxlength="30" autocomplete="off">
         <label class="small" style="display:flex;gap:8px;align-items:center;margin:6px 0"><input type="checkbox" data-pruef ${g.pruef ? "checked" : ""} ${g.id === GEM_STANDARD && !g.pruef ? "disabled" : ""}> Neue Mitglieder müssen von mir freigeschaltet werden</label>
         ${g.id === GEM_STANDARD && !g.pruef ? `<button class="btn" data-pruefein>Freischaltung einschalten …</button><p class="small muted" style="margin:4px 0 0">Alle bisherigen Spieler dieser Gemeinde bleiben Mitglied. Danach brauchen nur neue Spieler eine Freischaltung.</p>` : ""}
         <div class="gv-logozeile"><input type="file" accept="image/*" data-logo><span class="small muted">Logo ändern</span></div>
         <div class="row-btns"><button class="btn primary" data-save>Speichern</button>${g.id === GEM_STANDARD || zahl(g.id) ? "" : `<button class="btn ghost" data-weg>Löschen</button>`}</div></div>`).join("")}
         <div class="card"><div class="gv-kopf">${gemLogoHtml(null, 52)}<div><b>Gäste</b><div class="small muted">${zahl("gast")} Spieler</div></div></div></div></div>
-      <div class="card gv-karte" style="margin-top:12px"><b>Neue Gemeinde</b><input class="du-suche" id="gvName" placeholder="Name der Gemeinde" maxlength="40" autocomplete="off"><input class="du-suche" id="gvPw" placeholder="Passwort = Ort, z. B. Ditzingen" maxlength="30" autocomplete="off"><div class="gv-logozeile"><input type="file" accept="image/*" id="gvLogo"><span class="small muted">Logo (optional)</span></div><button class="btn primary" id="gvNeu">Gemeinde anlegen</button></div>
+      <div class="card gv-karte" style="margin-top:12px"><b>Neue Gemeinde</b><input class="du-suche" id="gvName" placeholder="Name der Gemeinde" maxlength="50" autocomplete="off"><input class="du-suche" id="gvPw" placeholder="Passwort = Ort, z. B. Ditzingen" maxlength="30" autocomplete="off"><div class="gv-logozeile"><input type="file" accept="image/*" id="gvLogo"><span class="small muted">Logo (optional)</span></div><button class="btn primary" id="gvNeu">Gemeinde anlegen</button></div>
       <div class="card stack" style="margin-top:12px"><b>Spieler zuordnen</b><select class="du-suche" id="gvSp">${spieler.slice().sort((a, b) => String(a.name).localeCompare(String(b.name), "de")).map(r => `<option value="${esc(r.id)}">${esc(r.name)} · ${esc(gemName(gemVon(r.id)))}</option>`).join("")}</select>
         <select class="du-suche" id="gvZiel">${GEM.map(g => `<option value="${esc(g.id)}">${esc(g.name)}</option>`).join("")}<option value="gast">Gast</option></select><button class="btn" id="gvZu">Zuordnen</button></div>
       <div class="card stack" style="margin-top:12px"><b>Telefonjoker-Schlüssel</b><p class="small muted" style="margin:0" id="jkStatus">Prüfe …</p>
@@ -2963,7 +2963,7 @@ VIEWS.gemverwaltung = () => {
       logoWahl(k.querySelector("[data-logo]"), id);
       const neuerName = () => k.querySelector("[data-name]").value.trim().replace(/\s+/g, " ");
       k.querySelector("[data-save]").onclick = () => { const pw = k.querySelector("[data-pw]").value.trim(); if (pwNorm(pw).length < 2) { fehler("Bitte ein Passwort (Ort) eingeben."); return; }
-        const name = neuerName(); if (name.length < 2 || name.length > 40) { fehler("Der Name braucht 2 bis 40 Zeichen."); return; }
+        const name = neuerName(); if (name.length < 2 || name.length > 50) { fehler("Der Name braucht 2 bis 50 Zeichen."); return; }
         if (GEM.some(x => x.id !== id && String(x.name).toLowerCase() === name.toLowerCase())) { fehler("Eine andere Gemeinde heißt schon so."); return; }
         L.gemAnlegen(id, name, idx, { pw, logo: logos[id] || eigenesLogo(g), pruef: k.querySelector("[data-pruef]").checked }).then(() => { SFX.coin(); VIEWS.gemverwaltung(); }).catch(() => fehler(fehlerText())); };
       const pe = k.querySelector("[data-pruefein]"); if (pe) pe.onclick = () => { SFX.tap(); freischaltungEinschalten(Object.assign({}, g, { name: neuerName() || g.name }), idx, spieler, k.querySelector("[data-pw]").value.trim()); };
