@@ -1,5 +1,5 @@
 rules_version = '2';
-// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 9.7 – Sammlung nachrichten, Gemeinden mit Passwort pw und Logo logo; 9.0 – Sammlungen gemeinden + mitglied; 7.3 – Sammlung bethlehem (Weg nach Bethlehem, Advent); 6.95 – Sammlung talente (Talente-Zählung, nur der Verwalter liest); 6.88 – xpquellen: Regel vereinfacht (Limit 1000 Auswertungen pro Schreibzugriff, ab der 4. Quelle wurde abgelehnt); 6.80 – Sammlungen bibversuch (Biblionär-Wochenrunde einmal je Serverwoche) und spendenxp (XP für Spenden einmal je Talent); 6.79 – xpquellen: neue Quelle spende (Stiftshütte); 6.78 – Sammlung tagestruhe (Schatztruhe einmal je Serverdatum); 6.76 – xpquellen: neue Quelle abgleich; 6.75 – Sammlung xpprotokoll (Einzelprotokoll der XP-Vergaben, nur anlegen); 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 9.11 – Freischaltung: Gemeinden mit pruef, Sammlungen antraege, freigabe, geheim; 9.7 – Sammlung nachrichten, Gemeinden mit Passwort pw und Logo logo; 9.0 – Sammlungen gemeinden + mitglied; 7.3 – Sammlung bethlehem (Weg nach Bethlehem, Advent); 6.95 – Sammlung talente (Talente-Zählung, nur der Verwalter liest); 6.88 – xpquellen: Regel vereinfacht (Limit 1000 Auswertungen pro Schreibzugriff, ab der 4. Quelle wurde abgelehnt); 6.80 – Sammlungen bibversuch (Biblionär-Wochenrunde einmal je Serverwoche) und spendenxp (XP für Spenden einmal je Talent); 6.79 – xpquellen: neue Quelle spende (Stiftshütte); 6.78 – Sammlung tagestruhe (Schatztruhe einmal je Serverdatum); 6.76 – xpquellen: neue Quelle abgleich; 6.75 – Sammlung xpprotokoll (Einzelprotokoll der XP-Vergaben, nur anlegen); 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -430,7 +430,8 @@ service cloud.firestore {
     match /gemeinden/{id} {
       allow read: if true;
       allow create, update: if istEntwickler() && id.matches('^[a-z0-9-]{2,30}$')
-        && request.resource.data.keys().hasOnly(['name', 'ord', 'pw', 'logo'])
+        && request.resource.data.keys().hasOnly(['name', 'ord', 'pw', 'logo', 'pruef'])
+        && (!('pruef' in request.resource.data) || request.resource.data.pruef == true)
         && (!('pw' in request.resource.data) || (request.resource.data.pw is string && request.resource.data.pw.size() <= 30))
         && (!('logo' in request.resource.data) || (request.resource.data.logo is string && request.resource.data.logo.size() <= 30000))
         && request.resource.data.name is string && request.resource.data.name.size() >= 2 && request.resource.data.name.size() <= 40
@@ -438,14 +439,54 @@ service cloud.firestore {
       allow delete: if istEntwickler();
     }
     // 9.0 Gemeinde-Zuordnung: jeder Spieler wählt für sich (Gemeinde-ID oder "gast"); der Verwalter darf jeden zuordnen.
-    // Ohne Eintrag gilt "fbg" (Freie Baptisten Eichstätt).
+    // 9.11: In eine Gemeinde mit pruef (Freischaltung nötig) darf nur der Verwalter zuordnen; der Spieler kann dorthin nur einen Antrag stellen
+    // und jederzeit zu "gast" oder in eine Gemeinde ohne pruef wechseln. Ohne Eintrag gilt "fbg", solange fbg kein pruef hat.
     match /mitglied/{pid} {
       allow read: if true;
       allow create, update: if angemeldet() && request.resource.data.keys().hasOnly(['pid', 'name', 'g', 'updated'])
         && request.resource.data.pid == pid
         && request.resource.data.g is string && request.resource.data.g.size() <= 30
         && (request.resource.data.g == 'gast' || exists(/databases/$(database)/documents/gemeinden/$(request.resource.data.g)))
-        && (istEntwickler() || besitzer(pid));
+        && (istEntwickler() || (besitzer(pid) && (request.resource.data.g == 'gast'
+            || !get(/databases/$(database)/documents/gemeinden/$(request.resource.data.g)).data.get('pruef', false))));
+      allow delete: if istEntwickler();
+    }
+
+    // 9.11 Beitrittsanträge für Gemeinden mit Freischaltung (pruef): der Spieler stellt den Antrag, nur der Verwalter entscheidet.
+    // status: offen | abgelehnt. Zurückziehen (löschen) darf der Spieler selbst.
+    match /antraege/{pid} {
+      allow get: if angemeldet() && (besitzer(pid) || istEntwickler());
+      allow list: if istEntwickler();
+      allow create: if angemeldet() && besitzer(pid)
+        && request.resource.data.keys().hasOnly(['pid', 'name', 'g', 'status', 'zeit'])
+        && request.resource.data.pid == pid
+        && request.resource.data.name is string && request.resource.data.name.size() <= 20
+        && request.resource.data.g is string && request.resource.data.g.size() <= 30
+        && exists(/databases/$(database)/documents/gemeinden/$(request.resource.data.g))
+        && get(/databases/$(database)/documents/gemeinden/$(request.resource.data.g)).data.get('pruef', false) == true
+        && request.resource.data.status == 'offen'
+        && request.resource.data.zeit == request.time;
+      allow update: if istEntwickler() && request.resource.data.status in ['offen', 'abgelehnt']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+      allow delete: if angemeldet() && (besitzer(pid) || istEntwickler());
+    }
+    // 9.11 Freigabe je Gerät (Kennung = uid): wer hier steht, darf den Joker-Schlüssel lesen. Anlegen nur der Verwalter, entfernen auch das Gerät selbst.
+    match /freigabe/{uid} {
+      allow get: if angemeldet() && (ich() == uid || istEntwickler());
+      allow list: if istEntwickler();
+      allow create, update: if istEntwickler()
+        && request.resource.data.keys().hasOnly(['g', 'pid', 'zeit'])
+        && request.resource.data.g is string && request.resource.data.g.size() <= 30
+        && request.resource.data.pid is string && request.resource.data.pid.size() <= 64;
+      allow delete: if angemeldet() && (ich() == uid || istEntwickler());
+    }
+    // 9.11 Schlüssel für das verschlüsselte Telefonjoker-Modul (joker.enc): nur freigegebene Geräte und der Verwalter lesen, nur der Verwalter schreibt.
+    match /geheim/{id} {
+      allow get: if angemeldet() && id == 'joker'
+        && (istEntwickler() || exists(/databases/$(database)/documents/freigabe/$(ich())));
+      allow create, update: if istEntwickler() && id == 'joker'
+        && request.resource.data.keys().hasOnly(['k'])
+        && request.resource.data.k is string && request.resource.data.k.size() >= 20 && request.resource.data.k.size() <= 120;
       allow delete: if istEntwickler();
     }
 

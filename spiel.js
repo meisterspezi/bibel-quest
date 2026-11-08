@@ -8,7 +8,7 @@ const DEF = {
   xp: 0, tal: 0, tl: null, stars: {}, right: 0,
   streak: 0, bestStreak: 0, lastDay: "", todayXp: 0, todayDay: "", todayRight: 0, bestDayRight: 0,
   goalStreak: 0, bestGoalStreak: 0, lastGoalDay: "",
-  bestChain: 0, chainAT: 0, chainNT: 0, chainRueck: 0, bestBlitz: 0, bestCombo: 0,
+  bestChain: 0, chainAT: 0, chainNT: 0, chainRueck: 0, chainGebote: 0, chainSchoepfung: 0, bestBlitz: 0, bestCombo: 0,
   badges: [], owned: ["gold"], theme: "gold", avatar: "initial", frame: "none", title: "none",
   tage: [], treueWochen: [], treueBonus: { week: "", stufen: [] }, meister: { bibel: [], at: [], nt: [], rueck: [] },
   siegelGesehen: { bibel: 0, at: 0, nt: 0, rueck: 0 }, aufgefrischt: false, eingeladenVon: "", eingeladen: false, fischerDabei: false, menschenfischer: false,
@@ -1740,6 +1740,7 @@ function spielMenue(zus) {
   return `<div class="sp-menue" style="--ar:var(--ar-${zus ? "gemeinde" : "spielen"})">
     ${bkLabel("link", "Kette")}
     <div class="sp-gitter">${kette}</div>
+    ${zus ? "" : `${bkLabel("scroll", "Themen-Ketten")}<div class="sp-gitter">${Object.entries(TKETTEN).map(([id, k]) => { const n = Math.min(k.items.length, S[k.key] ? S[k.key] + 1 : 0); return spKachel(`data-tk="${id}"`, svg(k.ic), k.name, n ? `${n} von ${k.items.length}` : "Los geht's!", "sp-ketten", n / k.items.length * 100); }).join("")}</div>`}
     ${bkLabel("bolt", "Blitz")}
     ${sp("blitz", 'data-go="blitz"', "bolt", "Blitz-Runde")}
     ${bkLabel("biblionaer", "Wer wird Biblionär?")}
@@ -1753,6 +1754,7 @@ VIEWS.spielen = () => {
   screen.innerHTML = `${bereichKopf("spielen", { ic: "user", t: "Allein", sub: "Wie weit kommst du heute?" })}${spielMenue(false)}`;
   wireGo();
   screen.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playChain(b.dataset.k)); });
+  screen.querySelectorAll("[data-tk]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playThemenKette(b.dataset.tk)); });
   $("alleinBib").onclick = () => { SFX.tap(); bibSolo(weihAktiv()); };
 };
 
@@ -2106,6 +2108,65 @@ function playChain(mode) {
   }
 }
 
+/* ---------- 9.11: Themen-Ketten – feste Reihenfolge mit klarer biblischer Grundlage (Zehn Gebote, Schöpfungstage) ----------
+   Wie die Buch-Ketten: immer das, was als Nächstes kommt – ein Fehler beendet die Kette. Rekord je Kette in S[key] (Index des letzten richtigen Gliedes). */
+const TKETTEN = {
+  gebote: { name: "Zehn Gebote", info: "2. Mose 20,3–17", key: "chainGebote", bonus: 30, tal: 8, ic: "scroll", frage: "Welches Gebot kommt nach", sub: n => `${n + 1}. Gebot`,
+    items: [
+      { t: "Keine anderen Götter neben dem HERRN", r: "2. Mose 20,3" }, { t: "Kein Götzenbild machen", r: "2. Mose 20,4–6" }, { t: "Den Namen des HERRN nicht missbrauchen", r: "2. Mose 20,7" },
+      { t: "Den Sabbat heiligen", r: "2. Mose 20,8–11" }, { t: "Vater und Mutter ehren", r: "2. Mose 20,12" }, { t: "Nicht töten", r: "2. Mose 20,13" },
+      { t: "Nicht die Ehe brechen", r: "2. Mose 20,14" }, { t: "Nicht stehlen", r: "2. Mose 20,15" }, { t: "Kein falsches Zeugnis reden", r: "2. Mose 20,16" }, { t: "Nicht begehren, was dem Nächsten gehört", r: "2. Mose 20,17" }] },
+  schoepfung: { name: "Schöpfung", info: "Die sieben Schöpfungstage · 1. Mose 1,1–2,3", key: "chainSchoepfung", bonus: 24, tal: 6, ic: "sun", frage: "Was folgt auf", sub: n => `${n + 1}. Tag`,
+    items: [
+      { t: "Licht und Finsternis", r: "1. Mose 1,3–5" }, { t: "Himmelsfeste: Wasser oben und unten", r: "1. Mose 1,6–8" }, { t: "Land, Meer und Pflanzen", r: "1. Mose 1,9–13" },
+      { t: "Sonne, Mond und Sterne", r: "1. Mose 1,14–19" }, { t: "Fische und Vögel", r: "1. Mose 1,20–23" }, { t: "Landtiere und der Mensch", r: "1. Mose 1,24–31" }, { t: "Gott ruht", r: "1. Mose 2,2–3" }] }
+};
+function playThemenKette(id) {
+  const K = TKETTEN[id], seq = K.items; let i = 0, xp = 0, lock = false; const t0 = Date.now();
+  screen.innerHTML = `<div class="stack"><div class="topline"><span><span id="cp">1</span> / ${seq.length}</span><span class="small muted">${esc(K.name)}</span><span id="cx">0 XP</span></div>
+  <div class="progress"><i id="cbar"></i></div>
+  <div class="card stack"><div class="qsub">${K.frage}</div><div class="q" id="cq"></div><div class="qsub" id="cm"></div>
+    <div class="combo" id="cc"></div><div class="opts" id="co"></div></div>
+  <div class="topline" style="justify-content:flex-end"><button class="btn ghost mini" data-go="${heimAnsicht("spielen")}">Abbrechen</button></div></div>`;
+  wireGo(); show();
+  function opts() {
+    const richtig = seq[i + 1].t, rest = shuffle(seq.map(x => x.t).filter(t => t !== richtig && t !== seq[i].t)).slice(0, 3);
+    return shuffle([richtig, ...rest]);
+  }
+  function show() {
+    lock = false;
+    $("cq").textContent = seq[i].t; $("cm").textContent = `${K.sub(i)} · ${seq[i].r}`;
+    $("cp").textContent = i + 1; $("cbar").style.width = (i / (seq.length - 1) * 100) + "%";
+    const o = $("co"); o.innerHTML = ""; opts().forEach(t => { const btn = document.createElement("button"); btn.className = "opt"; btn.textContent = t; btn.onclick = () => ans(btn, t); o.appendChild(btn); });
+  }
+  function ans(btn, t) {
+    if (lock) return; const correct = seq[i + 1].t;
+    if (t === correct) {
+      lock = true; i++; xp += 6; richtig(1);
+      btn.classList.add("right"); SFX.right(Math.min(i / 2, 12)); vibrate(10); const [x, y] = centerOf(btn); burst(x, y, 12); $("cx").textContent = xp + " XP";
+      if (i === seq.length - 1) return setTimeout(() => done(true), 350);
+      setTimeout(show, 330);
+    } else {
+      lock = true; btn.classList.add("wrong"); SFX.wrong(); vibrate([60, 40, 60]); shakeScreen();
+      [...$("co").children].forEach(x => { if (x.textContent === correct) x.classList.add("right"); });
+      setTimeout(() => done(false, correct), 1300);
+    }
+  }
+  function done(full, correct) {
+    const rec = i > (S[K.key] || 0); if (rec) S[K.key] = i;
+    let tal = Math.floor(i / 5) + (full ? K.tal : 0); if (full) xp += K.bonus;
+    const W = spielWdh("tk-" + id); xp = wdhMal(xp, W); tal = wdhMal(tal, W);
+    quest("ketteGespielt", 1); quest("runde", 1);
+    screen.innerHTML = `<div class="card result stack"><div class="label">${full ? "Großartig" : "Kette gerissen"}</div><div class="big">${i + 1} / ${seq.length}</div>
+      <div class="muted">${full ? `${esc(K.name)} komplett in der richtigen Reihenfolge! (${esc(K.info)})` : `Nach „${esc(seq[i].t)}“ kommt „${esc(correct)}“ (${esc(seq[i + 1].r)}).`}</div>${rec && !full ? "<h2>Neuer Rekord!</h2>" : ""}
+      <div class="rewards"><span class="pill">+${xp} XP</span><span class="pill">+${tal} Talente</span></div>${W.hinweis}
+      <button class="btn primary" id="cagain">Nochmal</button><button class="btn ghost" data-go="${heimAnsicht("spielen")}">Andere Kette</button></div>`; wireGo();
+    $("cagain").onclick = () => { SFX.tap(); countdown(() => playThemenKette(id)); };
+    if (full) { SFX.level(); rain(200); } else if (rec) SFX.win();
+    if (xp) addXp(xp, null, "kette", { t0, f: i, fm: seq.length - 1, d: `${K.name}${full ? " · komplett" : " · gerissen"}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
+  }
+}
+
 /* ---------- Spickzettel ---------- */
 VIEWS.learn = () => {
   let n = 0, html = `${backBtn("lernen", "Lernen")}<h1>Spickzettel</h1>
@@ -2339,6 +2400,7 @@ VIEWS.profil = () => {
 function pfGemVerdrahten() {
   if ($("gemBeitritt")) $("gemBeitritt").onclick = () => { SFX.tap(); gemBeitreten(); };
   if ($("gemWeg")) $("gemWeg").onclick = () => { SFX.tap(); gemVerlassen(); };
+  if ($("antragWeg")) $("antragWeg").onclick = () => { SFX.tap(); const L = window.LB; if (!L || !L.ok || !L.antragLoeschen) return; L.antragLoeschen(S.pid).then(() => { ANTRAG = null; gemNeuZeichnen(); }).catch(() => toast(`${svg("nein")}<div>Das hat nicht geklappt.</div>`)); };
 }
 
 /* ---------- Errungenschaften und Statistik (9.10) ---------- */
@@ -2358,7 +2420,7 @@ VIEWS.stat = (tab) => {
       <div class="pf2-karte"><div class="pf2-vz"><span>Spieltage der letzten 4 Wochen</span><b>${m.t28 || 0}</b></div><div class="pf2-tage" role="img" aria-label="${m.t28 || 0} Spieltage in den letzten 4 Wochen">${Array.from({ length: 28 }, (_, i) => `<i class="${S.tage.includes(h - 27 + i) ? "an" : ""}"></i>`).join("")}</div></div>`,
     () => `<div class="pf2-karte pf2-zls">${pfTitel(AT_TITEL, atP, "AT")}${pfTrenner("")}${pfTitel(NT_TITEL, ntP, "NT")}</div>
       <div class="pf2-karte"><div class="label" style="margin:0 0 8px">Siegel</div><div class="pf2-sg">${siegelReihe(m)}</div></div>`,
-    () => `<div class="pf2-karte pf2-zls">${pfBalken("Kette Bibel", m.bestChain ? m.bestChain + 1 : 0, 66)}${pfBalken("Kette AT", m.chainAT ? m.chainAT + 1 : 0, 39, "at")}${pfBalken("Kette NT", m.chainNT ? m.chainNT + 1 : 0, 27, "nt")}${pfBalken("Kette rückwärts", m.chainRueck ? m.chainRueck + 1 : 0, 66)}</div>
+    () => `<div class="pf2-karte pf2-zls">${pfBalken("Kette Bibel", m.bestChain ? m.bestChain + 1 : 0, 66)}${pfBalken("Kette AT", m.chainAT ? m.chainAT + 1 : 0, 39, "at")}${pfBalken("Kette NT", m.chainNT ? m.chainNT + 1 : 0, 27, "nt")}${pfBalken("Kette rückwärts", m.chainRueck ? m.chainRueck + 1 : 0, 66)}${pfBalken("Zehn Gebote", m.chainGebote ? m.chainGebote + 1 : 0, 10)}${pfBalken("Schöpfungstage", m.chainSchoepfung ? m.chainSchoepfung + 1 : 0, 7)}</div>
       <div class="pf2-g2">${pfKachel("bolt", m.blitz || 0, "Blitz-Rekord")}${pfKachel("bolt", m.combo != null ? m.combo : "–", "Blitz in Folge")}${pfKachel("duell", (m.duS || 0) + " / " + (m.duG || 0), "Arena-Siege / Duelle")}${pfKachel("biblionaer", pkt(m.bib || 0), "Biblionär-Rekord")}</div>`,
     () => `<div class="pf2-karte"><div class="pf2-vz"><span>Gesammelt</span><b>${S.badges.length} von ${BADGES.length}</b></div><div class="pf2-bar"><i style="width:${(S.badges.length / BADGES.length * 100).toFixed(0)}%"></i></div></div>${badgeGrid(S.badges)}`
   ];
@@ -2372,7 +2434,7 @@ function lbPayload() {
   const wk = weekKey();
   return {
     name: S.lbName, xp: Math.round(S.xp), level: levelOf(S.xp),
-    bestChain: Math.min(S.bestChain | 0, 65), chainAT: Math.min(S.chainAT | 0, 38), chainNT: Math.min(S.chainNT | 0, 26), chainRueck: Math.min(S.chainRueck | 0, 65),
+    bestChain: Math.min(S.bestChain | 0, 65), chainAT: Math.min(S.chainAT | 0, 38), chainNT: Math.min(S.chainNT | 0, 26), chainRueck: Math.min(S.chainRueck | 0, 65), chainGebote: Math.min(S.chainGebote | 0, 9), chainSchoepfung: Math.min(S.chainSchoepfung | 0, 6),
     stars: Math.min(Object.values(S.stars).reduce((a, b) => a + b, 0), 24), badges: S.badges.length, badgeIds: S.badges.slice(0, 80),
     streak: streakNow() | 0, bestStreak: S.bestStreak | 0, blitz: S.bestBlitz | 0, combo: Math.min(S.bestCombo | 0, 1000),
     week: wk, weekXp: S.weekKey === wk ? Math.round(S.weekXp) : 0,
@@ -2461,7 +2523,7 @@ function zusammenfuehren(r) {
   if (!r || typeof r !== "object") return;
   const max = k => { S[k] = Math.max(+S[k] || 0, +r[k] || 0); };
   const xpVorher = +S.xp || 0;
-  ["xp", "tal", "right", "bestStreak", "bestChain", "chainAT", "chainNT", "chainRueck", "bestBlitz", "bestCombo", "questBonusCount", "bestGoalStreak", "bestDayRight", "duSiege", "duSpiele", "duGesendet", "duAngenommen", "lvLohn", "bibRekord", "bibSpiele", "bibMillion"].forEach(max);
+  ["xp", "tal", "right", "bestStreak", "bestChain", "chainAT", "chainNT", "chainRueck", "chainGebote", "chainSchoepfung", "bestBlitz", "bestCombo", "questBonusCount", "bestGoalStreak", "bestDayRight", "duSiege", "duSpiele", "duGesendet", "duAngenommen", "lvLohn", "bibRekord", "bibSpiele", "bibMillion"].forEach(max);
   try { talMischen(r); } catch (e) {}
   /* Wochenrunde: die neuere Woche gewinnt; in derselben Woche zählt der höhere Wert (ein Versuch wird nie zurückgesetzt) */
   if ((r.bwK || "") > (S.bwK || "")) { if (S.bwK && S.bwK !== r.bwK) { S.bwVK = S.bwK; S.bwVP = S.bwP | 0; } S.bwK = r.bwK; S.bwP = r.bwP | 0; S.bwFertig = !!r.bwFertig; }
@@ -2665,6 +2727,7 @@ document.addEventListener("visibilitychange", async () => {
 });
 addEventListener("lb-ready", () => {
   lbStart();
+  jokerLaden().catch(() => {});  /* 9.11: Willi und Aaron für freigeschaltete Mitglieder */
   setTimeout(() => andereSpielerNachsenden().catch(() => {}), 3000);  /* 6.83 (B) */
   setTimeout(() => xqStartPruefung().catch(() => {}), 6000);  /* 6.85 */
   aufnahmenPruefen();
@@ -2695,7 +2758,10 @@ let GEM = [Object.assign({}, GEM_FBG)], GEM_ZUORD = {}, gemGeladen = false;
 const gemInfo = id => GEM.find(g => g.id === id) || null;
 const gemName = id => id === "gast" ? "Gäste" : ((gemInfo(id) || {}).name || "Unbekannte Gemeinde");
 const meineGem = () => S.gem || GEM_STANDARD;
-const gemVon = pid => (pid && (pid === S.pid) ? meineGem() : (GEM_ZUORD[pid] || GEM_STANDARD));
+/* 9.11: Gemeinden mit Freischaltung (pruef): Neue Spieler sind Gast, bis der Verwalter sie freischaltet. Ohne Eintrag gilt "fbg" nur, solange fbg keine Freischaltung hat. */
+const gemPruef = id => !!(gemInfo(id) || {}).pruef;
+const gemVon = pid => (pid && (pid === S.pid) ? meineGem() : (GEM_ZUORD[pid] || (gemPruef(GEM_STANDARD) ? "gast" : GEM_STANDARD)));
+let ANTRAG = null; /* mein Beitrittsantrag: {g, status: "offen" | "abgelehnt"} oder null */
 /* Passwort = Ort der Gemeinde: gespeichertes Passwort, sonst das letzte Wort des Namens („… Eichstätt“). Groß-/Kleinschreibung und Umlaute egal. */
 const gemPw = g => (g && (g.pw || String(g.name || "").trim().split(/\s+/).pop())) || "";
 const pwNorm = t => String(t || "").toLowerCase().replace(/ß/g, "ss").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ae/g, "a").replace(/oe/g, "o").replace(/ue/g, "u").replace(/[^a-z0-9]/g, "");
@@ -2716,8 +2782,18 @@ async function gemLaden(neu) {
     const f = liste.find(x => x.id === GEM_STANDARD);
     if (f) { f.logo = f.logo || GEM_FBG.logo; f.pw = f.pw || GEM_FBG.pw; } else liste.unshift(Object.assign({}, GEM_FBG));
     const z = {}; m.forEach(x => { if (x.g) z[x.id] = x.g; });
-    const alt = JSON.stringify([GEM, GEM_ZUORD]); GEM = liste; GEM_ZUORD = z; gemGeladen = true;
-    return alt !== JSON.stringify([GEM, GEM_ZUORD]);
+    const alt = JSON.stringify([GEM, GEM_ZUORD, ANTRAG]); GEM = liste; GEM_ZUORD = z; gemGeladen = true;
+    /* 9.11: eigenen Antrag und die Entscheidung des Verwalters holen (Freischaltung gilt vom Server aus) */
+    if (S.pid && S.ownersSet && L.antragHolen) {
+      try { const a = await L.antragHolen(S.pid); ANTRAG = a ? { g: a.g, status: a.status } : null; } catch (e) {}
+      const eig = z[S.pid];
+      if (eig && eig !== S.gem && (!S.gemGesendet || S.gemGesendet === S.gem) && (gemInfo(eig) || eig === "gast")) {
+        S.gem = eig; S.gemGesendet = eig; S.gemNeu = false; save();
+        if (eig === GEM_STANDARD) jokerLaden(true).catch(() => {}); else jokerSperren();
+        if (eig !== "gast") toast(`${svg("people")}<div><b>Willkommen bei ${esc(gemName(eig))}!</b><div class="small muted">Der Verwalter hat dich freigeschaltet.</div></div>`);
+      }
+    }
+    return alt !== JSON.stringify([GEM, GEM_ZUORD, ANTRAG]);
   } catch (e) { return false; }
 }
 function gemSenden() {
@@ -2746,6 +2822,15 @@ function gemBeitreten() {
       <button class="btn primary" id="gbOk">Beitreten</button><button class="btn ghost" id="gbZurueck">Zurück</button>`;
     const los = () => {
       const w = pwNorm($("gbPw").value);
+      if (w && w === pwNorm(gemPw(g)) && g.pruef) {
+        /* 9.11: Gemeinde mit Freischaltung – Passwort stimmt, jetzt geht ein Antrag an den Verwalter */
+        const L = window.LB;
+        if (!L || !L.ok || !L.antragSenden || !S.ownersSet || !S.pid) { SFX.wrong(); $("gbFehler").textContent = "Für den Antrag brauchst du Internet und einen Eintrag in der Rangliste. Versuche es gleich noch einmal."; return; }
+        $("gbOk").disabled = true;
+        L.antragSenden(S.pid, S.lbName, g.id).then(() => { ANTRAG = { g: g.id, status: "offen" }; m.remove(); SFX.coin(); toast(`${svg("people")}<div><b>Antrag gesendet</b><div class="small muted">Der Verwalter schaltet dich frei, dann gehörst du zu ${esc(g.name)}.</div></div>`); gemNeuZeichnen(); })
+          .catch(() => { $("gbOk").disabled = false; SFX.wrong(); $("gbFehler").textContent = "Der Antrag konnte nicht gesendet werden (Firebase-Regeln von 9.11 eingespielt?)."; });
+        return;
+      }
       if (w && w === pwNorm(gemPw(g))) {
         S.gem = g.id; S.gemNeu = false; S.gemGesendet = ""; save(); gemSenden(); GEM_ZUORD[S.pid] = g.id;
         m.remove(); SFX.coin(); toast(`${svg("people")}<div>Willkommen bei ${esc(g.name)}!</div>`); gemNeuZeichnen();
@@ -2765,15 +2850,18 @@ function gemBeitreten() {
 function gemVerlassen() {
   const g = gemInfo(meineGem());
   modal(`<div class="gb-kopf">${gemLogoHtml(g, 52)}<div><div class="label">Gemeinde verlassen?</div><b>${esc(gemName(meineGem()))}</b></div></div>
-    <p class="muted small" style="margin:0">Du bist dann Gast: Du zählst nicht mehr für die Gemeinde-Wertung und erscheinst nicht mehr in der Gemeinde-Rangliste. In der Welt-Rangliste bist du weiter dabei. Mit dem Passwort kannst du jederzeit wieder beitreten.</p>
+    <p class="muted small" style="margin:0">Du bist dann Gast: Du zählst nicht mehr für die Gemeinde-Wertung und erscheinst nicht mehr in der Gemeinde-Rangliste. In der Welt-Rangliste bist du weiter dabei. ${gemPruef(meineGem()) ? "Zum Zurückkommen brauchst du eine neue Freischaltung durch den Verwalter." : "Mit dem Passwort kannst du jederzeit wieder beitreten."}</p>
     <button class="btn" data-close="ja">Gemeinde verlassen</button><button class="btn ghost" data-close="">Abbrechen</button>`,
-    r => { if (r !== "ja") return; S.gem = "gast"; S.gemNeu = false; S.gemGesendet = ""; save(); gemSenden(); GEM_ZUORD[S.pid] = "gast"; toast(`${svg("user")}<div>Du bist jetzt Gast.</div>`); gemNeuZeichnen(); });
+    r => { if (r !== "ja") return; const warPruef = gemPruef(meineGem()); S.gem = "gast"; S.gemNeu = false; S.gemGesendet = ""; save(); gemSenden(); GEM_ZUORD[S.pid] = "gast";
+      if (warPruef) { jokerSperren(); const L = window.LB; if (L && L.ok && L.uid && L.freigabeEntfernen) L.freigabeEntfernen([L.uid]).catch(() => {}); } toast(`${svg("user")}<div>Du bist jetzt Gast.</div>`); gemNeuZeichnen(); });
 }
 /* Karte oben im Profil (wie „Spieler wechseln“): eintragen · wechseln · verlassen */
 function gemKarteHtml() {
   const id = meineGem(), gast = id === "gast", g = gast ? null : gemInfo(id);
-  return `<div class="pf2-gem" id="pfGem"><div class="pf2-gem-zeile">${gemLogoHtml(g, 48)}<div class="pf2-gem-tx"><span class="label">Gemeinde</span><b>${gast ? "Gast" : esc(gemName(id))}</b>${gast ? `<span class="small muted">Mit dem Passwort deiner Gemeinde kannst du beitreten.</span>` : ""}</div></div>
-    <button class="pf2-btn" id="gemBeitritt">${gast ? "" : PF_IC.tausch}${svg("people")}<span>${gast ? "Gemeinde eintragen" : "Gemeinde wechseln"}</span></button>${gast ? "" : `<button class="pf2-link" id="gemWeg">Gemeinde verlassen</button>`}</div>`;
+  const an = gast && ANTRAG && gemInfo(ANTRAG.g) ? ANTRAG : null; /* 9.11: Antrag an eine Gemeinde mit Freischaltung */
+  const hinweis = an ? (an.status === "abgelehnt" ? `Dein Antrag an ${esc(gemName(an.g))} wurde nicht freigegeben.` : `Antrag an ${esc(gemName(an.g))} gesendet – wartet auf die Freischaltung durch den Verwalter.`) : "Mit dem Passwort deiner Gemeinde kannst du einen Antrag stellen.";
+  return `<div class="pf2-gem" id="pfGem"><div class="pf2-gem-zeile">${gemLogoHtml(g, 48)}<div class="pf2-gem-tx"><span class="label">Gemeinde</span><b>${gast ? "Gast" : esc(gemName(id))}</b>${gast ? `<span class="small muted">${hinweis}</span>` : ""}</div></div>
+    ${an ? `<button class="pf2-link" id="antragWeg">${an.status === "abgelehnt" ? "Neu versuchen" : "Antrag zurückziehen"}</button>` : `<button class="pf2-btn" id="gemBeitritt">${gast ? "" : PF_IC.tausch}${svg("people")}<span>${gast ? "Gemeinde eintragen" : "Gemeinde wechseln"}</span></button>`}${gast ? "" : `<button class="pf2-link" id="gemWeg">Gemeinde verlassen</button>`}</div>`;
 }
 /* Logo aus einer Bilddatei: quadratisch skaliert, klein genug für die Datenbank (höchstens ca. 28 000 Zeichen) */
 function logoLesen(file) {
@@ -2804,12 +2892,19 @@ VIEWS.gemverwaltung = () => {
     $("gvBox").innerHTML = `<p class="small muted" style="margin:0 0 8px">Das Passwort zum Beitreten ist der Ort der Gemeinde. Ohne eigenes Passwort gilt das letzte Wort des Namens.</p>
       <div class="stack">${GEM.map(g => `<div class="card gv-karte" data-g="${esc(g.id)}"><div class="gv-kopf">${gemLogoHtml(g, 52)}<div><b>${esc(g.name)}</b><div class="small muted">${zahl(g.id)} Spieler · ${esc(g.id)}</div></div></div>
         <label class="label">Passwort (Ort)</label><input class="du-suche" data-pw value="${esc(gemPw(g))}" maxlength="30" autocomplete="off">
+        <label class="small" style="display:flex;gap:8px;align-items:center;margin:6px 0"><input type="checkbox" data-pruef ${g.pruef ? "checked" : ""} ${g.id === GEM_STANDARD && !g.pruef ? "disabled" : ""}> Neue Mitglieder müssen von mir freigeschaltet werden</label>
+        ${g.id === GEM_STANDARD && !g.pruef ? `<button class="btn" data-pruefein>Freischaltung einschalten …</button><p class="small muted" style="margin:4px 0 0">Alle bisherigen Spieler dieser Gemeinde bleiben Mitglied. Danach brauchen nur neue Spieler eine Freischaltung.</p>` : ""}
         <div class="gv-logozeile"><input type="file" accept="image/*" data-logo><span class="small muted">Logo ändern</span></div>
         <div class="row-btns"><button class="btn primary" data-save>Speichern</button>${g.id === GEM_STANDARD || zahl(g.id) ? "" : `<button class="btn ghost" data-weg>Löschen</button>`}</div></div>`).join("")}
         <div class="card"><div class="gv-kopf">${gemLogoHtml(null, 52)}<div><b>Gäste</b><div class="small muted">${zahl("gast")} Spieler</div></div></div></div></div>
       <div class="card gv-karte" style="margin-top:12px"><b>Neue Gemeinde</b><input class="du-suche" id="gvName" placeholder="Name der Gemeinde" maxlength="40" autocomplete="off"><input class="du-suche" id="gvPw" placeholder="Passwort = Ort, z. B. Ditzingen" maxlength="30" autocomplete="off"><div class="gv-logozeile"><input type="file" accept="image/*" id="gvLogo"><span class="small muted">Logo (optional)</span></div><button class="btn primary" id="gvNeu">Gemeinde anlegen</button></div>
       <div class="card stack" style="margin-top:12px"><b>Spieler zuordnen</b><select class="du-suche" id="gvSp">${spieler.slice().sort((a, b) => String(a.name).localeCompare(String(b.name), "de")).map(r => `<option value="${esc(r.id)}">${esc(r.name)} · ${esc(gemName(gemVon(r.id)))}</option>`).join("")}</select>
-        <select class="du-suche" id="gvZiel">${GEM.map(g => `<option value="${esc(g.id)}">${esc(g.name)}</option>`).join("")}<option value="gast">Gast</option></select><button class="btn" id="gvZu">Zuordnen</button></div>`;
+        <select class="du-suche" id="gvZiel">${GEM.map(g => `<option value="${esc(g.id)}">${esc(g.name)}</option>`).join("")}<option value="gast">Gast</option></select><button class="btn" id="gvZu">Zuordnen</button></div>
+      <div class="card stack" style="margin-top:12px"><b>Telefonjoker-Schlüssel</b><p class="small muted" style="margin:0" id="jkStatus">Prüfe …</p>
+        <input class="du-suche" id="jkNeu" placeholder="Schlüssel einfügen (aus joker-schluessel.txt)" maxlength="120" autocomplete="off" spellcheck="false"><button class="btn" id="jkSet">Schlüssel speichern</button></div>`;
+    L.jokerSchluessel().then(k => { const e = $("jkStatus"); if (e) e.textContent = k ? "Gespeichert – freigeschaltete Mitglieder können Willi und Aaron anrufen." : "Noch kein Schlüssel gespeichert – alle sehen nur den Gastprediger."; }).catch(() => { const e = $("jkStatus"); if (e) e.textContent = "Nicht lesbar (Firebase-Regeln von 9.11 eingespielt?)."; });
+    $("jkSet").onclick = () => { const k = $("jkNeu").value.trim(); if (!/^[A-Za-z0-9+/]{43}=$/.test(k)) { fehler("Das sieht nicht wie der Schlüssel aus (44 Zeichen, endet mit =)."); return; }
+      L.jokerSchluesselSetzen(k).then(() => { SFX.coin(); $("jkNeu").value = ""; toast(`${svg("check")}<div>Schlüssel gespeichert.</div>`); const e = $("jkStatus"); if (e) e.textContent = "Gespeichert – freigeschaltete Mitglieder können Willi und Aaron anrufen."; }).catch(() => fehler("Das hat nicht geklappt (Firebase-Regeln von 9.11 eingespielt?).")); };
     const eigenesLogo = g => (g.logo && g.logo.startsWith("data:") ? g.logo : "");
     const fehlerText = e => `Das hat nicht geklappt (Firebase-Regeln von Version 9.7 eingespielt?).`;
     const logoWahl = (inp, id) => { inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; logoLesen(f).then(d => { logos[id] = d; toast(`${svg("check")}<div>Logo bereit – bitte speichern.</div>`); }).catch(() => fehler("Das Bild konnte nicht gelesen werden.")); }; };
@@ -2817,7 +2912,8 @@ VIEWS.gemverwaltung = () => {
       const id = k.dataset.g, g = gemInfo(id), idx = GEM.findIndex(x => x.id === id);
       logoWahl(k.querySelector("[data-logo]"), id);
       k.querySelector("[data-save]").onclick = () => { const pw = k.querySelector("[data-pw]").value.trim(); if (pwNorm(pw).length < 2) { fehler("Bitte ein Passwort (Ort) eingeben."); return; }
-        L.gemAnlegen(id, g.name, idx, { pw, logo: logos[id] || eigenesLogo(g) }).then(() => { SFX.coin(); VIEWS.gemverwaltung(); }).catch(() => fehler(fehlerText())); };
+        L.gemAnlegen(id, g.name, idx, { pw, logo: logos[id] || eigenesLogo(g), pruef: k.querySelector("[data-pruef]").checked }).then(() => { SFX.coin(); VIEWS.gemverwaltung(); }).catch(() => fehler(fehlerText())); };
+      const pe = k.querySelector("[data-pruefein]"); if (pe) pe.onclick = () => { SFX.tap(); freischaltungEinschalten(g, idx, spieler, k.querySelector("[data-pw]").value.trim()); };
       const w = k.querySelector("[data-weg]"); if (w) w.onclick = () => { SFX.tap(); L.gemLoeschen(id).then(() => VIEWS.gemverwaltung()).catch(() => {}); };
     });
     logoWahl($("gvLogo"), "_neu");
@@ -2827,9 +2923,57 @@ VIEWS.gemverwaltung = () => {
       if (GEM.some(g => g.id === id)) { fehler("Diese Gemeinde gibt es schon."); return; }
       L.gemAnlegen(id, n, GEM.length, { pw, logo: logos._neu || "" }).then(() => { SFX.coin(); VIEWS.gemverwaltung(); }).catch(() => fehler(fehlerText())); };
     $("gvZu").onclick = () => { const pid = $("gvSp").value, g = $("gvZiel").value, r = spieler.find(x => x.id === pid); if (!r) return;
-      L.gemSetzen(pid, r.name, g).then(() => { SFX.coin(); GEM_ZUORD[pid] = g; if (pid === S.pid) { S.gem = g; save(); } VIEWS.gemverwaltung(); }).catch(() => fehler("Das hat nicht geklappt.")); };
+      const vorher = gemVon(pid);
+      L.gemSetzen(pid, r.name, g).then(() => freigabeAbgleich(pid, g, vorher)).then(() => { SFX.coin(); GEM_ZUORD[pid] = g; if (pid === S.pid) { S.gem = g; save(); } VIEWS.gemverwaltung(); }).catch(() => fehler("Das hat nicht geklappt.")); };
     wireGo();
   });
+};
+/* 9.11: Freigaben je Gerät – wer Mitglied einer Gemeinde mit Freischaltung ist, bekommt für seine Geräte eine Freigabe (Joker-Schlüssel); wer geht, verliert sie */
+async function freigabeAbgleich(pid, g, vorher) {
+  const L = window.LB; if (!L || !L.freigabeSetzen) return;
+  const sp = L.holeSpieler ? await L.holeSpieler(pid).catch(() => null) : null, owners = (sp && Array.isArray(sp.owners) && sp.owners.length ? sp.owners : [pid]).filter(x => typeof x === "string" && x);
+  if (gemPruef(g)) await L.freigabeSetzen(owners, g, pid);
+  else if (gemPruef(vorher)) await L.freigabeEntfernen(owners);
+}
+/* Verwalter: Freischaltung für die Standardgemeinde einschalten – alle bisherigen Spieler bleiben Mitglied (Eintrag + Freigabe), dann gilt pruef */
+function freischaltungEinschalten(g, idx, spieler, pw) {
+  const L = window.LB; if (!L || !L.ok) return;
+  modal(`<div class="label">Freischaltung</div><h2 style="margin:0">Für ${esc(g.name)} einschalten?</h2>
+    <p class="muted small" style="margin:0">Alle ${spieler.filter(r => gemVon(r.id) === g.id).length} bisherigen Spieler bleiben Mitglied. Ab dann sind neue Spieler Gast, bis du sie im Postkasten unter „Beitrittsanträge“ freischaltest.</p>
+    <button class="btn primary" data-close="ja">Jetzt einschalten</button><button class="btn ghost" data-close>Abbrechen</button>`, async a => {
+    if (a !== "ja") return;
+    const t = toast(`${svg("people")}<div>Bestand wird übernommen …</div>`);
+    try {
+      const mit = spieler.filter(r => gemVon(r.id) === g.id);
+      for (const r of mit) { if (!GEM_ZUORD[r.id]) await L.gemSetzen(r.id, r.name, g.id); await L.freigabeSetzen((Array.isArray(r.owners) && r.owners.length ? r.owners : [r.id]).filter(x => typeof x === "string" && x), g.id, r.id); GEM_ZUORD[r.id] = g.id; }
+      await L.gemAnlegen(g.id, g.name, idx, { pw: pw || gemPw(g), logo: g.logo && g.logo.startsWith("data:") ? g.logo : "", pruef: true });
+      SFX.coin(); toast(`${svg("check")}<div><b>Freischaltung ist an.</b><div class="small muted">${mit.length} Spieler übernommen.</div></div>`); gemGeladen = false; VIEWS.gemverwaltung();
+    } catch (e) { toast(`${svg("nein")}<div>Das hat nicht geklappt (Firebase-Regeln von 9.11 eingespielt?).</div>`); }
+  });
+}
+/* 9.11: Beitrittsanträge – der Verwalter schaltet frei oder lehnt ab */
+let antragOffen = 0;
+VIEWS.antraege = () => {
+  const L = window.LB; if (!entwickler || !L || !L.ok || !L.antragListe) { go("home"); return; }
+  screen.innerHTML = `${backBtn("postfach", "Postkasten")}<h1>Beitrittsanträge</h1><div id="anBox"><p class="muted">Lade …</p></div>`;
+  const fehler = t => toast(`${svg("nein")}<div>${t}</div>`);
+  Promise.all([gemLaden(true), L.antragListe()]).then(([, liste]) => {
+    if (current !== "antraege") return;
+    liste.sort((a, b) => (a.status === "offen" ? 0 : 1) - (b.status === "offen" ? 0 : 1) || b.zeit - a.zeit);
+    antragOffen = liste.filter(a => a.status === "offen").length; renderHud();
+    $("anBox").innerHTML = liste.length ? `<div class="stack">${liste.map(a => `<div class="card gv-karte" data-an="${esc(a.id)}"><div class="gv-kopf">${gemLogoHtml(gemInfo(a.g), 52)}<div><b>${esc(a.name || "?")}</b><div class="small muted">möchte zu ${esc(gemName(a.g))} · ${a.zeit ? new Date(a.zeit).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : ""}${a.status === "abgelehnt" ? " · abgelehnt" : ""}</div></div></div>
+      <div class="row-btns">${a.status === "offen" ? `<button class="btn primary" data-ok>Freischalten</button><button class="btn ghost" data-nein>Ablehnen</button>` : `<button class="btn ghost" data-weg>Löschen</button>`}</div></div>`).join("")}</div>`
+      : `<p class="muted">Keine Anträge. 🙂</p>`;
+    screen.querySelectorAll("[data-an]").forEach(k => {
+      const a = liste.find(x => x.id === k.dataset.an), b = sel => k.querySelector(sel);
+      if (b("[data-ok]")) b("[data-ok]").onclick = async () => { SFX.tap(); b("[data-ok]").disabled = true;
+        try { await L.gemSetzen(a.pid, a.name, a.g); await freigabeAbgleich(a.pid, a.g, "gast"); await L.antragLoeschen(a.pid); GEM_ZUORD[a.pid] = a.g; SFX.coin(); VIEWS.antraege(); }
+        catch (e) { fehler("Das hat nicht geklappt (Firebase-Regeln von 9.11 eingespielt?)."); b("[data-ok]").disabled = false; } };
+      if (b("[data-nein]")) b("[data-nein]").onclick = () => { SFX.tap(); L.antragAblehnen(a.pid).then(() => VIEWS.antraege()).catch(() => fehler("Das hat nicht geklappt.")); };
+      if (b("[data-weg]")) b("[data-weg]").onclick = () => { SFX.tap(); L.antragLoeschen(a.pid).then(() => VIEWS.antraege()).catch(() => fehler("Das hat nicht geklappt.")); };
+    });
+    wireGo();
+  }).catch(() => { if ($("anBox")) $("anBox").innerHTML = `<p class="muted">Die Anträge konnten nicht geladen werden (Firebase-Regeln von 9.11 eingespielt?).</p>`; });
 };
 /* ---------- 9.7: Nachrichten des Entwicklers an die Spieler (Patchnotes, Mitteilungen) – Sammlung „nachrichten“ ----------
    Der Verwalter schreibt im Postkasten („Nachricht an Spieler“), Empfänger: alle, nur Gäste oder eine Gemeinde. Spieler sehen ungelesene Nachrichten
@@ -3881,9 +4025,10 @@ function bibZeige(G) {
       $("bibHilfe").innerHTML = G.hilfe;
     }
   });
-  /* Telefonjoker: erst Kontakt wählen (Willi oder Aaron), dann telefonieren – die Uhr steht dabei */
+  /* Telefonjoker: erst Kontakt wählen (Mitglieder: zwei Kontakte, sonst der Gastprediger), dann telefonieren – die Uhr steht dabei */
   function telefonJoker(b) {
     SFX.tap(); zeitPause();
+    (meineGem() === GEM_STANDARD ? jokerLaden() : Promise.resolve(false)).then(() => { if (fertig || G.abgeschlossen) { zeitWeiter(); return; }
     telefonWahl(id => {
       if (fertig || G.abgeschlossen) return;
       G.joker.tel = true; SFX.coin(); b.disabled = true;
@@ -3893,7 +4038,7 @@ function bibZeige(G) {
         const h = $("bibHilfe"); if (h) h.innerHTML = G.hilfe;
         zeitWeiter();
       });
-    }, () => zeitWeiter(), !!f.weih);
+    }, () => zeitWeiter(), !!f.weih); });
   }
   $("bibLeiter").onclick = () => { SFX.tap(); bibLeiterZeigen(G); };
   if ($("bibRaus")) $("bibRaus").onclick = () => {
@@ -4067,469 +4212,72 @@ function bibWocheKarte() {
 ICONS.biblionaer = `<image href="icons/biblionaer-logo.webp" x="-1" y="-1" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>`;
 /* Symbol „telefon“ (Belohnungs-/Joker-Violett) – beim nächsten Lauf des Symbol-Generators dorthin übernehmen */
 ICONS.telefon = `<svg x="0" y="0" width="24" height="24" viewBox="0 0 64 64" overflow="visible" class="wr wr-lohn"><circle class="wr-halo" cx="32" cy="32" r="31" fill="url(#wrH_lohn)"/><ellipse cx="32" cy="61" rx="17" ry="2.2" fill="#000" opacity=".3"/><path d="M15 9.5c2.6-1.9 6.3-1.2 7.6 1.8l4.2 9.4c1.1 2.5.2 5.4-2.1 6.8l-3.4 2.1c2.8 6.4 7.4 11.1 13.6 14.1l2.2-3.3c1.5-2.2 4.4-3 6.8-1.9l9.3 4.3c3 1.4 3.6 5.2 1.6 7.7l-3.6 4.4c-2.8 3.4-7.6 4.6-11.7 2.9C26.5 52.6 15.6 41.8 10.4 28.7 8.8 24.6 10 19.9 13.4 17.1z" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1.6" stroke-linejoin="round"/><path d="M14.6 14.2c-2.4 2.7-3 6.6-1.6 10" stroke="#fff" stroke-width="2.2" stroke-linecap="round" fill="none" opacity=".75"/><path d="M37 8.5a19 19 0 0 1 18.5 18.5M37 16a11.5 11.5 0 0 1 11 11" stroke="url(#wrX_lohn)" stroke-width="3.4" stroke-linecap="round" fill="none"/><path d="M37 8.5a19 19 0 0 1 18.5 18.5M37 16a11.5 11.5 0 0 1 11 11" stroke="#1b2a55" stroke-width=".8" stroke-linecap="round" fill="none" opacity=".5"/><path class="wr-spark" d="M54 42.5l1.49 4.01 4.01 1.49-4.01 1.49-1.49 4.01-1.49-4.01-4.01-1.49 4.01-1.49z" fill="#fff"/></svg>`;
-/* ---------- Telefonjoker (6.42, ersetzt den Joker „Bibelstelle“) – Kontakt 1: Pastor Willi ----------
-   Willi hat ein sehr gutes Bibelwissen, trägt Bart, ist verheiratet mit Heidi (geboren in Iowa, USA), hat zwei Töchter.
-   Willi hat in den USA am Faith Baptist Bible College (Iowa) Theologie studiert und dort Heidi kennengelernt;
-   nach dem Studium kamen beide als Missionare nach Deutschland. Er
-   und grillt am liebsten Fleisch – Gemüse mag er nicht so. Seine Antwort hängt nur vom Startwert der Frage ab
-   (und ob 50:50 schon genommen wurde): Im Duell und in der Wochenrunde sagt er allen dasselbe.
-   Bei leichten Fragen liegt er fast immer richtig, bei schweren ist er manchmal unsicher oder irrt sich. */
-const WILLI_HALLO = [
-  "Griaß di, hier Willi! Ah, „Wer wird Biblionär?“ – na, dann lies mal vor …",
-  "Servus, Willi hier – Moment, ich leg nur schnell die Grillzange weg … So, schieß los!",
-  "Griaß di, Pastor Willi am Apparat! Du hast Glück, die Steaks brauchen noch fünf Minuten.",
-  "Servus! Heidi, mach mal die Musik leiser, das ist wichtig! … Also, wie lautet die Frage?",
-  "Griaß di, Willi hier! Ich hab gerade 1.500 Teile Himmel gepuzzelt – nur blau. Da ist eine Bibelfrage die reinste Erholung.",
-  "Servus, hier Willi! Du hast Glück, mein Brotteig muss eh noch eine Stunde gehen.",
-  "Griaß di, Pastor Willi! Moment, Heidi wollte rangehen – sie dachte, ihre Mutter ruft aus Iowa an.",
-  "Servus, Willi am Apparat – ich stehe mit Mehl bis zu den Ellbogen in der Küche. Leg los!",
-  "Griaß di, hier Willi! Ich hab das Handy gerade mit der Grillzange angenommen. Geht erstaunlich gut.",
-  "Servus! Ah, du bist das! Heidi hat schon gesagt: „Der ruft bestimmt wegen Biblionär an.“ Frauen wissen so was.",
-  "Griaß di, Willi hier – ich sitze gerade über der Predigt für Sonntag. Eine kleine Pause kommt mir sehr recht.",
-  "Servus, Willi am Telefon! Ich stehe beim Metzger in der Schlange, aber für dich trete ich kurz zur Seite.",
-  "Griaß di, Pastor Willi! Kurz warten, ich wisch mir nur den Bart ab – es gab Spaghetti. Ohne Gemüsesoße, versteht sich.",
-  "Servus, hier Willi! Die Mädels haben gerade den Hörer abgenommen und „Papa, Biblionär!“ gerufen. Ich bin ganz Ohr.",
-  "Griaß di, Pastor Willi – oder wie wir damals am Bible College in Iowa gesagt haben: Hi there! Was gibt's?",
-  "Servus, Willi hier! Heidi telefoniert gerade mit ihrer Familie in Iowa – gut, dass ich das zweite Handy hab. Schieß los!",
-  "Griaß di, Willi hier – Moment, ich leg nur schnell die Gitarre weg … So, jetzt bin ich ganz Ohr.",
-  "Servus, Pastor Willi! Hörst du die Musik im Hintergrund? Musikteam-Probe. Ich geh kurz raus – die schaffen das Lied auch ohne mich. Hoffentlich.",
-  "Griaß di, Willi am Apparat! Ich hab mich gerade frisch parfümiert. Riechst du das nicht durchs Telefon? Schade – Heidi sagt, im Treppenhaus schon.",
-  "Servus, Willi hier! Heidi und ich stehen gerade vor dem Kleiderschrank und stimmen die Farben für Sonntag ab. Du rettest mich – leg los!",
-  "Griaß di, hier Willi! Ich packe schon mal gedanklich die Koffer für Amerika. Das Parfüm ist drin – das Wichtigste also. Schieß los!",
-  "Servus, hier Willi! Ich sitze an der Predigt – da ist eine Bibelfrage wie Nachtisch. Her damit!",
-  "Griaß di, Willi hier – ich erkläre gerade einem Vegetarier, dass Holzkohle eigentlich auch pflanzlich ist. Gutes Timing, rette mich!",
-  "Servus, Pastor Willi am Apparat! Heidi fragt gerade, ob mein Hemd zu ihrem Kleid passt. Natürlich passt es – wir passen ja auch zusammen. Also, die Frage?"
-];
-const WILLI_SICHER = [
-  x => `Da muss ich nicht lange überlegen: ${x.X}. Das steht in ${x.ref}.`,
-  x => `Das ist ganz klar ${x.X} – lies mal ${x.ref} nach.`,
-  x => `${x.X}! Da bin ich mir sicherer als bei der Frage, ob Rosenkohl schmeckt. Steht in ${x.ref}.`,
-  x => `${x.X}. So sicher wie das Amen in der Kirche – steht in ${x.ref}.`,
-  x => `Ha, die kenne ich! ${x.X}. Schlag ${x.ref} auf, da steht's schwarz auf weiß.`,
-  x => `${x.X} – dafür würde ich meine Grillzange verwetten. Na gut, wetten tun wir nicht. Aber es steht in ${x.ref}.`,
-  x => `Ganz klar ${x.X}. Über ${x.ref} hab ich schon gepredigt – da sitzt jedes Wort.`,
-  x => `Das ist ${x.X}! Meine Töchter wüssten das auch – ${x.ref} haben wir beim Abendessen gelesen.`,
-  x => `Einfach: ${x.X}. Wer ${x.ref} einmal gelesen hat, vergisst das nicht mehr.`,
-  x => `${x.X} – das haben wir schon am Bible College in Iowa gelernt. Lies ${x.ref} nach.`,
-  x => `${x.X}! Das sitzt bei mir wie ein G-Dur-Akkord. Steht in ${x.ref}.`,
-  x => `Ganz klar ${x.X} – darüber hab ich sogar schon in einer Gemeinde in Amerika gepredigt. Lies ${x.ref}.`,
-  x => `${x.X}. So sicher, wie Heidi und ich am Sonntag farblich zusammenpassen. Steht in ${x.ref}.`,
-  x => `${x.X}! Dafür muss ich nicht mal die Gitarre stimmen, so klar ist das. Lies ${x.ref} nach.`,
-  x => `Das ist ${x.X}! Über ${x.ref} könnte ich dir jetzt eine Predigt mit drei Punkten halten – aber du hast ja nur 30 Sekunden.`
-];
-/* Antwortsätze, wenn die „Bibelstelle“ keine echte Versangabe ist (Bibelkunde, z. B. „Die Paulusbriefe“) – 6.53 */
-const WILLI_SICHER_OHNE = [
-  x => `${x.X}. Das weiß ich so sicher wie das Amen in der Kirche.`,
-  x => `Ha, die kenne ich! ${x.X}. Die Bibelbücher kann ich im Schlaf – Heidi sagt, manchmal tatsächlich.`,
-  x => `Ganz klar ${x.X}. Das haben meine Töchter mit dem Lied aus eurer App gelernt – und ich gleich mit.`,
-  x => `${x.X} – da bin ich mir sicherer als bei der Frage, ob Rosenkohl schmeckt.`,
-  x => `${x.X} – so klar wie ein frisch gestimmter Gitarrenakkord.`,
-  x => `Ganz klar ${x.X}. Da bin ich sicherer als ein Vegetarier am Salatbuffet.`
-];
-const WILLI_ZIEMLICH_OHNE = [
-  x => `Ich bin ziemlich sicher: ${x.X}. Aber zähl lieber nochmal nach.`,
-  x => `Hm … ${x.X}, würde ich sagen. Mein Puzzle-Gedächtnis sagt jedenfalls ja.`,
-  x => `Ziemlich sicher ${x.X}. Klingt jedenfalls stimmig – und als Musikteamleiter hör ich so was.`
-];
-const WILLI_ZIEMLICH = [
-  x => `Ich bin mir ziemlich sicher, dass es ${x.X} ist. Wenn ich mich recht erinnere, steht das in ${x.ref}.`,
-  x => `Hm … ich sage ${x.X}. Ich glaube, das steht in ${x.ref} – schau aber lieber nochmal genau hin.`,
-  x => `Ich würde ${x.X} sagen. Das müsste in ${x.ref} stehen – meine Bibel liegt leider gerade im Auto.`,
-  x => `Ziemlich sicher ${x.X}. Ich meine, das ist ${x.ref} – Heidi nickt jedenfalls.`,
-  x => `Ich denke ${x.X}, so zu neunzig Prozent. Steht wohl in ${x.ref}. Die restlichen zehn Prozent hat der Grillrauch vernebelt.`,
-  x => `Mein Gefühl sagt ${x.X} – und ${x.ref} bestätigt das, wenn ich mich recht erinnere.`,
-  x => `Ich tippe auf ${x.X}. Müsste ${x.ref} sein – meine Bibel steckt gerade im Gitarrenkoffer.`,
-  x => `Ziemlich sicher ${x.X}, ich meine ${x.ref}. Heidi nickt – und sie trägt heute dieselbe Farbe wie ich, das zählt doppelt.`
-];
-const WILLI_SCHWANK = [
-  x => `Puh, das ist knifflig. Ich schwanke zwischen ${x.X} und ${x.Y} … ich würde ${x.X} nehmen, aber ganz sicher bin ich nicht.`,
-  x => `Ich streich mir gerade nachdenklich durch den Bart … ${x.X} oder ${x.Y}? Ich tendiere zu ${x.X}.`,
-  x => `Hmm … ${x.X} oder ${x.Y}? Das ist schwerer als die Wahl zwischen Bratwurst und Rippchen. Ich sag ${x.X}, aber ohne Garantie.`,
-  x => `Jetzt erwischst du mich auf dem falschen Fuß. Ich meine ${x.X}, aber ${x.Y} lässt mich nicht ganz los.`,
-  x => `Heidi sagt ${x.Y}, ich sage ${x.X}. Und meistens hat Heidi recht … hm. Ich bleib trotzdem bei ${x.X}.`,
-  x => `Ich krame in meinem Gedächtnis … ${x.X}? Oder doch ${x.Y}? Ich nehme ${x.X} – aber prüf es lieber selbst.`,
-  x => `${x.X} oder ${x.Y}? Das ist so schwer wie die Frage, ob Heidi am Sonntag Blau oder Türkis trägt. Ich leg mich auf ${x.X} fest – mit Bauchweh.`,
-  x => `Ich zupfe nachdenklich an der Gitarre … ${x.X}? ${x.Y} klingt aber auch nicht schief. Ich nehme ${x.X}, ohne Gewähr.`,
-  x => `Das ist wie ein Akkord mit einem falschen Ton: ${x.X} oder ${x.Y}? Ich sag ${x.X} – aber hör lieber nochmal genau hin.`
-];
-const WILLI_GERATEN = [
-  x => `Oje, da bin ich überfragt. Aus dem Bauch heraus würde ich ${x.X} sagen – aber verlass dich nicht drauf!`,
-  x => `Ehrlich gesagt weiß ich es nicht genau. Vielleicht ${x.X}? Das musst du am Ende selbst entscheiden.`,
-  x => `Da muss ich passen – das hab ich im Bibelunterricht wohl verträumt. Ich rate mal ${x.X}.`,
-  x => `Puh, keine Ahnung. Eine meiner Töchter ruft gerade ${x.X} – mehr hab ich leider nicht.`,
-  x => `Ich stochere im Nebel wie im Grillrauch. Vielleicht ${x.X}? Hör lieber auf dein Herz.`,
-  x => `Ehrlich: Das ist ein Puzzleteil, das mir fehlt. Ich sag mal ${x.X}, aber das ist geraten.`,
-  x => `Da bin ich so ratlos wie ein Vegetarier vor dem Grill. Ich rate ${x.X}.`,
-  x => `Puh, da bin ich verstimmt wie meine Gitarre nach dem Flug aus Amerika. Vielleicht ${x.X}?`,
-  x => `Ehrlich? Keine Ahnung. Heidi ist gerade nicht da – und ohne sie fehlt mir die Hälfte, nicht nur farblich. Ich rate ${x.X}.`
-];
-/* Bezüge zur Frage: [Suchmuster über Frage, Antwort, Bibelstelle und Thema, Satz] */
-const WILLI_THEMA = [
-  [/Esau|Isaak|Jakob(?!us)|Linsen/, "Isaak hatte Esau lieb, weil er so gern von seinem Wildbret aß (1. Mose 25,28) – ein Mann nach meinem Geschmack! Dass Esau dann alles für ein Linsengericht hergab, verstehe ich bis heute nicht."],
-  [/Daniel|Nebukadnezar|Löwengrube|Belsazar/, "Daniel hat zehn Tage lang nur Gemüse gegessen und sah danach besser aus als alle anderen (Daniel 1,12-15). Heidi hält mir den Vers bei jedem Grillabend unter die Nase …"],
-  [/Manna|Wachtel|Wüste|Sinai/, "In der Wüste gab es abends Wachteln (2. Mose 16,13) – der Herr weiß eben, was ein hungriger Mann braucht!"],
-  [/Passah|Pharao|Plage|Lamm/, "Das Passahlamm sollte am Feuer gebraten werden, nicht gekocht (2. Mose 12,8-9). Ich sag ja immer: Grillen ist biblisch!"],
-  [/verlorene|gemästet|Lukas 15/, "Als der verlorene Sohn heimkam, ließ der Vater das gemästete Kalb schlachten (Lukas 15,23). Das nenne ich ein Fest!"],
-  [/Abraham|Abram|Sara\b|Mamre/, "Abraham hat für seine drei Besucher ein zartes, gutes Kalb zubereiten lassen (1. Mose 18,7). Gastfreundschaft mit Fleisch – so gehört sich das."],
-  [/(?<!\d\. )Petrus|Kornelius/, "Mein Lieblingsvers für den Grillabend: „Steh auf, Petrus, schlachte und iss!“ (Apostelgeschichte 10,13)."],
-  [/Elia|Rabe|Karmel|Isebel|Ahab/, "Die Raben brachten Elia morgens und abends Brot und Fleisch (1. Könige 17,6) – von Salat steht da nichts."],
-  [/Fisch|Genezareth|Brote|5000|fünftausend|Netz|Fischer/, "Der Herr Jesus selbst hat am See ein Kohlenfeuer gemacht und Fisch darauf gelegt (Johannes 21,9). Grillen am Ufer – herrlich!"],
-  [/Römer|Paulus|Saulus|Korinth|Galater|Epheser|Philipper|Timotheus/, "Paulus schreibt: Der Schwache isst Gemüse (Römer 14,2). Ich will ja niemanden richten – aber ich nehme lieber noch ein Würstchen."],
-  [/Noah|Arche|Sintflut|Regenbogen/, "Nach der Sintflut hat Gott Noah erlaubt, auch Fleisch zu essen (1. Mose 9,3). Seitdem bin ich Noah sehr dankbar!"],
-  [/Täufer|Heuschreck/, "Johannes der Täufer aß Heuschrecken und wilden Honig (Matthäus 3,4). Heuschrecken vom Grill hab ich noch nicht probiert – meine Töchter würden schreiend weglaufen."],
-  [/Gideon/, "Gideon hat für den Engel des Herrn ein Ziegenböcklein zubereitet (Richter 6,19). Gute Wahl, Gideon!"],
-  [/Simson|Delila|Philister|Löwe/, "Simson fand Honig im Kadaver des Löwen (Richter 14,8-9) – also, nicht jedes Fleischgericht in der Bibel ist zu empfehlen."],
-  [/Salomo|Sprüche|Weisheit/, "Salomo schreibt sinngemäß: Lieber ein Gemüsegericht mit Liebe als ein gemästeter Ochse mit Hass (Sprüche 15,17). Den Vers zitiert Heidi besonders gern, wenn ich am Grill brumme."],
-  [/Kana\b|Hochzeit|Wasser zu Wein/, "Bei der Hochzeit zu Kana hat der Herr Jesus sein erstes Zeichen getan (Johannes 2,11). Was es dazu zu essen gab, steht nicht drin – ich tippe auf ein ordentliches Festmahl!"],
-  [/David|Goliath|Hirte|Schaf/, "David hat als Hirte seine Schafe vor Löwe und Bär beschützt (1. Samuel 17,34-35). Ich beschütze am Grill meine Würstchen vor meinen Töchtern – fast genauso mutig."],
-  [/Jona\b|Ninive/, "Jona war drei Tage im Bauch des Fisches (Jona 2,1). Der einzige Fisch in der Bibel, den ich nicht grillen würde!"],
-  [/Brot|Bäcker|ungesäuert|Abendmahl|Gerste/, "Ich backe ja selbst Brot – am liebsten Sauerteig, frisch aus dem Ofen. Und der Herr Jesus sagt: Ich bin das Brot des Lebens (Johannes 6,35). Davon wird man richtig satt."],
-  [/Brot|Bäcker|Körbe/, "Brot backen ist wie Glauben: Es braucht Zeit, Wärme und Geduld. Und am Ende teilt man es – wie der Herr Jesus bei der Speisung, als sogar zwölf Körbe übrig blieben (Johannes 6,13)."],
-  [/Hesekiel|Dinkel/, "Das Brot aus Hesekiel 4,9 – Weizen, Gerste, Bohnen, Linsen, Hirse, Dinkel – hab ich tatsächlich mal nachgebacken. Heidi meinte: Endlich mal Gemüse, das du freiwillig isst!"],
-  [/Schaubrot/, "Zwölf Schaubrote, für jeden Stamm eins (3. Mose 24,5-6). So viele schaffe ich in meinem Ofen nicht auf einmal – aber ich arbeite dran."],
-  [/Ahija|Mantel|Stücke|\bLeib\b|Glieder/, "Ich puzzle leidenschaftlich gern. Ahija hat einen Mantel in zwölf Stücke gerissen (1. Könige 11,30) – ein Puzzle mit Bedeutung! Und die Gemeinde ist genauso: viele Teile, ein Leib (1. Korinther 12,12)."],
-  [/Mauer|Nehemia/, "Nehemia hat die Mauer Stück für Stück in 52 Tagen wieder aufgebaut (Nehemia 6,15) – wie ein riesiges Puzzle. Da hätte ich gern mitgemacht."],
-  [/Esra|vorlesen|vorlas|Chronik seiner|Kämmerer|Synagoge/, "Heidi liest für ihr Leben gern, bei uns stapeln sich die Bücher. Aber dass Esra dem Volk vom Morgen bis zum Mittag vorgelesen hat (Nehemia 8,3) – das schafft nicht mal sie."],
-  [/Jojakim/, "König Jojakim hat Jeremias Buchrolle ins Feuer geworfen (Jeremia 36,23). Heidi war beim Lesen richtig empört. Ich auch – ein Kohlenfeuer ist schließlich für Steaks da!"],
-  [/Psalm|Hirte\b|Hirsch|Baum an Wasser/, "Psalm 23 sagt: Du bereitest vor mir einen Tisch (Psalm 23,5). Ich stelle mir da immer einen gut gedeckten Grilltisch vor."],
-  [/Hirsch|lechzt/, "Wie der Hirsch nach Wasser lechzt, so lechzt meine Seele nach Gott (Psalm 42,2). Mein Magen lechzt eher nach Mittagessen – aber der ist ja auch nicht so geistlich."],
-  [/Ameise|Faule/, "Geh zur Ameise, du Fauler (Sprüche 6,6)! Heidi zitiert das immer, wenn ich nach dem Grillen auf dem Sofa einschlafe."],
-  [/tüchtige Frau|Lemuel|Sprüche 31/, "Sprüche 31 lobt die tüchtige Frau – Heidi hat das Kapitel bei uns an den Kühlschrank gehängt. Mit Leuchtmarker."],
-  [/Salomo|Sprüche 1|Furcht des HERRN/, "Die Furcht des HERRN ist der Anfang der Erkenntnis (Sprüche 1,7). Der Anfang einer guten Mahlzeit ist übrigens ein frisch gebackenes Brot."],
-  [/Prediger|seine Zeit|nichtig/, "Alles hat seine Zeit (Prediger 3,1) – auch der Brotteig. Wer ihn zu früh in den Ofen schiebt, backt einen Ziegelstein."],
-  [/Hiob|Uz|Elihu/, "Hiob hat alles verloren und Gott trotzdem gelobt. Ich verliere schon die Geduld, wenn meinem Puzzle ein Teil fehlt."],
-  [/Hohelied|Braut|stark wie der Tod/, "Das Hohelied lese ich Heidi manchmal vor. Sonst liest ja immer sie mir vor – ausgleichende Gerechtigkeit!"],
-  [/Bathseba|Psalm 51/, "Nach seiner Schuld betete David: Schaffe mir, o Gott, ein reines Herz (Psalm 51,12). Den Vers bete ich auch – meistens nach dem dritten Würstchen."],
-  [/Berge|Psalm 121/, "Meine Hilfe kommt vom HERRN (Psalm 121,2) – nicht von den Bergen. Und schon gar nicht vom Grillanzünder, der klappt bei mir nie."],
-  [/Seraph|glühende/, "Eine glühende Kohle vom Altar (Jesaja 6,6) – ich hätte sie ja unter den Rost gelegt. Jesaja war da eindeutig geistlicher als ich."],
-  [/Friedefürst|Jesaja 9/, "Friedefürst (Jesaja 9,5) – den Frieden bräuchten wir bei uns zu Hause, wenn es um die Frage Steak oder Gemüsespieß geht."],
-  [/Adler/, "Auffahren mit Flügeln wie Adler (Jesaja 40,31) – ich bin eher wie ein Brathähnchen: fliegt nicht, aber macht glücklich."],
-  [/Scharlach|Schnee/, "Rot wie Scharlach, weiß wie Schnee (Jesaja 1,18) – so gründlich vergibt Gott. Meine Grillschürze bekommt Heidi leider nie so sauber."],
-  [/Jeremia|zu jung|Töpfer/, "Gott ist der Töpfer und wir sind der Ton (Jeremia 18,6). Beim Brotteig kneten fühle ich mich ihm ein kleines bisschen nahe."],
-  [/Klagelieder|Barmherzigkeit/, "Gottes Barmherzigkeit ist jeden Morgen neu (Klagelieder 3,23) – wie frisches Brot aus dem Ofen. Nur noch viel besser."],
-  [/neues Herz/, "Ein neues Herz von Gott (Hesekiel 36,26) – das ist besser als jedes Rinderherz vom Metzger. Okay, das war ein schlechter Vergleich."],
-  [/Kebar/, "Am Fluss Kebar hatte Hesekiel gewaltige Visionen (Hesekiel 1). Ich hab am Fluss meistens nur die Vision von gegrilltem Fisch."],
-  [/Mene|Belsazar/, "Mene, mene, tekel (Daniel 5,25) – gewogen und zu leicht befunden. Das passiert mir auf der Waage nach Weihnachten nie."],
-  [/Micha\b|Bethlehem/, "Bethlehem heißt übersetzt „Brothaus“ – kein Wunder, dass das meine Lieblingsstadt in der Bibel ist!"],
-  [/Hosea|Gomer/, "Hosea hielt seiner Frau Gomer die Treue – so treu ist Gott zu uns. Heidi und ich streiten zum Glück nur über Gemüse."],
-  [/Joel|Heuschreck/, "Heuschrecken fressen alles kahl (Joel 1,4) – wie meine Töchter, wenn ich frisches Brot aus dem Ofen hole."],
-  [/alles Fleisch|Joel 3/, "Gott gießt seinen Geist aus über alles Fleisch (Joel 3,1) – bei dem Wort „Fleisch“ höre ich als Grillmeister immer besonders gut zu."],
-  [/Amos|Maulbeer/, "Amos war Hirte und Maulbeerfeigenzüchter (Amos 7,14) – also eigentlich Obstbauer. Gott beruft sogar Obstleute. Das gibt mir zu denken."],
-  [/wie Wasser|Amos 5/, "Das Recht soll strömen wie Wasser (Amos 5,24). Bei uns strömt am Gemeindefest vor allem Apfelschorle."],
-  [/Obadja|Edom/, "Obadja hat nur ein einziges Kapitel – das lese ich, während der Grill vorheizt. Edom war übrigens das Land von Esau, dem Wildbret-Liebhaber."],
-  [/demütig|Micha 6/, "Recht tun, Liebe üben, demütig sein (Micha 6,8). Am Grill demütig zu sein fällt mir am schwersten."],
-  [/Habakuk|Glauben leben/, "Der Gerechte wird durch seinen Glauben leben (Habakuk 2,4) – nicht vom Brot allein. Obwohl Brot schon sehr hilft."],
-  [/Zephanja|Tag des HERRN/, "Der Tag des HERRN ist nahe (Zephanja 1,14). Mein Lieblingstag bleibt bis dahin der Sonntag: erst Gottesdienst, dann Grillen."],
-  [/Haggai|Tempel wieder/, "Haggai rief: Baut das Haus Gottes (Haggai 1,8)! Bauen ist wie Puzzeln – nur mit schwereren Teilen."],
-  [/Esel\b|Sacharja/, "Der König kommt demütig auf einem Esel (Sacharja 9,9). Ich wäre mit dem Grillwagen gekommen – darum bin ich auch nicht der König."],
-  [/Zehnten|Vorratshaus/, "Bringt den ganzen Zehnten ins Vorratshaus (Maleachi 3,10). Heidi hat gefragt, ob das auch für meine Würstchen gilt."],
-  [/Maleachi 3,23|Elia/, "Gott kündigt den Propheten Elia an (Maleachi 3,23). Elia hat in der Wüste übrigens ein auf heißen Steinen gebackenes Brot vom Engel bekommen (1. Könige 19,6) – himmlisches Backhandwerk!"],
-  [/Sold der Sünde|Gnadengabe|Römer 6/, "Der Sold der Sünde ist der Tod, aber Gottes Gnadengabe ist das ewige Leben (Römer 6,23). Geschenkt – wie die letzte Bratwurst, die ich dir überlasse."],
-  [/scheiden|Römer 8/, "Nichts kann uns von Gottes Liebe trennen (Römer 8,39) – nicht mal ein Puzzle, bei dem das letzte Randstück fehlt."],
-  [/Liebe|1. Korinther 13/, "Die Liebe ist langmütig (1. Korinther 13,4). Heidi braucht das, wenn ich mir zum dritten Mal Nachschlag hole."],
-  [/500|1. Korinther 15/, "Über 500 Brüder sahen den Auferstandenen auf einmal (1. Korinther 15,6). So viele Leute kriege ich nicht mal beim Gemeindefest satt."],
-  [/neue Schöpfung/, "Eine neue Schöpfung in Christus (2. Korinther 5,17) – wie aus Mehl und Wasser ein Brot wird. Nur unendlich wunderbarer."],
-  [/Pfahl/, "Paulus hatte einen Pfahl ins Fleisch (2. Korinther 12,7). Ich hatte mal eine Gräte im Fisch – ich weiß, das ist nicht dasselbe."],
-  [/Frucht des Geistes|Galater/, "Die Frucht des Geistes (Galater 5,22) – Früchte sind das einzige Grünzeug, das ich wirklich mag. Diese hier ganz besonders."],
-  [/Gnade|Epheser 2/, "Aus Gnade gerettet, nicht aus Werken (Epheser 2,8–9) – sonst hätte ich mit meinen Grillkünsten ja einen unfairen Vorteil."],
-  [/Waffenrüstung|Schwert des Geistes/, "Die Waffenrüstung Gottes kennst du ja aus unserer App! Ich hätte noch die Grillzange des Glaubens dazugelegt."],
-  [/Freut euch|Gefängnis/, "Paulus schreibt aus dem Gefängnis: Freut euch allezeit (Philipper 4,4)! Ich freu mich schon, wenn der Grill anspringt."],
-  [/Kolosser|von Herzen/, "Alles, was ihr tut, tut von Herzen (Kolosser 3,23) – auch das Wenden der Würstchen. Vor allem das!"],
-  [/Unterlass|Beten/, "Betet ohne Unterlass (1. Thessalonicher 5,17) – ich bete sogar, wenn der Grill nicht angehen will. Gerade dann."],
-  [/nicht arbeiten|nicht essen/, "Wer nicht arbeiten will, soll auch nicht essen (2. Thessalonicher 3,10). Darum helfe ich beim Grillen immer mit – zumindest beim Probieren."],
-  [/Jugend|Timotheus 4/, "Niemand verachte dich wegen deiner Jugend (1. Timotheus 4,12) – das sage ich meinen Töchtern, wenn sie mich beim Bibelquiz schlagen."],
-  [/Lois|Großmutter/, "Lois, die Großmutter des Timotheus, hatte einen echten Glauben (2. Timotheus 1,5). Heidi liest unseren Töchtern jeden Abend aus der Bibel vor – so fängt das an!"],
-  [/Kreta|Titus/, "Paulus ließ Titus auf Kreta zurück (Titus 1,5). Schöne Insel – das Lamm vom Grill soll dort hervorragend sein, hab ich gehört."],
-  [/Onesimus|Philemon/, "Onesimus heißt „der Nützliche“ (Philemon 11). Wenn ich am Grill stehe, darfst du mich gern auch so nennen."],
-  [/Zuversicht|Hebräer 11/, "Glaube ist eine feste Zuversicht (Hebräer 11,1) – wie meine Zuversicht, dass der Brotteig über Nacht aufgeht."],
-  [/Melchisedek/, "Melchisedek kam Abraham mit Brot entgegen und segnete ihn (1. Mose 14,18-19) – ein Mann ganz nach meinem Herzen!"],
-  [/gestern, heute/, "Jesus Christus ist derselbe gestern, heute und in Ewigkeit (Hebräer 13,8) – zuverlässiger als mein bestes Sauerteig-Rezept."],
-  [/Jakobus 3|Zunge/, "Die Zunge ist ein kleines Feuer (Jakobus 3,5) – als Grillmeister weiß ich: kleines Feuer, große Wirkung."],
-  [/tausend Jahre/, "Ein Tag ist wie tausend Jahre (2. Petrus 3,8) – so fühlt es sich an, wenn der Brotteig gehen muss."],
-  [/Gott ist|1. Johannes|vergibt/, "Gott ist Liebe (1. Johannes 4,8) – und wenn wir unsere Sünden bekennen, vergibt er (1. Johannes 1,9). Sogar die mit dem heimlich gegessenen Würstchen."],
-  [/Gajus|auserwählte Frau|2. Johannes|3. Johannes/, "Die kleinen Johannesbriefe sind kurz, weil Johannes lieber persönlich kommen wollte (2. Johannes 12). Geht mir genauso – am liebsten zum Grillabend."],
-  [/Michael|Judas 9/, "Der Judasbrief hat nur 25 Verse – wie ein Puzzle mit 25 Teilen. Und mittendrin der Erzengel Michael!"],
-  [/Offenbarung|Laodizea|Sendschreiben/, "Laodizea war weder kalt noch warm (Offenbarung 3,16). Lauwarmes Essen mag ich auch nicht – das Steak muss heiß sein und der Glaube auch!"],
-  [/klopft|vor der Tür/, "Jesus steht vor der Tür und klopft an und will mit uns Mahl halten (Offenbarung 3,20). Bei mir gibt's dann frisches Brot!"],
-  [/A und das O/, "Jesus ist das A und das O (Offenbarung 22,13). Bei mir gibt's beim perfekten Steak auch immer ein „Ah“ und ein „Oh“."],
-  [/Tränen|Perlen|neue Jerusalem/, "Im neuen Jerusalem gibt es keine Tränen mehr (Offenbarung 21,4). Ich hoffe ganz leise: auch keinen Rosenkohl."],
-  [/Nächsten/, "Liebe deinen Nächsten wie dich selbst (3. Mose 19,18) – darum bekommt mein Nachbar beim Grillen immer das zweitbeste Steak. Na gut: das beste."],
-  [/Versöhnungstag|Bock/, "Am Versöhnungstag ging ein Bock in die Wüste (3. Mose 16,10). Heidi sagt, ich soll bei solchen Versen nicht immer gleich ans Grillen denken."],
-  [/Höre, Israel|einschärfen|5. Mose 6/, "Höre, Israel (5. Mose 6,4)! Bei uns zu Hause heißt es eher: Höre, Willi – das Essen ist fertig!"],
-  [/Jabez/, "Jabez bat Gott: Erweitere mein Gebiet (1. Chronik 4,10). Das bete ich jedes Mal, wenn ich einen größeren Grill kaufen will."],
-  [/Blut vergossen|1. Chronik 22/, "David durfte den Tempel nicht bauen, aber er hat alles dafür vorbereitet (1. Chronik 22,5) – wie ich, wenn ich am Vorabend den Sauerteig ansetze, damit morgens gebacken werden kann."],
-  [/Einweihung|2. Chronik 7/, "Bei Salomos Tempelweihe fiel Feuer vom Himmel (2. Chronik 7,1). Die schnellste Grillglut aller Zeiten!"],
-  [/Schriftgelehrter/, "Esra war Schriftgelehrter – ein echter Bücherwurm. Heidi wäre mit ihm sofort ins Gespräch gekommen."],
-  [/Leopard|Böcklein/, "Der Leopard lagert beim Böcklein (Jesaja 11,6) – im Friedensreich ist sogar das Böcklein sicher. Vor mir am Grill hoffentlich auch."],
-  [/Mundschenk|Bäcker/, "Josef hat den Traum des obersten Bäckers gedeutet (1. Mose 40,16-19) – für den ging es leider nicht gut aus. Seitdem backe ich nur noch mit Gebet."],
-  [/Rut|Boas|Ähren|Noomi/, "Boas lud Rut ein, ihren Bissen in den Essig zu tauchen (Rut 2,14) – ein echter Gastgeber! Ich hätte ihr noch eine Bratwurst angeboten."],
-  [/Martha|Bethanien|Schwester des Lazarus/, "Martha hat sich mit dem Essen abgemüht, Maria saß zu Jesu Füßen (Lukas 10,39-42). Ich bin ehrlich gesagt eher Martha – vor allem am Grill."],
-  [/Emmaus/, "Die Emmausjünger erkannten Jesus, als er das Brot brach (Lukas 24,30-31). Seitdem ist Brot brechen für mich etwas ganz Besonderes."],
-  [/Dornbusch|Horeb/, "Der Dornbusch brannte und verbrannte doch nicht (2. Mose 3,2). Das wünsche ich mir manchmal für meine Würstchen."],
-  [/Witwe|Zarpat|Mehl/, "Bei der Witwe in Zarpat ging das Mehl im Topf nicht aus (1. Könige 17,16). Mein Sauerteig heißt deshalb „Elia“."],
-  [/Staub von der Erde|1\. Mose 2,7/, "Gott hat den Menschen aus Staub geformt und ihm den Odem des Lebens eingehaucht (1. Mose 2,7). Ich forme Brotteig – das mit dem Leben einhauchen überlasse ich lieber dem Sauerteig."],
-  [/Rippe|erste Frau/, "Gott hat die Frau aus einer Rippe gebaut (1. Mose 2,22). Bei Rippchen werde ich ja schwach – aber Heidi sagt, das ist kein theologisches Argument."],
-  [/verführte Eva|Die Schlange/, "Die Schlange war listiger als alle Tiere des Feldes (1. Mose 3,1). Und gegessen wurde dann – Obst! Ich sag ja: Obst und Gemüse bringen nur Ärger."],
-  [/Feigenbl/, "Schurze aus Feigenblättern (1. Mose 3,7) – die erste Schürze der Welt! Meine Grillschürze ist zum Glück etwas stabiler."],
-  [/Cherub/, "Cherubim mit einem flammenden Schwert (1. Mose 3,24) – da wäre sogar mein Grillanzünder neidisch."],
-  [/Abel|Kain/, "Abel war Schafhirte, Kain Ackerbauer. Gott sah Abels Opfer gnädig an – aber Achtung, Fleischfreunde: Es ging um den Glauben, nicht ums Menü (Hebräer 11,4)."],
-  [/Jubal|Harfen- und Flöten/, "Jubal war der Vater aller Flötenspieler (1. Mose 4,21). Heidi hat mal versucht, mir Blockflöte beizubringen. Ich bin dann lieber zurück zum Grill."],
-  [/300 Ellen|Wasser der Sintflut/, "Die Arche war 300 Ellen lang (1. Mose 6,15) – ungefähr anderthalb Fußballfelder. Da hätte sogar ein richtig großer Grill draufgepasst."],
-  [/Raben\b.*Arche|als ersten aus der Arche/, "Noah schickte erst einen Raben, dann eine Taube (1. Mose 8,7-8). Der Rabe kam nicht zurück – wahrscheinlich hat er irgendwo ein Grillfest gefunden."],
-  [/Vater Noahs|Lamech/, "Lamech nannte seinen Sohn Noah, weil er Trost erhoffte (1. Mose 5,29). Ich hätte meine Töchter auch „Trost“ nennen können – beim ersten Zahn eher nicht."],
-  [/Sprache der Menschen|verwirrte Gott/, "In Babel verwirrte Gott die Sprache (1. Mose 11,7). Seitdem versteht ein Ingolstädter nicht jeden Eichstätter. Kleiner Scherz – fast."],
-  [/Sterne am Himmel/, "Abraham sollte die Sterne zählen (1. Mose 15,5). Ich zähle lieber Puzzleteile – da weiß man wenigstens, wann man fertig ist."],
-  [/Widder|Isaak opfern|Land Morija/, "Gott hat selbst einen Widder bereitgestellt (1. Mose 22,13). „Der HERR wird ersehen“ – und Jahrhunderte später hat er sein eigenes Lamm gegeben."],
-  [/Kamelen zu trinken|Frau für Isaak/, "Rebekka hat zehn Kamelen Wasser geschöpft (1. Mose 24,10.19). Weißt du, wie viel Wasser ein Kamel trinkt? Heidi meint: so viel wie ich nach dem Grillen."],
-  [/Ziegenb/, "Rebekka hat Ziegenböcklein so zubereitet, wie Isaak es gern hatte (1. Mose 27,9). Die Frau wusste: Ein Mann lässt sich mit gutem Essen überzeugen."],
-  [/Rahel|Laban/, "Jakob diente sieben Jahre um Rahel, und sie kamen ihm vor wie wenige Tage (1. Mose 29,20). So geht's mir mit Heidi beim Puzzeln."],
-  [/Becher|Benjamins Sack/, "Josef ließ seinen Becher in Benjamins Sack stecken (1. Mose 44,2). Ich verstecke manchmal Puzzleteile vor meinen Töchtern – die finden sie leider immer."],
-  [/Hungersnot|Gosen/, "Josef hat sieben Jahre Korn gesammelt (1. Mose 41,48). Ich sammle Mehl für mein Brot – Heidi sagt, für sieben Jahre reicht's schon."],
-  [/Haran|75 Jahre/, "Abram war 75, als er aus Haran aufbrach (1. Mose 12,4). Man ist nie zu alt für Gottes Ruf – oder für einen Umzug von Ingolstadt nach Eichstätt."],
-  [/Frösche/, "Frösche überall – sogar in den Backöfen und Backtrögen (2. Mose 7,28)! Da hört für einen Bäcker der Spaß wirklich auf."],
-  [/Stechmücken/, "Stechmücken als Plage (2. Mose 8,13) – im Sommer am Grill weiß ich genau, wie sich die Ägypter gefühlt haben."],
-  [/Wolkensäule|Feuersäule/, "Eine Feuersäule bei Nacht (2. Mose 13,21) – die perfekte Grillbeleuchtung. Aber sie war zum Führen da, nicht zum Grillen."],
-  [/steinerne Tafeln|keine anderen Götter/, "Die Zehn Gebote standen auf Stein (2. Mose 31,18). Meine Puzzleanleitung steht auf Papier – und trotzdem lese ich sie nie."],
-  [/Vater und deine Mutter/, "Ehre Vater und Mutter (Epheser 6,2). Meine Töchter ehren mich am meisten, wenn es Stockbrot am Lagerfeuer gibt."],
-  [/Mandeln|Aarons Stab/, "Aarons Stab trug über Nacht Mandeln (4. Mose 17,23). Mein Grillspieß hat noch nie geblüht. Ich arbeite dran."],
-  [/Weintraube|Kundschafter/, "Eine Traube so groß, dass zwei Männer sie tragen mussten (4. Mose 13,23)! Das einzige Obst, bei dem ich schwach werde – bei der Größe zählt es fast als Hauptgericht."],
-  [/Mara|bitteres Wasser/, "In Mara wurde bitteres Wasser süß (2. Mose 15,25). Heidi macht das mit meinem Kaffee – mit sehr viel Milch."],
-  [/Elim|Wasserquellen/, "Zwölf Quellen und siebzig Palmen in Elim (2. Mose 15,27) – der erste Rastplatz mit Picknickplatz der Geschichte."],
-  [/Bezaleel|Kunsthandwerker/, "Gott erfüllte Bezaleel mit seinem Geist für das Handwerk (2. Mose 31,3). Gott beruft Handwerker – vielleicht ja auch Bäcker?"],
-  [/Korah|verschlungen/, "Korah lehnte sich gegen Mose auf, und die Erde tat sich auf (4. Mose 16,32). Seitdem widerspreche ich Heidi nur noch auf ganz festem Boden."],
-  [/Hebräer 9,4|Bundeslade.*Manna/, "In der Bundeslade lag ein Krug mit Manna (Hebräer 9,4) – das erste Vorratsglas der Geschichte. Haltbarkeit: unbegrenzt!"],
-  [/rote Schnur|Rahab/, "Rahab hängte eine rote Schnur ins Fenster (Josua 2,18) – und sie steht sogar im Stammbaum von Jesus (Matthäus 1,5)!"],
-  [/Jordan, als die Priester|Das Wasser blieb stehen/, "Der Jordan blieb stehen, als die Priester hineintraten (Josua 3,16). Gott macht den Weg frei – manchmal erst, wenn man den ersten Schritt tut."],
-  [/mein Haus, wir wollen/, "Ich aber und mein Haus, wir wollen dem HERRN dienen (Josua 24,15) – das könnte bei uns über der Tür hängen. Gleich neben „Vorsicht, Grillmeister“."],
-  [/Gideon|Krüge|Tenne/, "Gideon wollte zweimal ein Zeichen mit dem Fell (Richter 6,36-40). Kenne ich vom Brotbacken: Ist es schon durch? Klopfen, nochmal klopfen!"],
-  [/wie sie Wasser tranken/, "Gott wählte Gideons Männer danach aus, wie sie tranken (Richter 7,5). Bei uns würde Gott wahrscheinlich nach der Bratwurst-Technik auswählen."],
-  [/Füchse/, "Simson fing 300 Füchse (Richter 15,4). Ich bekomme nicht mal zwei Töchter gleichzeitig ins Auto."],
-  [/Haus der Philister|Wie starb Simson/, "Simson betete am Ende noch einmal um Kraft (Richter 16,28). Gott hört auch das letzte, schwache Gebet."],
-  [/Wo du hingehst|Orpa|Obed|Ähren/, "So treu wie Ruth – das wünscht man sich. Heidi ist sogar aus Iowa mit nach Bayern gekommen – als Missionarin!"],
-  [/Jephta|Gelübde/, "Jephta hat ein unbedachtes Gelübde getan (Richter 11,30). Seitdem verspreche ich beim Grillen nichts mehr, bevor ich nicht nachgedacht habe."],
-  [/Schibbolet/, "Schibbolet (Richter 12,6) – an der Aussprache erkannte man, woher einer kam. In Eichstätt merken sie bei mir auch sofort: Der ist aus Ingolstadt!"],
-  [/salbte David|Riese verspottete|bevor er König wurde/, "Gott sieht das Herz an, nicht das Äußere (1. Samuel 16,7). Gut so – sonst hätte ich mit meinem Bart keine Chance."],
-  [/dein Knecht hört/, "Rede, denn dein Knecht hört! – Samuel war noch ein Junge. Gott redet auch mit Kindern, meine Töchter erinnern mich gern daran."],
-  [/echte Mutter/, "Salomo ließ ein Schwert bringen, und die Wahrheit kam ans Licht (1. Könige 3,24-27). Ich teile höchstens die letzte Bratwurst. Ungern."],
-  [/Israel und Juda|Jerobeam|Rehabeam/, "Rehabeam hörte auf die jungen Berater statt auf die alten (1. Könige 12,8). Hätte er mal einen bärtigen Pastor gefragt!"],
-  [/Nabot/, "Ahab wollte Nabots Grundstück – für einen Gemüsegarten (1. Könige 21,2)! Ich sag es ja: Gemüse bringt nur Ärger."],
-  [/Säuseln/, "Gott war nicht im Sturm und nicht im Feuer, sondern im leisen Säuseln (1. Könige 19,12). Darum mache ich beim Beten den Grill aus."],
-  [/Eisen der Axt/, "Elisa ließ eine eiserne Axt schwimmen (2. Könige 6,6). Bei mir schwimmen höchstens die Knödel oben."],
-  [/Joas/, "Joas war sieben, als er König wurde (2. Könige 12,1). Meine Töchter regieren bei uns zu Hause schon länger."],
-  [/Sanherib|Hiskia/, "Hiskia breitete den Drohbrief vor dem HERRN aus (2. Könige 19,14). So mache ich das mit Rechnungen auch – beten hilft!"],
-  [/Standbild/, "Das Standbild hatte Füße teils aus Eisen, teils aus Ton (Daniel 2,33) – wackelig! Wie mein erster selbstgebauter Grill."],
-  [/offenen Fenster|Daniel 6,11/, "Daniel betete dreimal am Tag (Daniel 6,11). Ich bete auch dreimal – vor jedem Essen. Und bei mir gibt's oft mehr als drei Mahlzeiten."],
-  [/Rizinus/, "Jona freute sich über die Rizinusstaude mehr als über Ninive (Jona 4,6). Ich freu mich auch über Schatten am Grill – aber Gottes Gnade ist größer."],
-  [/3 Tage und 3 Nächte/, "Drei Tage im Fisch (Jona 2,1) – und Jesus sagt, das ist ein Zeichen auf seine Auferstehung (Matthäus 12,40). Mehr Tiefgang geht nicht."],
-  [/Herberge|Windeln/, "Kein Raum in der Herberge (Lukas 2,7). Bei uns in Eichstätt hätten sie ein Zimmer bekommen – mit frischem Brot zum Frühstück."],
-  [/Weisen|Stern des Königs|Herodes/, "Die Weisen sind dem Stern gefolgt (Matthäus 2,2). Ich folge zuverlässig dem Duft von frischem Brot."],
-  [/Zacharias|hüpfte|Elisabeth/, "Zacharias war stumm, bis Johannes geboren wurde (Lukas 1,20). Heidi meinte, so eine Pause würde mir manchmal auch guttun."],
-  [/erhebt den Herrn|Lobgesang/, "Maria hat gesungen statt geklagt (Lukas 1,46). Ich singe auch – beim Teigkneten. Heidi schließt dann die Küchentür."],
-  [/Turteltauben/, "Turteltauben waren das Opfer der Armen (3. Mose 12,8). Jesus kam in eine einfache Familie – keine Grillparty, aber Gottes Sohn!"],
-  [/Haus Davids|Geschlecht/, "Josef stammte aus dem Haus Davids (Lukas 2,4) – darum ging es nach Bethlehem, ins „Brothaus“. Für einen Bäcker die schönste Stadt der Welt!"],
-  [/Fürchtet euch nicht|große Freude/, "Große Freude für alles Volk (Lukas 2,10)! Bei uns ist große Freude, wenn das erste Weihnachtsbrot aus dem Ofen kommt."],
-  [/gebot dem Wind/, "Jesus gebot dem Wind und dem Meer (Matthäus 8,26). Ich gebiete meinem Grillfeuer – aber es hört nie auf mich."],
-  [/durch das Dach/, "Die Freunde deckten das Dach ab (Markus 2,4) – echte Freunde! Meine würden das für mich auch tun. Wahrscheinlich, um ans Buffet zu kommen."],
-  [/Sprich nur ein Wort/, "Sprich nur ein Wort (Matthäus 8,8) – dieser Glaube hat sogar Jesus gewundert. Mich wundert schon, wenn ein Brot beim ersten Versuch gelingt."],
-  [/Blutfluss/, "Die Frau berührte nur sein Gewand und wurde gesund (Markus 5,29). Manchmal reicht ein kleiner Schritt im Glauben."],
-  [/Hälfte seiner Güter|Zachäus/, "Jesus hat sich bei Zachäus selbst zum Essen eingeladen (Lukas 19,5). Darauf warte ich bei mir auch – der Grill wäre bereit!"],
-  [/Speichel|Siloah|Blindgeboren/, "Jesus machte einen Brei aus Speichel und Erde (Johannes 9,6). Meine Töchter finden Kochen mit Matsch auch super. Heidi nicht."],
-  [/sieben Broten|4000/, "Sieben Brote für 4000 Männer (Matthäus 15,38). Ich schaffe mit sieben Broten nicht mal unseren Hauskreis."],
-  [/Stater/, "Petrus holte die Steuer aus einem Fischmaul (Matthäus 17,27). Wenn ich angle, finde ich höchstens einen alten Schuh."],
-  [/Kephas/, "Kephas heißt Fels – und auf dem Bekenntnis zu Christus steht die Gemeinde fester als jedes Fundament."],
-  [/Zebedäus|Bethsaida/, "Die Zebedäus-Söhne nannte Jesus „Donnersöhne“ (Markus 3,17). Bei uns donnert es nur, wenn der Grill nicht angeht."],
-  [/eingeborenen Sohn/, "Johannes 3,16 ist das Evangelium im Kleinformat – das passt sogar auf einen Brotkorb."],
-  [/Salz der Erde/, "Ihr seid das Salz der Erde (Matthäus 5,13) – ohne Salz schmeckt kein Steak, und ohne Christen fehlt der Welt der Geschmack."],
-  [/mit unseren Feinden/, "Liebt eure Feinde (Matthäus 5,44) – ich übe noch. Mit Rosenkohl klappt's noch nicht."],
-  [/Kinder zu mir/, "Lasst die Kinder zu mir kommen (Markus 10,14). Meine Mädels kommen auch immer – vor allem, wenn es Stockbrot gibt."],
-  [/Licht der Welt/, "Ich bin das Licht der Welt (Johannes 8,12) – heller als jede Grillfackel."],
-  [/Weinstock, ihr seid/, "Ohne den Weinstock keine Frucht (Johannes 15,5) – wie beim Sauerteig: ohne Ansatz kein Brot."],
-  [/sein Leben für die Schafe/, "Der gute Hirte lässt sein Leben für die Schafe (Johannes 10,11). Bei diesem Vers wird selbst ein Grillmeister ganz leise."],
-  [/Kämmerlein/, "Geh in dein Kämmerlein (Matthäus 6,6). Mein Kämmerlein ist die Speisekammer – da ist es ruhig und riecht nach Brot."],
-  [/morgigen Tag/, "Sorgt euch nicht um morgen (Matthäus 6,34). Ich sorge mich nur, ob der Teig über Nacht aufgeht – und dann bete ich."],
-  [/Nadelöhr/, "Ein Kamel durchs Nadelöhr – das ist schwerer, als meine Töchter zum Gemüseessen zu bringen. Und das ist schon schwer!"],
-  [/Erbteil|hütete der verlorene/, "Der verlorene Sohn hätte gern vom Schweinefutter gegessen (Lukas 15,16). Ich sag ja: Lieber gleich heimkommen – beim Vater gibt's das gemästete Kalb!"],
-  [/Priester und ein Levit/, "Priester und Levit gingen vorbei, der Samariter half (Lukas 10,33). Der Nächste ist der, der Hilfe braucht – auch wenn er Gemüse mag."],
-  [/vergrub|ein Talent/, "Der Knecht vergrub sein Talent (Matthäus 25,18). Ich vergrabe nur Kartoffeln in der Glut – die bringen wenigstens etwas."],
-  [/sei mir Sünder/, "Der Zöllner schlug sich an die Brust (Lukas 18,13). Ehrlichkeit vor Gott ist mehr wert als jedes fromme Angeben."],
-  [/Scheunen/, "Der reiche Kornbauer wollte größere Scheunen (Lukas 12,18). Ich wollte einen größeren Grill. Ich glaube, ich verstehe die Warnung."],
-  [/Sanftmütig/, "Die Sanftmütigen erben das Land (Matthäus 5,5). Ich übe Sanftmut, wenn der Grill nicht anspringt. Ich übe noch."],
-  [/Hosianna|Kleider und Zweige/, "Die Leute breiteten ihre Kleider auf den Weg (Matthäus 21,8). Heidi würde das mit meiner Grillschürze nie machen."],
-  [/Geldwechsler|Händler/, "Jesus trieb die Händler aus dem Tempel (Matthäus 21,12). Beim Gemeindefest verkaufen wir Kuchen – aber draußen, versprochen!"],
-  [/wusch ihnen die Füße/, "Jesus wusch seinen Jüngern die Füße (Johannes 13,5). Ich wasche nach dem Grillen das Geschirr ab. Fast genauso demütig."],
-  [/Kuss/, "Judas verriet Jesus mit einem Kuss (Matthäus 26,49). Das Schlimmste kann von nahem kommen – darum brauchen wir Gottes Treue."],
-  [/schliefen/, "Die Jünger schliefen in Gethsemane (Matthäus 26,40). Ich schlafe auch schnell ein – nach dem Grillen auf dem Sofa. Aber Jesus hat für uns gewacht."],
-  [/dein Wille geschehe/, "Nicht mein, sondern dein Wille (Lukas 22,42) – das schwerste Gebet der Welt. Jesus hat es gebetet."],
-  [/vollbracht/, "Es ist vollbracht (Johannes 19,30) – kein Puzzle mit fehlendem Teil: Jesus hat alles getan."],
-  [/vergib ihnen/, "Vater, vergib ihnen (Lukas 23,34) – am Kreuz betet Jesus für seine Feinde. Da wird jeder Streit über Gemüse ganz klein."],
-  [/Vorhang/, "Der Vorhang zerriss von oben nach unten (Matthäus 27,51) – von oben! Gott selbst hat den Weg zu sich geöffnet."],
-  [/Wahrhaftig, dieser/, "Ein römischer Hauptmann sagte: Wahrhaftig, dieser war Gottes Sohn (Matthäus 27,54). Manchmal erkennen die, von denen man es am wenigsten erwartet."],
-  [/Myrrhe und Aloe/, "Nikodemus kam erst bei Nacht – und zeigte sich am Ende ganz offen (Johannes 19,39). Gott hat Geduld mit Spätzündern."],
-  [/Gärtner/, "Maria hielt Jesus für den Gärtner (Johannes 20,15). Mich würde nie jemand für einen Gärtner halten – bei mir wächst ja nichts Grünes."],
-  [/153/, "153 große Fische (Johannes 21,11) – und Jesus hatte schon Fisch auf dem Kohlenfeuer. Der beste Grillmeister aller Zeiten."],
-  [/hast du mich lieb/, "Dreimal verleugnet, dreimal gefragt: Hast du mich lieb? (Johannes 21,17). Jesus heilt auch alte Wunden."],
-  [/Wolke nahm ihn/, "Eine Wolke nahm ihn auf (Apostelgeschichte 1,9) – und er kommt genauso wieder. Ich halte den Grill bereit."],
-  [/Korb über die Mauer/, "Paulus wurde in einem Korb über die Mauer gelassen (Apostelgeschichte 9,25). Ich hätte den Korb lieber mit Brot gefüllt."],
-  [/nichts mehr sehen|Saulus, bevor/, "Saulus war drei Tage blind und aß nichts (Apostelgeschichte 9,9). Drei Tage nichts essen – das wäre für mich das größere Wunder."],
-  [/Rhode|befreite Petrus/, "Rhode ließ Petrus vor Freude draußen stehen (Apostelgeschichte 12,14). Die Gemeinde betete – und konnte dann kaum glauben, dass es geklappt hat. Kommt mir bekannt vor."],
-  [/Areopag|Athen/, "Paulus sprach in Athen über den unbekannten Gott (Apostelgeschichte 17,23). In Eichstätt kennt man ihn zum Glück – sogar die Kirchtürme zeigen nach oben."],
-  [/Kerkermeister|damit ich gerettet werde/, "Glaube an den Herrn Jesus, so wirst du gerettet, du und dein Haus (Apostelgeschichte 16,31). Und danach gab es Essen (Vers 34) – so gefällt mir eine Bekehrung!"],
-  [/Otter/, "Paulus schüttelte die Otter einfach ins Feuer (Apostelgeschichte 28,5). Ganz ruhig – so wünsche ich mir das auch, wenn eine Wespe auf meiner Bratwurst sitzt."],
-  [/Artemis|Ephesus/, "In Ephesus schrien sie zwei Stunden lang (Apostelgeschichte 19,34). Zwei Stunden! Bei uns ist nach zwei Liedern Kaffeepause."],
-  [/finstere Tal/, "Ich fürchte kein Unglück, denn du bist bei mir (Psalm 23,4) – das bete ich auch, bevor ich ein neues Brotrezept ausprobiere."],
-  [/Psalm 103/, "So fern der Osten vom Westen (Psalm 103,12) – von Eichstätt bis nach Iowa, Heidis Heimat, ist schon weit. Gottes Vergebung reicht noch weiter!"],
-  [/eigenen Verstand/, "Verlass dich nicht auf deinen Verstand (Sprüche 3,5) – das sagt Heidi auch, wenn ich ohne Rezept backe."],
-  [/sanfte Antwort/, "Eine sanfte Antwort wendet den Grimm ab (Sprüche 15,1). Das funktioniert sogar bei meinen Töchtern. Manchmal."],
-  [/Prediger 12,1|Prediger 3,11/, "Gedenke an deinen Schöpfer in deiner Jugend (Prediger 12,1) – darum wird bei uns abends aus der Bibel vorgelesen. Meistens liest Heidi."],
-  [/41,10/, "Fürchte dich nicht (Jesaja 41,10) – Gott weiß, wie oft wir das hören müssen."],
-  [/Jesaja 53,5/, "Durch seine Wunden sind wir geheilt (Jesaja 53,5) – das hat Jesaja rund 700 Jahre vor dem Kreuz geschrieben. Gänsehaut!"],
-  [/Immanuel/, "Immanuel – Gott mit uns. Sogar am Grill. Gerade da."],
-  [/Mandelzweig/, "Ein Mandelzweig (Jeremia 1,11) – Mandeln mag ich übrigens. Auf Kuchen. Kuchen ist kein Gemüse!"],
-  [/Jeremia 29,11/, "Gedanken des Friedens (Jeremia 29,11) – das schrieb Gott an Leute in der Fremde. Wer umzieht, darf sich daran festhalten. Auch von Ingolstadt nach Eichstätt."],
-  [/Tiefe des Meeres/, "Gott wirft unsere Sünden in die Tiefe des Meeres (Micha 7,19) – und ich glaube, er stellt ein Schild dazu: Angeln verboten!"],
-  [/Hesekiel 3,1|eine Buchrolle/, "Hesekiel aß eine Buchrolle, und sie war süß wie Honig (Hesekiel 3,3). Endlich ein Rezept, das Heidi und ich beide gut finden."],
-  [/Messschnur/, "Ein Mann mit Messschnur (Sacharja 2,5) – so stecke ich beim Gemeindefest den Grillplatz ab."],
-  [/Philipper 4,13/, "Ich vermag alles durch Christus (Philipper 4,13) – Paulus schreibt das über Mangel und Überfluss. Also auch über Tage ohne Grill."],
-  [/Römer 3,23/, "Alle haben gesündigt (Römer 3,23) – auch Pastoren. Vor allem beim Nachschlag."],
-  [/Römer 8,28/, "Alle Dinge dienen zum Besten (Römer 8,28) – sogar ein verbranntes Brot. Daraus macht Heidi Semmelbrösel."],
-  [/Tempel des Heiligen Geistes/, "Der Leib ist ein Tempel des Heiligen Geistes (1. Korinther 6,19). Heidi sagt, darum soll ich mehr Gemüse essen. Ich halte dagegen: Im Tempel wurde Fleisch geopfert!"],
-  [/Alle Schrift/, "Alle Schrift ist von Gott eingegeben (2. Timotheus 3,16) – sogar die langen Namenslisten. Die lese ich wie ein Puzzle: Jeder Name hat seinen Platz."],
-  [/1\. Petrus 5,7/, "Werft alle eure Sorge auf ihn (1. Petrus 5,7) – die Sorgen aufs Gebet, die Holzkohle auf den Grill."],
-  [/Offenbarung 22,21|letzte Vers/, "Die Bibel endet mit Gnade (Offenbarung 22,21). Das schönste Ende – schöner als das letzte Puzzleteil."],
-  [/zweischneidige/, "Gottes Wort ist schärfer als jedes zweischneidige Schwert (Hebräer 4,12) – schärfer als mein bestes Brotmesser. Und das ist scharf!"],
-  [/lachte/, "Sara lachte – und der Sohn hieß Isaak, „er lacht“ (1. Mose 21,6). Gott hat das letzte Lachen!"],
-  [/Isaak heiratete/, "Isaak gewann Rebekka lieb und wurde getröstet (1. Mose 24,67). Eine gute Frau ist ein Geschenk – meine hat mir sogar das Barbecue mitgebracht."],
-  [/betrunken/, "Eli hat Hanna falsch verstanden – dabei betete sie aus tiefstem Herzen (1. Samuel 1,13-15). Gott hört auch das Gebet, das andere falsch verstehen."],
-  [/Füße und trocknete/, "Das ganze Haus duftete nach dem Salböl (Johannes 12,3). Bei uns duftet das Haus nach frischem Brot – auch nicht schlecht."],
-  [/Scherflein/, "Zwei Scherflein – und Jesus sagt, sie hat mehr gegeben als alle (Markus 12,43). Gott zählt nicht den Betrag, sondern das Herz."],
-  [/Seine Schwester|von Ferne/, "Mirjam passte auf ihren kleinen Bruder auf (2. Mose 2,4). Meine Töchter passen auch aufeinander auf – zumindest, wenn es Schokolade gibt."],
-  [/Michal/, "Michal ließ David durchs Fenster hinab und legte eine Figur ins Bett (1. Samuel 19,12-13). Die erste Bettattrappe der Geschichte!"],
-  [/Abigail/, "Abigail kam unter anderem mit 200 Broten, fünf zubereiteten Schafen und Feigenkuchen (1. Samuel 25,18). So stoppt man einen Streit – mit gutem Essen!"],
-  [/Priscilla/, "Priscilla und Aquila waren Zeltmacher wie Paulus (Apostelgeschichte 18,3). Ich kann Zelte aufbauen – sie stehen nur immer etwas schief."],
-  [/Phöbe/, "Paulus empfiehlt Phöbe als Dienerin der Gemeinde (Römer 16,1). Ohne fleißige Frauen gäbe es in keiner Gemeinde Kaffee und Kuchen."],
-  [/Jochebed|Hebammen/, "Die Hebammen fürchteten Gott mehr als den Pharao (2. Mose 1,17). Mutige Frauen! Heidi wäre auch so eine."],
-  [/Obergemach|Schunemiterin/, "Die Schunemiterin richtete Elisa ein Zimmer mit Bett, Tisch, Stuhl und Leuchter ein (2. Könige 4,10). Bei uns hätte er noch einen Grill auf dem Balkon bekommen."],
-  [/Hulda/, "Hulda hat Gottes Wort klar gesagt, auch als es unbequem war (2. Könige 22,15-20). Mutige Prophetin!"],
-  [/wie eine Taube|Taufe Jesu auf ihn/, "Der Geist kam wie eine Taube (Matthäus 3,16). Tauben sind übrigens das einzige Geflügel, über das ich am Grill keine Witze mache."],
-  [/Hahn/, "Der Hahn krähte, und Petrus weinte bitterlich (Matthäus 26,75). Aber Jesus hat ihm vergeben – das ist nicht das Ende der Geschichte."],
-  [/Lamm Gottes/, "Siehe, das Lamm Gottes (Johannes 1,29) – das Passahlamm zeigte auf Jesus hin. Über dieses Lamm mache ich keine Grillwitze."],
-  [/Stamm Juda/, "Der Löwe aus Juda hat gesiegt (Offenbarung 5,5) – und dann sieht Johannes ein Lamm. Gottes Sieg sieht anders aus, als wir denken."],
-  [/In welche Tiere|Dämonen/, "Etwa 2000 Schweine stürzten in den See (Markus 5,13). Als Grillmeister tut mir das in der Seele weh."],
-  [/wie die Schlangen/, "Klug wie die Schlangen, ohne Falsch wie die Tauben (Matthäus 10,16). Am Grill bin ich klug wie die Schlange: Ich weiß genau, welches Würstchen das beste ist."],
-  [/Stroh/, "Der Löwe frisst Stroh wie das Rind (Jesaja 11,7). Ein vegetarischer Löwe! Ich weiß nicht, ob ich mich auf diesen Teil des Friedensreichs freuen soll."],
-  [/reinen Tiere|Je sieben/, "Von den reinen Tieren je sieben (1. Mose 7,2) – Noah hat praktisch gedacht. Nach der Flut gab's erst einmal ein Dankopfer (1. Mose 8,20)."],
-  [/Lukas 12,24/, "Betrachtet die Raben – Gott ernährt sie (Lukas 12,24). Und die Raben bei Elia haben sogar Fleisch geliefert!"],
-  [/Amalekiter/, "Gehorsam ist besser als Opfer (1. Samuel 15,22) – den Vers sage ich mir vor jedem Grillkauf vor."],
-  [/Tarsus/, "Paulus stammte aus Tarsus – ein Zugezogener. Wie ich als Ingolstädter in Eichstätt."],
-  [/Bethesda/, "38 Jahre wartete der Mann am Teich (Johannes 5,5) – so lange warte ich auf einen perfekten Grillsommer."],
-  [/\bSilo\b/, "In Silo betete Hanna um Samuel, und dort wuchs er auf. Ein Ort voller Gebete!"],
-  [/Kidron/, "Jesus ging über den Bach Kidron in den Garten (Johannes 18,1). Kleine Bäche, große Geschichte – wie bei uns die Altmühl."],
-  [/Nach Babel/, "Auch in Babel sagte Gott: Suchet der Stadt Bestes (Jeremia 29,7). Wo Gott einen hinstellt, kann man zum Segen werden – sogar weit weg von Ingolstadt."],
-  [/Schiffbruch/, "Beim Schiffbruch kamen alle 276 Menschen gerettet an Land (Apostelgeschichte 27,37.44). Und vorher hat Paulus allen gesagt: Esst etwas! Ein Mann nach meinem Herzen."],
-  [/sende mich/, "Hier bin ich, sende mich (Jesaja 6,8)! So melde ich mich auch immer freiwillig – fürs Grillen beim Gemeindefest."],
-  [/lebendigen Gottes/, "Du bist der Christus (Matthäus 16,16) – auf diesem Bekenntnis steht die Gemeinde. Fester als jedes Fundament."],
-  [/Mein Herr und mein Gott/, "Thomas zweifelte – und dann kam das stärkste Bekenntnis (Johannes 20,28). Zweifler können die besten Bekenner werden."],
-  [/Komme ich um/, "Esther hat vorher drei Tage gefastet (Esther 4,16). Fasten! Davor hätte ich fast mehr Respekt als vor dem König."],
-  [/Was ist Wahrheit/, "Pilatus fragte: Was ist Wahrheit? – und die Wahrheit stand direkt vor ihm (Johannes 14,6)."],
-  [/Silber und Gold/, "Silber und Gold habe ich nicht (Apostelgeschichte 3,6) – das sage ich auch an der Tankstelle. Aber Petrus hatte etwas viel Wertvolleres: den Namen Jesus!"],
-  [/zum Pharao gehen/, "Wer bin ich? (2. Mose 3,11) – und Gott antwortet: Ich will mit dir sein. Das reicht."],
-  [/stark und mutig/, "Sei stark und mutig (Josua 1,9) – das sage ich mir auch, bevor ich Heidi erkläre, dass ich einen neuen Grill brauche."],
-  [/denk an mich/, "Heute noch wirst du mit mir im Paradies sein (Lukas 23,43) – Gnade in letzter Minute!"],
-  [/Erlöser lebt/, "Ich weiß, dass mein Erlöser lebt (Hiob 19,25) – das sagt Hiob mitten im Leid. Stärker kann man nicht glauben."],
-  [/entlässt du deinen Knecht/, "Simeon hatte lange gewartet und durfte das Kind sehen (Lukas 2,29-30). Warten lohnt sich – das weiß jeder Brotbäcker."],
-  [/muss abnehmen/, "Er muss wachsen, ich aber muss abnehmen (Johannes 3,30). Heidi meint, ich soll den Vers auch wörtlich nehmen."],
-  [/guten Kampf/, "Den Lauf vollendet (2. Timotheus 4,7) – ich laufe selten. Aber den Glaubenslauf will ich durchziehen."],
-  [/mehr gehorchen/, "Man muss Gott mehr gehorchen als den Menschen (Apostelgeschichte 5,29) – die Apostel ließen sich nicht einschüchtern."],
-  [/Unglauben/, "Ich glaube; hilf meinem Unglauben (Markus 9,24) – ein ehrliches Gebet. Das bete ich auch manchmal. Nicht nur beim Grillanzünden."],
-  [/Missionsbefehl|Gehet hin|alle Völker|Missionsreise|Barnabas/, "Geht hin in alle Welt! Heidi und ich haben uns nach dem Bible College in Iowa genau das zu Herzen genommen – nur eben Richtung Deutschland."],
-  [/Rebekka|Frau für Isaak/, "Abrahams Knecht fand Rebekka in der Fremde (1. Mose 24). Ich hab meine Heidi in Iowa gefunden – Gott führt, auch über den Ozean."],
-  [/Harfe|1\. Samuel 16/, "David hat für Saul auf der Harfe gespielt, und der böse Geist wich von ihm (1. Samuel 16,23). Ich spiele Gitarre – bei mir weicht höchstens der Grillrauch."],
-  [/Jubal/, "Jubal ist der Vater aller Harfen- und Flötenspieler (1. Mose 4,21) – sozusagen der erste Musikteamleiter. Den hätte ich sofort für Sonntag eingeteilt."],
-  [/Psalm|Lobt? den HERRN/, "Lobt ihn mit Saitenspiel und Flöte (Psalm 150,4)! Saitenspiel – das bin ich mit meiner Gitarre. Ich sag ja: Lobpreis ist biblisch!"],
-  [/Asaph|Sänger/, "Asaph war unter David der Leiter der Sänger (1. Chronik 16,5) – ein Kollege! Als Musikteamleiter weiß ich: Der Mann hatte viel zu organisieren."],
-  [/Mirjam|Pauke|Schilfmeer/, "Mirjam nahm die Pauke, und alle Frauen zogen tanzend hinter ihr her (2. Mose 15,20). Im Musikteam hätte ich sie sofort genommen – auch wenn Heidi sagt, die Kirchenfenster überleben keine Pauke."],
-  [/Weihrauch|Myrrhe|Aloe|Wohlgeruch/, "Paulus schreibt, wir sind für Gott ein Wohlgeruch des Christus (2. Korinther 2,15). Heidi meint, ich nehme den Vers etwas zu wörtlich – wegen meines Parfüms."],
-  [/Narde|Bethanien|Johannes 12/, "Maria salbte Jesus mit kostbarem Nardenöl, und das ganze Haus war vom Duft erfüllt (Johannes 12,3). Bei uns ist das jeden Sonntagmorgen so – Heidi sagt, mein Parfüm riecht man schon auf dem Parkplatz."],
-  [/Salböl|Psalm 133|Eintracht|einträchtig/, "Das Salböl fließt herab in den Bart Aarons (Psalm 133,2) – Bart und Wohlgeruch in einem Vers! Das ist eindeutig mein Psalm."],
-  [/Leibrock|Potifar/, "Josef bekam von seinem Vater einen bunten Leibrock (1. Mose 37,3). Wäre Heidi dabei gewesen, hätte sie ihm sofort das passende Kleid dazu ausgesucht – bei uns geht keiner unabgestimmt aus dem Haus."],
-  [/Lydia|Purpur/, "Lydia handelte mit Purpur (Apostelgeschichte 16,14). Heidi und ich trugen mal beide Purpur im Gottesdienst. Die Gemeinde hat geklatscht – oder gelacht, so genau weiß ich das nicht."],
-  [/Missionsreise|Barnabas|Silas|Antiochia/, "Paulus und Barnabas wurden auf Missionsreise ausgesandt (Apostelgeschichte 13,2). Wir fliegen jedes Jahr nach Amerika, zu Heidis Familie und zu Gemeinden. Nur hatte Paulus kein Gepäcklimit – Heidis Bücher und mein Parfüm hätten sich gefreut."],
-  [/Kleider|Gewand/, "„Lass deine Kleider allezeit weiß sein, und lass deinem Haupt das Öl nicht mangeln“ (Prediger 9,8). Kleider und Duft in einem Vers – Heidi und ich halten uns dran, nur farblich etwas mutiger."],
-  [/Garten Eden|1\. Mose 1,29|Kraut/, "Im Garten Eden gab Gott Pflanzen zur Speise (1. Mose 1,29) – das zitieren unsere Vegetarier gern. Ich antworte mit 1. Mose 9,3. Und dann sitzen wir zusammen am Tisch, jeder mit seinem Teller. So soll Gemeinde sein!"]
-];
-const WILLI_ALLG = [
-  "Heidi hat übrigens aus Amerika das Barbecue mitgebracht – seitdem grillen wir sogar im Winter.",
-  "Meine zwei Töchter wollen mir immer Zucchini auf den Grill schmuggeln. Ich bete noch drüber.",
-  "Heidi ruft gerade aus der Küche: „Good luck!“ – und ich sag: Gottes Segen!",
-  "Wenn du die Million holst, gibt es beim Gemeindefest ein Extra-Steak für dich. Die Gemüsespieße bringt Heidi mit.",
-  "Heidi sagt dann immer: „Willi, denk an Daniel!“ – der hat zehn Tage nur Gemüse gegessen (Daniel 1,12). Ich denk lieber an das gemästete Kalb aus Lukas 15.",
-  "Mein Bart riecht schon nach Holzkohle – das heißt, die Glut ist perfekt.",
-  "Bei so einer Frage krieg ich glatt Hunger. Gut, dass gleich die Bratwürste fertig sind.",
-  "Meine Töchter rufen im Hintergrund schon mit – die beiden sind fast so bibelfest wie ihr Vater.",
-  "Rosenkohl ist für mich die elfte Plage. Steht nicht in der Bibel – aber gefühlt schon.",
-  "Gerade ist mein Brot im Ofen und es riecht herrlich. Bis es fertig ist, haben wir die Frage längst gelöst.",
-  "Heidi liest gerade auf dem Sofa und sagt, das kam in ihrem letzten Buch auch irgendwo vor.",
-  "Auf meinem Esstisch liegt ein Puzzle mit 2000 Teilen. Da ist so eine Bibelfrage richtig erholsam.",
-  "Ich hab mir ein Puzzle mit der Arche Noah gekauft – 3000 Teile, davon gefühlt 2000 Wasser.",
-  "Heidi hat diese Woche schon drei Bücher gelesen. Ich hab in der Zeit ein Brot gebacken. Wir ergänzen uns.",
-  "Meine Töchter haben mir eine Schürze geschenkt: „Ich grille, also bin ich.“ Theologisch fragwürdig, aber sie passt.",
-  "Kleiner Tipp vom Pastor: Wer jeden Tag ein Kapitel liest, ist in gut drei Jahren einmal durch die ganze Bibel.",
-  "Mein Bart hat übrigens schon mehr Bibelstunden erlebt als mancher Theologiestudent.",
-  "Heidi sagt, in Amerika dauert ein Barbecue den ganzen Tag. Ich hab sofort gesagt: Gott segne Amerika!",
-  "Die Mädels wollten ein Gemüse-Puzzle mit mir legen. Die Karotten-Teile sind rein zufällig unters Sofa gerutscht.",
-  "Heidi meinte, ich soll mal Tofu probieren. Ich wollte ihr einen Bibelvers dagegen zeigen – und habe Sprüche 15,17 gefunden. Der spricht leider für sie.",
-  "Eine meiner Töchter hält mir gerade einen Zettel hin: „Papa, sag die richtige Antwort!“ Danke für den Tipp, Schatz.",
-  "Ich hab einmal Zucchini gegrillt. Einmal. Wir reden nicht drüber.",
-  "Heidi liest mehr Bücher als ich – aber in der Bibel blättere ich schneller. Das lass ich mir nicht nehmen.",
-  "Für so eine Frage leg ich sogar mein Brotmesser beiseite. Das will was heißen!",
-  "Ich bin gebürtiger Ingolstädter – in Eichstätt hab ich gelernt: Hier geht alles etwas gemütlicher. Wie ein guter Sauerteig.",
-  "Ingolstadt hat die Autos, Eichstätt hat den Dom – und ich hab den Grill. Jeder hat seine Stärken.",
-  "Wenn ich nach Ingolstadt fahre, sagen die Leute: Der Willi ist ein Eichstätter geworden. Ich sag: Hauptsache, die Grillkohle ist dieselbe.",
-  "Ich hab in Iowa am Faith Baptist Bible College Theologie studiert – und dort Heidi kennengelernt. Die beste Lektion meines ganzen Studiums!",
-  "Nach dem Studium sind Heidi und ich als Missionare nach Deutschland gegangen. Für mich ging's zurück nach Hause, für Heidi war's ein Abenteuer.",
-  "In Iowa hab ich gelernt, was richtiges Barbecue ist. Heidi hat dafür in Bayern gelernt, dass man ohne Brezn nicht frühstückt.",
-  "Iowa ist flach und voller Mais. Heidi sagt, Mais ist Gemüse. Ich sag: Popcorn zählt nicht.",
-  "Pastor Aaron hat übrigens am selben Bible College studiert wie ich. Iowa bringt gute Leute hervor – allen voran Heidi!",
-  "Heidi und Pastor Aaron kommen beide aus Iowa. Wenn die zwei loslegen, verstehe ich nur noch „corn“ und „snowstorm“.",
-  "Im Winter in Iowa hab ich gelernt: Bei minus 25 Grad grillt man trotzdem. Man steht nur näher an der Glut.",
-  "Ich hab gerade die Gitarre für Sonntag gestimmt. Wenn du die Million holst, spielt das Musikteam ein Siegeslied.",
-  "Heidi und ich haben heute beide Dunkelgrün an. Nicht abgesprochen, sagt sie. Ich glaube ihr kein Wort.",
-  "Wenn du mich beim Gemeindefest suchst: einfach der Nase nach. Heidi sagt, mein Parfüm hat eine größere Reichweite als unser WLAN.",
-  "Ein Vegetarier hat mich gefragt, ob ich mal Grillgemüse probiere. Ich hab gesagt: Ich bete drüber. Das war vor drei Jahren.",
-  "Unsere Vegetarier in der Gemeinde sind wunderbare Leute. Ich bete jeden Tag dafür, dass sie die Bratwurst noch entdecken.",
-  "Kennst du den? Treffen sich ein Vegetarier und ein Pastor am Grill – am Ende sind beide satt. Das nenne ich ein Wunder.",
-  "Nächstes Jahr fliegen wir wieder nach Amerika – Heidis Familie besuchen und Gemeinden. Ich übe schon: „The big steak, please!“",
-  "In Amerika besuchen wir jedes Jahr Gemeinden. Die verstehen mein Englisch – solange Heidi danebensteht und nickt.",
-  "Heidi sagt, unser Koffer für Amerika ist halb Kleidung, halb Parfüm. Das ist übertrieben. Höchstens ein Drittel Parfüm.",
-  "Das Schönste an meinem Beruf? Menschen von Jesus zu erzählen. Das Zweitschönste? Das Gemeindefest. Das Drittschönste? Die Gitarre.",
-  "Heidi sagt, wenn man mich lässt, wird aus jeder Antwort eine Predigt mit drei Punkten. Keine Sorge – heute nur ein Punkt.",
-  "Im Musikteam sag ich immer: Wir spielen nicht vor der Gemeinde, sondern für Gott. Die Gemeinde darf aber gern mitsingen!",
-  "Meine Gitarre hat schon mehr Gottesdienste erlebt als mancher Kirchenstuhl.",
-  "Heidi und ich hatten letzten Sonntag Partnerlook in Weinrot. Die Jugend hat ein Foto gemacht. Ich fürchte, wir sind jetzt ein Meme.",
-  "Bei uns hängt eine Farbkarte am Kleiderschrank: Heidi wählt die Farbe, ich das Parfüm. Teamwork in der Ehe!",
-  "Am Flughafen in Amerika hat der Zollbeamte an meinem Koffer gerochen und gesagt: „Sir, you smell great.“ Ich hab geantwortet: „God bless you!“",
-  "Ich leite das Musikteam – das heißt: Ich zähle ein, alle anderen fangen trotzdem zu unterschiedlichen Zeiten an. Wie beim Grillen – jedes Würstchen hat sein Tempo.",
-  "Wenn ich predige, vergesse ich manchmal die Zeit. Heidi gibt mir dann aus der ersten Reihe ein Zeichen – farblich passend zu meiner Krawatte."
-];
-const WILLI_TSCHUESS = [
-  "Gott segne dich – viel Erfolg! Pfiat di!",
-  "So, jetzt muss ich die Steaks wenden. Gott befohlen – Servus!",
-  "Ich bete für dich. Pfiat di!",
-  "Heidi und die Mädels drücken dir die Daumen. Bis Sonntag – Servus!",
-  "Gott befohlen – und denk dran: Gottes Wort ist mehr wert als Tausende Gold- und Silberstücke (Psalm 119,72). Pfiat di!",
-  "So, mein Brot will aus dem Ofen. Gott segne dich – Servus!",
-  "Ich muss weiterpuzzeln – mir fehlt noch ein Stück Himmel. Pfiat di!",
-  "Heidi ruft „Bye!“, die Mädels rufen „Tschüss!“, und ich sage ganz bayrisch: Servus!",
-  "Und jetzt: kurz beten, dann tippen. Pfiat di!",
-  "Viel Erfolg! Und falls es schiefgeht: Beim Gemeindefest gibt's trotzdem eine Bratwurst für dich. Servus!",
-  "Der HERR segne dich und behüte dich (4. Mose 6,24). Pfiat di!",
-  "Ich leg jetzt auf, bevor die Glut ausgeht. Gottes Segen – Servus!",
-  "Wie man in Iowa sagt: Take care! Und wie man in Bayern sagt: Pfiat di!",
-  "So, ich muss zur Musikprobe – die Gitarre wartet. Gott befohlen – Servus!",
-  "Und wenn es am Sonntag im Gemeindesaal gut duftet: Das bin ich. Pfiat di!",
-  "Heidi winkt – im selben Farbton wie ich, versteht sich. Gottes Segen – Servus!",
-  "Gott segne dich! Ich muss noch Flüge nach Amerika vergleichen. Pfiat di!",
-  "Bis Sonntag! Wenn du gewinnst, spiel ich dir ein Lied auf der Gitarre. Servus!"];
+/* 9.11: Die Texte und Bilder von Willi und Aaron liegen verschlüsselt in joker.enc. */
+/* Neutraler Telefonjoker für alle ohne Freischaltung: der Gastprediger (in anderen Gemeinden als „Pastor“). Keine persönlichen Angaben. */
+const GAST_BILD = `<svg class="willi-bild" viewBox="0 0 96 96" aria-hidden="true"><defs><radialGradient id="gpH" cx=".5" cy=".5" r=".5"><stop offset=".55" stop-color="#b38cff" stop-opacity=".45"/><stop offset="1" stop-color="#b38cff" stop-opacity="0"/></radialGradient>
+<linearGradient id="gpG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe08a"/><stop offset="1" stop-color="#d49a2a"/></linearGradient>
+<linearGradient id="gpHaut" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd9b8"/><stop offset="1" stop-color="#e8b48a"/></linearGradient>
+<linearGradient id="gpAnz" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b4a8a"/><stop offset="1" stop-color="#232d63"/></linearGradient></defs>
+<circle cx="48" cy="48" r="47" fill="url(#gpH)"/><circle cx="48" cy="48" r="38" fill="#1b2146" stroke="url(#gpG)" stroke-width="3"/>
+<clipPath id="gpK"><circle cx="48" cy="48" r="36.5"/></clipPath><g clip-path="url(#gpK)">
+<path d="M18 92c2-17 14-24 30-24s28 7 30 24z" fill="url(#gpAnz)" stroke="#1b2a55" stroke-width="1.4"/><path d="M42 69l6 9 6-9" fill="#fff" stroke="#1b2a55" stroke-width="1.2"/>
+<circle cx="48" cy="42" r="16" fill="url(#gpHaut)" stroke="#1b2a55" stroke-width="1.4"/>
+<path d="M33 37c0-10 7-16 15-16s15 6 15 16c-3-4-8-6-15-6s-12 2-15 6z" fill="#8a8f9c" stroke="#1b2a55" stroke-width="1.2"/>
+<circle cx="42" cy="42" r="1.9" fill="#1b2a55"/><circle cx="54" cy="42" r="1.9" fill="#1b2a55"/><path d="M38.5 38q3.5-2 7 0M50.5 38q3.5-2 7 0" stroke="#5a5f6e" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+<path d="M42 51q6 4 12 0" fill="none" stroke="#7a3a2a" stroke-width="1.8" stroke-linecap="round"/></g>
+<g transform="rotate(-18 20 66)"><rect x="12" y="56" width="16" height="20" rx="2" fill="#f4ecd8" stroke="#1b2a55" stroke-width="1"/><path d="M20 56v20M14.5 62h3M14.5 66h3M22.5 62h3M22.5 66h3" stroke="#8a6a3a" stroke-width="1" fill="none"/></g></svg>`;
+const GAST_THEMEN_LEER = {};
+const PASTOREN = {
+  gast: { get name() { return meineGem() === "gast" ? "Gastprediger" : "Pastor"; }, get kurz() { return meineGem() === "gast" ? "Gastprediger" : "Pastor"; }, info: "Bibelkenner", bild: () => GAST_BILD, salt: 0x51a7c3e9,
+    quoten: [[.88, .97, .99], [.6, .84, .93], [.36, .62, .8]],
+    hallo: ["Guten Tag, hier ist der Gastprediger. Ich höre, du brauchst Hilfe bei einer Bibelfrage – lies mal vor.", "Hallo! Gastprediger am Apparat. Schieß los, ich habe meine Bibel gleich zur Hand.", "Guten Tag! Da rufst du genau richtig an – Bibelfragen sind meine Lieblingsfragen. Wie lautet sie?", "Hallo, hier der Gastprediger. Gut, dass du anrufst – dann lies mir die Frage bitte vor.", "Grüß dich! Ich bin gerade zwischen zwei Predigten. Für eine Bibelfrage ist immer Zeit."],
+    sicher: [x => `Das weiß ich genau: ${x.X}. Du findest es in ${x.ref}.`, x => `Ganz klar ${x.X}! Das steht in ${x.ref}.`, x => `${x.X} – da bin ich mir sicher. Lies es gern in ${x.ref} nach.`, x => `Ohne Zweifel: ${x.X}. Nachzulesen in ${x.ref}.`, x => `Das ist ${x.X}, so steht es in ${x.ref}.`],
+    sicherOhne: [x => `${x.X}. Da bin ich mir ganz sicher.`, x => `Ganz klar ${x.X}! Das weiß ich genau.`, x => `Ohne Zweifel: ${x.X}.`, x => `${x.X} – die Antwort kenne ich gut.`],
+    ziemlich: [x => `Ich bin ziemlich sicher: ${x.X}. Ich glaube, das steht in ${x.ref}.`, x => `Ich tippe stark auf ${x.X} – so habe ich es in ${x.ref} in Erinnerung.`, x => `Mein Gefühl sagt ${x.X}. Schau zur Sicherheit in ${x.ref}.`, x => `Ich würde ${x.X} sagen, ziemlich sicher sogar.`],
+    ziemlichOhne: [x => `Ich bin ziemlich sicher: ${x.X}.`, x => `Ich tippe stark auf ${x.X}.`, x => `Mein Gefühl sagt ${x.X}, und das trügt mich selten.`, x => `Ich würde ${x.X} sagen, ziemlich sicher sogar.`],
+    schwank: [x => `Hm, das ist knifflig. Ich schwanke zwischen ${x.X} und ${x.Y} – ich würde ${x.X} nehmen, ganz sicher bin ich aber nicht.`, x => `${x.X} oder ${x.Y}? Ich tendiere zu ${x.X}, aber verlass dich nicht allein darauf.`, x => `Da muss ich überlegen … ${x.X} klingt für mich am wahrscheinlichsten, ${x.Y} wäre die Alternative.`, x => `Ich bin unsicher. Mein Tipp ist ${x.X}, vielleicht ist es aber ${x.Y}.`],
+    geraten: [x => `Oje, da bin ich überfragt. Aus dem Bauch heraus würde ich ${x.X} sagen – verlass dich aber nicht darauf.`, x => `Ehrlich gesagt weiß ich es nicht genau. Vielleicht ${x.X}? Das musst du am Ende selbst entscheiden.`, x => `Das habe ich lange nicht gelesen. Ich rate ${x.X}, aber ohne Gewähr.`, x => `Da muss ich passen. Falls du raten musst: ${x.X}.`],
+    thema: [], themen: GAST_THEMEN_LEER,
+    allg: ["Die Bibel hat mich noch nie gelangweilt – es gibt immer etwas Neues zu entdecken.", "Das Beste am Bibellesen ist, dass man nie ausgelernt hat.", "Manchmal hilft es, die Stelle laut zu lesen. Dann merkt man sich vieles besser.", "Gut, dass ihr euch die Bibelbücher einprägt. Das trägt ein Leben lang.", "Ein Vers am Tag – so fängt man an, und plötzlich kennt man viele."],
+    tschuess: ["Gottes Segen für die nächste Frage!", "Viel Erfolg – und Gottes Segen!", "Ich drücke dir die Daumen. Bis bald!", "Alles Gute! Und lies weiter in der Bibel.", "Mach's gut, und Gott befohlen!"] }
+};
+/* Telefonjoker – Zugang: Willi und Aaron liegen verschlüsselt in joker.enc. Den Schlüssel bekommen nur freigeschaltete Geräte (Sammlung „geheim“);
+   er wird auf dem Gerät gemerkt, damit der Joker auch offline geht. Verliert ein Gerät die Freigabe, wird er gelöscht. */
+const JK_KEY = "bq-jk";
+let jokerGeladen = false, jokerVersuch = null;
+const jkBytes = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
+function jokerSperren() {
+  try { localStorage.removeItem(JK_KEY); } catch (e) {}
+  jokerGeladen = false; jokerVersuch = null;
+  ["willi", "aaron"].forEach(k => { delete PASTOREN[k]; delete ADV_PASTOREN[k]; });
+}
+async function jokerEntschluesseln(k) {
+  const buf = new Uint8Array(await (await fetch("joker.enc")).arrayBuffer());
+  const key = await crypto.subtle.importKey("raw", jkBytes(k), "AES-GCM", false, ["decrypt"]);
+  const klar = await crypto.subtle.decrypt({ name: "AES-GCM", iv: buf.slice(0, 12) }, key, buf.slice(12));
+  const M = new Function(new TextDecoder().decode(klar))();
+  Object.assign(PASTOREN, M.PASTOREN); Object.assign(ADV_PASTOREN, M.ADV_PASTOREN); jokerGeladen = true;
+}
+function jokerLaden(neu) {
+  if (meineGem() !== GEM_STANDARD) return Promise.resolve(false);
+  if (jokerGeladen && !neu) return Promise.resolve(true);
+  if (jokerVersuch && !neu) return jokerVersuch;
+  jokerVersuch = (async () => {
+    let k = ""; try { k = localStorage.getItem(JK_KEY) || ""; } catch (e) {}
+    const L = window.LB;
+    if (L && L.ok && L.jokerSchluessel) {
+      try { const sk = await L.jokerSchluessel(); if (sk) { k = sk; try { localStorage.setItem(JK_KEY, sk); } catch (e) {} } }
+      catch (e) { if (e && e.code === "permission-denied") { jokerSperren(); return false; } }
+    }
+    if (!k) return false;
+    try { await jokerEntschluesseln(k); return true; } catch (e) { return false; }
+  })().then(ok => { if (!ok) jokerVersuch = null; return ok; });
+  return jokerVersuch;
+}
+/* Wer steht beim Telefonjoker zur Wahl? Freigeschaltete Mitglieder: Willi und Aaron – alle anderen: der Gastprediger */
+const jokerKontakte = () => jokerGeladen && meineGem() === GEM_STANDARD && PASTOREN.willi && PASTOREN.aaron ? ["willi", "aaron"] : ["gast"];
+const jokerErwartet = () => meineGem() === GEM_STANDARD && (jokerGeladen || (() => { try { return !!localStorage.getItem(JK_KEY); } catch (e) { return false; } })());
+const jokerBeschreibung = () => jokerErwartet() ? "Willi oder Aaron" : (meineGem() === "gast" ? "Gastprediger" : "Pastor");
 /* Abwechslung (6.51): Sätze, die auf diesem Gerät kürzlich schon kamen, werden übersprungen. Der Tipp selbst
    (richtig/falsch, Sicherheit) hängt weiter nur vom Startwert ab – fair im Duell und in der Wochenrunde.
    Jede Auswahl verbraucht genau einen Zufallswert, egal ob übersprungen wird. */
@@ -4537,7 +4285,7 @@ const TEL_ZULETZT_KEY = "bq-telefon-zuletzt";
 function telZuletzt() { try { const a = JSON.parse(localStorage.getItem(TEL_ZULETZT_KEY) || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
 function telMerken(liste) { try { localStorage.setItem(TEL_ZULETZT_KEY, JSON.stringify(liste.slice(-150))); } catch (e) {} }
 function pastorAntwort(f, halb, id = "willi") {
-  const P0 = PASTOREN[id] || PASTOREN.willi, weih = !!f.weih && !!ADV_PASTOREN[id]; /* 7.3: Weihnachtsmodus – Mütze und weihnachtliche Antworten */
+  const P0 = PASTOREN[id] || PASTOREN.gast, weih = !!f.weih && !!ADV_PASTOREN[id]; /* 7.3: Weihnachtsmodus – Mütze und weihnachtliche Antworten */
   const P = weih ? Object.assign({}, P0, ADV_PASTOREN[id], { sicherOhne: null, ziemlichOhne: null }) : P0; if (weih) id = id + "-w";
   const rnd = rngVon((f.ws || hash(f.f)) ^ (halb ? 0x5bd1e995 : 0) ^ P.salt), zuletzt = telZuletzt();
   /* wahl: zufälliger Eintrag; ist er kürzlich gekommen, der nächste noch nicht gehörte. Gesperrt wird je Liste
@@ -4587,496 +4335,21 @@ function pastorAntwort(f, halb, id = "willi") {
   return { saetze, tipp: kurz(tipp), grad, richtig: tipp === r, wer: id.replace(/-w$/, ""), weih };
 }
 
-/* ---------- Zweiter Telefonjoker-Kontakt: Pastor Aaron (6.42) ----------
-   Aaron ist Amerikaner (geboren in Iowa), hat am Faith Baptist Bible College Theologie studiert – wie Willi –, arbeitet in Deutschland und wohnt mit seiner Frau Eliza in Eichstätt. Eliza kommt aus Russland,
-   spielt Querflöte und ist sehr musikalisch. Aaron weiß alles über Star Wars und liebt amerikanisches BBQ.
-   Star Wars darf bei ihm oft vorkommen – auch wenn der Bezug manchmal etwas konstruiert ist. */
-const AARON_HALLO = [
-  "Hey, hier ist Aaron! Oh, „Wer wird Biblionär?“ – awesome, schieß los!",
-  "Aaron hier – sorry, Eliza übt gerade Querflöte, ich geh kurz raus … Okay, ich höre!",
-  "Hallo! Aaron am Apparat. Ich hab gerade „Das Imperium schlägt zurück“ pausiert – für dich mach ich das gern.",
-  "Hi! Moment, ich wisch mir nur die BBQ-Sauce von den Fingern … So, go!",
-  "Hey, Aaron hier! Ich bin im Supermarkt und suche verzweifelt Erdnussbutter. Aber für dich hab ich Zeit.",
-  "Aaron speaking – oh, sorry, Gewohnheit! Hier ist Aaron. Was gibt's?",
-  "Hallo! Ich hab gerade versucht, Elizas Katze „Sitz“ beizubringen. Sie hat mich ignoriert. Deine Frage ist bestimmt leichter.",
-  "Hi, hier Aaron! Eliza lässt dich grüßen – auf Russisch: Privet!",
-  "Hi, Aaron hier – Grüße aus Eichstätt und ein bisschen aus Iowa! Womit kann ich helfen?",
-  "Aaron hier! Ich sortiere gerade meine Lego-Raumschiffe … äh, ich meine: meine Predigtnotizen. Leg los!",
-  "Hallo, hier Aaron – ich kämpfe gerade mit der, die, das. Bibelfragen sind einfacher als deutsche Artikel!",
-  "Hey! Aaron hier. Gutes Timing – mein Pulled Pork braucht noch sechs Stunden.",
-  "Aaron am Apparat! Eliza hat gerade ihre Querflöte weggelegt – du hast jetzt meine volle Aufmerksamkeit.",
-  "Hey, Aaron hier! In Iowa ist es jetzt mitten in der Nacht – zum Glück wohne ich in Eichstätt. Shoot!"
-];
-const AARON_SICHER = [
-  x => `Oh, das ist easy: ${x.X}. Steht in ${x.ref}. Da bin ich mir so sicher wie Yoda.`,
-  x => `${x.X} – hundertprozentig! Lies ${x.ref} nach. Und ausnahmsweise hab ich kein mieses Gefühl dabei, wie Han Solo sagen würde.`,
-  x => `Ganz klar ${x.X}. Das steht in ${x.ref} – das weiß ich so genau wie die Reihenfolge aller Star-Wars-Filme.`,
-  x => `No doubt: ${x.X}. Schau in ${x.ref} – it's right there.`,
-  x => `Ganz sicher ${x.X}. Steht in ${x.ref}. Eliza nickt auch – und sie hat das bessere Gedächtnis von uns beiden.`,
-  x => `${x.X} – so sicher wie Pancakes am Sonntagmorgen. Lies ${x.ref}.`,
-  x => `Easy one: ${x.X}! ${x.ref} – das könnte ich dir sogar auf Englisch vorlesen.`,
-  x => `Das ist ${x.X}, ganz klar. ${x.ref} gehört zu meinen Lieblingsstellen.`,
-  x => `${x.X} – das hatten wir am Bible College in Iowa schon im ersten Semester. Lies ${x.ref}.`
-];
-const AARON_SICHER_OHNE = [
-  x => `Easy: ${x.X}! Das weiß ich so sicher wie die Reihenfolge der Star-Wars-Filme.`,
-  x => `${x.X} – hundertprozentig! Das hab ich mit dieser App gelernt.`,
-  x => `No doubt: ${x.X}. Eliza nickt auch.`,
-  x => `${x.X}! Das hätte ich schon am Bible College gewusst.`
-];
-const AARON_ZIEMLICH_OHNE = [
-  x => `I think it's ${x.X}. Ziemlich sicher – aber nicht ganz Jedi-sicher.`,
-  x => `Ich tippe auf ${x.X}. Zähl lieber nochmal nach!`
-];
-const AARON_ZIEMLICH = [
-  x => `Ich bin ziemlich sicher: ${x.X}. Ich glaube, das steht in ${x.ref}.`,
-  x => `Hmm, ich sage ${x.X}. Wenn ich mich nicht irre, steht das in ${x.ref} – check das lieber nochmal.`,
-  x => `I think it's ${x.X}. Wenn mein Gedächtnis mich nicht trügt: ${x.ref}.`,
-  x => `Ziemlich sicher ${x.X}. ${x.ref}, glaube ich – Eliza würde jetzt sagen: „Schau nach, Aaron!“`,
-  x => `Ich tippe auf ${x.X}. Steht wohl in ${x.ref}. Nicht ganz Jedi-sicher, aber fast.`
-];
-const AARON_SCHWANK = [
-  x => `Okay, tricky … ${x.X} oder ${x.Y}? Ich spüre eine Erschütterung in der Macht. Ich würde ${x.X} nehmen, aber sicher bin ich nicht.`,
-  x => `Puh, ich schwanke zwischen ${x.X} und ${x.Y}. Mein Bauchgefühl sagt ${x.X}.`,
-  x => `Hmm, ${x.X} oder ${x.Y}? Das ist wie die Frage: Episode IV oder V? Ich sag ${x.X} – aber frag mich in fünf Minuten nochmal.`,
-  x => `Eliza flüstert ${x.Y}, ich denke ${x.X}. Ich gehe mit ${x.X}, aber ohne Garantie.`,
-  x => `Ich hab ein mieses Gefühl bei dieser Frage … ${x.X}, vielleicht auch ${x.Y}. I lean towards ${x.X}.`
-];
-const AARON_GERATEN = [
-  x => `Sorry, da bin ich überfragt. Aus dem Bauch heraus: ${x.X} – aber verlass dich nicht drauf!`,
-  x => `Ehrlich? Ich weiß es nicht. Vielleicht ${x.X}? Wie Yoda sagen würde: Schwer zu sehen, die Antwort ist.`,
-  x => `Da bin ich lost. Elizas Katze ist gerade übers Handy gelaufen und hat ${x.X} gedrückt – besser weiß ich es ehrlich auch nicht.`,
-  x => `No idea, sorry! Ich rate ${x.X} – ein Schuss ins Blaue, wie bei einem Sturmtruppler.`,
-  x => `Puh. Ich sag ${x.X}, aber das ist reines Raten – so wie ich bei deutschen Artikeln.`,
-  x => `Puh, das kam am Bible College in Iowa nicht dran – oder ich hab in der Vorlesung geschlafen. Ich rate ${x.X}.`
-];
-const AARON_THEMA = [
-  [/Goliath/, "David gegen Goliath – das ist wie Luke gegen den Todesstern: Der Kleine gewinnt. Nur hat David nicht auf die Macht vertraut, sondern auf den Herrn (1. Samuel 17,45)."],
-  [/David|Harfe|Saul\b/, "David spielte so schön Harfe, dass Saul ruhig wurde (1. Samuel 16,23). Eliza sagt, mit der Querflöte klappt das bei mir genauso."],
-  [/Jericho|Posaune/, "In Jericho fielen die Mauern, als das Volk die Posaunen hörte und laut schrie (Josua 6,20) – ganz ohne Schuss. Das hätte nicht mal der Todesstern geschafft."],
-  [/Sonne still|Gibeon/, "Tatooine hat zwei Sonnen – aber nur bei Josua blieb die Sonne stehen (Josua 10,13). That’s a real miracle!"],
-  [/Jona\b|Ninive/, "Jona im Bauch des Fisches erinnert mich an den Millennium Falken im Bauch des Weltraum-Wurms in „Das Imperium schlägt zurück“. Beide kamen wieder raus – Jona, weil er gebetet hat (Jona 2,2)."],
-  [/Daniel|Löwengrube/, "Daniel in der Löwengrube – wie Luke in der Grube mit dem Rancor! Nur brauchte Daniel keinen Trick: Gott verschloss den Löwen den Rachen (Daniel 6,23)."],
-  [/Saulus|Paulus|Damaskus/, "Saulus wurde vom Verfolger zum Apostel (Apostelgeschichte 9). Darth Vader hat für seine Umkehr bis zum Ende von Episode VI gebraucht!"],
-  [/Pfingsten|Zungen|Turmbau|Sprache/, "C-3PO beherrscht über sechs Millionen Kommunikationsformen. Aber zu Pfingsten hat jeder die Apostel in seiner eigenen Sprache gehört (Apostelgeschichte 2,6) – das war ein echtes Wunder."],
-  [/Schilfmeer|Meer\b|Stab/, "Yoda hebt einen X-Wing aus dem Sumpf – aber ein ganzes Meer teilen wie bei Mose (2. Mose 14,21), das kann nur der lebendige Gott."],
-  [/Wüste|40 Jahre|vierzig/, "40 Jahre durch die Wüste – länger als Luke auf Tatooine gelebt hat. Und Manna statt blauer Milch!"],
-  [/Sintflut|Arche|Noah/, "Bei der Sintflut war die ganze Erde unter Wasser – fast wie der Planet Kamino. Gut, dass Noah eine Arche hatte (1. Mose 7)."],
-  [/Jünger|Apostel\b/, "Zwölf Jünger – genau so viele Plätze hat der Hohe Rat der Jedi. Zufall? Ja, ganz eindeutig."],
-  [/Isaak|Abraham/, "Abraham hat 25 Jahre auf seinen Sohn Isaak gewartet. In Star Wars geht das viel plötzlicher: „Ich bin dein Vater!“"],
-  [/Salomo|Weisheit|Sprüche/, "Salomo hat Gott um Weisheit gebeten (1. Könige 3,9) – weiser als Yoda und ohne komische Satzstellung."],
-  [/Psalm|Lied|sang|singen|Mirjam|Pauke|Musik|Asaf|Levit/, "Eliza sagt, die Psalmen sind die schönste Musik der Welt. Sie muss es wissen – sie spielt Querflöte, seit sie als Kind in Russland war."],
-  [/Mirjam|Pauke/, "Mirjam nahm die Pauke und alle Frauen tanzten (2. Mose 15,20). Eliza hätte bestimmt ihre Querflöte mitgebracht!"],
-  [/Esau|Wildbret/, "Esau war Jäger und brachte Wildbret (1. Mose 27). Ich stell mir das als Texas-Brisket vor – zwölf Stunden low and slow geräuchert."],
-  [/Wachtel|Manna/, "Abends Wachteln in der Wüste (2. Mose 16,13) – ich hätte sie mit Hickory-Rauch gesmokt!"],
-  [/Elia|Karmel/, "Auf dem Karmel fiel Feuer vom Himmel auf Elias Opfer (1. Könige 18,38) – eindrucksvoller als jedes Lichtschwert."],
-  [/Simson|Delila/, "Simson erinnert mich an Chewbacca: unglaublich stark – und beide mit ziemlich langen Haaren (Richter 16,17)."],
-  [/Bethlehem|Hirten|Stern des|Weisen/, "Der Stern über Bethlehem (Matthäus 2,9) ist mein Lieblingsstern – noch vor dem Todesstern. Okay, der ist ja auch gar kein Stern."],
-  [/Leiter|Bethel/, "Jakobs Leiter bis zum Himmel (1. Mose 28,12) – früher beim Zocken hätte ich gesagt: das ultimative Level-Up! Aber in den Himmel kommt man nicht mit Punkten, sondern durch Gnade."],
-  [/Goliath/, "Goliath war über sechs Ellen groß (1. Samuel 17,4) – in meinen alten Videospielen hieß so einer Endgegner. David hatte kein Extra-Leben, aber den lebendigen Gott an seiner Seite."],
-  [/Lazarus/, "Lazarus nach vier Tagen aus dem Grab (Johannes 11) – in Videospielen nennt man das Extra-Leben. Aber das hier war echt: Jesus ist die Auferstehung und das Leben (Johannes 11,25)."],
-  [/Talent/, "Fünf Talente verdoppelt (Matthäus 25,16) – das ist besser als jeder Highscore, den ich früher an der Konsole geschafft habe."],
-  [/Matthias|\bLos\b/, "Bei Matthias wurde das Los geworfen (Apostelgeschichte 1,26) – aber kein Zufallsgenerator wie in meinen alten Games: Die Jünger haben vorher gebetet."],
-  [/Löwe|Leopard|Böcklein/, "Eliza hat eine Katze, die sich für einen Löwen hält. Katzen kommen in der Bibel übrigens nicht vor – nur ihre großen Verwandten, Löwen und Leoparden."],
-  [/Teufel|brüllend/, "Der Teufel geht umher wie ein brüllender Löwe (1. Petrus 5,8). Elizas Katze faucht auch manchmal so – aber die meint es nicht böse. Meistens."],
-  [/Psalm|Harfe|Odem/, "Ein Psalm ist eigentlich ein Song. Eliza sagt, in Psalm 150 fehlt nur noch die Querflöte – Harfe und Zimbeln stehen ja schon drin."],
-  [/Psalm 117|kürzeste/, "Psalm 117 hat nur zwei Verse – perfekt für einen jungen Padawan."],
-  [/Psalm 119|Leuchte/, "Psalm 119 hat 176 Verse – länger als jede Weltraumschlacht. Und Gottes Wort ist eine Leuchte, heller als jedes Lichtschwert (Psalm 119,105)."],
-  [/Hirsch|Baum an Wasser/, "Wie ein Baum an Wasserbächen (Psalm 1,3) – in Iowa sieht man eher Maisfelder bis zum Horizont. In Eichstätt an der Altmühl dafür ganz normal!"],
-  [/Bathseba|Psalm 51/, "Nach seiner Schuld betete David Psalm 51: Schaffe mir, o Gott, ein reines Herz. Echte Umkehr – das hat Darth Vader erst ganz am Ende geschafft."],
-  [/Berge|Psalm 121/, "Meine Hilfe kommt vom HERRN (Psalm 121,2) – nicht von den Bergen und nicht von der Macht. In Iowa gibt es eh kaum Berge – alles flach wie ein Pancake."],
-  [/Hiob|Uz|Elihu/, "Hiob hat alles verloren und doch nicht aufgegeben. Bei so einem Level hätte ich früher an der Konsole längst den Controller geworfen."],
-  [/Ameise|Faule/, "Geh zur Ameise, du Fauler (Sprüche 6,6)! Elizas Katze sollte den Vers mal lesen – die schläft 16 Stunden am Tag."],
-  [/Furcht des HERRN|Sprüche 1/, "Yoda sagt, Furcht führt zur dunklen Seite. Aber die Furcht des HERRN ist der Anfang der Erkenntnis (Sprüche 1,7) – das ist Ehrfurcht, die helle Seite!"],
-  [/tüchtige Frau|Lemuel/, "Eine tüchtige Frau – wer findet sie? (Sprüche 31,10). Ich hab meine gefunden: Eliza – sie spielt Querflöte, liebt ihre Katze und erträgt sogar meine Star-Wars-Sammlung."],
-  [/Prediger|seine Zeit|nichtig/, "Alles hat seine Zeit (Prediger 3,1) – eine Zeit zum Zocken und eine Zeit zum Bibellesen. Früher hatte ich das Verhältnis falsch herum."],
-  [/Hohelied|Braut|stark wie der Tod/, "Das Hohelied ist das romantischste Buch der Bibel. Eliza findet, ich sollte es öfter lesen und weniger Star Wars schauen."],
-  [/Seraph|heilig, heilig|glühende/, "Heilig, heilig, heilig (Jesaja 6,3) – der beste Chorus aller Zeiten. Eliza spielt ihn auf der Querflöte, und sogar die Katze hört zu."],
-  [/Jesaja 53/, "Das Lamm in Jesaja 53 ist kein Held mit Lichtschwert, sondern einer, der schweigend für uns gelitten hat. That’s the real hero."],
-  [/Friedefürst/, "Friedefürst (Jesaja 9,5) – ein besserer Titel als alle Jedi-Ränge zusammen."],
-  [/Adler/, "Auffahren mit Flügeln wie Adler (Jesaja 40,31) – schneller als jeder X-Wing und ganz ohne Treibstoff!"],
-  [/Scharlach|Schnee/, "Weiß wie Schnee (Jesaja 1,18) – wie Hoth, nur ohne Kälte. Gottes Vergebung macht alles rein."],
-  [/zu jung/, "Jeremia meinte, er sei zu jung (Jeremia 1,6). Luke dachte das auch, als Obi-Wan ihn rief. Gott sagt: Fürchte dich nicht!"],
-  [/Töpfer/, "Gott formt uns wie der Töpfer den Ton (Jeremia 18). In Videospielen heißt das Charakter-Editor – aber Gott macht dabei keine Fehler."],
-  [/Klagelieder|Barmherzigkeit/, "Seine Barmherzigkeit ist jeden Morgen neu (Klagelieder 3,23) – jeden Morgen ein neuer Start, ganz ohne Game Over!"],
-  [/neues Herz/, "Ein neues Herz (Hesekiel 36,26) – nicht nur ein Upgrade, sondern ein komplett neues Herz. Better than any cyborg part!"],
-  [/Kebar|Hesekiel 1/, "Hesekiel sah Räder voller Augen (Hesekiel 1,18). Da kommen nicht mal die besten Spezialeffekte aus Hollywood mit."],
-  [/Mene|Belsazar/, "Die Schrift an der Wand (Daniel 5) – der erste Untertitel der Geschichte. Ohne C-3PO, dafür mit Daniel als Übersetzer."],
-  [/Hosea|Gomer/, "Hosea liebte Gomer trotz allem. Eliza sagt, sie liebt mich trotz meiner Star-Wars-Sammlung. Fast dasselbe."],
-  [/Heuschreck/, "Heuschrecken, die alles fressen (Joel 1,4) – wie Jawas, die alles mitnehmen, was nicht festgeschraubt ist."],
-  [/alles Fleisch|Joel 3/, "Gott gießt seinen Geist aus über alles Fleisch (Joel 3,1) – erfüllt an Pfingsten. Viel größer als die Macht!"],
-  [/Amos|Maulbeer/, "Amos war Hirte und Feigenzüchter, kein Profi-Prophet (Amos 7,14). Gott beruft gern Farmboys – siehe David. Und Luke Skywalker."],
-  [/wie Wasser|Amos 5/, "Das Recht soll strömen wie Wasser (Amos 5,24) – Martin Luther King hat diesen Vers in seiner berühmten Rede zitiert. Als Amerikaner bekomme ich da Gänsehaut."],
-  [/Obadja/, "Obadja ist das kürzeste Buch im Alten Testament – ein echter Speedrun durch die Prophetie!"],
-  [/Edom/, "Edom – das Volk von Esau, dem Jäger. Und schon hab ich wieder BBQ-Hunger."],
-  [/demütig|Micha 6/, "Recht tun, Liebe üben, demütig sein (Micha 6,8) – das ist besser als jeder Jedi-Kodex."],
-  [/Habakuk|Glauben leben/, "Der Gerechte wird durch seinen Glauben leben (Habakuk 2,4) – das Neue Testament zitiert den Vers gleich dreimal. Ein echter Klassiker!"],
-  [/Zephanja|Tag des HERRN/, "Der Tag des HERRN (Zephanja 1,14) – das große Finale. Und anders als bei manchen Filmreihen wird dieses Ende perfekt."],
-  [/Haggai|Tempel wieder/, "Baut den Tempel wieder auf (Haggai 1,8)! Wie die Rebellen ihre Basis nach Hoth – nur mit mehr Steinen und weniger Schnee."],
-  [/Esel\b|Sacharja/, "Der König kommt auf einem Esel (Sacharja 9,9) – kein Tauntaun, kein Speeder. Jesus kam demütig."],
-  [/Maleachi|Zehnten/, "Maleachi ist das letzte Buch im Alten Testament – danach rund 400 Jahre Pause bis zu Johannes dem Täufer. Länger als jede Wartezeit auf die nächste Star-Wars-Episode!"],
-  [/Sold der Sünde|Gnadengabe|Römer 6/, "Gottes Gnadengabe ist das ewige Leben (Römer 6,23) – kein Respawn, sondern echtes, ewiges Leben."],
-  [/scheiden|Römer 8/, "Nichts kann uns von Gottes Liebe trennen (Römer 8,38-39) – nicht mal das ganze Imperium."],
-  [/Rom\b|Römer 1/, "Paulus schrieb nach Rom, bevor er je dort war (Römer 1,13) – wie eine Nachricht an eine Basis, die man erst später erreicht."],
-  [/1. Korinther 13|Liebe/, "1. Korinther 13 wird auf fast jeder Hochzeit gelesen. Eliza würde dazu Querflöte spielen – und ich würde einen ganzen Tag nicht über Star Wars reden. Versprochen!"],
-  [/500|1. Korinther 15/, "Über 500 Zeugen auf einmal (1. Korinther 15,6) – so viele Leute standen nicht mal bei einer Star-Wars-Premiere an."],
-  [/neue Schöpfung/, "Eine neue Schöpfung (2. Korinther 5,17) – nicht nur ein neuer Skin, sondern ein komplett neuer Charakter!"],
-  [/Pfahl/, "Gottes Kraft ist in der Schwachheit mächtig (2. Korinther 12,9). Luke hatte eine Roboterhand und hat trotzdem gewonnen."],
-  [/Frucht des Geistes|Galater 5/, "Liebe, Freude, Friede … (Galater 5,22). Elizas Katze hat davon höchstens die Freude – und die auch nur beim Fressen."],
-  [/Antiochia|Galater 2/, "Paulus hat Petrus offen widersprochen (Galater 2,11) – unter Brüdern, ehrlich und in Liebe. Besser als jedes Lichtschwert-Duell."],
-  [/Gnade|Epheser 2/, "Aus Gnade gerettet (Epheser 2,8) – kein Grinding, keine Achievements. Einfach geschenkt."],
-  [/Waffenrüstung|Schwert des Geistes/, "Das Schwert des Geistes ist Gottes Wort (Epheser 6,17) – das einzige Schwert, das stärker ist als ein Lichtschwert."],
-  [/Freut euch|Gefängnis/, "Paulus schrieb aus dem Gefängnis: Freut euch allezeit (Philipper 4,4)! Han Solo in Karbonit war da deutlich weniger fröhlich."],
-  [/Kolosser|von Herzen/, "Alles von Herzen tun (Kolosser 3,23) – sogar das Katzenklo sauber machen. Eliza hat mir den Vers extra drübergeklebt."],
-  [/Unterlass|Beten/, "Betet ohne Unterlass (1. Thessalonicher 5,17)! Früher hab ich ohne Unterlass gezockt – das hier ist das bessere Upgrade."],
-  [/nicht arbeiten|nicht essen/, "Wer nicht arbeiten will, soll auch nicht essen (2. Thessalonicher 3,10). Das gilt bei uns auch für die Katze – sie weiß es nur leider nicht."],
-  [/Jugend|Timotheus 4/, "Niemand verachte dich wegen deiner Jugend (1. Timotheus 4,12). Anakin hätte diesen Vers auch gut gebrauchen können."],
-  [/Lois|Großmutter/, "Lois und Eunike haben Timotheus den Glauben vorgelebt (2. Timotheus 1,5). In Amerika sagt man: Der Glaube wird am Küchentisch weitergegeben – am besten mit Cornbread."],
-  [/Kreta|Titus/, "Titus auf Kreta (Titus 1,5) – eine Insel wie Ahch-To, wo Luke sich versteckt hat. Nur hat Titus sich nicht versteckt, sondern Gemeinden aufgebaut."],
-  [/Onesimus|Philemon/, "Onesimus kam als entlaufener Sklave und wurde zum geliebten Bruder (Philemon 16) – besser als jeder Plot-Twist."],
-  [/Zuversicht|Hebräer 11/, "Glaube ist die Überzeugung von Dingen, die man nicht sieht (Hebräer 11,1) – wie Luke, der mit dem Helm über den Augen trainiert. Nur viel tiefer."],
-  [/Melchisedek/, "Melchisedek – ein Priesterkönig ohne Stammbaum (Hebräer 7,3). Geheimnisvoller als jeder Bösewicht im Kino, aber auf der richtigen Seite."],
-  [/gestern, heute/, "Jesus Christus ist derselbe gestern, heute und in Ewigkeit (Hebräer 13,8) – kein Reboot, kein Remake, keine neue Trilogie."],
-  [/Werke|tot\b/, "Glaube ohne Werke ist tot (Jakobus 2,17) – wie ein Lichtschwert ohne Kristall."],
-  [/Zunge|Hören/, "Schnell zum Hören, langsam zum Reden (Jakobus 1,19) – hätte ich das früher bei Online-Games beherzigt, wäre mein Chat viel freundlicher gewesen."],
-  [/tausend Jahre/, "Ein Tag ist beim Herrn wie tausend Jahre (2. Petrus 3,8) – Yoda wurde 900 Jahre alt. Für Gott ist das nicht mal ein Tag!"],
-  [/Gott ist|1. Johannes 4/, "Gott ist Liebe (1. Johannes 4,8) – kein Imperator, sondern ein Vater, der liebt."],
-  [/vergibt|bekennen/, "Wenn wir unsere Sünden bekennen, vergibt er (1. Johannes 1,9) – kein Neustart vom letzten Speicherpunkt, sondern echte Vergebung."],
-  [/Gajus|auserwählte Frau|2. Johannes|3. Johannes/, "Die kleinen Johannesbriefe sind kurz wie eine SMS – Johannes wollte lieber persönlich kommen (3. Johannes 13-14). Ich lade dich auch lieber zum BBQ ein!"],
-  [/Michael|Judas 9/, "Der Erzengel Michael (Judas 9) – der echte Kommandant der himmlischen Heerscharen. Da kann kein Admiral mithalten."],
-  [/Offenbarung 1,11/, "Sieben Gemeinden, sieben Briefe (Offenbarung 2–3) – wie sieben Level vor dem großen Finale."],
-  [/Laodizea/, "Laodizea war lauwarm (Offenbarung 3,16) – wie BBQ, das zu lange herumsteht. Jesus will, dass wir mit ganzem Herzen dabei sind!"],
-  [/klopft|vor der Tür/, "Jesus klopft an die Tür (Offenbarung 3,20). Bei uns ist meistens die Katze zuerst an der Tür – sie ist sehr neugierig."],
-  [/A und das O/, "Das A und das O (Offenbarung 22,13) – Anfang und Ende. Filmreihen gehen irgendwann zu Ende, aber Jesus hat das letzte Wort."],
-  [/Tränen|Perlen|neue Jerusalem/, "Im neuen Jerusalem sind die Tore aus Perlen, und es gibt keinen Tod und keine Tränen mehr (Offenbarung 21). That’s the true happy end!"],
-  [/Versöhnungstag|Bock/, "Am Versöhnungstag trug ein Bock die Schuld in die Wüste (3. Mose 16) – ein Sündenbock. Jesus hat das ein für alle Mal für uns getan."],
-  [/Nächsten/, "Liebe deinen Nächsten wie dich selbst (3. Mose 19,18) – auch wenn dein Nächster Darth-Vader-Fan ist."],
-  [/Höre, Israel|einschärfen|5. Mose 6/, "Höre, Israel (5. Mose 6,4)! Eliza sagt, ich höre sonst nur auf die Star-Wars-Titelmelodie."],
-  [/Jabez/, "Jabez betete: Erweitere mein Gebiet (1. Chronik 4,10)! In Strategiespielen wollte ich das auch immer – Jabez hat es mit Beten geschafft."],
-  [/Blut vergossen|1. Chronik 22/, "David durfte den Tempel nicht bauen, sein Sohn Salomo schon. Wie bei einer Saga: Die nächste Generation vollendet die Geschichte."],
-  [/Einweihung|2. Chronik 7/, "Bei der Tempelweihe fiel Feuer vom Himmel (2. Chronik 7,1) – epischer als jede Feuerwerks-Szene in einem Film."],
-  [/Schriftgelehrter/, "Esra war Schriftgelehrter – ein echter Bibel-Nerd. So wie ich ein Star-Wars-Nerd bin, nur sinnvoller."],
-  [/Ahija|Stücke/, "Zwölf Stücke eines Mantels (1. Könige 11,30) – wie zwölf Teile, die man in einem Videospiel einsammeln muss. Nur ging es hier um die zwölf Stämme Israels."],
-  [/Esra|vorlas|vorlesen|Chronik seiner|Synagoge/, "Eliza liest abends gern vor, und die Katze schläft dabei jedes Mal ein. Bei Esras Lesung vom Morgen bis zum Mittag sind alle wach geblieben (Nehemia 8,3) – respect!"],
-  [/Hesekiel 4|Dinkel/, "Hesekiels Brot aus sechs Getreidesorten (Hesekiel 4,9) – der Urahn von jedem Multigrain-Bagel in New York!"],
-  [/tägliches Brot|Vaterunser/, "Unser tägliches Brot gib uns heute (Matthäus 6,11). In Amerika beten wir das auch – und meinen manchmal heimlich Pancakes."],
-  [/Staub von der Erde|1\. Mose 2,7/, "Aus Staub gemacht (1. Mose 2,7) – auf Tatooine gäbe es davon reichlich. Aber nur Gott kann aus Staub einen lebendigen Menschen machen."],
-  [/Rippe|erste Frau/, "Adam war begeistert, als Gott ihm Eva brachte (1. Mose 2,23). Ich versteh ihn – ohne Eliza wäre mein Leben wie Star Wars ohne Musik."],
-  [/verführte Eva|Die Schlange/, "Die Schlange hat Eva mit einer Lüge reingelegt (1. Mose 3,4). Wie der Imperator bei Anakin: tolle Versprechen, mieses Ende."],
-  [/Feigenbl/, "Erst Feigenblätter, dann hat Gott ihnen Kleider aus Fell gemacht (1. Mose 3,21). Upgrade unlocked – und zwar aus Gnade."],
-  [/Cherub/, "Ein flammendes Schwert vor dem Garten Eden (1. Mose 3,24) – das erste Lichtschwert der Geschichte? Okay, nicht ganz. Aber fast!"],
-  [/Abel|Kain/, "Soll ich meines Bruders Hüter sein? (1. Mose 4,9). Ja, Kain! Das hätten die Skywalkers auch mal lernen sollen: Pass auf deine Familie auf."],
-  [/Jubal|Harfen- und Flöten/, "Jubal, der Vater aller Harfen- und Flötenspieler (1. Mose 4,21)! Eliza sagt, das ist ihr Ur-Ur-Ur-…-Kollege."],
-  [/300 Ellen|Wasser der Sintflut/, "Die Arche: 300 Ellen lang, 50 breit, 30 hoch (1. Mose 6,15). Kein Sternzerstörer, aber sie hat jeden Sturm überstanden."],
-  [/Raben\b.*Arche|als ersten aus der Arche/, "Noahs Rabe kam nicht zurück – typisch Rabe, würde Elizas Katze sagen. Die Taube war da zuverlässiger."],
-  [/Sprache der Menschen|verwirrte Gott/, "Seit Babel gibt es viele Sprachen. Ich hab Englisch, Berlinerisch und jetzt Bayerisch gelernt – das war fast eine eigene Sprachverwirrung!"],
-  [/Sterne am Himmel/, "Nachkommen wie die Sterne (1. Mose 15,5) – mehr als alle Sternsysteme einer Galaxis. Und anders als im Film ist das echt!"],
-  [/Widder|Isaak opfern|Land Morija/, "Der HERR sieht vor (1. Mose 22,14) – das ist besser als jeder Plot-Twist, weil die ganze Geschichte auf Jesus hinweist."],
-  [/Kamelen zu trinken|Frau für Isaak/, "Rebekka hat freiwillig zehn Kamele getränkt – das ist Gastfreundschaft, Iowa-Style!"],
-  [/Ziegenb/, "Jakob im Ziegenfell (1. Mose 27,16) – das älteste Kostüm der Bibel. Mein Chewbacca-Kostüm zu Fasching war aber überzeugender."],
-  [/Rahel|Laban/, "Sieben Jahre warten – und sie kamen ihm vor wie wenige Tage (1. Mose 29,20). Ich werde ungeduldig, wenn die Pizza zwölf Minuten braucht."],
-  [/Becher|Benjamins Sack/, "Josef testet seine Brüder – und diesmal halten sie zusammen. Echte Familie, nicht wie bei den Sith!"],
-  [/Hungersnot|Gosen/, "Josef hat sieben Jahre lang vorgesorgt – der erste Notfallplaner der Weltgeschichte. In Iowa hätte er Mais in riesige Silos gefüllt."],
-  [/Haran|75 Jahre/, "Mit 75 noch umziehen! Ich hab es nur von Berlin nach Eichstätt geschafft und war danach drei Tage platt."],
-  [/Frösche/, "Frösche im Bett und im Backofen (2. Mose 7,28)! Elizas Katze hätte den Spaß ihres Lebens gehabt."],
-  [/Stechmücken/, "Bei den Stechmücken gaben die Zauberer auf und sagten: Das ist Gottes Finger (2. Mose 8,15)! Nicht mal Magie kommt gegen Gott an."],
-  [/Wolkensäule|Feuersäule/, "Wolkensäule am Tag, Feuersäule in der Nacht – Gottes Navigation! Besser als jede Fahrplan-App in Berlin."],
-  [/steinerne Tafeln|keine anderen Götter/, "In Stein gemeißelt – kein Update, kein Patch nötig. Gottes Gebote gelten immer."],
-  [/Vater und deine Mutter/, "Ehre deine Eltern – Luke hat sogar bei Vader an das Gute geglaubt. Bei Gott geht es aber um mehr als Filmhelden: um Respekt und Liebe."],
-  [/Mandeln|Aarons Stab/, "Ein Stab, der über Nacht blüht – sogar Yoda hätte gestaunt. Das war Gottes Zeichen, nicht die Macht. Übrigens: Ich heiße wie dieser Aaron!"],
-  [/Weintraube|Kundschafter/, "Zwölf Kundschafter, zehn hatten Angst, zwei vertrauten Gott (4. Mose 14,6-9). Josua und Kaleb – the real rebels!"],
-  [/Mara|bitteres Wasser/, "Bitteres Wasser wird süß (2. Mose 15,25) – wie Sweet Tea aus den Südstaaten, nur gesünder und ohne Zucker."],
-  [/Elim|Wasserquellen/, "Zwölf Quellen und siebzig Palmen – das klingt nach Urlaub. Fast wie Eichstätt an der Altmühl im Sommer."],
-  [/Bezaleel|Kunsthandwerker/, "Bezaleel – ein Handwerker voll Heiligem Geist! Der hätte bestimmt die besten Lego-Modelle gebaut."],
-  [/Korah|verschlungen/, "Korah wollte die Macht an sich reißen – eine Rebellion auf der falschen Seite. Das endete nicht gut."],
-  [/Hebräer 9,4|Bundeslade.*Manna/, "Manna, Aarons Stab und die Tafeln in der Lade – Indiana Jones hat sie gesucht, aber die echte Geschichte steht in der Bibel."],
-  [/rote Schnur|Rahab/, "Rahab half den Kundschaftern und wurde eine Vorfahrin von Jesus (Matthäus 1,5). Gottes Gnade schreibt die besten Geschichten."],
-  [/Jordan, als die Priester|Das Wasser blieb stehen/, "Erst als die Füße der Priester im Wasser waren, blieb der Jordan stehen. Glaube heißt: losgehen. Wie Luke, der einfach in den X-Wing stieg."],
-  [/mein Haus, wir wollen/, "Ich aber und mein Haus … – inklusive Katze! Eliza sagt allerdings, die Katze dient eher sich selbst."],
-  [/Gideon|Krüge|Tenne/, "300 Mann mit Posaunen und Krügen mit Fackeln (Richter 7,16) – die genialste Taktik seit dem Angriff auf den Todesstern!"],
-  [/wie sie Wasser tranken/, "Gott hat Gideons Armee kleiner gemacht, damit klar ist: Der Sieg kommt vom HERRN. Wenige plus Gott sind immer genug."],
-  [/Füchse/, "300 Füchse auf einmal! Simson hatte wirklich die verrücktesten Pläne der ganzen Bibel."],
-  [/Haus der Philister|Wie starb Simson/, "Simsons letzter Moment – er bat Gott ein letztes Mal um Kraft. Ein Finale wie in Episode VI!"],
-  [/Wo du hingehst|Orpa|Obed|Ähren/, "Ruth zog in ein fremdes Land. Eliza auch – von Russland nach Bayern. Und ich über Berlin nach Eichstätt. Wir sind eine echte Ruth-Familie!"],
-  [/Jephta|Gelübde/, "Jephtas Gelübde zeigt: Erst denken, dann versprechen. Jakobus sagt: Euer Ja sei ein Ja (Jakobus 5,12)."],
-  [/Schibbolet/, "An der Aussprache verraten! Bei mir reicht ein einziges „Grüß Gott“ mit amerikanischem Akzent."],
-  [/salbte David|Riese verspottete|bevor er König wurde/, "Gott wählt den Jüngsten, den Hirtenjungen. Wie Luke, der Farmjunge. Gott sieht das Herz an (1. Samuel 16,7)."],
-  [/dein Knecht hört/, "Samuel dachte erst, Eli ruft ihn. Ich dachte nachts mal, es ist ein Einbrecher – war aber die Katze."],
-  [/echte Mutter/, "Salomos Urteil – weiser als Yoda und ohne das Schwert wirklich zu benutzen. Eine echte Mutter würde ihr Kind nie teilen lassen."],
-  [/Israel und Juda|Jerobeam|Rehabeam/, "Das Reich zerbrach in Nord und Süd – ein Riss tiefer als jeder Streit unter Star-Wars-Fans über die neuen Filme."],
-  [/Nabot/, "König Ahab hat geschmollt wie ein Kind, weil er Nabots Grundstück nicht bekam (1. Könige 21,4). Elizas Katze schmollt würdevoller."],
-  [/Säuseln/, "Gott sprach ganz leise (1. Könige 19,12). In Berlin hätte Elia das nie gehört – viel zu laut dort!"],
-  [/Eisen der Axt/, "Eine schwimmende Axt – Physik-Level: Wunder. Nicht mal Yoda hätte das so elegant gemacht."],
-  [/Joas/, "Mit sieben Jahren König! Anakin war neun beim Podrennen – Joas war noch jünger."],
-  [/Sanherib|Hiskia/, "Sanherib prahlte, Hiskia betete – und Gott rettete Jerusalem. Großmaul gegen Gebet: Das Gebet gewinnt."],
-  [/Standbild/, "Gold, Silber, Bronze, Eisen – und ein einziger Stein macht alles platt (Daniel 2,34). Das Original aller Endgegner!"],
-  [/offenen Fenster|Daniel 6,11/, "Daniel betete dreimal täglich – sogar als es verboten war. Das ist Disziplin, echter als jeder Jedi-Kodex."],
-  [/Rizinus/, "Jona war sauer, weil eine Pflanze verdorrte (Jona 4,9). Ich war mal sauer, weil mein Spielstand weg war. Gott zeigt: Menschen sind wichtiger."],
-  [/3 Tage und 3 Nächte/, "Jesus selbst nennt Jona als Zeichen für seine drei Tage im Grab (Matthäus 12,40). Das beste Foreshadowing der Weltgeschichte!"],
-  [/Herberge|Windeln/, "Kein Platz in der Herberge – wir hätten sofort das Gästezimmer freigemacht. Die Katze hätte sogar ihr Körbchen geteilt. Vielleicht."],
-  [/Weisen|Stern des Königs|Herodes/, "Die Weisen sind einem Stern gefolgt – ohne Hyperantrieb, zu Fuß und auf Kamelen. Respekt!"],
-  [/Zacharias|hüpfte|Elisabeth/, "Zacharias konnte monatelang nicht reden – Eliza sagt, bei mir und Star Wars wäre das die perfekte Lösung."],
-  [/erhebt den Herrn|Lobgesang/, "Marias Lobgesang ist eines der ältesten Lieder der Christenheit. Eliza hat sich eine Melodie dazu auf der Querflöte ausgedacht – wunderschön."],
-  [/Turteltauben/, "Turteltauben als Opfer – Jesu Eltern waren nicht reich. Der König aller Könige kam ganz bescheiden."],
-  [/Haus Davids|Geschlecht/, "Josef aus dem Haus Davids – die Verheißung an David wurde in Jesus erfüllt. Eine Saga über tausend Jahre!"],
-  [/Fürchtet euch nicht|große Freude/, "Große Freude für alle – nicht nur für Hirten, sondern für alle Völker. Auch für Texaner, Russinnen und Bayern!"],
-  [/gebot dem Wind/, "Jesus stillt den Sturm mit einem Wort – kein Jedi-Trick, sondern Schöpfermacht."],
-  [/durch das Dach/, "Vier Freunde graben sich durchs Dach – the ultimate squad! Solche Freunde braucht jeder."],
-  [/Sprich nur ein Wort/, "Der Hauptmann vertraute Jesu Wort über die Entfernung. Kein Hologramm nötig – Jesus heilt auch aus der Ferne!"],
-  [/Blutfluss/, "Nur das Gewand berührt – und Jesus merkte es sofort. In der ganzen Menge hat er genau sie gesehen."],
-  [/Hälfte seiner Güter|Zachäus/, "Zachäus war klein, aber Jesus sah ihn. Wie Yoda sagt: Size matters not. Bei Jesus zählt jeder."],
-  [/Speichel|Siloah|Blindgeboren/, "„Ich war blind und bin jetzt sehend“ (Johannes 9,25) – mein Lieblingssatz im ganzen Kapitel. Einfach, ehrlich, stark."],
-  [/sieben Broten|4000/, "Sieben Brote, 4000 Männer – und sieben Körbe übrig (Matthäus 15,37). Catering auf göttlichem Level!"],
-  [/Stater/, "Eine Münze im Fischmaul – Jesus hatte für alles eine Lösung. Sogar für die Tempelsteuer."],
-  [/Kephas/, "Kephas heißt Fels – Petrus, the Rock! Der Fels hatte Risse, aber Jesus hat ihn trotzdem gebraucht."],
-  [/Zebedäus|Bethsaida/, "Jakobus und Johannes hießen „Donnersöhne“ (Markus 3,17) – coolere Spitznamen als jede Jedi-Einheit!"],
-  [/eingeborenen Sohn/, "John 3:16 – in Amerika steht das auf Schildern im Football-Stadion. In Eichstätt eher nicht, aber wahr ist es trotzdem!"],
-  [/Salz der Erde/, "Salz der Erde – ohne Salz kein gutes BBQ-Rub! Jesus wusste, wovon er redet."],
-  [/mit unseren Feinden/, "Liebt eure Feinde – das sagt Jesus. Nicht nur tolerieren, sondern lieben. Das ist die echte helle Seite."],
-  [/Kinder zu mir/, "Jesus hatte immer Zeit für Kinder. In unserer Gemeinde lieben die Kinder vor allem den Kuchen danach – aber das ist auch ein Anfang!"],
-  [/Licht der Welt/, "Ich bin das Licht der Welt – heller als jedes Lichtschwert, und ganz ohne Batterie."],
-  [/Weinstock, ihr seid/, "Ohne mich könnt ihr nichts tun (Johannes 15,5). Das ist kein Solo-Game, das ist Koop-Modus mit Jesus."],
-  [/sein Leben für die Schafe/, "Der gute Hirte gibt sein Leben – kein Held, der nur kämpft, sondern einer, der sich opfert."],
-  [/Kämmerlein/, "Beten im Kämmerlein – bei uns ist das der Abstellraum. Da hört man Elizas Flöte nur noch ganz leise."],
-  [/morgigen Tag/, "Jeder Tag hat seine eigene Plage – wie jedes Level seinen eigenen Boss. Aber Jesus sagt: Sorgt euch nicht!"],
-  [/Nadelöhr/, "Unmöglich? Bei Gott sind alle Dinge möglich (Matthäus 19,26)!"],
-  [/Erbteil|hütete der verlorene/, "Der verlorene Sohn landete ganz unten – und der Vater rannte ihm entgegen. Das ist Gnade, keine Strafe."],
-  [/Priester und ein Levit/, "Der Samariter – der Außenseiter wird zum Helden. Wie Han Solo, der am Ende doch zurückkommt!"],
-  [/sei mir Sünder/, "Der Pharisäer prahlte, der Zöllner bat um Gnade – und ging gerechtfertigt heim. Demut gewinnt."],
-  [/Scheunen/, "Größere Scheunen – wie ich mit meiner Lego-Sammlung. Jesus sagt: Sei reich bei Gott. Okay, okay …"],
-  [/Sanftmütig/, "Die Sanftmütigen erben das Land – nicht die mit der größten Flotte. Sorry, Imperium!"],
-  [/Hosianna|Kleider und Zweige/, "Hosianna – ein Empfang wie für einen König. Kein roter Teppich, sondern Kleider und Zweige!"],
-  [/Geldwechsler|Händler/, "Jesus räumt den Tempel auf: Ein Bethaus soll er sein (Matthäus 21,13), kein Marktplatz."],
-  [/wusch ihnen die Füße/, "Der König wäscht Füße! Stell dir vor, ein Imperator hätte das getan … unmöglich. Jesus ist ganz anders."],
-  [/Kuss/, "Verrat mit einem Kuss – schlimmer als Lando in der Wolkenstadt. Und Jesus nannte ihn trotzdem noch „Freund“ (Matthäus 26,50)."],
-  [/schliefen/, "Jesus kämpfte im Gebet, die Jünger schliefen. Der Geist ist willig, aber das Fleisch ist schwach (Matthäus 26,41) – wie wahr."],
-  [/dein Wille geschehe/, "Nicht mein Wille – das ist das Gegenteil von Anakin. Jesus hat sich dem Vater ganz hingegeben."],
-  [/vollbracht/, "Es ist vollbracht! Mission complete – und zwar für immer."],
-  [/vergib ihnen/, "Vergebung am Kreuz – Jesus betet für die, die ihn kreuzigen. Größer geht Liebe nicht."],
-  [/Vorhang/, "Der Vorhang zerriss von oben nach unten – kein Mensch hat ihn zerrissen, sondern Gott. Freier Zugang zum Vater!"],
-  [/Wahrhaftig, dieser/, "Ausgerechnet ein römischer Offizier erkennt es zuerst – wie ein Sturmtruppler, der die Seiten wechselt."],
-  [/Myrrhe und Aloe/, "Nikodemus brachte etwa hundert Pfund Myrrhe und Aloe – vom heimlichen Fragesteller zum offenen Jünger."],
-  [/Gärtner/, "Maria hielt ihn für den Gärtner – bis er ihren Namen sagte. Gänsehaut-Moment, besser als jedes Wiedersehen im Kino."],
-  [/153/, "153 Fische, und das Netz zerriss nicht! Jesus kennt sich sogar mit Fischerei besser aus als die Profis."],
-  [/hast du mich lieb/, "Dreimal fragt Jesus Petrus – dreimal Wiederherstellung. Jesus gibt zweite Chancen."],
-  [/Wolke nahm ihn/, "Und die Engel sagten: Er kommt genauso wieder (Apostelgeschichte 1,11). The best is yet to come!"],
-  [/Korb über die Mauer/, "Flucht im Korb über die Stadtmauer – eine Szene wie aus einem Actionfilm!"],
-  [/nichts mehr sehen|Saulus, bevor/, "Vom Verfolger zum Apostel – die größte Kehrtwende der Geschichte."],
-  [/Rhode|befreite Petrus/, "Petrus wird befreit, klopft an – und Rhode lässt ihn vor Freude draußen stehen. Comedy in der Apostelgeschichte!"],
-  [/Areopag|Athen/, "Paulus predigte vor Philosophen auf dem Areopag – und erklärte ihnen den unbekannten Gott. Respekt!"],
-  [/Kerkermeister|damit ich gerettet werde/, "Mitternacht, Gefängnis, Lobgesang, Erdbeben – und der Kerkermeister findet zum Glauben. Besser als jeder Film."],
-  [/Otter/, "Eine Otter beißt Paulus – und nichts passiert! Elizas Katze hätte die Schlange vorher erwischt."],
-  [/Artemis|Ephesus/, "Zwei Stunden Geschrei für Artemis – lauter als Fans im Stadion. Aber Götzen sind stumm; nur der lebendige Gott antwortet."],
-  [/finstere Tal/, "Im finsteren Tal ist der Hirte dabei – näher als Obi-Wan bei Luke."],
-  [/Psalm 103/, "Lobe den HERRN, meine Seele – und vergiss nicht, was er dir Gutes getan hat. Weiter als von Berlin nach Iowa reicht seine Gnade."],
-  [/eigenen Verstand/, "Vertraue dem HERRN von ganzem Herzen – nicht dem eigenen Verstand und auch nicht der Macht."],
-  [/sanfte Antwort/, "Eine sanfte Antwort – das hätte ich in meiner Online-Gaming-Zeit wissen sollen!"],
-  [/Prediger 12,1|Prediger 3,11/, "Gott hat die Ewigkeit in unser Herz gelegt (Prediger 3,11) – darum macht uns kein Highscore der Welt wirklich satt."],
-  [/41,10/, "Yoda sagt: Furcht führt zur dunklen Seite. Gott sagt: Fürchte dich nicht, ich halte dich mit meiner rechten Hand (Jesaja 41,10)."],
-  [/Immanuel/, "Immanuel – Gott mit uns. Nicht in einer weit entfernten Galaxis, sondern ganz nah."],
-  [/Mandelzweig/, "Im Hebräischen klingt „Mandelzweig“ fast wie „wachen“ – ein Wortspiel von Gott selbst (Jeremia 1,11-12). God has humor!"],
-  [/Jeremia 29,11/, "Jeremia 29,11 hängt in Amerika bei vielen an der Wand. Bei uns in Eichstätt jetzt auch – direkt neben dem Star-Wars-Poster."],
-  [/Tiefe des Meeres/, "Sünden in der Tiefe des Meeres – kein Speicherstand, kein Wiederherstellen. Vergeben ist vergeben!"],
-  [/Hesekiel 3,1|eine Buchrolle/, "Gottes Wort essen – süß wie Honig (Hesekiel 3,3). Süßer als jeder Pancake-Sirup!"],
-  [/Messschnur/, "Gott selbst wird eine feurige Mauer rings um Jerusalem sein (Sacharja 2,9). Besser als jeder Schutzschild einer Rebellenbasis!"],
-  [/Philipper 4,13/, "Philipper 4,13 steht in Amerika auf vielen Sporttrikots. Aber es geht um Zufriedenheit in allem, nicht um Touchdowns."],
-  [/Römer 3,23/, "Alle haben gesündigt – Pastoren, Pianisten, Programmierer. Darum brauchen wir alle Jesus."],
-  [/Römer 8,28/, "Alle Dinge dienen zum Besten – Gott schreibt auch aus schweren Kapiteln ein gutes Ende."],
-  [/Tempel des Heiligen Geistes/, "Unser Leib ist ein Tempel – Eliza meint, meiner braucht weniger BBQ-Soße. Sie hat wahrscheinlich recht."],
-  [/Alle Schrift/, "Alle Schrift ist von Gott eingegeben – kein Fan-Fiction, sondern Gottes Wort."],
-  [/1\. Petrus 5,7/, "Werft eure Sorge auf ihn, denn er sorgt für euch – kein Algorithmus, sondern ein Vater."],
-  [/Offenbarung 22,21|letzte Vers/, "Das letzte Wort der Bibel ist Gnade – kein Cliffhanger, sondern das perfekte Finale."],
-  [/zweischneidige/, "Schärfer als jedes Schwert – sogar als ein Lichtschwert. Und es trifft mitten ins Herz."],
-  [/lachte/, "Sara lachte – und Gott machte daraus den Namen Isaak, „er lacht“. God turned a laugh into a promise!"],
-  [/Isaak heiratete/, "Isaak und Rebekka – eine Liebesgeschichte mit Brunnen und Kamelen. Romantischer als Han und Leia!"],
-  [/betrunken/, "Hanna betete so innig, dass Eli sie falsch verstand. Echte Gebete sind manchmal ungewöhnlich – und Gott hört sie."],
-  [/Füße und trocknete/, "Das Haus war erfüllt vom Duft der Narde. Bei uns ist es meistens der Duft von Pulled Pork."],
-  [/Scherflein/, "Zwei kleine Münzen – und für Jesus mehr als alles Gold. Das ist Gottes Mathematik!"],
-  [/viel beschäftigt/, "Martha arbeitete, Maria hörte zu (Lukas 10,40-42). Eliza sagt, ich bin eher Maria – aber nur beim Zuhören von Star-Wars-Podcasts."],
-  [/Michal/, "Michal rettet David durchs Fenster und legt eine Figur ins Bett – eine Ablenkung, wie sie R2-D2 nicht besser hinbekommen hätte."],
-  [/Abigail/, "Abigail stoppt David mit einem riesigen Picknick – Brot, Feigenkuchen und fünf zubereitete Schafe. BBQ-Diplomatie!"],
-  [/Priscilla/, "Aquila und Priscilla – ein Ehepaar im Dienst für Gott. Eliza und ich versuchen das auch: Sie macht die Musik, ich das BBQ."],
-  [/Phöbe/, "Phöbe hat wahrscheinlich den Römerbrief nach Rom gebracht – die wichtigste Briefträgerin der Geschichte!"],
-  [/Jochebed|Hebammen/, "Zwei Hebammen gegen den Pharao – eine kleine Rebellenallianz mit großem Glauben!"],
-  [/Obergemach|Schunemiterin/, "Ein eigenes Gästezimmer für den Propheten! In Berlin hätte Elisa dafür monatelang eine Wohnung suchen müssen."],
-  [/Hulda/, "Der König schickte zu Hulda – und sie sagte klar, was Gott sagt. Mutig und treu."],
-  [/wie eine Taube|Taufe Jesu auf ihn/, "Der Heilige Geist wie eine Taube – sanft und friedlich. Ganz anders als ein Sternzerstörer."],
-  [/Hahn/, "Der Hahn krähte – Petrus' tiefster Moment. Aber Jesus hat ihm später einen Neustart geschenkt."],
-  [/Lamm Gottes/, "Das Lamm Gottes – der wahre Held kommt zuerst als Lamm. Und am Ende als Löwe (Offenbarung 5)!"],
-  [/Stamm Juda/, "Der Löwe aus Juda! Elizas Katze hält sich auch für einen Löwen – ihr größter Sieg war gegen eine Wollmaus."],
-  [/In welche Tiere|Dämonen/, "Die Dämonen mussten Jesus gehorchen. Er hat Macht über alle Finsternis – stärker als jeder Sith."],
-  [/wie die Schlangen/, "Klug wie Schlangen, sanft wie Tauben – die perfekte Balance. Nur biblisch, nicht jedi-mäßig."],
-  [/Stroh/, "Löwen, die Stroh fressen – im Friedensreich wird sogar Elizas Katze friedlich. Hoffentlich."],
-  [/reinen Tiere|Je sieben/, "Sieben von jeder reinen Art – Noah, der erste Tiersammler der Geschichte."],
-  [/Lukas 12,24/, "Die Raben säen nicht, und Gott ernährt sie trotzdem. Elizas Katze arbeitet auch nicht – und bekommt trotzdem Futter. Von mir."],
-  [/Amalekiter/, "Saul wollte es auf seine Art machen – und Samuel sagte: Gehorsam ist besser als Opfer (1. Samuel 15,22)."],
-  [/Tarsus/, "Paulus aus Tarsus, ich aus Iowa – Gott holt seine Leute von überall her!"],
-  [/Bethesda/, "Jesus fragte: Willst du gesund werden? (Johannes 5,6). Manchmal ist das die wichtigste Frage überhaupt."],
-  [/\bSilo\b/, "Silo – da wuchs Samuel auf. Sozusagen sein Training: Rede, Herr, dein Knecht hört."],
-  [/Kidron/, "Über den Kidron nach Gethsemane – der schwerste Weg der Geschichte. Jesus ging ihn freiwillig."],
-  [/Terebinthen/, "Bei Mamre hat Abraham seinen Gästen ein Festmahl gemacht (1. Mose 18,6-8). Gastfreundschaft wie bei uns in Iowa, nur 4000 Jahre früher."],
-  [/See von Galiläa/, "Am See ließen die Fischer ihre Netze liegen und folgten Jesus. Ich hab dafür meinen Controller weggelegt – kleinerer Schritt, aber immerhin!"],
-  [/Nach Babel/, "An den Strömen Babels saßen sie und weinten (Psalm 137,1). Eliza kennt Heimweh – dann spielt sie russische Lieder. Aber unsere Heimat ist im Himmel."],
-  [/Schiffbruch/, "Schiffbruch auf dem Weg nach Rom – epischer als jede Weltraumschlacht. Und alle überlebten!"],
-  [/sende mich/, "Jesaja meldete sich sofort. Luke brauchte länger – aber am Ende sind beide losgegangen."],
-  [/lebendigen Gottes/, "Petrus' Bekenntnis – darauf baut Jesus seine Gemeinde, und die Pforten des Totenreichs werden sie nicht überwältigen (Matthäus 16,18)."],
-  [/Mein Herr und mein Gott/, "Thomas – vom Zweifler zum Bekenner. Wie Han Solo, der zuerst an nichts glaubte. Nur dass Thomas den echten Herrn sah."],
-  [/Komme ich um/, "Esther ging ungerufen zum König – mutiger als jede Prinzessin im Kino!"],
-  [/Was ist Wahrheit/, "Pilatus fragte nach der Wahrheit und ging dann einfach weg. Da hat er die wichtigste Antwort der Geschichte verpasst."],
-  [/Silber und Gold/, "Kein Silber, kein Gold – aber im Namen Jesu: Steh auf und geh! Besser als alle Credits von Tatooine."],
-  [/zum Pharao gehen/, "Mose fühlte sich unfähig – wie Luke vor Yoda. Aber Gott sagt: Ich bin mit dir. Das zählt."],
-  [/stark und mutig/, "Sei stark und mutig – denn der HERR ist mit dir, wo du hingehst. Auch nach Eichstätt!"],
-  [/denk an mich/, "Ein Verbrecher in letzter Minute gerettet – Gottes Gnade hat keine Deadline."],
-  [/Erlöser lebt/, "Hiob sagt das mitten im tiefsten Leid. Das ist Glaube auf dem höchsten Schwierigkeitsgrad."],
-  [/entlässt du deinen Knecht/, "Simeon wartete sein ganzes Leben auf diesen Moment. Ich warte nur auf die nächste Serie – das ist nichts dagegen."],
-  [/muss abnehmen/, "Johannes wusste, dass er nicht der Held ist – ein Wegbereiter, der auf Jesus zeigt."],
-  [/guten Kampf/, "Den guten Kampf gekämpft – der Abschied des Paulus ist bewegender als jedes Serienfinale."],
-  [/mehr gehorchen/, "Gott mehr gehorchen als Menschen – die Apostel waren echte Rebellen, aber für die gute Sache."],
-  [/Unglauben/, "Das ehrlichste Gebet der Bibel – und Jesus hat den Vater nicht weggeschickt, sondern geholfen."],
-  [/Ähren|Boas/, "Rut sammelte Ähren auf dem Feld des Boas (Rut 2,3). In Iowa wären das Maisfelder – da kann man sich glatt verlaufen."],
-  [/Sämann|Saat\b|Samen/, "Das Gleichnis vom Sämann versteht in Iowa jedes Kind – dort wird im Frühling halb Amerika eingesät. Gottes Wort braucht guten Boden!"],
-  [/Missionsbefehl|Gehet hin|alle Völker|Missionsreise|Barnabas/, "Geht hin in alle Welt! Ich bin vom Bible College in Iowa bis nach Eichstätt gegangen – Pastor Willi und Heidi haben denselben Weg genommen."]
-];
-const AARON_ALLG = [
-  "Eliza übt im Nebenzimmer Querflöte – wenn du genau hinhörst: Es ist die Star-Wars-Titelmelodie. Ich hab sie überredet.",
-  "Was ich an Eichstätt liebe? Die Gemeinde. Was ich vermisse? Richtiges amerikanisches BBQ.",
-  "Eliza kommt aus Russland, ich aus Iowa, und wir wohnen in Eichstätt – bei uns ist es fast wie in der Cantina von Mos Eisley, nur viel friedlicher.",
-  "Wenn du die Million holst, lade ich dich zu Burgern und Spare Ribs ein – American Style!",
-  "Möge die Macht mit dir sein – nein, Moment: Der Herr sei mit dir! Das ist viel besser.",
-  "Yoda sagt: Tu es oder tu es nicht, es gibt kein Versuchen. Ich sag: Erst beten, dann tippen!",
-  "Im Hintergrund meint Eliza gerade, ich soll weniger über Star Wars und mehr über die Bibel reden. Sie hat recht.",
-  "Pulled Pork, Mac and Cheese, Cornbread … sorry, ich hab gerade Hunger bekommen.",
-  "Früher hab ich nächtelang Videospiele gezockt. Heute sammle ich lieber Bibelverse – much better Highscore!",
-  "Elizas Katze sitzt gerade auf meiner Bibel. Ich glaube, sie will auch mitspielen.",
-  "Achtung, Elizas Katze läuft über mein Handy – falls ich gleich komisch klinge, war sie das.",
-  "Funfact: In Amerika gibt es Kirchen mit Drive-in. In Eichstätt gibt es dafür die schöneren Kirchtürme.",
-  "Eliza hat mir beigebracht, Borschtsch zu kochen. Ich hab ihr beigebracht, Ribs zu smoken. Fairer Deal.",
-  "Die Katze hat heute meinen Lego-Millennium-Falken umgeworfen. Ich vergebe ihr – siebzigmal siebenmal (Matthäus 18,22).",
-  "Deutsch ist schwer: Warum heißt es „das Mädchen“, aber „die Gemeinde“? Die Bibel ist da manchmal einfacher.",
-  "Mein deutscher Lieblingssatz: „Gottes Segen und guten Appetit!“ Passt immer.",
-  "Ich träume von einem Thanksgiving-Truthahn für die ganze Gemeinde. Eliza meint, dafür ist unser Ofen zu klein.",
-  "Eliza spielt gerade „Amazing Grace“ auf der Querflöte. Gänsehaut – sogar die Katze hält still.",
-  "In Texas sagt man: Everything is bigger in Texas. Aber Gottes Gnade ist noch größer – sogar größer als Texas!",
-  "Meine Bibel-App läuft im Dunkelmodus. Nicht wegen der dunklen Seite – nur wegen der Augen.",
-  "Eliza sagt, ich rede beim Telefonieren zu viel. Okay, okay – zurück zur Frage!",
-  "In Amerika sagen wir „awesome“ zu allem. Aber bei Gott passt es wirklich: ehrfurchtgebietend.",
-  "Ich hab Eliza „Wer wird Biblionär?“ gezeigt. Jetzt will sie gegen mich spielen – ich hab ein bisschen Angst.",
-  "Ich hab lange in Berlin gewohnt – da war Currywurst mein BBQ-Ersatz. Eichstätt ist ruhiger, aber ich vermisse den Lärm kein bisschen.",
-  "In Berlin sagt man „icke“, in Bayern „i“, in Texas „y’all“. Ich sag einfach: Gott segne dich!",
-  "Nach Berlin ist Eichstätt wie ein Planet nach einem Weltraumbahnhof: ruhig, grün und mit viel besseren Leuten.",
-  "Ich komme aus Iowa – da gibt es mehr Schweine als Menschen und Mais bis zum Horizont. Eichstätt hat dafür die Altmühl.",
-  "Ich hab am Faith Baptist Bible College in Iowa Theologie studiert. Pastor Willi übrigens auch – same school! Iowa-Theologen halten zusammen.",
-  "Fun fact: Heidi, die Frau von Pastor Willi, kommt auch aus Iowa. Wenn wir uns treffen, reden wir nur über Mais und Schneestürme.",
-  "Auf der Iowa State Fair gibt es jedes Jahr eine Kuh aus Butter – in Lebensgröße. Kein Witz! Pancakes dazu, und ich bin glücklich.",
-  "In Iowa sagen alle „Midwest nice“: freundlich, hilfsbereit, ein bisschen zurückhaltend. Klingt fast wie Eichstätt!"
-];
-const AARON_SW = [
-  "Und vergiss nicht: Die helle Seite gewinnt am Ende immer – in Star Wars und erst recht in der Bibel.",
-  "Übrigens: Ich hab ein Lichtschwert-Lesezeichen in meiner Bibel. Blau, natürlich.",
-  "Ein Jedi wird man durch Training – ein Biblionär auch. Weiter so, junger Padawan!",
-  "Wie Obi-Wan sagen würde: Das ist die Antwort, nach der du suchst.",
-  "Fun fact: „Möge die Macht mit dir sein“ klingt fast wie „Der HERR sei mit euch“ aus Rut 2,4. Ich sag ja: Die Bibel war zuerst!",
-  "Ich hab alle Star-Wars-Filme bestimmt zehnmal gesehen. Die Bibel lese ich aber noch öfter – promise!",
-  "Wie Yoda sagen würde: Stolz du sein kannst, wenn richtig die Antwort ist.",
-  "Mein Wecker spielt morgens den Imperialen Marsch. Eliza findet das nicht lustig.",
-  "R2-D2 würde jetzt fröhlich piepen. Ich piepe einfach mit: Biep-bup!",
-  "Jedi-Tipp: erst Ruhe, dann Antwort. Christen-Tipp: erst Gebet, dann Antwort. Ich mache beides.",
-  "Iowa im Januar fühlt sich an wie Hoth. Da hätte ich auch gern einen Tauntaun gehabt – oder wenigstens eine Heizdecke.",
-  "Fun fact: Captain Kirk soll mal in Iowa geboren werden – aber das ist die falsche Galaxis. Bei mir zählt nur Star Wars!"
-];
-const AARON_TSCHUESS = ["Der Herr sei mit dir – always!", "Good luck! Eliza spielt dir einen Tusch auf der Querflöte.", "Okay, ich muss zurück zum Smoker. God bless!", "Bis Sonntag in der Gemeinde – see you!",
-  "Möge … äh, der Herr mit dir sein! Bye!",
-  "Gotta go – die Katze hat die BBQ-Soße entdeckt. God bless!",
-  "Da swidanija, wie Eliza sagt – und Gottes Segen von mir!",
-  "Okay, ich muss los – Episode V läuft noch auf Pause. Be blessed!",
-  "Take care! Ich bete für dich – wirklich, nicht nur so dahergesagt.",
-  "See you later, alligator! Gott segne dich.",
-  "Bye! Und grüß die Gemeinde von mir – oh wait, ich seh sie ja am Sonntag."];
-/* Pastor Aaron als Porträt: kurze Haare, freundliches Lächeln, blaues Lichtschwert */
-const AARON_BILD = `<svg class="willi-bild" viewBox="0 0 96 96" aria-hidden="true"><defs><radialGradient id="aaH" cx=".5" cy=".5" r=".5"><stop offset=".55" stop-color="#7fc8ff" stop-opacity=".45"/><stop offset="1" stop-color="#7fc8ff" stop-opacity="0"/></radialGradient><linearGradient id="aaHaut" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe6cf"/><stop offset="1" stop-color="#f0c29c"/></linearGradient><linearGradient id="aaHemd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c9563f"/><stop offset="1" stop-color="#7a2a25"/></linearGradient></defs>
-<circle cx="48" cy="48" r="47" fill="url(#aaH)"/><circle cx="48" cy="48" r="38" fill="#1b2146" stroke="url(#wrG)" stroke-width="3"/>
-<clipPath id="aaK"><circle cx="48" cy="48" r="36.5"/></clipPath><g clip-path="url(#aaK)">
-<path d="M18 92c2-17 14-24 30-24s28 7 30 24z" fill="url(#aaHemd)" stroke="#1b2a55" stroke-width="1.4"/><path d="M40 70l8 8 8-8" fill="#f6f1e6" stroke="#1b2a55" stroke-width="1.2"/>
-<path d="M43 61h10v8h-10z" fill="url(#aaHaut)"/>
-<ellipse cx="48" cy="45" rx="15" ry="17" fill="url(#aaHaut)" stroke="#1b2a55" stroke-width="1.4"/>
-<path d="M33 41c-1-11 6-17 15-17 9 0 16 5 15 17-2-5-6-8-11-8-5 2-11 3-17 1-1 2-2 4-2 7z" fill="#c69a5a" stroke="#1b2a55" stroke-width="1.2"/>
-<circle cx="42.5" cy="45" r="1.9" fill="#1b2a55"/><circle cx="53.5" cy="45" r="1.9" fill="#1b2a55"/><path d="M39 41q3.5-1.6 7 0M50 41q3.5-1.6 7 0" stroke="#8a6232" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-<path d="M41.5 53q6.5 5.5 13 0" fill="#fff" stroke="#3a1e08" stroke-width="1.6" stroke-linecap="round"/>
-<path d="M36 33q3-6 9-7" stroke="#fff" stroke-opacity=".55" stroke-width="2" fill="none" stroke-linecap="round"/></g>
-<g transform="rotate(32 78 34)"><rect x="76.5" y="2" width="5" height="34" rx="2.5" fill="#bfe6ff" opacity=".35"/><rect x="77.5" y="3" width="3" height="33" rx="1.5" fill="#e9f7ff"/><rect x="76" y="35" width="6" height="14" rx="1.5" fill="url(#wrSt)" stroke="#1b2a55" stroke-width="1"/><path d="M76 39h6M76 43h6" stroke="#1b2a55" stroke-width=".8"/></g></svg>`;
-/* Die beiden Kontakte des Telefonjokers. salt: eigener Zufall je Kontakt, damit Willi und Aaron nicht immer gleich antworten. */
-/* Themen-Witze (6.53): wenn kein Bezug genau zur Frage passt */
-const WILLI_THEMEN = {
-  "Schöpfung & Urgeschichte": ["Gott hat in sechs Tagen die ganze Welt gemacht. Ich brauche für ein 1000-Teile-Puzzle länger.", "Am siebten Tag ruhte Gott – den Teil der Schöpfungsgeschichte mag ich besonders: Sonntagsruhe mit frischem Brot."],
-  "Abraham bis Josef": ["Die Vätergeschichten sind ein Familienpuzzle mit vielen Teilen – erst am Ende passt alles zusammen.", "Bei Abraham, Isaak und Jakob gab es ständig Festessen. Ich fühle mich da sehr zu Hause."],
-  "Mose & Wüstenzeit": ["40 Jahre Wüste – und Gott hat jeden Tag Brot geschickt. Backen musste keiner, das ist fast unfair.", "Das Volk murrte in der Wüste übers Essen. Ich murre nur, wenn es Gemüseauflauf gibt."],
-  "Josua, Richter & Ruth": ["Zur Richterzeit tat jeder, was ihn recht dünkte (Richter 21,25) – wie meine Töchter, wenn Heidi und ich kurz weg sind.", "Das Buch Richter ist spannender als jeder Krimi auf Heidis Nachttisch."],
-  "Könige & Propheten": ["Die Königsbücher sind wie eine lange Serie – am Ende jeder Folge heißt es: Er tat, was recht oder böse war in den Augen des HERRN.", "So viele Könige – Heidi hat für mich eine Liste an den Kühlschrank gehängt."],
-  "Jesu Geburt & Kindheit": ["Bethlehem heißt „Brothaus“ – Jesus, das Brot des Lebens, kam im Brothaus zur Welt. Für einen Bäcker die schönste Geschichte!", "Weihnachten backt Heidi amerikanische Cookies und ich deutsches Brot. Völkerverständigung in der Küche!", "Weihrauch und Myrrhe als Geschenk – die Weisen wussten, was gut riecht. Heidi sagt, ich hätte ihnen gefallen."],
-  "Jesu Wirken & Wunder": ["Jesus hat Kranke geheilt, Stürme gestillt und Tausende satt gemacht. Das mit dem Sattmachen beeindruckt mich als Grillmeister besonders.", "Bei Jesus gab es ständig gemeinsames Essen – mit Zöllnern, Sündern und Freunden. Tischgemeinschaft ist Evangelium!"],
-  "Gleichnisse & Worte Jesu": ["Jesus hat in Bildern aus dem Alltag gesprochen – Brot, Samen, Schafe. Heute wäre vielleicht ein Grill dabei.", "Gleichnisse sind wie ein Puzzle: Erst sieht man Teile, dann plötzlich das ganze Bild.", "Jesus hat so gepredigt, dass alle zugehört haben – ganz ohne Gitarre. Ich arbeite noch dran."],
-  "Leiden & Auferstehung": ["Das ist das Herz des Evangeliums – da wird selbst ein Grillmeister ganz still.", "Ostern ist das größte Fest – größer als jedes Gemeindefest. Das Grab ist leer!"],
-  "Apostel & erste Gemeinde": ["Paulus war Missionar – Heidi und ich auch: aus Iowa nach Deutschland. Nur ohne Schiffbruch, Gott sei Dank.", "Die ersten Christen brachen das Brot in den Häusern (Apostelgeschichte 2,46) – Gemeinde fängt am Esstisch an!", "Die Apostelgeschichte ist voller Reisen und Schiffbrüche. Mein größtes Abenteuer war der Umzug von Ingolstadt nach Eichstätt.", "In Amerika besuchen wir jedes Jahr Gemeinden – wie Paulus, nur mit Flugzeug statt Schiff und mit deutlich mehr Parfüm im Koffer."],
-  "Psalmen & Weisheit": ["Die Psalmen lese ich gern morgens – Heidi liest dazu in einem ihrer tausend Bücher.", "Weisheit beginnt mit der Furcht des HERRN. Und gutes Grillen mit Geduld.", "Die Psalmen sind das Liederbuch der Bibel. Als Musikteamleiter hätte ich David sofort ins Team geholt – Asaph als Stellvertreter."],
-  "Propheten": ["Den Propheten wollte oft keiner zuhören. Kenne ich, wenn ich rufe: Das Essen ist fertig!", "Die kleinen Propheten hab ich mit dem Lied aus der App gelernt. Seitdem summe ich sie beim Teigkneten."],
-  "Briefe & Offenbarung": ["Paulus schrieb so viele Briefe – ich schreibe höchstens Einkaufszettel. Hauptsache, Fleisch steht drauf.", "Die Briefe sind wie Post von einem guten Freund – nur dass Paulus manche im Gefängnis geschrieben hat."],
-  "Bibelkunde": ["66 Bücher – wie ein Puzzle mit 66 Teilen. Wer alle kennt, sieht ein wunderschönes Bild.", "Die Reihenfolge der Bibelbücher hab ich mit dem Lied in unserer App gelernt. Jetzt werde ich es beim Backen nicht mehr los."],
-  "Frauen der Bibel": ["Die Frauen der Bibel waren mutig, klug und treu – wie Heidi. Die ist sogar aus Iowa nach Bayern gezogen!", "Heidi hat ein ganzes Regal voller Bücher über Frauen der Bibel. Ich hab ein Regal mit Grillbüchern. Wir ergänzen uns.", "Ohne die Frauen in der Bibel gäbe es viele Geschichten gar nicht. Ohne Heidi gäbe es bei uns kein Gemüse. Na gut – das wäre mir recht.", "Ester hat sich zwölf Monate mit Öl und Duftstoffen vorbereitet (Ester 2,12). Heidi sagt, ich brauche morgens ungefähr genauso lange."],
-  "Tiere der Bibel": ["Die Bibel ist voller Tiere – Löwen, Raben, Wachteln, Lämmer. Als Grillmeister sage ich zu manchen lieber nichts.", "Meine Töchter fragen, ob es im Himmel Tiere gibt. Ich sage: Jesaja 11 sieht ganz danach aus!", "In der Bibel sind Tiere oft Gottes Boten – Raben, Tauben, sogar eine Eselin. Bei uns ist der Bote meistens das Telefon."],
-  "Orte & Reisen": ["Die Bibel ist ein Reisebuch – von Ur bis Rom. Ich bin bisher von Ingolstadt nach Eichstätt gekommen. Immerhin!", "Wenn ich mal ins Heilige Land fahre, will ich am See Genezareth Fisch grillen – genau wie in Johannes 21.", "Abraham ist ohne Navi losgezogen, nur mit Gottes Zusage. Ich verfahre mich mit Navi schon zwischen Ingolstadt und Eichstätt.", "Wir fliegen jedes Jahr nach Amerika – zu Heidis Familie und zu Gemeinden. Paulus wäre neidisch auf die Flugmeilen."],
-  "Wer sagte das?": ["Zitate erkennen ist wie Stimmen am Telefon erkennen – manche sofort, andere erst beim zweiten Satz.", "Der Satz, den ich zu Hause am häufigsten höre? „Willi, nicht schon wieder Fleisch!“ – Heidi.", "Die Bibel ist voller großer Sätze. Mein Lieblingssatz bleibt: Es ist vollbracht."]
-};
-const AARON_THEMEN = {
-  "Schöpfung & Urgeschichte": ["Gott sprach – und es wurde Licht. Keine Spezialeffekte nötig, nur ein Wort!", "Die Schöpfung ist das ultimative Worldbuilding – schöner als jede Galaxis im Kino.", "Der zweithäufigste Satz bei uns zu Hause: „Willi, nicht so viel Parfüm!“ Der häufigste kommt beim Grillen."],
-  "Abraham bis Josef": ["Josefs Geschichte ist eine Saga in mehreren Episoden – Verrat, Gefängnis und ein Happy End.", "Familiendrama bei Jakob – fast so kompliziert wie bei den Skywalkers. Aber Gott hat Gutes daraus gemacht (1. Mose 50,20)."],
-  "Mose & Wüstenzeit": ["Mose gegen den Pharao – ein Showdown, und Gott hat gewonnen. Ohne Lichtschwert!", "40 Jahre Wüste – länger als jede Mission auf Tatooine. Aber Gott war jeden Tag dabei."],
-  "Josua, Richter & Ruth": ["Die Richter waren Helden mit Schwächen – der wahre Held in dem Buch ist Gott.", "Ruth ist mein Lieblingsbuch für Zugezogene – und davon gibt es bei uns zu Hause gleich zwei."],
-  "Könige & Propheten": ["Die Königsbücher sind eine echte Saga – Könige kommen und gehen, Gott bleibt treu.", "Elia, Elisa, Daniel – mehr Action als jede Kinoreihe."],
-  "Jesu Geburt & Kindheit": ["Weihnachten in Amerika heißt: Lichterketten überall. In Eichstätt ist es ruhiger – das Wunder ist dasselbe.", "Der Retter kam als Baby, nicht als Krieger. That’s God’s style."],
-  "Jesu Wirken & Wunder": ["Jesus heilte Blinde, Lahme und Aussätzige – keine Tricks, echte Wunder.", "Jesu Wunder sind wie ein Trailer für das, was kommt: eine neue Welt ohne Krankheit."],
-  "Gleichnisse & Worte Jesu": ["Jesus ist der beste Geschichtenerzähler aller Zeiten – besser als jeder Drehbuchautor in Hollywood.", "Gleichnisse sind wie Easter Eggs: Beim zweiten Lesen entdeckt man immer noch etwas Neues."],
-  "Leiden & Auferstehung": ["Das Kreuz sah aus wie eine Niederlage – und war der größte Sieg der Geschichte.", "Ostern ist keine Fan-Theorie, sondern Geschichte: Er ist auferstanden!"],
-  "Apostel & erste Gemeinde": ["Die Apostelgeschichte ist ein Roadtrip mit dem Heiligen Geist als Navigator.", "Die erste Gemeinde war bunt gemischt – wie unsere in Eichstätt mit Amerikanern, Russinnen und Bayern.", "Paulus ging auf Missionsreise, Willi und Heidi kamen als Missionare aus Iowa – und ich auch nach Eichstätt. Gute Tradition!"],
-  "Psalmen & Weisheit": ["Eliza spielt gern Psalmen auf der Querflöte – das waren ja eigentlich Lieder.", "Die Sprüche sind wie Yoda-Weisheiten – nur in normaler Satzstellung."],
-  "Propheten": ["Die Propheten sahen weit voraus – nicht durch die Macht, sondern weil Gott es ihnen gezeigt hat.", "Die kleinen Propheten sind kurz, aber kraftvoll. Wie Yoda."],
-  "Briefe & Offenbarung": ["Paulus’ Briefe waren Ermutigung für kleine Gemeinden – wie Nachrichten an versprengte Rebellenbasen.", "Die Offenbarung ist das Finale – und ich hab das Ende schon gelesen: Jesus gewinnt!"],
-  "Bibelkunde": ["66 Bücher – eine riesige Saga. Und anders als bei Star Wars gibt es keinen Streit über die richtige Reihenfolge.", "Ich lerne die Bibelbücher mit dieser App. Eliza ist leider schneller – sie ist eben musikalischer."],
-  "Frauen der Bibel": ["Die Frauen der Bibel sind echte Heldinnen – mutiger als jede Filmprinzessin.", "Eliza sagt, bei Frauenfragen soll ich besonders gut aufpassen. Smart woman.", "Ruth, Esther, Abigail – starke Frauen. Ich kenne auch eine: Eliza, Querflötistin aus Russland."],
-  "Tiere der Bibel": ["Elizas Katze kommt in der Bibel nicht vor – sie findet aber, sie hätte mindestens einen eigenen Psalm verdient.", "Von der Eselin bis zum Löwen – die Tiere der Bibel sind spannender als jedes Wesen auf Tatooine.", "Hatte Noah Katzen in der Arche? Bestimmt – sonst hätte Eliza heute keine."],
-  "Orte & Reisen": ["Ich bin von Iowa über Berlin nach Eichstätt gekommen – Paulus wäre stolz auf diese Reiseroute.", "Die Bibel hat mehr Schauplätze als die ganze Star-Wars-Saga – und alle sind echt!", "In Berlin war die U-Bahn manchmal wie die Wüstenwanderung: lang, und keiner weiß, wann man ankommt."],
-  "Wer sagte das?": ["Zitate zuordnen? Bei Star Wars kann ich jeden Satz. Bei der Bibel arbeite ich noch dran.", "Wer sagte das? Bei uns zu Hause meistens Eliza: „Aaron, weniger Star Wars!“", "Die Bibel hat die stärksten Sätze der Geschichte – stärker als „Ich bin dein Vater“."]
-};
-const PASTOREN = {
-  willi: { name: "Pastor Willi", kurz: "Willi", info: "Bibelkenner & Grillmeister", bild: () => WILLI_BILD, salt: 0, quoten: [[.9, .98, .995], [.62, .86, .94], [.38, .64, .82]],
-    hallo: WILLI_HALLO, sicher: WILLI_SICHER, ziemlich: WILLI_ZIEMLICH, sicherOhne: WILLI_SICHER_OHNE, ziemlichOhne: WILLI_ZIEMLICH_OHNE, schwank: WILLI_SCHWANK, geraten: WILLI_GERATEN, thema: WILLI_THEMA, themen: WILLI_THEMEN, allg: WILLI_ALLG, tschuess: WILLI_TSCHUESS },
-  aaron: { name: "Pastor Aaron", kurz: "Aaron", info: "Bibelkenner & Star-Wars-Experte", bild: () => AARON_BILD, salt: 0x2c1b3c6d, quoten: [[.9, .98, .995], [.6, .85, .93], [.36, .62, .8]],
-    hallo: AARON_HALLO, sicher: AARON_SICHER, ziemlich: AARON_ZIEMLICH, sicherOhne: AARON_SICHER_OHNE, ziemlichOhne: AARON_ZIEMLICH_OHNE, schwank: AARON_SCHWANK, geraten: AARON_GERATEN, thema: AARON_THEMA, themen: AARON_THEMEN, allg: AARON_ALLG, tschuess: AARON_TSCHUESS, sw: AARON_SW }
-};
 /* Wen rufst du an? Erst nach der Wahl ist der Joker verbraucht – Abbrechen gibt ihn zurück. */
 function telefonWahl(weiter, abbruch, weih) {
+  const ids = jokerKontakte();
+  if (ids.length === 1) { weiter(ids[0]); return; }
   const m = modal(`<div class="label">Telefonjoker</div><h2 style="margin:0">Wen rufst du an?</h2>
-    <div class="tel-wahl">${Object.entries(PASTOREN).map(([id, P]) => `<button class="tel-kontakt" data-tel="${id}">${pastorBild(P, weih)}<span><b>${P.name}</b><small>${P.info}</small></span>${svg("telefon")}</button>`).join("")}</div>
+    <div class="tel-wahl">${ids.map(id => [id, PASTOREN[id]]).map(([id, P]) => `<button class="tel-kontakt" data-tel="${id}">${pastorBild(P, weih)}<span><b>${P.name}</b><small>${P.info}</small></span>${svg("telefon")}</button>`).join("")}</div>
     <p class="small muted" style="margin:0">Die Uhr steht, solange du telefonierst. Du hast nur einen Anruf.</p>
     <button class="btn ghost" data-close>Doch nicht</button>`, x => { if (x !== "gewaehlt") abbruch(); });
   m.classList.add("willi-modal");
   m.querySelectorAll("[data-tel]").forEach(b => b.onclick = () => { m.remove(); weiter(b.dataset.tel); });
 }
-/* Pastor Willi als kleines Porträt im Stil „Himmlisches Licht“ (Bart, Grillzange) */
-const WILLI_BILD = `<svg class="willi-bild" viewBox="0 0 96 96" aria-hidden="true"><defs><radialGradient id="wiH" cx=".5" cy=".5" r=".5"><stop offset=".55" stop-color="#b38cff" stop-opacity=".45"/><stop offset="1" stop-color="#b38cff" stop-opacity="0"/></radialGradient><linearGradient id="wiHaut" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe2c4"/><stop offset="1" stop-color="#e9b88e"/></linearGradient><linearGradient id="wiBart" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9a6a3c"/><stop offset="1" stop-color="#5e3a1c"/></linearGradient><linearGradient id="wiHemd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3d5ab8"/><stop offset="1" stop-color="#1d2f6b"/></linearGradient></defs>
-<circle cx="48" cy="48" r="47" fill="url(#wiH)"/><circle cx="48" cy="48" r="38" fill="#1b2146" stroke="url(#wrG)" stroke-width="3"/>
-<clipPath id="wiK"><circle cx="48" cy="48" r="36.5"/></clipPath><g clip-path="url(#wiK)">
-<path d="M18 92c2-17 14-24 30-24s28 7 30 24z" fill="url(#wiHemd)" stroke="#1b2a55" stroke-width="1.4"/><path d="M42 69l6 9 6-9" fill="#fff" stroke="#1b2a55" stroke-width="1.2"/>
-<circle cx="48" cy="42" r="16" fill="url(#wiHaut)" stroke="#1b2a55" stroke-width="1.4"/>
-<path d="M32 40c-1 6 1 12 4 17 3 5 7 9 12 9s9-4 12-9c3-5 5-11 4-17-2 4-5 6-8 6-3-2-5-2-8-2s-5 0-8 2c-3 0-6-2-8-6z" fill="url(#wiBart)" stroke="#1b2a55" stroke-width="1.2"/>
-<path d="M42 49q6 4 12 0" fill="none" stroke="#3a1e08" stroke-width="1.8" stroke-linecap="round"/><path d="M43.5 53q4.5 2.4 9 0" fill="#c4544c"/>
-<path d="M33 35c0-10 7-15 15-15s15 5 15 15c-3-5-8-7-15-7s-12 2-15 7z" fill="#7a5230" stroke="#1b2a55" stroke-width="1.2"/>
-<circle cx="42" cy="40" r="1.9" fill="#1b2a55"/><circle cx="54" cy="40" r="1.9" fill="#1b2a55"/><path d="M38.5 36q3.5-2 7 0M50.5 36q3.5-2 7 0" stroke="#5e3a1c" stroke-width="1.6" fill="none" stroke-linecap="round"/>
-<path d="M36 30q2-6 8-7" stroke="#fff" stroke-opacity=".55" stroke-width="2" fill="none" stroke-linecap="round"/></g>
-<g transform="rotate(28 78 30)"><rect x="76" y="20" width="4" height="30" rx="2" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1"/><path d="M74 21V9M78 21V7M82 21V9" stroke="url(#wrG)" stroke-width="2.4" stroke-linecap="round"/><path d="M73 21h10" stroke="#1b2a55" stroke-width="1"/></g></svg>`;
-/* Das Telefonat: es klingelt, dann erzählt Willi Satz für Satz. Die Bedenkzeit steht so lange. */
+/* Das Telefonat: es klingelt, dann erzählt der Pastor Satz für Satz. Die Bedenkzeit steht so lange. */
 const pastorBild = (P, weih) => weih ? weihBild(P.bild()) : P.bild();
 function pastorAnruf(w, weiter) {
-  const P = PASTOREN[w.wer] || PASTOREN.willi;
+  const P = PASTOREN[w.wer] || PASTOREN.gast;
   const ruhig = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const m = modal(`<div class="willi">
       <div class="willi-kopf">${pastorBild(P, w.weih)}<div><div class="label">Telefonjoker</div><b>${P.name}</b><small id="wStatus"><i class="w-ring"></i> Es klingelt …</small></div></div>
@@ -5177,7 +4450,7 @@ VIEWS.bib = () => {
     <div class="bq2-joker" aria-label="Deine Joker – je einmal pro Spiel">
       <span><b class="bq2-j5">50:50</b><span><b>Halbieren</b><small>2 falsche weg</small></span></span>
       <span>${svg("people")}<span><b>Gemeinde</b><small>alle stimmen ab</small></span></span>
-      <span>${svg("telefon")}<span><b>Telefon</b><small>Willi oder Aaron</small></span></span>
+      <span>${svg("telefon")}<span><b>Telefon</b><small>${jokerBeschreibung()}</small></span></span>
     </div>
     <button class="bq2-fuss" data-go="rank" data-arg="bibRekord">${svg("trophy")}<span>Joker je 1× pro Spiel · Bestenliste</span><b>Rangliste ›</b></button>`;
   wireGo();
@@ -5298,7 +4571,9 @@ async function entwicklerPruefen() {
     await doppelteZusammenfuehren();
     await statusBerichte();
     await xpBerichte();
-    const liste = await L.feedbackListe(); postfachNeu = liste.filter(f => !f.erledigt).length; pkOffenPruef = liste.filter(f => !f.erledigt && (pkIstXp(f) || pkIstDup(f))).length; renderHud();
+    const liste = await L.feedbackListe(); postfachNeu = liste.filter(f => !f.erledigt).length;
+    try { antragOffen = L.antragListe ? (await L.antragListe()).filter(a => a.status === "offen").length : 0; } catch (e) { antragOffen = 0; }
+    pkOffenPruef = liste.filter(f => !f.erledigt && (pkIstXp(f) || pkIstDup(f))).length + antragOffen; renderHud();
     if (["home", "profil"].includes(current) && !document.querySelector(".modal")) go(current);
   } catch (e) { entwickler = false; }
 }
@@ -5346,7 +4621,7 @@ VIEWS.postfach = (kat) => {
   screen.innerHTML = `${backBtn("home", "Start")}<div class="pk-kopf"><h1>Postkasten</h1><span class="pk-ikonen">
     <button class="iconbtn" id="pkLupe" aria-label="Suchen" aria-pressed="${pkSuchOffen}"><span aria-hidden="true">🔍</span></button>
     <button class="iconbtn" id="pkWahl" aria-label="Auswählen" aria-pressed="${pkAuswahl}">☑</button></span></div>
-  <div class="pk-pins" aria-label="Prüfungen">${zeile("pkXp", "medal", "XP-Prüfung", xpTag, 'data-go="xppruefung"')}${zeile("pkDup", "people", "Doppelte Namen", dupTag, 'id2="x"')}<button class="pk-pin" id="pkGem" data-go="gemverwaltung"><span class="pk-pt"><b>${svg("people")} Gemeinden</b><span class="small muted">Gemeinden anlegen, Spieler zuordnen</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkTal" data-go="talente"><span class="pk-pt"><b>${svg("tal")} Talente-Planung</b><span class="small muted">Guthaben, Ø pro Tag, Spenden-Prognose</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkNach" data-go="nachrichten"><span class="pk-pt"><b>${svg("chat")} Nachricht an Spieler</b><span class="small muted">Patchnotes und Mitteilungen senden</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button></div>
+  <div class="pk-pins" aria-label="Prüfungen">${zeile("pkXp", "medal", "XP-Prüfung", xpTag, 'data-go="xppruefung"')}${zeile("pkDup", "people", "Doppelte Namen", dupTag, 'id2="x"')}<button class="pk-pin" id="pkAnt" data-go="antraege"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("people")} Beitrittsanträge</b><span class="small muted" data-pkinfo>${antragOffen ? antragOffen + " offen" : "Freischaltung für neue Mitglieder"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGem" data-go="gemverwaltung"><span class="pk-pt"><b>${svg("people")} Gemeinden</b><span class="small muted">Gemeinden anlegen, Spieler zuordnen</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkTal" data-go="talente"><span class="pk-pt"><b>${svg("tal")} Talente-Planung</b><span class="small muted">Guthaben, Ø pro Tag, Spenden-Prognose</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkNach" data-go="nachrichten"><span class="pk-pt"><b>${svg("chat")} Nachricht an Spieler</b><span class="small muted">Patchnotes und Mitteilungen senden</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button></div>
   <div class="card rk-liste" style="margin-top:10px">
     <div class="pk-suchzeile" ${pkSuchOffen ? "" : "hidden"}><input type="search" id="pkSuche" placeholder="Suchen (Text, Name, Version)" value="${esc(pkSuche)}" aria-label="Post durchsuchen" autocomplete="off"></div>
     <div class="pk-filter"><div class="rk-var" role="group" aria-label="Filter">${[["neu", "Neu"], ["alle", "Alle"], ["erledigt", "Erledigt"]].map(([k, n]) => `<button data-pf="${k}" aria-pressed="${k === postfachFilter}">${n}<i class="pk-n" data-pfn="${k}"></i></button>`).join("")}</div>
@@ -5373,7 +4648,7 @@ VIEWS.postfach = (kat) => {
   const zeichne = () => {
     postfachNeu = liste.filter(f => !f.erledigt).length; renderHud();
     const xpOff = liste.filter(f => !f.erledigt && pkIstXp(f)).length, dupOff = liste.filter(f => !f.erledigt && pkIstDup(f)).length;
-    pkOffenPruef = xpOff + dupOff; renderHud();
+    pkOffenPruef = xpOff + dupOff + antragOffen; renderHud();
     ampel("pkXp", xpOff ? "orange" : xpTag ? "gruen" : "grau", xpOff ? `${xpOff} offen · ${tagText(xpTag)}` : "");
     ampel("pkDup", dupOff ? "orange" : dupTag ? "gruen" : "grau", dupOff ? `${dupOff} offen · ${tagText(dupTag)}` : "");
     const basis = liste.filter(passt), zahl = k => basis.filter(f => k === "alle" ? true : k === "neu" ? !f.erledigt : f.erledigt).length;

@@ -245,7 +245,17 @@ if (!configured) {
     LB.gemListe = async () => (await fs.getDocs(fs.collection(db, "gemeinden"))).docs.map(d => ({ id: d.id, ...d.data() }));
     LB.mitgliedListe = async () => (await fs.getDocs(fs.query(fs.collection(db, "mitglied"), fs.limit(1000)))).docs.map(d => ({ id: d.id, g: d.data().g }));
     LB.gemSetzen = async (pid, name, g) => { await LB.signIn(); await fs.setDoc(ref("mitglied", pid), { pid, name, g, updated: fs.serverTimestamp() }); };
-    LB.gemAnlegen = async (id, name, ord, extra) => { await LB.signIn(); const d = { name, ord: ord | 0 }; if (extra && extra.pw) d.pw = String(extra.pw).slice(0, 30); if (extra && extra.logo) d.logo = String(extra.logo).slice(0, 30000); await fs.setDoc(ref("gemeinden", id), d); };
+    LB.gemAnlegen = async (id, name, ord, extra) => { await LB.signIn(); const d = { name, ord: ord | 0 }; if (extra && extra.pw) d.pw = String(extra.pw).slice(0, 30); if (extra && extra.logo) d.logo = String(extra.logo).slice(0, 30000); if (extra && extra.pruef) d.pruef = true; await fs.setDoc(ref("gemeinden", id), d); };
+    // 9.11 Freischaltung: Anträge (antraege/{pid}), Freigaben je Gerät (freigabe/{uid}) und der Joker-Schlüssel (geheim/joker)
+    LB.antragSenden = async (pid, name, g) => { await LB.signIn(); await fs.setDoc(ref("antraege", pid), { pid, name: String(name || "").slice(0, 20), g, status: "offen", zeit: fs.serverTimestamp() }); };
+    LB.antragHolen = async (pid) => { const d = await fs.getDoc(ref("antraege", pid)); return d.exists() ? { id: d.id, ...d.data() } : null; };
+    LB.antragListe = async () => (await fs.getDocs(fs.query(fs.collection(db, "antraege"), fs.limit(200)))).docs.map(d => { const x = d.data(); return { id: d.id, pid: x.pid, name: x.name || "", g: x.g || "", status: x.status || "offen", zeit: x.zeit && x.zeit.toMillis ? x.zeit.toMillis() : 0 }; });
+    LB.antragAblehnen = async (pid) => { await LB.signIn(); await fs.updateDoc(ref("antraege", pid), { status: "abgelehnt" }); };
+    LB.antragLoeschen = async (pid) => { await LB.signIn(); await fs.deleteDoc(ref("antraege", pid)); };
+    LB.freigabeSetzen = async (uids, g, pid) => { await LB.signIn(); for (const u of uids) await fs.setDoc(ref("freigabe", u), { g, pid, zeit: fs.serverTimestamp() }); };
+    LB.freigabeEntfernen = async (uids) => { await LB.signIn(); for (const u of uids) await fs.deleteDoc(ref("freigabe", u)); };
+    LB.jokerSchluessel = async () => { await LB.signIn(); const d = await fs.getDoc(ref("geheim", "joker")); return d.exists() ? String(d.data().k || "") : ""; };
+    LB.jokerSchluesselSetzen = async (k) => { await LB.signIn(); await fs.setDoc(ref("geheim", "joker"), { k: String(k).slice(0, 120) }); };
     LB.gemLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("gemeinden", id)); };
 
     // 9.7 Nachrichten des Entwicklers an die Spieler (Patchnotes u. Ä.): nur der Verwalter schreibt, angemeldete Spieler lesen
