@@ -307,4 +307,60 @@ const KAL_ERF = [
    ===================================================================== */
 const WEIH_MUETZE = `<g class="weih-muetze"><path d="M29 34C30 20 40 12 53 12c7 0 12 3 14 8l11-6-3 13c0 3-1 5-3 8z" fill="#d93a4a" stroke="#6a1420" stroke-width="1.3" stroke-linejoin="round"/><rect x="26" y="31" width="44" height="9" rx="4.5" fill="#fff" stroke="#c9c2b0" stroke-width="1"/><circle cx="78" cy="14" r="5.5" fill="#fff" stroke="#c9c2b0" stroke-width="1"/></g>`;
 const weihBild = svgText => svgText.replace("</svg>", WEIH_MUETZE + "</svg>");
-const ADV_PASTOREN = {}; /* 9.11: Weihnachtstexte von Willi und Aaron stehen verschlüsselt in joker.enc */
+const ADV_PASTOREN = {
+  gast: {
+    hallo: [
+      "Gesegneten Advent! Hier ist der Gastprediger – die Weihnachtsmütze sitzt, die Kerze brennt. Wie kann ich helfen?",
+      "Frohe Weihnachten im Voraus! Gastprediger am Apparat. Ich komme gerade vom Adventsgottesdienst – mein Kopf ist voller Lieder.",
+      "Der Herr sei mit dir! Hier der Gastprediger – im Gemeindehaus riecht es nach Plätzchen und Kaffee. Schieß los!",
+      "Hallo, Gastprediger hier! Zur Adventszeit predige ich besonders gern – das Thema ist ja gleich mitgeliefert."
+    ],
+    sicher: [
+      x => `Ganz klar ${x.X}! Das lesen wir jedes Jahr an Heiligabend – ${x.ref}.`,
+      x => `${x.X}. So sicher wie das Amen nach dem Krippenspiel. Steht in ${x.ref}.`,
+      x => `Ohne Zweifel: ${x.X}. Schlag ${x.ref} auf – Weihnachten steht wirklich in der Bibel.`,
+      x => `${x.X}! Darüber habe ich schon im Advent gepredigt – ${x.ref}.`
+    ],
+    ziemlich: [
+      x => `Ich bin ziemlich sicher: ${x.X}. Ich meine, das ist ${x.ref} – oder war es das Krippenspiel?`,
+      x => `Ich tippe auf ${x.X}. Das müsste ${x.ref} sein – meine Bibel liegt noch unterm Adventskranz.`,
+      x => `Mein Herz sagt ${x.X}, und ${x.ref} spricht dafür, wenn ich mich recht erinnere.`
+    ],
+    schwank: [
+      x => `Hm, ${x.X} oder ${x.Y}? Beim Adventskalender hätte ich jetzt gern ein Türchen mehr. Ich nehme ${x.X}.`,
+      x => `Ich schwanke zwischen ${x.X} und ${x.Y} – wie die Hirten auf dem Feld. Ich entscheide mich für ${x.X}.`,
+      x => `${x.X}, würde ich sagen, aber ${x.Y} ist nicht ausgeschlossen. Ohne Gewähr – wie die Post vor Weihnachten.`
+    ],
+    geraten: [
+      x => `Ehrlich gesagt geraten: ${x.X}. Mein Kopf ist schon im Weihnachtsurlaub.`,
+      x => `Nur ein Tipp ins Blaue: ${x.X}. Mehr kann ich dir nicht anbieten – außer einem Plätzchen.`,
+      x => `Ganz unsicher. ${x.X}, aber ohne Gewähr.`
+    ],
+    thema: [
+      [/Immanuel|Jesaja 7/, "Immanuel heißt „Gott mit uns“ (Matthäus 1,23). Genau das feiern wir an Weihnachten."],
+      [/Bethlehem|Micha/, "Bethlehem, „Haus des Brotes“ – dort wird der geboren, der das Brot des Lebens ist (Johannes 6,35)."],
+      [/Hirt|Schaf|Feld/, "Die Hirten waren die Ersten, die es hörten. Gott sucht sich gern die Unscheinbaren aus (Lukas 2,8-11)."],
+      [/Engel|Gabriel|fürchte/, "„Fürchte dich nicht!“ – der Weihnachtssatz der Bibel. Er gilt auch für den Dezemberstress."],
+      [/Stern|Weise|Morgenland|Gold|Weihrauch/, "Gold, Weihrauch und Myrrhe (Matthäus 2,11) – die Weisen wussten, wem sie schenken."],
+      [/Josef|Traum/, "Josef sagt in der ganzen Weihnachtsgeschichte kein einziges Wort – und tut trotzdem genau das Richtige."],
+      [/Maria|Magd|Lobgesang/, "Marias Lobgesang (Lukas 1,46-55) ist das Adventslied schlechthin: „Meine Seele erhebt den Herrn.“"]
+    ],
+    themen: { "Advent": [
+      "Advent heißt „Ankunft“. Der König kommt – und wir dürfen uns in aller Ruhe darauf vorbereiten.",
+      "Jede Kerze am Kranz erinnert: Das Licht wird heller, je näher Weihnachten rückt."
+    ] },
+    allg: [
+      "Weihnachten ist das Fest, an dem Gott sein Versprechen hält. Und der Christstollen auch.",
+      "Wenn alles hektisch wird: Maria hat die Dinge in ihrem Herzen bewegt (Lukas 2,19). Das tut jedem Advent gut.",
+      "Weihnachten ist kein Wunschzettel, sondern ein Geschenk: Gott schenkt sich selbst.",
+      "Das Kind in der Krippe ist die Antwort auf jahrhundertelanges Warten.",
+      "Als Gastprediger predige ich im Advent in vielen Gemeinden – und überall steht ein Kranz und ein Teller mit Plätzchen."
+    ],
+    tschuess: [
+      "Frohe Weihnachten! Der Herr segne dich und behüte dich.",
+      "Gesegneten Advent – und Gottes Segen für die nächste Frage!",
+      "Möge das Licht von Bethlehem bei dir brennen. Auf Wiederhören!",
+      "Fürchte dich nicht – und tipp mutig. Frohes Fest!"
+    ]
+  }
+}; /* 9.11: Weihnachtstexte von Willi und Aaron stehen verschlüsselt in joker.enc */
