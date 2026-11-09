@@ -373,7 +373,7 @@ function vlZeige() {
     inhalt = `<div class="vl-vers vl-lueckentext">${w.map((x, i) => {
       if (!verdeckt.has(i)) return esc(x);
       const m = x.match(/^(.*?)([.,;:!?»«„“"'’)]*)$/u);
-      if (a.offen.indexOf(i) < a.pos) return `<span class="vl-gefuellt">${esc(m[1])}</span>${esc(m[2])}`;
+      if (a.offen.indexOf(i) < a.pos) return `<span class="vl-gefuellt${(a.fehlStellen || {})[i] ? " fehlte" : ""}">${esc(m[1])}</span>${esc(m[2])}`;
       return `<span class="vl-loch ${i === aktiv ? "jetzt" : ""}"></span>${esc(m[2])}`;
     }).join(" ")}</div>
       <div class="vl-chips">${a.opts.map((o, j) => `<button class="chip" data-o="${j}">${esc(o)}</button>`).join("")}</div>`;
@@ -431,12 +431,13 @@ function vlVerdrahten(a, verdeckt) {
       if (a.pos >= a.offen.length) {
         /* letztes Wort sichtbar in die Lücke setzen, bevor das Urteil erscheint */
         const loch = screen.querySelector(".vl-loch.jetzt"), m = w[aktiv].match(/^(.*?)([.,;:!?»«„“"'’)]*)$/u);
-        if (loch) loch.outerHTML = `<span class="vl-gefuellt">${esc(m[1])}</span>`;
-        const n = a.fehler;
-        vlUrteil(a, n === 0, n ? `Das letzte Wort war richtig – vorher gab es ${n} Fehlversuch${n > 1 ? "e" : ""}.` : null, true);
+        if (loch) loch.outerHTML = `<span class="vl-gefuellt${(a.fehlStellen || {})[aktiv] ? " fehlte" : ""}">${esc(m[1])}</span>`;
+        const n = a.fehler, st = Object.keys(a.fehlStellen || {}).map(Number).sort((x, y) => x - y);
+        const wo = st.map(i => `<span class="vu-fehlwort">${esc(lvKern(w[i]))}</span>${a.fehlStellen[i] > 1 ? ` (${a.fehlStellen[i]}×)` : ""}`).join(", ");
+        vlUrteil(a, n === 0, n ? `Alle Lücken sind jetzt richtig. Fehlversuch${st.length > 1 ? "e" : ""} bei: ${wo} – im Vers orange markiert.` : null, true);
       } else vlZeige();
     }
-    else { a.fehler++; vlFehlerWort(a.k, aktiv); SFX.wrong(); vibrate([40, 30, 40]); b.classList.remove("no"); void b.offsetWidth; b.classList.add("no"); b.disabled = true; }
+    else { a.fehler++; a.fehlStellen = a.fehlStellen || {}; a.fehlStellen[aktiv] = (a.fehlStellen[aktiv] || 0) + 1; vlFehlerWort(a.k, aktiv); SFX.wrong(); vibrate([40, 30, 40]); b.classList.remove("no"); void b.offsetWidth; b.classList.add("no"); b.disabled = true; }
   });
   if (a.typ === "kacheln") {
     const neu = () => { vlZeige(); };
@@ -531,7 +532,7 @@ function vlUrteil(a, ok, loesung, html) {
   else {
     VL.serie = 0; if (VL.modus === "pruefung") VL.durchfall = true; SFX.wrong(); vibrate([40, 30, 40]); shakeScreen();
     /* Fehler-Wiederholung: Aufgabe kommt (höchstens zweimal) am Ende der Lektion nochmal – neu gemischt */
-    if (VL.modus !== "pruefung" && a.versuch < 3) { const kopie = Object.assign({}, a); ["opts", "loesung", "tausch", "falsch", "ziel", "kacheln", "gelegt", "offen", "pos", "fehler", "optsFuer", "tippGenutzt"].forEach(x => delete kopie[x]); VL.liste.push(kopie); }
+    if (VL.modus !== "pruefung" && a.versuch < 3) { const kopie = Object.assign({}, a); ["opts", "loesung", "tausch", "falsch", "ziel", "kacheln", "gelegt", "offen", "pos", "fehler", "optsFuer", "tippGenutzt", "fehlStellen"].forEach(x => delete kopie[x]); VL.liste.push(kopie); }
   }
   screen.querySelectorAll(".vl-opt, .vl-wort, .vl-chips .chip, [data-z], textarea, .vl-feld").forEach(x => { if (x.tagName === "TEXTAREA" || x.classList.contains("vl-feld")) x.readOnly = true; else x.disabled = true; });
   if (a.typ === "fortsetzung" || a.typ === "stelle") screen.querySelectorAll(".vl-opt").forEach(b => { const o = a.opts[+b.dataset.o]; if (o === a.loesung) b.classList.add("richtig"); else if (b.classList.contains("gewaehlt")) b.classList.add("falsch"); });
