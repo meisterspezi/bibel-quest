@@ -1,5 +1,5 @@
 rules_version = '2';
-// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 9.13.2 – Gemeindename bis 50 Zeichen; 9.12 – Ketten-Duelle gebote/schoepfung; 9.11 – Gespräche (dialoge), Freischaltung: Gemeinden mit pruef, Sammlungen antraege, freigabe, geheim; 9.7 – Sammlung nachrichten, Gemeinden mit Passwort pw und Logo logo; 9.0 – Sammlungen gemeinden + mitglied; 7.3 – Sammlung bethlehem (Weg nach Bethlehem, Advent); 6.95 – Sammlung talente (Talente-Zählung, nur der Verwalter liest); 6.88 – xpquellen: Regel vereinfacht (Limit 1000 Auswertungen pro Schreibzugriff, ab der 4. Quelle wurde abgelehnt); 6.80 – Sammlungen bibversuch (Biblionär-Wochenrunde einmal je Serverwoche) und spendenxp (XP für Spenden einmal je Talent); 6.79 – xpquellen: neue Quelle spende (Stiftshütte); 6.78 – Sammlung tagestruhe (Schatztruhe einmal je Serverdatum); 6.76 – xpquellen: neue Quelle abgleich; 6.75 – Sammlung xpprotokoll (Einzelprotokoll der XP-Vergaben, nur anlegen); 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 9.28 – Sammlung gemlog (Protokoll Beitritt/Austritt); 9.13.2 – Gemeindename bis 50 Zeichen; 9.12 – Ketten-Duelle gebote/schoepfung; 9.11 – Gespräche (dialoge), Freischaltung: Gemeinden mit pruef, Sammlungen antraege, freigabe, geheim; 9.7 – Sammlung nachrichten, Gemeinden mit Passwort pw und Logo logo; 9.0 – Sammlungen gemeinden + mitglied; 7.3 – Sammlung bethlehem (Weg nach Bethlehem, Advent); 6.95 – Sammlung talente (Talente-Zählung, nur der Verwalter liest); 6.88 – xpquellen: Regel vereinfacht (Limit 1000 Auswertungen pro Schreibzugriff, ab der 4. Quelle wurde abgelehnt); 6.80 – Sammlungen bibversuch (Biblionär-Wochenrunde einmal je Serverwoche) und spendenxp (XP für Spenden einmal je Talent); 6.79 – xpquellen: neue Quelle spende (Stiftshütte); 6.78 – Sammlung tagestruhe (Schatztruhe einmal je Serverdatum); 6.76 – xpquellen: neue Quelle abgleich; 6.75 – Sammlung xpprotokoll (Einzelprotokoll der XP-Vergaben, nur anlegen); 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -449,6 +449,23 @@ service cloud.firestore {
         && (request.resource.data.g == 'gast' || exists(/databases/$(database)/documents/gemeinden/$(request.resource.data.g)))
         && (istEntwickler() || (besitzer(pid) && (request.resource.data.g == 'gast'
             || !get(/databases/$(database)/documents/gemeinden/$(request.resource.data.g)).data.get('pruef', false))));
+      allow delete: if istEntwickler();
+    }
+
+    // 9.28 Protokoll der Gemeinde-Zuordnungen (Beitritt, Austritt, Wechsel) mit Server-Zeitstempel: anlegen darf der Besitzer des Profils oder der Verwalter,
+    // lesen und löschen nur der Verwalter, ändern niemand.
+    match /gemlog/{id} {
+      allow read: if istEntwickler();
+      allow create: if angemeldet()
+        && request.resource.data.keys().hasOnly(['pid', 'name', 'von', 'nach', 'durch', 'zeit'])
+        && request.resource.data.pid is string && request.resource.data.pid.size() >= 1 && request.resource.data.pid.size() <= 64
+        && request.resource.data.name is string && request.resource.data.name.size() <= 20
+        && request.resource.data.von is string && request.resource.data.von.size() <= 30
+        && request.resource.data.nach is string && request.resource.data.nach.size() >= 1 && request.resource.data.nach.size() <= 30
+        && request.resource.data.durch in ['spieler', 'verwalter']
+        && request.resource.data.zeit == request.time
+        && (istEntwickler() || besitzer(request.resource.data.pid));
+      allow update: if false;
       allow delete: if istEntwickler();
     }
 

@@ -3110,7 +3110,7 @@ VIEWS.gemverwaltung = () => {
       L.gemAnlegen(id, n, GEM.length, { pw, logo: logos._neu || "" }).then(() => { SFX.coin(); VIEWS.gemverwaltung(); }).catch(() => fehler(fehlerText())); };
     $("gvZu").onclick = () => { const pid = $("gvSp").value, g = $("gvZiel").value, r = spieler.find(x => x.id === pid); if (!r) return;
       const vorher = gemVon(pid);
-      L.gemSetzen(pid, r.name, g).then(() => freigabeAbgleich(pid, g, vorher)).then(() => { SFX.coin(); GEM_ZUORD[pid] = g; if (pid === S.pid) { S.gem = g; save(); } VIEWS.gemverwaltung(); }).catch(() => fehler("Das hat nicht geklappt.")); };
+      L.gemSetzen(pid, r.name, g, "verwalter").then(() => freigabeAbgleich(pid, g, vorher)).then(() => { SFX.coin(); GEM_ZUORD[pid] = g; if (pid === S.pid) { S.gem = g; save(); } VIEWS.gemverwaltung(); }).catch(() => fehler("Das hat nicht geklappt.")); };
     wireGo();
   });
 };
@@ -3133,7 +3133,7 @@ function freischaltungEinschalten(g, idx, spieler, pw) {
       const mit = spieler.filter(r => gemVon(r.id) === g.id);
       /* 9.11.2: Die Gemeinde muss in Firestore existieren, bevor Spieler ihr zugeordnet werden (Regel exists) – zuerst ohne Freischaltung anlegen */
       await L.gemAnlegen(g.id, g.name, idx, { pw: pw || gemPw(g), logo: g.logo && g.logo.startsWith("data:") ? g.logo : "" });
-      for (const r of mit) { if (!GEM_ZUORD[r.id]) await L.gemSetzen(r.id, r.name, g.id); await L.freigabeSetzen((Array.isArray(r.owners) && r.owners.length ? r.owners : [r.id]).filter(x => typeof x === "string" && x), g.id, r.id); GEM_ZUORD[r.id] = g.id; }
+      for (const r of mit) { if (!GEM_ZUORD[r.id]) await L.gemSetzen(r.id, r.name, g.id, "verwalter"); await L.freigabeSetzen((Array.isArray(r.owners) && r.owners.length ? r.owners : [r.id]).filter(x => typeof x === "string" && x), g.id, r.id); GEM_ZUORD[r.id] = g.id; }
       await L.gemAnlegen(g.id, g.name, idx, { pw: pw || gemPw(g), logo: g.logo && g.logo.startsWith("data:") ? g.logo : "", pruef: true });
       SFX.coin(); toast(`${svg("check")}<div><b>Freischaltung ist an.</b><div class="small muted">${mit.length} Spieler übernommen.</div></div>`); gemGeladen = false; VIEWS.gemverwaltung();
     } catch (e) { toast(`${svg("nein")}<div>Das hat nicht geklappt (${esc(String((e && e.code) || (e && e.message) || "Fehler").slice(0, 60))}) – Firebase-Regeln von 9.11 eingespielt?</div>`); }
@@ -3141,6 +3141,30 @@ function freischaltungEinschalten(g, idx, spieler, pw) {
 }
 /* 9.11: Beitrittsanträge – der Verwalter schaltet frei oder lehnt ab */
 let antragOffen = 0;
+/* 9.28: Protokoll der Gemeinde-Zuordnungen (nur Verwalter) – Beitritt, Austritt, Wechsel mit Zeitstempel (Server-Uhr) */
+let gemLogFilter = "alle", gemLogSuche = "";
+VIEWS.gemprotokoll = () => {
+  const L = window.LB; if (!entwickler || !L || !L.ok || !L.gemProtokoll) { go("home"); return; }
+  screen.innerHTML = `${backBtn("postfach", "Postkasten")}<h1>Gemeinde-Protokoll</h1><p class="muted small" style="margin:0 0 8px">Zeitpunkt, wann ein Spieler einer Gemeinde beigetreten ist oder sie verlassen hat (Uhrzeit des Servers).</p>
+    <input class="du-suche" id="glSuche" placeholder="Name suchen" autocomplete="off" value="${esc(gemLogSuche)}">
+    <div class="row-btns" id="glFilter" style="margin:8px 0;flex-wrap:wrap">${[["alle", "Alle"], ["Beitritt", "Beitritte"], ["Austritt", "Austritte"], ["Wechsel", "Wechsel"]].map(([k, t]) => `<button class="btn ghost mini" data-f="${k}" aria-pressed="${gemLogFilter === k}">${t}</button>`).join("")}</div>
+    <div id="glBox"><p class="muted">Lade …</p></div>`;
+  const art = e => e.nach === "gast" ? (e.von ? "Austritt" : "Gast") : (e.von && e.von !== "gast" ? "Wechsel" : "Beitritt");
+  const FARBE = { Beitritt: "#5fe0b0", Austritt: "#ff8a8a", Wechsel: "#ffb54a", Gast: "#b8c0d8" };
+  const zeit = z => z ? new Date(z).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "–";
+  const nm = id => id ? gemName(id) : "–";
+  let liste = [];
+  const zeichne = () => {
+    screen.querySelectorAll("#glFilter [data-f]").forEach(b => { const an = b.dataset.f === gemLogFilter; b.setAttribute("aria-pressed", String(an)); b.style.borderColor = an ? "#f2c14e" : ""; b.style.color = an ? "#f2c14e" : ""; });
+    const q = gemLogSuche.trim().toLowerCase(), z = liste.filter(e => (gemLogFilter === "alle" || art(e) === gemLogFilter) && (!q || String(e.name).toLowerCase().includes(q)));
+    $("glBox").innerHTML = z.length ? `<div class="small muted" style="margin-bottom:6px">${z.length} ${z.length === 1 ? "Eintrag" : "Einträge"} · neueste zuerst</div><div class="stack">${z.map(e => { const a = art(e); return `<div class="card" style="padding:10px 12px"><div class="topline"><b>${esc(e.name || "?")}</b><span class="small" style="color:${FARBE[a]};font-weight:700">${a}</span></div><div class="small">${esc(nm(e.von))} › ${esc(nm(e.nach))}</div><div class="small muted">${zeit(e.zeit)}${e.durch === "verwalter" ? " · durch Verwalter" : ""}</div></div>`; }).join("")}</div>` : `<p class="muted">${liste.length ? "Nichts gefunden." : "Noch keine Einträge. Das Protokoll beginnt mit Version 9.28."}</p>`;
+  };
+  $("glSuche").oninput = e => { gemLogSuche = e.target.value; zeichne(); };
+  $("glFilter").querySelectorAll("[data-f]").forEach(b => b.onclick = () => { SFX.tap(); gemLogFilter = b.dataset.f; zeichne(); });
+  Promise.all([gemLaden(true), L.gemProtokoll(500)]).then(([, l]) => { if (current !== "gemprotokoll") return; liste = l; zeichne(); })
+    .catch(() => { if ($("glBox")) $("glBox").innerHTML = `<p class="muted">Das Protokoll konnte nicht geladen werden (Firebase-Regeln von 9.28 eingespielt?).</p>`; });
+  wireGo();
+};
 VIEWS.antraege = () => {
   const L = window.LB; if (!entwickler || !L || !L.ok || !L.antragListe) { go("home"); return; }
   screen.innerHTML = `${backBtn("postfach", "Postkasten")}<h1>Beitrittsanträge</h1><div id="anBox"><p class="muted">Lade …</p></div>`;
@@ -3155,7 +3179,7 @@ VIEWS.antraege = () => {
     screen.querySelectorAll("[data-an]").forEach(k => {
       const a = liste.find(x => x.id === k.dataset.an), b = sel => k.querySelector(sel);
       if (b("[data-ok]")) b("[data-ok]").onclick = async () => { SFX.tap(); b("[data-ok]").disabled = true;
-        try { await L.gemSetzen(a.pid, a.name, a.g); await freigabeAbgleich(a.pid, a.g, "gast"); await L.antragLoeschen(a.pid); GEM_ZUORD[a.pid] = a.g; SFX.coin(); VIEWS.antraege(); }
+        try { await L.gemSetzen(a.pid, a.name, a.g, "verwalter"); await freigabeAbgleich(a.pid, a.g, "gast"); await L.antragLoeschen(a.pid); GEM_ZUORD[a.pid] = a.g; SFX.coin(); VIEWS.antraege(); }
         catch (e) { fehler("Das hat nicht geklappt (Firebase-Regeln von 9.11 eingespielt?)."); b("[data-ok]").disabled = false; } };
       if (b("[data-nein]")) b("[data-nein]").onclick = () => { SFX.tap(); L.antragAblehnen(a.pid).then(() => VIEWS.antraege()).catch(() => fehler("Das hat nicht geklappt.")); };
       if (b("[data-weg]")) b("[data-weg]").onclick = () => { SFX.tap(); L.antragLoeschen(a.pid).then(() => VIEWS.antraege()).catch(() => fehler("Das hat nicht geklappt.")); };
@@ -5029,7 +5053,7 @@ VIEWS.postfach = (kat) => {
   screen.innerHTML = `${backBtn("home", "Start")}<div class="pk-kopf"><h1>Postkasten</h1><span class="pk-ikonen">
     <button class="iconbtn" id="pkLupe" aria-label="Suchen" aria-pressed="${pkSuchOffen}"><span aria-hidden="true">🔍</span></button>
     <button class="iconbtn" id="pkWahl" aria-label="Auswählen" aria-pressed="${pkAuswahl}">☑</button></span></div>
-  <div class="pk-pins" aria-label="Prüfungen">${zeile("pkXp", "medal", "XP-Prüfung", xpTag, 'data-go="xppruefung"')}${zeile("pkDup", "people", "Doppelte Namen", dupTag, 'id2="x"')}<button class="pk-pin" id="pkAnt" data-go="antraege"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("people")} Beitrittsanträge</b><span class="small muted" data-pkinfo>${antragOffen ? antragOffen + " offen" : "Freischaltung für neue Mitglieder"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkDlg" data-go="dialoge"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("chat")} Gespräche mit Spielern</b><span class="small muted" data-pkinfo>${dlgNeuDev() ? dlgNeuDev() + " neue Antwort" + (dlgNeuDev() === 1 ? "" : "en") : "Einzelne Spieler anschreiben"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGem" data-go="gemverwaltung"><span class="pk-pt"><b>${svg("people")} Gemeinden</b><span class="small muted">Gemeinden anlegen, Spieler zuordnen</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkTal" data-go="talente"><span class="pk-pt"><b>${svg("tal")} Talente-Planung</b><span class="small muted">Guthaben, Ø pro Tag, Spenden-Prognose</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkNach" data-go="nachrichten"><span class="pk-pt"><b>${svg("chat")} Nachricht an Spieler</b><span class="small muted">Patchnotes und Mitteilungen senden</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button></div>
+  <div class="pk-pins" aria-label="Prüfungen">${zeile("pkXp", "medal", "XP-Prüfung", xpTag, 'data-go="xppruefung"')}${zeile("pkDup", "people", "Doppelte Namen", dupTag, 'id2="x"')}<button class="pk-pin" id="pkAnt" data-go="antraege"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("people")} Beitrittsanträge</b><span class="small muted" data-pkinfo>${antragOffen ? antragOffen + " offen" : "Freischaltung für neue Mitglieder"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkDlg" data-go="dialoge"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("chat")} Gespräche mit Spielern</b><span class="small muted" data-pkinfo>${dlgNeuDev() ? dlgNeuDev() + " neue Antwort" + (dlgNeuDev() === 1 ? "" : "en") : "Einzelne Spieler anschreiben"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGemLog" data-go="gemprotokoll"><span class="pk-pt"><b>${svg("scroll")} Gemeinde-Protokoll</b><span class="small muted">Wer wann beigetreten oder ausgetreten ist</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGem" data-go="gemverwaltung"><span class="pk-pt"><b>${svg("people")} Gemeinden</b><span class="small muted">Gemeinden anlegen, Spieler zuordnen</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkTal" data-go="talente"><span class="pk-pt"><b>${svg("tal")} Talente-Planung</b><span class="small muted">Guthaben, Ø pro Tag, Spenden-Prognose</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkNach" data-go="nachrichten"><span class="pk-pt"><b>${svg("chat")} Nachricht an Spieler</b><span class="small muted">Patchnotes und Mitteilungen senden</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button></div>
   <div class="card rk-liste" style="margin-top:10px">
     <div class="pk-suchzeile" ${pkSuchOffen ? "" : "hidden"}><input type="search" id="pkSuche" placeholder="Suchen (Text, Name, Version)" value="${esc(pkSuche)}" aria-label="Post durchsuchen" autocomplete="off"></div>
     <div class="pk-filter"><div class="rk-var" role="group" aria-label="Filter">${[["neu", "Neu"], ["alle", "Alle"], ["erledigt", "Erledigt"]].map(([k, n]) => `<button data-pf="${k}" aria-pressed="${k === postfachFilter}">${n}<i class="pk-n" data-pfn="${k}"></i></button>`).join("")}</div>

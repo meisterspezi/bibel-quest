@@ -244,7 +244,14 @@ if (!configured) {
     // 9.0 Gemeinden: Liste legt nur der Verwalter an (Sammlung gemeinden); jeder Spieler ordnet sich über mitglied/{pid} einer Gemeinde zu
     LB.gemListe = async () => (await fs.getDocs(fs.collection(db, "gemeinden"))).docs.map(d => ({ id: d.id, ...d.data() }));
     LB.mitgliedListe = async () => (await fs.getDocs(fs.query(fs.collection(db, "mitglied"), fs.limit(1000)))).docs.map(d => ({ id: d.id, g: d.data().g }));
-    LB.gemSetzen = async (pid, name, g) => { await LB.signIn(); await fs.setDoc(ref("mitglied", pid), { pid, name, g, updated: fs.serverTimestamp() }); };
+    LB.gemSetzen = async (pid, name, g, durch) => {
+      await LB.signIn();
+      let vorher = null; try { const d = await fs.getDoc(ref("mitglied", pid)); if (d.exists()) vorher = String(d.data().g || ""); } catch (e) {}
+      await fs.setDoc(ref("mitglied", pid), { pid, name, g, updated: fs.serverTimestamp() });
+      /* 9.28 Protokoll: jede Änderung der Zuordnung mit Server-Zeitstempel (Sammlung gemlog, nur der Verwalter liest) */
+      if (vorher !== g) { try { await fs.addDoc(fs.collection(db, "gemlog"), { pid, name: String(name || "").slice(0, 20), von: vorher || "", nach: g, durch: durch === "verwalter" ? "verwalter" : "spieler", zeit: fs.serverTimestamp() }); } catch (e) {} }
+    };
+    LB.gemProtokoll = async (n) => (await fs.getDocs(fs.query(fs.collection(db, "gemlog"), fs.orderBy("zeit", "desc"), fs.limit(n || 300)))).docs.map(d => { const x = d.data(); return { id: d.id, pid: x.pid, name: x.name || "", von: x.von || "", nach: x.nach || "", durch: x.durch || "spieler", zeit: x.zeit && x.zeit.toMillis ? x.zeit.toMillis() : 0 }; });
     LB.gemAnlegen = async (id, name, ord, extra) => { await LB.signIn(); const d = { name, ord: ord | 0 }; if (extra && extra.pw) d.pw = String(extra.pw).slice(0, 30); if (extra && extra.logo) d.logo = String(extra.logo).slice(0, 30000); if (extra && extra.pruef) d.pruef = true; await fs.setDoc(ref("gemeinden", id), d); };
     // 9.11 Freischaltung: Anträge (antraege/{pid}), Freigaben je Gerät (freigabe/{uid}) und der Joker-Schlüssel (geheim/joker)
     LB.antragSenden = async (pid, name, g) => { await LB.signIn(); await fs.setDoc(ref("antraege", pid), { pid, name: String(name || "").slice(0, 20), g, status: "offen", zeit: fs.serverTimestamp() }); };
