@@ -2342,6 +2342,100 @@ body[data-tab="rank"]{--ar-gemeinde:#5fe0b0;--ar:#5fe0b0}
   .bq5-gitter .zv2-m b{font-size:.9rem}
   .zv2-m.aus{opacity:.55;filter:grayscale(.8)}
   .zv .bq3-start{margin-top:12px}
+/* ---------- Lernvers im Licht (9.31): Lichteffekte wie bei den Glanz-Symbolen – Halo, Funkeln, Glanzstreifen, Weißgold ---------- */
+.lv,.vl-vers,.vl-opt,.vl-chips .chip,.vl-antwort .chip{--licht:#f2c14e;--gold:linear-gradient(135deg,#fff6c8,#f2c14e 38%,#a8781a 62%,#ffe58a 82%,#7a5208)}
+/* Lernvers-Karte: Weißgold-Rahmen, Lichtschein, Funkeln, Glanzstreifen */
+.lv{border:1px solid transparent;
+  background:radial-gradient(90% 130% at 0% 0%,#f2c14e30,transparent 62%),radial-gradient(70% 90% at 100% 100%,#7fc8ff18,transparent 65%),linear-gradient(180deg,#252c5e,#1a2048) padding-box,var(--gold) border-box;
+  box-shadow:inset 0 1px 0 #ffffff38,0 0 0 1px #0004,0 0 26px #f2c14e1f,0 10px 26px #0006}
+.lv-ic{position:relative;background:radial-gradient(circle at 40% 30%,#fff3c0aa,#f2c14e30 60%,#f2c14e10);box-shadow:0 0 0 1px #f2c14e55,0 0 16px #f2c14e66,inset 0 1px 0 #fff8}
+.lv-ic svg{position:relative;z-index:1}
+.lv-lab{background:linear-gradient(90deg,#fff6c8,#f2c14e 60%,#ffd970);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+.lv-text{text-shadow:0 0 18px #f2c14e30}
+.lv-fkn{position:absolute;inset:0;pointer-events:none;z-index:0}
+.lv-fkn i{position:absolute;width:11px;height:11px;background:#fff;opacity:0;clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);filter:drop-shadow(0 0 4px #fff)}
+.lv-fkn i:nth-child(1){right:20%;top:12%}.lv-fkn i:nth-child(2){right:7%;top:48%;width:8px;height:8px}.lv-fkn i:nth-child(3){left:44%;top:7%;width:7px;height:7px}
+.lv:before{content:"";position:absolute;top:-40%;bottom:-40%;left:-45%;width:34%;background:linear-gradient(100deg,transparent,#ffffff1c 45%,#fff6c82e 55%,transparent);transform:skewX(-18deg);pointer-events:none;opacity:0}
+/* Stufen als Lichtsteine */
+.lv-stufe{gap:6px;align-items:center}
+.lv-stufe i{width:9px;height:9px;border-radius:2px;transform:rotate(45deg);background:linear-gradient(135deg,#ffffff30,#ffffff10);box-shadow:inset 0 0 0 1px #ffffff2a}
+.lv-stufe i.an{background:linear-gradient(135deg,#fff,#ffe58a 40%,#c99c3e);box-shadow:inset 0 0 0 1px #fff9,0 0 8px #f2c14e,0 0 14px #f2c14e66}
+.lv-stufe.gross{gap:12px}.lv-stufe.gross i{width:14px;height:14px;border-radius:3px}
+.lv-siegel svg{filter:drop-shadow(0 0 8px #f2c14eaa)}
+/* Knöpfe: Glanzkante, Gold mit Lichtstreifen */
+.lv-btn{background:linear-gradient(180deg,#ffffff16,#ffffff08);border-color:#ffffff2a;box-shadow:inset 0 1px 0 #ffffff26}
+.lv-btn.gold{position:relative;overflow:hidden;background:linear-gradient(180deg,#fff6c8,#f7cf66 45%,#d4961f);box-shadow:inset 0 1px 0 #fff,0 3px 0 #8a5d10,0 8px 20px -6px #f2c14e99}
+.lv-btn.gold:after{content:"";position:absolute;top:0;bottom:0;left:-60%;width:40%;background:linear-gradient(100deg,transparent,#ffffffa0,transparent);transform:skewX(-20deg);opacity:0}
+/* Lektion: Licht von oben, leuchtender Fortschritt, Titel-Chip */
+.vl{position:relative;isolation:isolate}
+.vl:before{content:"";position:absolute;z-index:-1;left:-16px;right:-16px;top:-14px;height:260px;pointer-events:none;background:radial-gradient(60% 100% at 50% 0%,#7fc8ff2e,#f2c14e12 45%,transparent 75%)}
+.vl-bar{overflow:visible;height:16px;background:linear-gradient(180deg,#0006,#ffffff10);box-shadow:inset 0 1px 3px #000a,0 0 0 1px #ffffff14}
+.vl-bar i{position:relative;background:linear-gradient(180deg,#e8f6ff,#7fc8ff 50%,#2f7fd0);box-shadow:inset 0 2px 0 #ffffffaa,0 0 12px #7fc8ff99}
+.vl-bar i:after{content:"";position:absolute;right:-1px;top:50%;width:18px;height:18px;margin-top:-9px;border-radius:50%;background:radial-gradient(circle,#fff,#bfe6ff 35%,#7fc8ff00 72%)}
+.vl-bar i[style*="width:0%"]:after{display:none}
+.vl-serie.an svg{filter:drop-shadow(0 0 7px #ffb54a) drop-shadow(0 0 14px #ffb54a88)}
+.vl-titel{align-self:flex-start;padding:5px 11px 5px 9px;border-radius:99px;border:1px solid color-mix(in srgb,currentColor 45%,transparent);background:linear-gradient(180deg,color-mix(in srgb,currentColor 22%,transparent),color-mix(in srgb,currentColor 8%,transparent));box-shadow:inset 0 1px 0 #ffffff30,0 0 14px color-mix(in srgb,currentColor 28%,transparent)}
+.vl-frage{text-wrap:balance;text-shadow:0 0 22px #7fc8ff33}
+/* Vers-Karte in der Lektion */
+.vl-vers{position:relative;border:1px solid transparent;
+  background:radial-gradient(90% 130% at 0% 0%,#f2c14e2a,transparent 62%),linear-gradient(180deg,#232a58,#191f46) padding-box,var(--gold) border-box;
+  box-shadow:inset 0 1px 0 #ffffff30,0 0 24px #f2c14e22,0 8px 22px #0005;text-shadow:0 0 16px #f2c14e22}
+.vl-vers:after{content:"";position:absolute;right:10px;top:8px;width:12px;height:12px;background:#fff;opacity:.85;clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);filter:drop-shadow(0 0 5px #fff)}
+.vl-vers.vl-fehler:after,.vl-vers.vl-tipptext:after,.vl-vers.vl-lueckentext:after{display:none}
+.vl-ref{text-shadow:0 0 12px #f2c14e55}
+/* Antworten: Glas mit Lichtkante */
+.vl-opt,.vl-chips .chip{position:relative;background:linear-gradient(180deg,#323b78,#262e5e);border-color:#ffffff24;box-shadow:inset 0 1px 0 #ffffff2e}
+.vl-opt.gewaehlt,.vl-wort.gewaehlt{box-shadow:inset 0 1px 0 #ffffff40,0 0 18px color-mix(in srgb,var(--ar-lernen) 55%,transparent)}
+.vl-opt.richtig,.vl-wort.richtig{box-shadow:inset 0 1px 0 #ffffff40,0 0 22px color-mix(in srgb,var(--good) 60%,transparent)}
+.vl-opt.falsch,.vl-wort.falsch{box-shadow:0 0 16px color-mix(in srgb,var(--bad) 45%,transparent)}
+.vl-antwort .chip{background:linear-gradient(180deg,color-mix(in srgb,var(--ar-lernen) 30%,#262e5e),color-mix(in srgb,var(--ar-lernen) 14%,#262e5e));box-shadow:inset 0 1px 0 #ffffff30,0 0 10px color-mix(in srgb,var(--ar-lernen) 30%,transparent)}
+.vl-antwort{border-image:linear-gradient(90deg,transparent,#7fc8ff66,transparent) 1}
+/* Lücken: leuchtende Eingabe, Wort „zündet“ beim Einsetzen */
+.vl-loch{background:linear-gradient(180deg,#ffffff0c,#ffffff18)}
+.vl-loch.jetzt{box-shadow:inset 0 -2px 0 var(--ar-lernen),0 0 12px color-mix(in srgb,var(--ar-lernen) 65%,transparent),0 0 26px color-mix(in srgb,var(--ar-lernen) 30%,transparent)}
+.vl-gefuellt{background:linear-gradient(180deg,#fff6c8,#ffd970 55%,#f2c14e);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 8px #f2c14e88);text-shadow:none}
+.vl-feld{background:linear-gradient(180deg,#ffffff10,#ffffff1c);box-shadow:inset 0 -1px 0 #ffffff22}
+.vl-feld:focus{box-shadow:0 0 14px color-mix(in srgb,var(--ar-lernen) 55%,transparent),inset 0 -2px 0 var(--ar-lernen)}
+.vl-feld.gut{box-shadow:0 0 12px color-mix(in srgb,var(--good) 45%,transparent)}
+.vl-frei:focus{outline:2px solid var(--ar-lernen);box-shadow:0 0 22px color-mix(in srgb,var(--ar-lernen) 40%,transparent)}
+/* Urteil: Lichtschein von oben */
+.vl-urteil.ok{background:radial-gradient(90% 140% at 50% -30%,#46d39a55,transparent 70%),linear-gradient(180deg,#1c4a3b,#153a2f);box-shadow:0 -6px 30px #0008,0 0 28px #46d39a33,inset 0 1px 0 #ffffff2a}
+.vl-urteil.nein{background:radial-gradient(90% 140% at 50% -30%,#ff6b6b40,transparent 70%),linear-gradient(180deg,#4a1f2a,#3a1822);box-shadow:0 -6px 30px #0008,0 0 24px #ff6b6b26,inset 0 1px 0 #ffffff22}
+.vl-urteil.ok .vu-kopf svg{filter:drop-shadow(0 0 8px #46d39a)}
+/* Ende: strahlendes Medaillon mit drehenden Lichtstrahlen */
+.vle-ic{position:relative;width:104px;height:104px;box-shadow:0 0 0 2px #fff6c8aa,0 0 34px #f2c14ecc,0 0 70px #f2c14e66,inset 0 2px 0 #fffc}
+.vle-ic.siegel{box-shadow:0 0 0 2px #fffc,0 0 34px #7fc8ffcc,0 0 70px #7fc8ff66,inset 0 2px 0 #fffc}
+.vle-ic:before{content:"";position:absolute;z-index:-1;inset:-46px;border-radius:50%;pointer-events:none;
+  background:repeating-conic-gradient(from 0deg,#fff3b000 0 10deg,#fff3b02e 10deg 14deg,#fff3b000 14deg 24deg);-webkit-mask:radial-gradient(circle,#000 30%,transparent 70%);mask:radial-gradient(circle,#000 30%,transparent 70%)}
+.vle-ic.siegel:before{background:repeating-conic-gradient(from 0deg,#bfe6ff00 0 10deg,#bfe6ff33 10deg 14deg,#bfe6ff00 14deg 24deg)}
+.vle-ic svg{position:relative;z-index:1;width:62px;height:62px}
+.vl-ende{isolation:isolate}
+.vle-werte div{background:linear-gradient(180deg,#ffffff12,#ffffff06);box-shadow:inset 0 1px 0 #ffffff22}
+.vle-werte b{background:linear-gradient(180deg,#fff,#ffe58a);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+.vle-werte b svg{-webkit-text-fill-color:initial}
+@media (prefers-reduced-motion:no-preference){
+  .lv-fkn i{animation:lvFunkel 4.6s ease-in-out infinite}.lv-fkn i:nth-child(2){animation-delay:1.5s}.lv-fkn i:nth-child(3){animation-delay:3s}
+  .lv:before{animation:lvGlanz 8s ease-in-out infinite}
+  .lv-btn.gold:after{animation:lvKnopfGlanz 5s ease-in-out infinite}
+  .lv-stufe i.an:not(:has(~ .an)){animation:lvStein 2.8s ease-in-out infinite}
+  .vl-bar i:after{animation:lvPuls 2.2s ease-in-out infinite}
+  .vl-vers:after{animation:lvFunkel 3.8s ease-in-out infinite}
+  .vl-loch.jetzt{animation:lvLoch 1.8s ease-in-out infinite}
+  .vl-gefuellt{animation:lvZuend .7s ease-out}
+  .vl-serie.an svg{animation:lvPuls 1.6s ease-in-out infinite}
+  .vle-ic{animation:lvMedaillon 3.6s ease-in-out infinite}
+  .vle-ic:before{animation:lvDrehen 28s linear infinite}
+  @keyframes lvFunkel{0%,62%,100%{opacity:0;transform:scale(.3) rotate(0)}76%{opacity:1;transform:scale(1) rotate(45deg)}}
+  @keyframes lvGlanz{0%,58%{left:-45%;opacity:0}62%{opacity:1}82%{left:115%;opacity:1}83%,100%{left:115%;opacity:0}}
+  @keyframes lvKnopfGlanz{0%,60%{left:-60%;opacity:0}64%{opacity:1}84%{left:130%;opacity:1}85%,100%{left:130%;opacity:0}}
+  @keyframes lvStein{0%,100%{box-shadow:inset 0 0 0 1px #fff9,0 0 8px #f2c14e,0 0 14px #f2c14e66}50%{box-shadow:inset 0 0 0 1px #fff,0 0 12px #fff6c8,0 0 24px #f2c14e}}
+  @keyframes lvPuls{0%,100%{opacity:.65}50%{opacity:1}}
+  @keyframes lvLoch{0%,100%{filter:brightness(1)}50%{filter:brightness(1.35)}}
+  @keyframes lvZuend{0%{filter:drop-shadow(0 0 0 #fff);transform:scale(1.18)}40%{filter:drop-shadow(0 0 14px #fff)}100%{transform:none}}
+  @keyframes lvMedaillon{0%,100%{transform:scale(1)}50%{transform:scale(1.045)}}
+  @keyframes lvDrehen{to{transform:rotate(360deg)}}
+}
+@media (prefers-reduced-motion:reduce){.lv-fkn i{opacity:.7}.lv:before{display:none}}
 </style>
 </head>
 <body>

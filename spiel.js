@@ -256,7 +256,7 @@ function lvStelleAehnlich(ref) {
 function lvAufgaben(k, stufe, modus, bonus) {
   const [text, ref] = MONATSVERSE[k], s = lvStand(k), sw = s.sw;
   const a = [], A = (typ, x = {}) => a.push(Object.assign({ typ, k, stufe }, x));
-  if (modus === "pruefung") { A("frei", { hilfe: false, quote: LV_PRUEF_QUOTE }); A("stelle", { schwer: true }); return a; }
+  if (modus === "pruefung") { A("stelle", { schwer: true }); A("frei", { hilfe: false, quote: LV_PRUEF_QUOTE }); return a; } /* auch hier: leicht → schwer */
   const anteil = LV_ANTEIL[stufe];
   if (stufe === 1) { A("lesen"); A("fortsetzung"); A("stelle"); A("luecke", { anteil: 0.25 }); A("kacheln", { teil: 0 }); A("fehler"); A("kacheln", { teil: 1 }); }
   else if (stufe === 2) { A("kacheln", { teil: 0 }); A("luecke", { anteil }); A("kacheln", { teil: 1 }); A("fehler"); A("stelle"); A("kacheln", { stoer: 0 }); }
@@ -272,7 +272,24 @@ function lvAufgaben(k, stufe, modus, bonus) {
       4: [["tippen", { anteil: 1, buchstabe: true }], ["frei", { hilfe: true, quote: LV_FREI_QUOTE }]], 5: [["tippen", { anteil: 1 }], ["frei", { hilfe: false, quote: LV_FREI_QUOTE }]] }[stufe];
     extra.forEach(([typ, x]) => a.push(Object.assign({ typ, k, stufe: Math.min(LV_MAX, stufe + 1), bonus: true, sw }, x)));
   }
-  void ref; return a;
+  /* Reihenfolge innerhalb der Lektion: immer von leicht nach schwer (stabil – gleich schwere Aufgaben behalten ihre Reihenfolge) */
+  void ref; return a.map((x, i) => [x, i]).sort((p, q) => lvSchwer(p[0]) - lvSchwer(q[0]) || p[1] - q[1]).map(p => p[0]);
+}
+/* Schwierigkeit einer Aufgabe (0 = leicht … 100 = sehr schwer): Wiedererkennen < Ordnen < Lücken wählen < Tippen < freies Aufsagen.
+   Mehr verdeckte Wörter, falsche Störwörter, ähnliche Antworten und fehlende Hilfen machen eine Aufgabe schwerer. */
+function lvSchwer(a) {
+  const an = a.anteil || 0;
+  switch (a.typ) {
+    case "lesen": return 0;
+    case "stelle": return a.schwer ? 42 : 12;
+    case "fortsetzung": return a.schwer ? 45 : 10;
+    case "fehler": return 25;
+    case "luecke": return 18 + an * 40;
+    case "kacheln": return (a.teil != null ? 20 : 30) + (a.stoer || 0) * 5;
+    case "tippen": return 50 + an * 30 + (a.buchstabe ? 0 : 6);
+    case "frei": return a.hilfe ? 88 : 100;
+    default: return 50;
+  }
 }
 
 /* ----- Lektion (eigene Ansicht, eine Aufgabe pro Bildschirm) ----- */
@@ -423,20 +440,33 @@ function vlVerdrahten(a, verdeckt) {
     const pruef = () => { P.disabled = !felder.some(f => f.value.trim()); };
     /* Handy-Tastaturen melden die Leertaste oft nicht als " " – deshalb am Eingabetext erkennen:
        Wort + Leerzeichen → Rest in die folgenden (direkt anschließenden) Lücken verteilen und weiterspringen */
+    /* Die Leertaste springt immer zur NÄCHSTEN Lücke – auch wenn dazwischen ein (oder mehrere) schon sichtbare Wörter stehen,
+       und auch aus einer noch leeren Lücke. Nach der letzten Lücke springt sie zum Knopf „Prüfen“ (nochmal Leertaste = prüfen). */
+    const weiter = j => {
+      if (felder[j + 1]) felder[j + 1].focus();
+      else if (!P.disabled) P.focus();
+      else felder[j].focus();
+    };
     const verteilen = (j) => {
       const f = felder[j], v = f.value;
+      if (/^\s+$/.test(v)) { f.value = ""; weiter(j); return; }            /* nur Leerzeichen getippt → nächste Lücke */
       if (!/\S\s/.test(v)) return;
       const teile = v.trim().split(/\s+/).filter(Boolean); f.value = teile[0];
       let k = j;
-      for (const t of teile.slice(1)) {
+      for (const t of teile.slice(1)) {                                      /* mehrere Wörter auf einmal: nur in direkt anschließende Lücken verteilen */
         const nx = felder[k + 1];
         if (!nx || +nx.dataset.i !== +felder[k].dataset.i + 1) break;
         nx.value = t; k++;
       }
-      const ziel = felder[k + 1] && +felder[k + 1].dataset.i === +felder[k].dataset.i + 1 ? felder[k + 1] : felder[k];
-      if (ziel) ziel.focus();
+      weiter(k);                                                              /* … und dann zur nächsten Lücke, egal ob ein Wort dazwischen steht */
     };
-    felder.forEach((f, j) => { f.oninput = () => { verteilen(j); pruef(); }; f.onkeydown = e => { if (e.key === "Enter" || (e.key === " " && f.value.trim())) { e.preventDefault(); if (felder[j + 1]) felder[j + 1].focus(); else if (!P.disabled) P.click(); } }; });
+    felder.forEach((f, j) => {
+      f.oninput = () => { pruef(); verteilen(j); pruef(); };
+      f.onkeydown = e => {
+        if (e.key === " " || e.key === "Spacebar") { e.preventDefault(); weiter(j); }
+        else if (e.key === "Enter") { e.preventDefault(); if (felder[j + 1]) felder[j + 1].focus(); else if (!P.disabled) P.click(); }
+      };
+    });
     if (felder[0] && !matchMedia("(pointer: coarse)").matches) felder[0].focus();
   }
   if (a.typ === "frei") {
@@ -565,6 +595,7 @@ function lvKarte(k, ort = "home") {
   const mt = aktuell ? lvMonatsTage(k) : 0, ziel = lvZiel();
   const monat = aktuell && !s.b ? `<div class="lv-monat"><span class="lvm-woche">Woche ${lvWoche()}/4 · Ziel Stufe ${ziel}${s.st >= ziel ? ` ${svg("check")}` : ""}</span><span class="lvm-tage ${mt ? "an" : ""}">${svg("fire")}${mt} ${mt === 1 ? "Tag" : "Tage"}</span></div>` : "";
   return `<section class="lv ${ort === "home" ? "kompakt" : ""} ${s.b ? "bewahrt" : ""}" data-lvk="${k}" aria-label="Lernvers ${esc(monatName(k))}">
+    <span class="lv-fkn" aria-hidden="true"><i></i><i></i><i></i></span>
     <div class="lv-kopf"><span class="lv-ic">${svg("scroll")}</span><span class="lv-lab">Lernvers ${esc(monatName(k))}</span>${ort === "home" ? `<span class="lv-ref">${esc(v[1])}</span>` : ""}${stand}</div>
     <div class="lv-text">${esc(v[0])}</div>${ort === "home" ? "" : `<div class="lv-ref">${esc(v[1])} · ${VERS_QUELLE}</div>`}
     ${monat}${hinweis ? `<div class="lv-hinweis">${hinweis}</div>` : ""}
