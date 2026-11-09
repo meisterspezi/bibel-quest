@@ -3875,9 +3875,11 @@ function duBilanz(id) {
 }
 const duUnterzeile = (r, laeuft) => {
   if (laeuft) return "Duell läuft schon";
-  const b = duBilanz(r.id), lv = "Level " + (r.level || 1);
-  if (!b.n) return lv;
-  return `${lv} · <em class="du-bil" title="${b.sg} Siege, ${b.un} Unentschieden, ${b.nd} Niederlagen gegen ${esc(r.name)}"><b class="bs">${b.sg} S</b> <b class="bu">${b.un} U</b> <b class="bn">${b.nd} N</b></em>`;
+  const b = duBilanz(r.id);
+  if (!b.n) return "Level " + (r.level || 1);
+  /* Level steht schon im Avatar-Abzeichen – so bleibt die Zeile einzeilig */
+  const teile = [b.sg && `<b class="bs">${b.sg} ${b.sg === 1 ? "Sieg" : "Siege"}</b>`, b.un && `<b class="bu">${b.un} Unentschieden</b>`, b.nd && `<b class="bn">${b.nd} ${b.nd === 1 ? "Niederlage" : "Niederlagen"}</b>`].filter(Boolean); /* Nullen weglassen = kompakter */
+  return `<em class="du-bil" title="Bilanz gegen ${esc(r.name)} (letzte 30 Tage)">${teile.join(" · ")}</em>`;
 };
 /* 9.18: Gegnerliste in Arena und Biblionär: erst die eigene Gemeinde, darunter hinter einem Trennstrich Gäste und andere Gemeinden */
 function duGegnerGruppen(q) {
