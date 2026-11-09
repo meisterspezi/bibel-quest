@@ -5520,6 +5520,7 @@ $("hTalBtn").onclick = () => { SFX.tap(); go("ich"); };
 /* 9.0: Bestehende Spieler gehören zu den Freien Baptisten Eichstätt */
 if (!S.gem) { if (S.lbName || S.xp > 0) { S.gem = GEM_STANDARD; S.gemGesendet = GEM_STANDARD; } else { S.gem = "gast"; S.gemNeu = false; S.nachAb = Date.now(); } } /* 9.7: neue Spieler sind Gast und treten mit dem Passwort bei */
 neuerTag(); applyTheme(); renderMute(); renderHud(); checkBadges(); geraetSpeichern(); go("home");
+if (window.SPL) SPL.done(); /* 9.25: Start-Animation beenden, sobald die Startseite steht */
 /* Mehrere Spieler auf dem Gerät? Dann beim Start fragen, wer spielt */
 /* 6.83 (E): Auf gemeinsamen Geräten beim Start und nach mehr als 10 Minuten Pause fragen, wer spielt – mit einem Knopf je Spieler,
    damit niemand unbemerkt im Profil des anderen weiterspielt. */
