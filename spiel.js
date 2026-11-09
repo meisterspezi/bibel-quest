@@ -1759,12 +1759,18 @@ function spielMenue(zus) {
     ${sp("vers", 'data-go="verslektion"', "scroll", "Lernvers")}
   </div>`;
 }
+/* 9.21: Solo im Medaillon-Stil von „Zusammen“ – ein Tipp startet das Spiel direkt (kein Gegner nötig); die Medaillons und Stände kommen aus zvSpiele() */
+const soloAttr = s => { if (s.id === "blitz") return 'data-go="blitz"'; if (s.id === "vers") return 'data-go="verslektion"'; const id = s.id.replace(/^kette-/, ""); return KETTEN[id] ? `data-k="${id}"` : `data-tk="${id}"`; };
 VIEWS.spielen = () => {
-  screen.innerHTML = `${bereichKopf("spielen", { ic: "user", t: "Solo", sub: "Wie weit kommst du heute?" })}${spielMenue(false)}`;
+  const g = zvSpiele();
+  screen.innerHTML = `${bereichKopf("spielen", { ic: "user", t: "Solo", sub: "Wie weit kommst du heute?" })}
+  <div class="zv"><div class="zv2-buehne">
+    <div class="zv2-reihe"><span class="zv2-tit">${svg("link")}Ketten</span></div><div class="zv2-gitter">${g.slice(0, 4).map(x => zvMedaille(x, false, soloAttr(x))).join("")}</div>
+    <div class="zv2-reihe"><span class="zv2-tit">${svg("star")}Themen · Blitz · Vers</span></div><div class="zv2-gitter">${g.slice(4).map(x => zvMedaille(x, false, soloAttr(x))).join("")}</div></div>
+    <p class="zv2-hinw"><span>1</span>Spiel antippen<i></i><span>2</span>Los geht's!</p></div>`;
   wireGo();
   screen.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playChain(b.dataset.k)); });
   screen.querySelectorAll("[data-tk]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playThemenKette(b.dataset.tk)); });
-  if ($("alleinBib")) $("alleinBib").onclick = () => { SFX.tap(); bibSolo(weihAktiv()); };
 };
 
 /* ---------- 9.19: „Zusammen“ / Neues Duell: Medaillon-Bühne. Spiel antippen → darunter erscheint die Gegnerliste, ein Tipp auf einen Gegner startet das Duell ---------- */
@@ -1782,7 +1788,7 @@ function zvSpiele() {
     { id: "vers", ic: "scroll", name: "Lernvers", kurz: "Lernvers", sub: vs, pct: vp, grp: "vers" }];
 }
 let zvWahl = null;
-const zvMedaille = (s, an) => `<button class="zv2-m${an ? " an" : ""}" data-dtyp="${s.id}" aria-pressed="${an}" style="--c:${ZV_FARBE[s.grp]};--p:${zvPr(s.pct)}"><span class="zv2-ring"><span class="zv2-in">${svg(s.ic)}</span></span><b>${esc(s.kurz)}</b><small>${esc(s.sub)}</small></button>`;
+const zvMedaille = (s, an, attr) => `<button class="zv2-m${an ? " an" : ""}" ${attr || `data-dtyp="${s.id}" aria-pressed="${an}"`} style="--c:${ZV_FARBE[s.grp]};--p:${zvPr(s.pct)}"><span class="zv2-ring"><span class="zv2-in">${svg(s.ic)}</span></span><b>${esc(s.kurz)}</b><small>${esc(s.sub)}</small></button>`;
 /* Gegnerliste unter den Spielen: ein Tipp = Duell starten */
 function zvGegnerHtml() {
   const G = DU_TYPEN[zvWahl]; if (!G) return "";
