@@ -2499,6 +2499,21 @@ body[data-tab="rank"]{--ar-gemeinde:#5fe0b0;--ar:#5fe0b0}
 .pf3-z.gs-schalter .gs-knopf{width:40px;height:22px;border-radius:11px}.pf3-z.gs-schalter .gs-knopf::after{width:16px;height:16px}.pf3-z.gs-schalter[aria-pressed="true"] .gs-knopf::after{left:21px}
 .pf3-fuss{margin:2px 0 0;text-align:center;font-size:.68rem}
 .pf3 .fb-karte#fbLink2{margin:4px 0 0}
+/* 9.35 Fußleiste „Schwebendes Medaillon“ mit Gold-Glas-Glow: größere Symbole/Schrift, füllt den Rahmen, aktives Symbol als leuchtender Knopf */
+.tabbar{width:min(500px,calc(100% - 14px));height:84px;padding:0 3px;gap:0;overflow:visible;border-radius:28px;
+ background:linear-gradient(180deg,#2b3470f2,#10153af7);border:1px solid #f2c14e55;
+ box-shadow:0 -8px 34px #000a,0 0 0 1px #0006,0 0 22px -8px #f2c14e66,inset 0 1px 0 #ffffff40,inset 0 -18px 30px #0a0e2a80}
+.tabbar button{font:800 .74rem var(--body);letter-spacing:-.025em;color:#b3bae6;gap:2px;height:100%;padding:0 0 9px;min-width:0;justify-content:flex-end;white-space:nowrap}
+.tabbar .tb-ic{width:40px;height:40px}.tabbar .tb-ic svg{width:38px;height:38px}
+.tabbar button.an{color:#ffe9a8;text-shadow:0 0 10px color-mix(in srgb,var(--ar) 70%,transparent)}
+.tabbar button.an::before{display:none}
+.tabbar button.an .tb-ic{width:54px;height:54px;margin-top:-30px;border-radius:50%;transform:none;filter:none;
+ background:radial-gradient(circle at 50% 28%,#3f4b9a,#151b45 78%);border:2px solid var(--ar);
+ box-shadow:0 0 0 4px #0f1438,0 0 24px -1px var(--ar),0 0 10px #f2c14e55,inset 0 1px 0 #ffffff66,inset 0 -8px 14px #0a0e2a99}
+.tabbar button.an .tb-ic svg{width:42px;height:42px;filter:drop-shadow(0 0 6px var(--ar))}
+.tabbar [data-tab="duelle"] .tb-ic,.tabbar [data-tab="duelle"].an .tb-ic{filter:none}
+.tabbar .tb-du{top:auto;bottom:46px;right:calc(50% - 30px);left:auto}
+.tabbar button.an .tb-du{bottom:60px}
 </style>
 </head>
 <body>
