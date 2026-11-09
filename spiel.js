@@ -1792,7 +1792,7 @@ function zvGegnerHtml() {
     ${!frei ? `<p class="small muted" style="margin:0">Du hast schon ${DU_MAX_OFFEN} offene Herausforderungen – erst müssen diese gespielt werden. Unter „Arena“ kannst du eine abbrechen.</p>` : `
     <input class="du-suche" id="duSuche" type="search" placeholder="Name suchen …" value="${esc(duSuche)}" autocomplete="off" aria-label="Gegner suchen">
     ${duGegner === null ? `<p class="small muted">Lade Gemeinde …</p>` : `<ul class="du-wahl zv2-liste">${duGegnerListeHtml(q, r => { const laeuft = offen.some(d => d.an === r.id);
-      return `<li><button class="du-person" data-zvg="${esc(r.id)}" ${laeuft ? "disabled" : ""}>${avatarLv(r, 34)}<span class="du-tx"><b>${esc(r.name)}</b><span>${duUnterzeile(r, laeuft)}</span></span>${laeuft ? "" : `<span class="zv2-los">${svg("bolt")}</span>`}</button></li>`; })}</ul>`}`}
+      return `<li><button class="du-person" data-zvg="${esc(r.id)}" ${laeuft ? "disabled" : ""}>${avatarLv(r, 34)}<span class="du-tx"><b>${esc(r.name)}</b><span>${duUnterzeile(r, laeuft)}</span></span></button></li>`; })}</ul>`}`}
   </section>`;
 }
 VIEWS.zusammen = () => {
@@ -3865,22 +3865,34 @@ async function duGegnerLaden() {
 }
 /* 9.20: Bilanz gegen einen Gegner (Siege / Unentschieden / Niederlagen) aus den fertigen Duellen; Duelle werden nach 30 Tagen gelöscht, die Bilanz zeigt also die letzten 30 Tage */
 function duBilanz(id) {
-  let sg = 0, un = 0, nd = 0;
+  let sg = 0, un = 0, nd = 0; const art = {};
   (duListe || []).forEach(d => {
     if (d.status !== "fertig" || !d.vonErg || !d.anErg) return;
     if (!((d.von === S.pid && d.an === id) || (d.an === S.pid && d.von === id))) return;
-    const v = duMeinVgl(d); if (v > 0) sg++; else if (v < 0) nd++; else un++;
+    const v = duMeinVgl(d), t = duTypVon(d), a = art[t] || (art[t] = { sg: 0, un: 0, nd: 0 });
+    if (v > 0) { sg++; a.sg++; } else if (v < 0) { nd++; a.nd++; } else { un++; a.un++; }
   });
-  return { sg, un, nd, n: sg + un + nd };
+  return { sg, un, nd, n: sg + un + nd, art };
 }
 const duUnterzeile = (r, laeuft) => {
   if (laeuft) return "Duell läuft schon";
   const b = duBilanz(r.id);
   if (!b.n) return "Level " + (r.level || 1);
-  /* Level steht schon im Avatar-Abzeichen – so bleibt die Zeile einzeilig */
-  const teile = [b.sg && `<b class="bs">${b.sg} ${b.sg === 1 ? "Sieg" : "Siege"}</b>`, b.un && `<b class="bu">${b.un} Unentschieden</b>`, b.nd && `<b class="bn">${b.nd} ${b.nd === 1 ? "Niederlage" : "Niederlagen"}</b>`].filter(Boolean); /* Nullen weglassen = kompakter */
-  return `<em class="du-bil" title="Bilanz gegen ${esc(r.name)} (letzte 30 Tage)">${teile.join(" · ")}</em>`;
+  /* nur Zahlen (grün = Siege, gelb = Unentschieden, rot = Niederlagen); Tipp darauf öffnet die Statistik */
+  return `<em class="du-bil" role="button" tabindex="0" data-bil="${esc(r.id)}" aria-label="Bilanz gegen ${esc(r.name)}: ${b.sg} Siege, ${b.un} Unentschieden, ${b.nd} Niederlagen – Statistik öffnen"><b class="bs">${b.sg}</b><i>·</i><b class="bu">${b.un}</b><i>·</i><b class="bn">${b.nd}</b></em>`;
 };
+/* Detail-Statistik gegen einen Spieler (letzte 30 Tage), je Duell-Art */
+function duBilanzFenster(id) {
+  const r = (duGegner || []).find(x => x.id === id) || { id, name: "Gegner" }, b = duBilanz(id);
+  const z = (n, k) => n ? `<b class="${k}">${n}</b>` : `<span class="nix">–</span>`;
+  const zeile = (name, ic, a, klasse = "") => `<div class="bil-z ${klasse}"><span class="bil-n">${ic ? svg(ic) : ""}${esc(name)}</span>${z(a.sg, "bs")}${z(a.un, "bu")}${z(a.nd, "bn")}</div>`;
+  const rows = Object.entries(DU_TYPEN).map(([t, T]) => zeile(T.name, T.ic, b.art[t] || { sg: 0, un: 0, nd: 0 }, b.art[t] ? "" : "leer")).join("");
+  modal(`<div class="label">Bilanz · letzte 30 Tage</div><h2 style="margin:2px 0 8px">gegen ${esc(r.name)}</h2>
+    <div class="bil-tab"><div class="bil-z bil-kopf"><span class="bil-n">Duell-Art</span><b class="bs">Siege</b><b class="bu">Unent&shy;schieden</b><b class="bn">Nieder&shy;lagen</b></div>${rows}${zeile("Gesamt", "", b, "bil-sum")}</div>
+    <button class="btn ghost" data-close="x" style="margin-top:10px">Schließen</button>`);
+}
+document.addEventListener("click", e => { const t = e.target.closest && e.target.closest("[data-bil]"); if (!t) return; e.stopPropagation(); e.preventDefault(); duBilanzFenster(t.dataset.bil); }, true);
+document.addEventListener("keydown", e => { if (e.key !== "Enter" && e.key !== " ") return; const t = e.target.closest && e.target.closest("[data-bil]"); if (t) { e.preventDefault(); e.stopPropagation(); duBilanzFenster(t.dataset.bil); } }, true);
 /* 9.18: Gegnerliste in Arena und Biblionär: erst die eigene Gemeinde, darunter hinter einem Trennstrich Gäste und andere Gemeinden */
 function duGegnerGruppen(q) {
   const alle = (duGegner || []).filter(r => !q || nameSchluessel(r.name).includes(q)), me = meineGem();
