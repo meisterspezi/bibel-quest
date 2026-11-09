@@ -2293,6 +2293,10 @@ body[data-tab="rank"]{--ar-gemeinde:#5fe0b0;--ar:#5fe0b0}
 .cd-zahl b[data-n="2"]{color:#fff1c2}
 .cd-zahl b[data-n="1"]{color:color-mix(in srgb,var(--cd) 60%,#fff);text-shadow:0 0 40px var(--cd),0 0 14px var(--cd),0 4px 0 #0007}
 .cd-zahl b.cd-pop{animation:cdZahl .6s cubic-bezier(.2,.9,.3,1.3)}
+.cd-zahl b[data-n="los"]{font-size:4.2rem;letter-spacing:.06em;color:#fff;text-shadow:0 0 46px var(--cd),0 0 18px #fff,0 4px 0 #0007}
+.cd-b.los::after{content:"";position:absolute;inset:0;z-index:5;pointer-events:none;background:radial-gradient(circle at 50% 36%,#fff,color-mix(in srgb,var(--cd) 60%,#fff) 35%,transparent 70%);animation:cdBlitz .45s ease-out forwards}
+.cd-b.los .cd-rfg{stroke:#fff}
+@keyframes cdBlitz{0%{opacity:.95}100%{opacity:0}}
 @keyframes cdLauf{from{stroke-dashoffset:578}to{stroke-dashoffset:0}}
 @keyframes cdWelle{0%{transform:scale(.9);opacity:.9}100%{transform:scale(1.75);opacity:0}}
 @keyframes cdPuls{0%{transform:scale(1)}35%{transform:scale(1.09)}100%{transform:scale(1)}}

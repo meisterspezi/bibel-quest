@@ -2090,7 +2090,15 @@ function countdown(cb, info) {
     SFX.tick();
   };
   let n = 3; takt(n);
-  const t = setInterval(() => { n--; if (n <= 0) { clearInterval(t); tone(1047, 0, .25, "triangle", .2); cb(); } else takt(n); }, 1000); timers.push(t);
+  /* 9.23: kurzes „LOS!“ (0,45 s) mit Lichtblitz und großer Funkenwolke, dann erst startet das Spiel */
+  const los = () => {
+    const z = $("cd"); if (!z || !$("cdB")) { cb(); return; }
+    z.textContent = "LOS!"; z.dataset.n = "los"; neu("cd", "cd-pop"); neu("cdW", "cd-wellen"); neu("cdM", "cd-puls"); $("cdB").classList.add("los");
+    const l = $("cdLogo"); if (l) { const [x, y] = centerOf(l); burst(x, y, 46, { speed: 7, colors: [farbe, "#ffffff", "#fff1c2", "#ffd36b"], up: 1, g: .08 }); }
+    tone(784, 0, .12, "triangle", .2); tone(1175, .1, .3, "triangle", .22);
+    const w = setTimeout(cb, 450); timers.push(w);
+  };
+  const t = setInterval(() => { n--; if (n <= 0) { clearInterval(t); los(); } else takt(n); }, 1000); timers.push(t);
 }
 function playBlitz(scope) {
   const idx = []; ALL.forEach((x, i) => { if (i < ALL.length - 1 && (scope === "all" || (x.t === scope && ALL[i + 1].t === scope))) idx.push(i); });
