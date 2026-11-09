@@ -2053,16 +2053,20 @@ function cdDuell() {
   const id = D.art === "kette" ? "kette-" + D.k : D.art === "quiz" ? "quiz" : D.art;
   const ziele = D.ziele && D.ziele.length ? D.ziele : [{ id: D.vonPid || D.an, name: D.gegner }];
   return Object.assign(cdSolo(id), { modus: D.weih ? "Weihnachts-Duell" : "Duell", sub: "Gleiche Fragen für beide",
-    gegner: ziele.map(g => ({ name: g.name || "?", p: (duGegner || []).find(x => x.id === g.id) || null })) });
+    gegner: ziele.map(g => ({ id: g.id, name: g.name || "?", p: cdGegnerFinden(g) })) });
 }
+/* 9.22: echte Avatare der Gegner – aus der geladenen Gegnerliste (nach id, sonst nach Name) */
+const cdGegnerFinden = g => (duGegner || []).find(x => x.id === g.id) || (duGegner || []).find(x => x.name === g.name) || null;
+const cdAvatar = (g, gr) => avatarHtml({ avatar: g.p && g.p.avatar, frame: g.p && g.p.frame, name: g.name }, gr);
 function countdown(cb, info) {
   info = info || {};
   document.body.classList.add("spiel-laeuft");
   const farbe = info.farbe || "#f2c14e", gg = info.gegner || [];
   const ich = { avatar: S.avatar, frame: S.frame, name: S.lbName || "Du" };
   const seite = (p, name, extra) => `<span class="cd-sp ${extra}">${avatarHtml(p, 62)}<b>${esc(name)}</b></span>`;
-  const rechts = !gg.length ? "" : gg.length === 1 ? seite({ avatar: gg[0].p && gg[0].p.avatar, frame: gg[0].p && gg[0].p.frame, name: gg[0].name }, gg[0].name, "cd-r")
-    : `<span class="cd-sp cd-r"><span class="cd-stapel">${gg.slice(0, 3).map(g => avatarHtml({ avatar: g.p && g.p.avatar, frame: g.p && g.p.frame, name: g.name }, 46)).join("")}</span><b>${gg.length} Gegner</b></span>`;
+  const rechtsHtml = () => !gg.length ? "" : gg.length === 1 ? seite({ avatar: gg[0].p && gg[0].p.avatar, frame: gg[0].p && gg[0].p.frame, name: gg[0].name }, gg[0].name, "cd-r")
+    : `<span class="cd-sp cd-r"><span class="cd-stapel">${gg.slice(0, 3).map(g => cdAvatar(g, 46)).join("")}</span><b>${gg.length} Gegner</b></span>`;
+  const rechts = rechtsHtml();
   const duell = gg.length ? `<div class="cd-duell">${seite(ich, "Du", "cd-l")}<span class="cd-vs">VS</span>${rechts}</div>` : "";
   screen.innerHTML = `<div class="cd-b${gg.length ? " mit-gegner" : ""}" id="cdB" style="--cd:${farbe}">
     <div class="cd-strahl"></div>
@@ -2071,6 +2075,12 @@ function countdown(cb, info) {
     ${info.name ? `<div class="cd-name"><h1>${esc(info.name)}</h1>${info.sub ? `<span>${esc(info.sub)}</span>` : ""}</div>` : ""}
     ${duell}
     <div class="cd-zahl"><b id="cd">3</b></div></div>`;
+  /* Gegnerliste noch nicht geladen (z. B. Duell aus dem Biblionär-Reiter angenommen)? Dann während des Countdowns nachladen und die Avatare austauschen. */
+  if (gg.length && gg.some(g => !g.p) && window.LB && LB.gegnerListe) {
+    const fertig = l => { if (!l || !l.length) return; duGegner = l.filter(r => r.id !== S.pid && r.name); gg.forEach(g => { g.p = g.p || cdGegnerFinden(g); });
+      const alt = document.querySelector(".cd-duell .cd-r"); if (alt && $("cdB")) alt.outerHTML = rechtsHtml(); };
+    try { Promise.resolve(LB.gegnerListe()).then(fertig).catch(() => {}); } catch (e) {}
+  }
   const neu = (id, kl) => { const e = $(id); if (!e) return; e.classList.remove(kl); void e.getBoundingClientRect(); e.classList.add(kl); };
   const takt = n => {
     const z = $("cd"); if (!z) return;
