@@ -2582,14 +2582,14 @@ VIEWS.profil = () => {
       ${pfTrenner("Spieler")}<button class="pf2-btn" id="wechseln">${PF_IC.tausch}${svg("people")}<span>Spieler wechseln</span></button>
       ${pfTrenner("Gemeinde")}${gemKarteHtml()}
     </section>
-    ${pfTrenner("Anzeige")}
-    <button class="im-zeile gs-schalter pf-gross" id="gsSchalterP" aria-pressed="${grossAn()}">${svg("eye")}<span><b>Große Schrift</b><small>${grossAn() ? "an" : "aus"}</small></span><i class="gs-knopf"></i></button>
-    <button class="pf2-stat" data-go="stat">${pfRing(li.p, 58, li.n)}<span><b>Errungenschaften und Statistik</b><small>Level ${li.n} · ${S.badges.length} von ${BADGES.length} Abzeichen</small></span>${PF_IC.pfeil}</button>
+    <button class="pf2-stat pf2-k" data-go="stat"><span class="pf2-ic ring">${pfRing(li.p, 52, li.n)}</span><span class="pf2-tx"><em class="pf2-lab">Errungenschaften</em><b>Errungenschaften und Statistik</b><small>Level ${li.n} · ${S.badges.length} von ${BADGES.length} Abzeichen</small><i class="pf2-mini" aria-hidden="true"><u style="width:${(S.badges.length / Math.max(1, BADGES.length) * 100).toFixed(1)}%"></u></i></span>${PF_IC.pfeil}</button>
     ${pfTrenner("Mehr")}
-    <button class="pf2-zeile" data-go="share">${svg("share")}<span><b>Mit Freunden teilen</b><small>QR-Code</small></span>${PF_IC.pfeil}</button>
-    ${deferredInstall && !S.appBonus ? `<button class="pf2-zeile" id="pfInstall">${svg("down")}<span><b>App installieren</b><small>+${APP_BONUS} Talente</small></span>${PF_IC.pfeil}</button>` : ""}
-    <button class="pf2-zeile" id="fbLink2">${svg("chat")}<span><b>Feedback an den Entwickler</b></span>${PF_IC.pfeil}</button>
-    ${entwickler && (advTestOn() || dayNum(today()) < dayNum(ADV_START)) ? `<button class="pf2-zeile" id="advTestBtn">${svg("kerze")}<span><b>Advent-Testmodus</b><small>${advTestOn() ? "an – öffnen" : "starten"}</small></span>${PF_IC.pfeil}</button>` : ""}
+    <button class="pf2-zeile pf2-k" data-go="share"><span class="pf2-ic">${svg("share")}</span><span class="pf2-tx"><b>Mit Freunden teilen</b><small>QR-Code</small></span>${PF_IC.pfeil}</button>
+    ${deferredInstall && !S.appBonus ? `<button class="pf2-zeile pf2-k" id="pfInstall"><span class="pf2-ic">${svg("down")}</span><span class="pf2-tx"><b>App installieren</b><small>+${APP_BONUS} Talente</small></span>${PF_IC.pfeil}</button>` : ""}
+    <button class="fb-karte" id="fbLink2" aria-label="Feedback an den Entwickler"><span class="fb-bild">${FB_BILD}</span><span class="fb-tx"><b>Feedback an den Entwickler</b><small>Idee, Lob oder Fehler? Schreib mir!</small></span></button>
+    ${entwickler && (advTestOn() || dayNum(today()) < dayNum(ADV_START)) ? `<button class="pf2-zeile pf2-k" id="advTestBtn"><span class="pf2-ic">${svg("kerze")}</span><span class="pf2-tx"><b>Advent-Testmodus</b><small>${advTestOn() ? "an – öffnen" : "starten"}</small></span>${PF_IC.pfeil}</button>` : ""}
+    ${pfTrenner("Anzeige")}
+    <button class="pf2-zeile pf2-k gs-schalter pf-gross" id="gsSchalterP" aria-pressed="${grossAn()}"><span class="pf2-ic">${svg("eye")}</span><span class="pf2-tx"><b>Große Schrift</b><small>${grossAn() ? "an" : "aus"}</small></span><i class="gs-knopf"></i></button>
     ${entwickler && online ? kennungHtml("kennProfil") : ""}
     <p class="small muted" style="margin:6px 0 0">Bibelverse: ${VERS_QUELLE} © Genfer Bibelgesellschaft.</p></div>`;
   wireGo(); pfGemVerdrahten();
