@@ -1755,7 +1755,6 @@ function spielMenue(zus) {
     ${bkLabel("scroll", "Themen-Ketten")}<div class="sp-gitter">${Object.entries(TKETTEN).map(([id, k]) => { const n = Math.min(k.items.length, S[k.key] ? S[k.key] + 1 : 0); return spKachel(zus ? `data-dtyp="kette-${id}"` : `data-tk="${id}"`, svg(k.ic), k.name, n ? `${n} von ${k.items.length}` : "Los geht's!", "sp-ketten", n / k.items.length * 100); }).join("")}</div>
     ${bkLabel("bolt", "Blitz")}
     ${sp("blitz", 'data-go="blitz"', "bolt", "Blitz-Runde")}
-    ${zus ? `${bkLabel("biblionaer", "Biblionär")}${sp("quiz", 'id="alleinBib"', "biblionaer", "Biblionär")}` : ""}
     ${bkLabel("scroll", "Lernvers")}
     ${sp("vers", 'data-go="verslektion"', "scroll", "Lernvers")}
   </div>`;
@@ -1768,19 +1767,65 @@ VIEWS.spielen = () => {
   if ($("alleinBib")) $("alleinBib").onclick = () => { SFX.tap(); bibSolo(weihAktiv()); };
 };
 
-/* ---------- 8.2: Bereich „Zusammen“ – Schritt 1: Spiel wählen (genau wie bei Allein), Schritt 2 (Ansicht „gegner“): nur noch der Gegner ---------- */
+/* ---------- 9.19: „Zusammen“ / Neues Duell: Medaillon-Bühne. Spiel antippen → darunter erscheint die Gegnerliste, ein Tipp auf einen Gegner startet das Duell ---------- */
+const ZV_FARBE = { kette: "#ffb54a", gebote: "#b38cff", schoepfung: "#5fe0b0", blitz: "#ff8a5c", vers: "#7fc8ff" };
+const zvPr = v => Math.max(0, Math.min(100, v || 0)).toFixed(1);
+function zvSpiele() {
+  const k = id => { const K = KETTEN[id], n = Math.min(K.seq.length, kettenBuecher(K.key));
+    return { id: "kette-" + id, ic: "kette-" + id, name: K.name, kurz: { bibel: "Ganze Bibel", at: "Altes Test.", nt: "Neues Test.", rueck: "Rückwärts" }[id], sub: n ? `${n} von ${K.seq.length}` : "Los geht's!", pct: n / K.seq.length * 100, grp: "kette" }; };
+  const t = id => { const K = TKETTEN[id], n = Math.min(K.items.length, S[K.key] ? S[K.key] + 1 : 0);
+    return { id: "kette-" + id, ic: K.ic, name: K.name, kurz: K.name, sub: n ? `${n} von ${K.items.length}` : "Los geht's!", pct: n / K.items.length * 100, grp: id }; };
+  const bp = spielStand("blitz")[1], [vs0, vp] = spielStand("vers"), r = S.bestBlitz | 0;
+  const vs = vs0.startsWith("Neuer") ? "Neuer Vers!" : vs0.startsWith("Vers des") ? "Gemeistert" : vs0;
+  return [k("bibel"), k("at"), k("nt"), k("rueck"), t("gebote"), t("schoepfung"),
+    { id: "blitz", ic: "bolt", name: "Blitz", kurz: "Blitz", sub: r ? `Rekord ${r}` : "Los geht's!", pct: bp, grp: "blitz" },
+    { id: "vers", ic: "scroll", name: "Lernvers", kurz: "Lernvers", sub: vs, pct: vp, grp: "vers" }];
+}
+let zvWahl = null;
+const zvMedaille = (s, an) => `<button class="zv2-m${an ? " an" : ""}" data-dtyp="${s.id}" aria-pressed="${an}" style="--c:${ZV_FARBE[s.grp]};--p:${zvPr(s.pct)}"><span class="zv2-ring"><span class="zv2-in">${svg(s.ic)}</span></span><b>${esc(s.kurz)}</b><small>${esc(s.sub)}</small></button>`;
+/* Gegnerliste unter den Spielen: ein Tipp = Duell starten */
+function zvGegnerHtml() {
+  const G = DU_TYPEN[zvWahl]; if (!G) return "";
+  const offen = (duListe || []).filter(d => d.von === S.pid && duStatus(d) === "offen"), frei = Math.max(0, DU_MAX_OFFEN - offen.length), q = nameSchluessel(duSuche);
+  return `<section class="zv2-gegner" id="zvGegner" aria-label="Gegner wählen">
+    <div class="zv2-gk"><span class="zv2-gic">${svg(G.ic)}</span><span class="zv2-gt"><small>Dein Spiel</small><b>${esc(G.name)}</b></span><span class="zv2-gh">Gegner antippen – dann geht es los!</span></div>
+    ${!frei ? `<p class="small muted" style="margin:0">Du hast schon ${DU_MAX_OFFEN} offene Herausforderungen – erst müssen diese gespielt werden. Unter „Arena“ kannst du eine abbrechen.</p>` : `
+    <input class="du-suche" id="duSuche" type="search" placeholder="Name suchen …" value="${esc(duSuche)}" autocomplete="off" aria-label="Gegner suchen">
+    ${duGegner === null ? `<p class="small muted">Lade Gemeinde …</p>` : `<ul class="du-wahl zv2-liste">${duGegnerListeHtml(q, r => { const laeuft = offen.some(d => d.an === r.id);
+      return `<li><button class="du-person" data-zvg="${esc(r.id)}" ${laeuft ? "disabled" : ""}>${avatarLv(r, 34)}<span class="du-tx"><b>${esc(r.name)}</b><span>${laeuft ? "Duell läuft schon" : "Level " + (r.level || 1)}</span></span>${laeuft ? "" : `<span class="zv2-los">${svg("bolt")}</span>`}</button></li>`; })}</ul>`}`}
+  </section>`;
+}
 VIEWS.zusammen = () => {
-  const duN = duFuerMich().length, online = duOk(), dran = duDranHtml();
+  const duN = duFuerMich().length, online = duOk(), dran = duDranHtml(), g = zvSpiele();
+  if (!online) zvWahl = null;
   screen.innerHTML = `${bereichKopf("gemeinde", { ic: "people", t: "Zusammen", sub: duN ? `${duN} ${duN === 1 ? "Duell wartet" : "Duelle warten"} auf dich!` : "Mit der Gemeinde spielen" })}
   ${online ? "" : `<p class="small muted zus-hinweis">${window.LB && window.LB.ok ? "Für Duelle brauchst du einen Eintrag in der Gemeinde-Rangliste." : "Für Duelle brauchst du Internet."}</p>`}
   ${dran}
-  <div class="${online ? "" : "sp-aus"}">${spielMenue(true)}</div>`;
-  wireGo(); duDranVerdrahten();
-  screen.querySelectorAll("[data-dtyp]").forEach(b => b.onclick = () => { SFX.tap(); if (!online) { toast(`${svg("duell", "var(--muted)")}<div>Für Duelle brauchst du Internet und einen Eintrag in der Rangliste.</div>`); return; }
-    S.duTyp = b.dataset.dtyp; duAuswahl = []; duSuche = ""; save(); go("gegner"); });
-  if (online) { if (duGegner === null) duGegnerLaden(); if (duListe === null) duAktualisieren().then(() => { if (current === "zusammen") VIEWS.zusammen(); }).catch(() => {}); }
+  <div class="zv ${online ? "" : "sp-aus"}"><div class="zv2-buehne">
+    <div class="zv2-reihe"><span class="zv2-tit">${svg("link")}Ketten</span></div><div class="zv2-gitter">${g.slice(0, 4).map(s => zvMedaille(s, zvWahl === s.id)).join("")}</div>
+    <div class="zv2-reihe"><span class="zv2-tit">${svg("star")}Themen · Blitz · Vers</span></div><div class="zv2-gitter">${g.slice(4).map(s => zvMedaille(s, zvWahl === s.id)).join("")}</div></div>
+    <p class="zv2-hinw"><span>1</span>Spiel antippen<i></i><span>2</span>Gegner wählen<i></i><span>3</span>Duell!</p>
+    <div id="zvGegnerBox">${zvWahl ? zvGegnerHtml() : ""}</div></div>`;
+  wireGo(); duDranVerdrahten(); zvVerdrahten();
+  if (online) { if (duGegner === null) duGegnerLaden().then(() => { if (current === "zusammen") zvGegnerNeu(); }); if (duListe === null) duAktualisieren().then(() => { if (current === "zusammen") zvGegnerNeu(); }).catch(() => {}); }
   else if (typeof duAktualisieren === "function" && duListe === null) duAktualisieren().catch(() => {});
 };
+function zvGegnerNeu() { const box = $("zvGegnerBox"); if (!box || !zvWahl) return; const w = $("zvGegner") && $("zvGegner").querySelector(".zv2-liste"), top = w ? w.scrollTop : 0;
+  box.innerHTML = zvGegnerHtml(); zvGegnerVerdrahten(); const n = $("zvGegner") && $("zvGegner").querySelector(".zv2-liste"); if (n) n.scrollTop = top; }
+function zvGegnerVerdrahten() {
+  const f = $("duSuche"); if (f) f.oninput = () => { duSuche = f.value; const pos = f.selectionStart; zvGegnerNeu(); const g = $("duSuche"); g.focus(); try { g.setSelectionRange(pos, pos); } catch (e) {} };
+  screen.querySelectorAll("[data-zvg]").forEach(b => b.onclick = () => { const r = (duGegner || []).find(x => x.id === b.dataset.zvg); if (!r) return; SFX.tap();
+    S.duTyp = zvWahl; save(); duAuswahl = []; duHerausfordern({ id: r.id, name: r.name }, zvWahl); });
+}
+function zvVerdrahten() {
+  screen.querySelectorAll("[data-dtyp]").forEach(b => b.onclick = () => { SFX.tap();
+    if (!duOk()) { toast(`${svg("duell", "var(--muted)")}<div>Für Duelle brauchst du Internet und einen Eintrag in der Rangliste.</div>`); return; }
+    zvWahl = b.dataset.dtyp; duSuche = "";
+    screen.querySelectorAll("[data-dtyp]").forEach(x => { const an = x === b; x.classList.toggle("an", an); x.setAttribute("aria-pressed", an); });
+    zvGegnerNeu(); const box = $("zvGegner");
+    if (box) { let ruhig = false; try { ruhig = matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {} box.scrollIntoView({ behavior: ruhig ? "auto" : "smooth", block: "start" }); } });
+  zvGegnerVerdrahten();
+}
 /* Schritt 2: nur noch den Gegner wählen – das Spiel steht schon fest (S.duTyp) */
 VIEWS.gegner = () => {
   if (!duOk()) { go("zusammen"); return; }
@@ -2118,16 +2163,39 @@ function playChain(mode) {
 /* ---------- 9.11: Themen-Ketten – feste Reihenfolge mit klarer biblischer Grundlage (Zehn Gebote, Schöpfungstage) ----------
    Wie die Buch-Ketten: immer das, was als Nächstes kommt – ein Fehler beendet die Kette. Rekord je Kette in S[key] (Index des letzten richtigen Gliedes). */
 const TKETTEN = {
-  gebote: { name: "Zehn Gebote", info: "2. Mose 20,3–17", key: "chainGebote", bonus: 30, tal: 8, ic: "scroll", frage: "Welches Gebot kommt nach", start: "Wie lautet das 1. Gebot?", sub: n => `${n + 1}. Gebot`,
+  gebote: { name: "Zehn Gebote", info: "2. Mose 20,3–17", key: "chainGebote", bonus: 30, tal: 8, ic: "tafeln", frage: "Welches Gebot kommt nach", start: "Wie lautet das 1. Gebot?", sub: n => `${n + 1}. Gebot`,
     items: [
       { t: "Keine anderen Götter neben dem HERRN", d: "Der HERR allein ist Gott – er hat sein Volk aus Ägypten geführt. Neben ihm soll niemand und nichts den ersten Platz im Leben bekommen.", r: "2. Mose 20,3" }, { t: "Kein Götzenbild machen", d: "Gott lässt sich nicht in Bildern nachmachen. Man soll sich weder ein Götzenbild machen noch sich davor niederwerfen.", r: "2. Mose 20,4–6" }, { t: "Den Namen des HERRN nicht missbrauchen", d: "Gottes Name ist heilig. Man soll ihn nicht leichtfertig, falsch oder für Lügen gebrauchen.", r: "2. Mose 20,7" },
       { t: "Den Sabbat heiligen", d: "Sechs Tage arbeiten, der siebte ist ein Ruhetag für den HERRN – für dich, deine Familie und alle, die bei dir leben.", r: "2. Mose 20,8–11" }, { t: "Vater und Mutter ehren", d: "Wer seine Eltern ehrt, lebt nach Gottes Ordnung – damit es ihm gut geht in dem Land, das der HERR gibt.", r: "2. Mose 20,12" }, { t: "Nicht töten", d: "Das Leben ist ein Geschenk Gottes. Kein Mensch darf einen anderen ermorden.", r: "2. Mose 20,13" },
       { t: "Nicht die Ehe brechen", d: "Die Ehe ist ein Bund vor Gott. Wer die Treue bricht, zerstört Vertrauen und Familie.", r: "2. Mose 20,14" }, { t: "Nicht stehlen", d: "Was dem anderen gehört, bleibt sein Eigentum. Man soll nicht nehmen, was einem nicht gehört.", r: "2. Mose 20,15" }, { t: "Kein falsches Zeugnis reden", d: "Vor Gericht und im Alltag gilt: die Wahrheit sagen und niemandem durch Lügen schaden.", r: "2. Mose 20,16" }, { t: "Nicht begehren, was dem Nächsten gehört", d: "Nicht Haus, Besitz oder Familie des anderen haben wollen – Zufriedenheit statt Neid.", r: "2. Mose 20,17" }] },
-  schoepfung: { name: "Schöpfung", info: "Die sieben Schöpfungstage · 1. Mose 1,1–2,3", key: "chainSchoepfung", bonus: 24, tal: 6, ic: "sun", frage: "Was folgt auf", start: "Was schuf Gott am 1. Tag?", sub: n => `${n + 1}. Tag`,
+  schoepfung: { name: "Schöpfung", info: "Die sieben Schöpfungstage · 1. Mose 1,1–2,3", key: "chainSchoepfung", bonus: 24, tal: 6, ic: "schoepfung", frage: "Was folgt auf", start: "Was schuf Gott am 1. Tag?", sub: n => `${n + 1}. Tag`,
     items: [
       { t: "Licht und Finsternis", d: "Gott spricht: „Es werde Licht!“ Er trennt das Licht von der Finsternis und nennt das Licht Tag und die Finsternis Nacht.", r: "1. Mose 1,3–5" }, { t: "Himmelsfeste: Wasser oben und unten", d: "Gott schafft die Weite des Himmels und trennt das Wasser unter ihr vom Wasser über ihr.", r: "1. Mose 1,6–8" }, { t: "Land, Meer und Pflanzen", d: "Das Wasser sammelt sich zu Meeren, trockenes Land erscheint. Die Erde lässt Gras, Kräuter und fruchttragende Bäume wachsen.", r: "1. Mose 1,9–13" },
       { t: "Sonne, Mond und Sterne", d: "Gott setzt Sonne, Mond und Sterne an den Himmel – als Lichter für Tag und Nacht, für Zeiten, Tage und Jahre.", r: "1. Mose 1,14–19" }, { t: "Fische und Vögel", d: "Das Wasser wimmelt von Leben, Vögel fliegen unter dem Himmel. Gott segnet sie: Seid fruchtbar und mehrt euch.", r: "1. Mose 1,20–23" }, { t: "Landtiere und der Mensch", d: "Gott schafft die Landtiere – und zuletzt den Menschen als sein Ebenbild, als Mann und Frau. Alles war sehr gut.", r: "1. Mose 1,24–31" }, { t: "Gott ruht", d: "Gott vollendet sein Werk und ruht am siebten Tag. Er segnet diesen Tag und heiligt ihn.", r: "1. Mose 2,2–3" }] }
 };
+/* 9.19: neue Symbole für Zehn Gebote (Steintafeln) und Schöpfung (Erdkugel mit Strahlen). Beim Generator-Lauf nach werkzeuge/symbole-erzeugen.js übernehmen. */
+(() => {
+const SPARK = (x, y) => `<path class="wr-spark" d="M${x} ${y}l1.49 4.01 4.01 1.49-4.01 1.49-1.49 4.01-1.49-4.01-4.01-1.49 4.01-1.49z" fill="#fff"/>`;
+const KOPF = c => `<svg x="0" y="0" width="24" height="24" viewBox="0 0 64 64" overflow="visible" class="wr wr-spielen"><circle class="wr-halo" cx="32" cy="32" r="31" fill="url(#wrH_${c})"/><ellipse cx="32" cy="61" rx="19" ry="2.2" fill="#000" opacity=".3"/>`;
+/* Zehn Gebote: zwei Steintafeln mit goldenen Zeilen (I–V und VI–X), Lichtstrahlen darüber */
+const tafel = (x, zeilen) => `<path d="M${x} 58V24a11.5 11.5 0 0 1 23 0V58z" fill="url(#wrSt)" stroke="#1b2a55" stroke-width="1.4" stroke-linejoin="round"/>` +
+  `<path d="M${x + 3} 55V24.5a8.5 8.5 0 0 1 4-7.2" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="2" stroke-linecap="round"/>` +
+  zeilen.map((w, i) => `<path d="M${x + 11.5 - w / 2} ${25 + i * 6.6}h${w}" stroke="url(#wrG)" stroke-width="2.6" stroke-linecap="round"/><path d="M${x + 11.5 - w / 2} ${25 + i * 6.6}h${w}" stroke="#1b2a55" stroke-width=".5" opacity=".5" stroke-linecap="round"/>`).join("");
+const TAFELN = KOPF("spielen") +
+  `<g stroke="#1b2a55" stroke-width="6" stroke-linecap="round"><path d="M32 1.5v7M15 6l3.5 5.5M49 6l-3.5 5.5M5 17l6 2.5M59 17l-6 2.5"/></g>` +
+  `<g stroke="url(#wrT_spielen)" stroke-width="3" stroke-linecap="round"><path d="M32 1.5v7M15 6l3.5 5.5M49 6l-3.5 5.5M5 17l6 2.5M59 17l-6 2.5"/></g>` +
+  tafel(5, [9, 12, 8, 12, 9]) + tafel(36, [11, 8, 12, 9, 12]) + SPARK(52.5, 2) + `</svg>`;
+/* Schöpfung: leuchtende Erdkugel (Wasser, Land) mit Strahlenkranz – „Es werde Licht“ */
+const SCHOEPFUNG = KOPF("spielen") +
+  `<g stroke="#1b2a55" stroke-width="7" stroke-linecap="round"><path d="M32 2v8M10 10l5.5 5.5M54 10l-5.5 5.5M2 32h8M54 32h8"/></g>` +
+  `<g stroke="url(#wrT_spielen)" stroke-width="4" stroke-linecap="round"><path d="M32 2v8M10 10l5.5 5.5M54 10l-5.5 5.5M2 32h8M54 32h8"/></g>` +
+  `<clipPath id="scKugel"><circle cx="32" cy="36" r="19"/></clipPath>` +
+  `<circle cx="32" cy="36" r="19" fill="url(#wrJ_lernen)" stroke="#1b2a55" stroke-width="1.4"/>` +
+  `<g clip-path="url(#scKugel)"><path d="M18 30q6-9 15-6 5 2 2 8-3 4-9 3-5 5-10 2z" fill="url(#wrG)" opacity=".95"/><path d="M38 41q8-4 12 3 0 9-9 11-6-2-5-8 0-3 2-6z" fill="url(#wrG)" opacity=".95"/><path d="M13 44q8 3 14 10" stroke="#fff" stroke-width="1.6" fill="none" opacity=".35"/></g>` +
+  `<path d="M20 28a14 14 0 0 1 8-8" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2.6" stroke-linecap="round"/>` +
+  `<circle cx="32" cy="36" r="19" fill="none" stroke="url(#wrG)" stroke-width="1.6" opacity=".9"/>` + SPARK(50, 38) + `</svg>`;
+ICONS.tafeln = TAFELN; ICONS.schoepfung = SCHOEPFUNG;
+})();
 /* Bilder der Themen-Ketten: tk-bilder.js (TK_BILD, tkBildSvg) */
 /* Zeitleiste: leere Felder (keine Vorschau, die die Antwort verraten würde), bis die Frage richtig beantwortet ist; ziel = das Glied, das gerade gefragt wird; neu = gerade aufgedecktes Glied */
 function tkZeitleiste(id, erreicht, ziel, neu) {
@@ -3467,8 +3535,8 @@ const DU_TYPEN = {
   "kette-at": { art: "kette", k: "at", name: "Kette AT", ic: "kette-at", info: "1. Mose bis Maleachi · ein Fehler beendet sie" },
   "kette-nt": { art: "kette", k: "nt", name: "Kette NT", ic: "kette-nt", info: "Matthäus bis Offenbarung · ein Fehler beendet sie" },
   "kette-rueck": { art: "kette", k: "rueck", name: "Rückwärts", ic: "kette-rueck", info: "Offenbarung bis 1. Mose · für Profis" },
-  "kette-gebote": { art: "kette", k: "gebote", name: "Zehn Gebote", ic: "scroll", info: "2. Mose 20,3–17 · ein Fehler beendet sie" },
-  "kette-schoepfung": { art: "kette", k: "schoepfung", name: "Schöpfung", ic: "sun", info: "Die sieben Schöpfungstage · ein Fehler beendet sie" },
+  "kette-gebote": { art: "kette", k: "gebote", name: "Zehn Gebote", ic: "tafeln", info: "2. Mose 20,3–17 · ein Fehler beendet sie" },
+  "kette-schoepfung": { art: "kette", k: "schoepfung", name: "Schöpfung", ic: "schoepfung", info: "Die sieben Schöpfungstage · ein Fehler beendet sie" },
   quiz: { art: "quiz", k: "leiter", name: "Biblionär", kurz: "Biblionär", ic: "biblionaer", info: "15 Bibelfragen bis 1 Million Punkte · 3 Joker · Aussteigen erlaubt" }
 };
 let duListe = null, duFehler = "", duSpiel = null, duWahl = false, duGegner = null, duSuche = "", duAlle = false;
