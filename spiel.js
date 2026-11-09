@@ -1537,6 +1537,13 @@ const TRUHE_KORPUS = `<rect x="7" y="33" width="50" height="25" rx="4" fill="url
   <rect x="6" y="31" width="52" height="5" rx="2" fill="url(#trGold)" stroke="#7a4e0c" stroke-width=".8"/>
   <rect x="7" y="55" width="50" height="3.5" rx="1.5" fill="url(#trGold)" stroke="#7a4e0c" stroke-width=".6"/>`;
 /* Goldener Schlüssel (eine Tagesaufgabe = ein Schlüssel) und Vorhängeschloss */
+/* 9.30: Grafik für die Feedback-Karte unten auf der Startseite (Sprechblase mit Herz und Funkeln, Weißgold-Stil) */
+const FB_BILD = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="fbBl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffdf2"/><stop offset=".55" stop-color="#ffe9a8"/><stop offset="1" stop-color="#f2c14e"/></linearGradient><linearGradient id="fbHz" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9fb8"/><stop offset="1" stop-color="#e0463c"/></linearGradient></defs>
+<path d="M12 10h34a8 8 0 0 1 8 8v18a8 8 0 0 1-8 8H31l-11 10v-10h-8a8 8 0 0 1-8-8V18a8 8 0 0 1 8-8z" transform="translate(1 1)" fill="url(#fbBl)" stroke="#1b2a55" stroke-width="2.2" stroke-linejoin="round"/>
+<path d="M17 18c5-3 13-3 20-2" stroke="#fff" stroke-width="2.4" stroke-linecap="round" fill="none" opacity=".85"/>
+<path d="M32 38c-8-5.4-11.6-9-11.6-12.9a6 6 0 0 1 11.6-2.1 6 6 0 0 1 11.6 2.1C43.6 29 40 32.600 32 38z" transform="translate(1 -2) scale(.97)" fill="url(#fbHz)" stroke="#1b2a55" stroke-width="2" stroke-linejoin="round"/>
+<path d="M54 4l1.800 4.200L60 10l-4.200 1.800L54 16l-1.800-4.200L48 10l4.200-1.800z" fill="#fff6c8" stroke="#c98f12" stroke-width="1" stroke-linejoin="round"/>
+<path d="M7 50l1.200 2.800L11 54l-2.800 1.200L7 58l-1.200-2.800L3 54l2.800-1.200z" fill="#fff6c8" stroke="#c98f12" stroke-width=".9" stroke-linejoin="round"/></svg>`;
 const SCHLUESSEL = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 10.6h11v2.8h-1.6v3h-2.2v-3h-1.4v2.2h-2.2v-2.2h-3.6z" fill="#f2c14e" stroke="#7a4e0c" stroke-width=".9" stroke-linejoin="round"/><circle cx="7" cy="12" r="5" fill="#f2c14e" stroke="#7a4e0c" stroke-width=".9"/><circle cx="7" cy="12" r="2" fill="#3a2a08"/><path d="M4 9.6a3.6 3.6 0 0 1 3-1.6M12 11.3h8.6" stroke="#fff8d8" stroke-width=".9" stroke-linecap="round" fill="none" opacity=".9"/></svg>`;
 const SCHLOSS = (bereit) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 11V8a4.5 4.5 0 0 1 9 0v3" fill="none" stroke="${bereit ? "#e8d9a8" : "#9aa1b8"}" stroke-width="2.6"/><rect x="4.5" y="10.5" width="15" height="11" rx="2.6" fill="${bereit ? "#f2c14e" : "#8a90a8"}" stroke="${bereit ? "#7a4e0c" : "#3c4158"}" stroke-width="1"/><path d="M6 12.5h12" stroke="#fff" stroke-opacity=".45" stroke-width="1"/><circle cx="12" cy="15" r="1.7" fill="#2a1d02"/><path d="M12 16v2.6" stroke="#2a1d02" stroke-width="1.6" stroke-linecap="round"/></svg>`;
 const SCHLOSS_X = [16, 32, 48];
@@ -1678,7 +1685,8 @@ VIEWS.home = () => {
       ${ktKachel("duelle", "#e0463c", DUELL_LOGO, "Arena", duN ? (duN === 1 ? "1 Duell wartet" : `${duN} Duelle warten`) : "Fordere jemand heraus", duN)}
     </div>
     ${entwickler && postfachNeu ? `<button class="erinnerung pf-hinweis" data-go="postfach">${svg("chat")}<span><b>${postfachNeu} ${postfachNeu === 1 ? "neue Meldung" : "neue Meldungen"} im Postkasten</b><span class="small muted">Feedback, Status und Datenbank</span></span></button>` : ""}
-    <button class="feedback-link fb-start" id="fbLinkStart">${svg("chat")} Feedback an den Entwickler</button>
+    <div class="fb-abstand" aria-hidden="true"></div>
+    <button class="fb-karte" id="fbLinkStart" aria-label="Feedback an den Entwickler"><span class="fb-bild">${FB_BILD}</span><span class="fb-tx"><b>Feedback an den Entwickler</b><small>Idee, Lob oder Fehler? Schreib mir!</small></span></button>
   </div>`;
   wireGo();
   $("fbLinkStart").onclick = () => { SFX.tap(); feedbackOeffnen(); };
