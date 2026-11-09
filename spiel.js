@@ -2016,7 +2016,7 @@ VIEWS.gap = (arg) => {
       <div class="hilfe" style="text-align:left"><div class="label">${alle ? "Jetzt das ganze Lied am Stück" : "Jetzt die Strophe am Stück"}</div>${alle
         ? `<details class="lied-det"><summary>${svg("music")} Liedtext zeigen</summary>${singBox(LIED.map((v, vi) => `<div class="lied-mini">${v.lines.map((_, li) => zeileHtml(vi, li)).join("<br>")}</div>`).join(""))}</details>`
         : singBox(`<div class="lied-mini">${LIED[strophen[0]].lines.map((_, li) => zeileHtml(strophen[0], li)).join("<br>")}</div>`)}</div>
-      <button class="btn primary" id="again">Nochmal</button><button class="btn ghost" data-go="${alle ? heimAnsicht("spielen") : "lied"}">Zurück</button></div>`;
+      <button class="btn primary" id="again">Nochmal</button><button class="btn ghost" data-go="${alle ? heimAnsicht("spielen") : "lied"}">Zurück</button><button class="btn fertig" data-go="home">Fertig</button></div>`;
     wireGo(); wireSing(); $("again").onclick = () => { SFX.tap(); vorlesenStop(); VIEWS.gap(arg); };
     SFX.win(); if (perfekt) rain(80);
     if (xp) addXp(xp, null, "luecke", { t0, f: luecken.length - Math.min(fehler, luecken.length), fm: luecken.length, d: `${alle ? "Ganzes Lied" : "Strophe " + (strophen[0] + 1)} · ${fehler} Fehler${W.d}` }); save(); checkBadges();
@@ -2146,7 +2146,7 @@ function playBlitz(scope) {
     screen.innerHTML = `<div class="card result stack"><div class="label">Zeit abgelaufen</div><div class="big">${right}</div><div class="muted">Richtige · ${wrong} Fehler · beste Combo ${maxCombo}</div>${rec && right > 0 ? '<h2>Neuer Rekord!</h2>' : ''}
       <div class="rewards"><span class="pill">+${xp} XP</span><span class="pill">+${tal} Talente</span></div>${W.hinweis}
       ${blitzLiedHilfe()}
-      <button class="btn primary" id="again">Nochmal</button><button class="btn ghost" data-go="${heimAnsicht("spielen")}">Zurück</button></div>`; wireGo(); wireSing();
+      <button class="btn primary" id="again">Nochmal</button><button class="btn ghost" data-go="${heimAnsicht("spielen")}">Zurück</button><button class="btn fertig" data-go="home">Fertig</button></div>`; wireGo(); wireSing();
     $("again").onclick = () => { SFX.tap(); vorlesenStop(); VIEWS.blitz(); };
     if (right > 0) { SFX.win(); if (rec) rain(90); }
     if (xp) addXp(xp, null, "blitz", { t0, f: right, fm: right + wrong, d: `${scope === "all" ? "Ganze Bibel" : scope} · ${wrong} Fehler · Combo ${maxCombo}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
@@ -2216,7 +2216,7 @@ function playChain(mode) {
       ${!full && BUCH_IM_LIED[seq[i + 1]] ? `<div class="hilfe"><div class="label">So geht's im Lied</div>${singBox(zeileHtml(BUCH_IM_LIED[seq[i + 1]].v, BUCH_IM_LIED[seq[i + 1]].l))}</div>` : ""}
       ${sieg ? `<div class="siegel-box">${siegelHtml(sieg.nachher, true, true)}<div><b>${SIEGEL[sieg.nachher].name}-Siegel</b><div class="small muted">${sieg.nachher < 4 ? "Nächstes: " + SIEGEL[sieg.nachher + 1].name + " – " + SIEGEL[sieg.nachher + 1].text : "Höchste Stufe!"}<br>Bleibt ${SIEGEL_FRISCH} Tage frisch – danach einfach wiederholen.</div></div></div>` : ""}
       <div class="rewards"><span class="pill">+${xp} XP</span><span class="pill">+${tal + (sieg ? sieg.tal : 0)} Talente</span></div>${W.hinweis}
-      <button class="btn primary" id="cagain">Nochmal</button><button class="btn ghost" data-go="${heimAnsicht("spielen")}">Andere Kette</button></div>`; wireGo(); wireSing();
+      <button class="btn primary" id="cagain">Nochmal</button><button class="btn ghost" data-go="${heimAnsicht("spielen")}">Andere Kette</button><button class="btn fertig" data-go="home">Fertig</button></div>`; wireGo(); wireSing();
     $("cagain").onclick = () => { SFX.tap(); vorlesenStop(); countdown(() => playChain(mode), cdSolo("kette-" + mode)); };
     if (full) { SFX.level(); rain(200); } else if (rec) SFX.win();
     if (xp) addXp(xp, null, "kette", { t0, f: Math.max(0, i), fm: seq.length - 1, d: `${K.name}${full ? " · komplett" : " · gerissen"}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
@@ -2320,7 +2320,7 @@ function playThemenKette(id) {
     screen.innerHTML = `${backBtn(heimAnsicht("spielen"), heimName("spielen"))}<div class="card result stack"><div class="label">${full ? "Großartig" : "Kette gerissen"}</div><div class="big">${i + 1} / ${seq.length}</div>
       <div class="muted">${full ? `${esc(K.name)} komplett in der richtigen Reihenfolge! (${esc(K.info)})` : i < 0 ? `${esc(K.start)} „${esc(correct)}“ (${esc(seq[0].r)}).` : `Nach „${esc(seq[i].t)}“ kommt „${esc(correct)}“ (${esc(seq[i + 1].r)}).`}</div>${rec && !full ? "<h2>Neuer Rekord!</h2>" : ""}
       <div class="rewards"><span class="pill">+${xp} XP</span><span class="pill">+${tal} Talente</span></div>${W.hinweis}
-      <div class="tk-knoepfe"><button class="btn primary" id="cagain">Nochmal</button><button class="btn ghost" data-go="${heimAnsicht("spielen")}">Andere Kette</button></div>
+      <div class="tk-knoepfe"><button class="btn primary" id="cagain">Nochmal</button><button class="btn ghost" data-go="${heimAnsicht("spielen")}">Andere Kette</button><button class="btn fertig" data-go="home">Fertig</button></div>
       ${tkErgebnis(id, i, full)}</div>`; wireGo();
     $("cagain").onclick = () => { SFX.tap(); countdown(() => playThemenKette(id), cdSolo("kette-" + id)); };
     if (full) { SFX.level(); rain(200); } else if (rec) SFX.win();
