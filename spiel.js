@@ -1460,7 +1460,7 @@ function go(name, arg) {
 /* 8.0 „Allein und Zusammen“: nur noch vier große Reiter – Laden über die Talente oben, Rangliste unter „Zusammen“ */
 const TABS = [["home", "Start", "sun"], ["lernen", "Lektionen", "book"], ["spielen", "Solo", "user"], ["bib", "Biblionär", "biblionaer"], ["duelle", "Arena", "arena"], ["rank", "Rangliste", "trophy"]]; /* 9.14: Arena + Biblionär statt „Zusammen“ (VIEWS.zusammen bleibt im Code, ist aber nicht mehr im Menü) */
 const TAB_VON = { stift: "rank", advent: "home", beth: "home", kal: "home", duell: "duelle", zusammen: "duelle", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen", biblionaer: "bib",
-  bib: "bib", gemverwaltung: "", gegner: "duelle", duelle: "duelle", rank: "rank", shop: "rank", ich: "", profil: "", stat: "", badges: "", wer: "", postfach: "", neuigkeiten: "", nachrichten: "" };
+  bib: "bib", gemverwaltung: "", gegner: "duelle", duelle: "duelle", rank: "rank", shop: "rank", ich: "", profil: "", stat: "", errung: "", badges: "", wer: "", postfach: "", neuigkeiten: "", nachrichten: "" };
 /* rote Zahl am Duell-Reiter: wartende Herausforderungen */
 function tbDuSetzen() { let a = 0, b = 0; try { a = duFuerMich().length; b = duFuerBib().length; } catch (e) {} [["tbDu", a], ["tbBib", b]].forEach(([id, n]) => { const t = $(id); if (!t) return; t.hidden = !n; t.textContent = n; }); }
 function tabbarSetzen(name) {
@@ -2582,7 +2582,10 @@ VIEWS.profil = () => {
       ${pfTrenner("Spieler")}<button class="pf2-btn" id="wechseln">${PF_IC.tausch}${svg("people")}<span>Spieler wechseln</span></button>
       ${pfTrenner("Gemeinde")}${gemKarteHtml()}
     </section>
-    <button class="pf2-stat pf2-k" data-go="stat"><span class="pf2-ic ring">${pfRing(li.p, 52, li.n)}</span><span class="pf2-tx"><em class="pf2-lab">Errungenschaften</em><b>Errungenschaften und Statistik</b><small>Level ${li.n} · ${S.badges.length} von ${BADGES.length} Abzeichen</small><i class="pf2-mini" aria-hidden="true"><u style="width:${(S.badges.length / Math.max(1, BADGES.length) * 100).toFixed(1)}%"></u></i></span>${PF_IC.pfeil}</button>
+    <div class="pf2-duo">
+      <button class="pf2-k pf2-t2" data-go="errung"><span class="pf2-ic">${svg("medal")}</span><b>Errungenschaften</b><small>${S.badges.length} von ${BADGES.length} Abzeichen</small></button>
+      <button class="pf2-k pf2-t2" data-go="stat"><span class="pf2-ic">${svg("fire")}</span><b>Statistik</b><small>${streakNow() | 0} ${(streakNow() | 0) === 1 ? "Tag" : "Tage"} in Folge</small></button>
+    </div>
     ${pfTrenner("Mehr")}
     <button class="pf2-zeile pf2-k" data-go="share"><span class="pf2-ic">${svg("share")}</span><span class="pf2-tx"><b>Mit Freunden teilen</b><small>QR-Code</small></span>${PF_IC.pfeil}</button>
     ${deferredInstall && !S.appBonus ? `<button class="pf2-zeile pf2-k" id="pfInstall"><span class="pf2-ic">${svg("down")}</span><span class="pf2-tx"><b>App installieren</b><small>+${APP_BONUS} Talente</small></span>${PF_IC.pfeil}</button>` : ""}
@@ -2617,29 +2620,37 @@ function pfGemVerdrahten() {
 }
 
 /* ---------- Errungenschaften und Statistik (9.10) ---------- */
-let statTab = 0;
 function pfBalken(t, v, max, kl) { return `<div class="pf2-zl"><div class="pf2-vz"><span>${t}</span><b>${v}/${max}</b></div><div class="pf2-bar ${kl || ""}"><i style="width:${Math.min(100, v / max * 100).toFixed(0)}%"></i></div></div>`; }
 function pfTitel(liste, p, tag) {
   const i = titelIndex(liste, p), t = liste[i], nx = liste[i + 1];
   return `<div class="pf2-zl"><div class="pf2-vz"><span><span class="tag ${tag.toLowerCase()}">${tag}</span> <b>${esc(t[1])}</b></span><b>${p}%</b></div><div class="pf2-bar ${tag.toLowerCase()}"><i style="width:${p}%"></i></div>${nx ? `<div class="small muted">Nächster Titel bei ${nx[0]}%: ${esc(nx[1])}</div>` : `<div class="small muted">Höchster Titel erreicht</div>`}</div>`;
 }
 function pfKachel(ic, n, t) { return `<div class="pf2-kachel">${svg(ic)}<div class="n">${n}</div><div class="t">${t}</div></div>`; }
-VIEWS.stat = (tab) => {
-  if (typeof tab === "number") statTab = tab;
-  const m = lbPayload(), { atP, ntP } = fortschritt(), li = pfLevel(), h = dayNum(today());
-  const TABS = ["Überblick", "Titel", "Rekorde", "Abzeichen"];
-  const teile = [
-    () => `<div class="pf2-g2">${pfKachel("fire", (m.streak || 0) + (m.streak === 1 ? " Tag" : " Tage"), "Serie")}${pfKachel("sun", m.t28 || 0, "Spieltage in 4 Wochen")}${pfKachel("medal", S.badges.length, "Abzeichen")}${pfKachel("ar-schild", armorCount() + "/6", "Waffenrüstung")}</div>
-      <div class="pf2-karte"><div class="pf2-vz"><span>Spieltage der letzten 4 Wochen</span><b>${m.t28 || 0}</b></div><div class="pf2-tage" role="img" aria-label="${m.t28 || 0} Spieltage in den letzten 4 Wochen">${Array.from({ length: 28 }, (_, i) => `<i class="${S.tage.includes(h - 27 + i) ? "an" : ""}"></i>`).join("")}</div></div>`,
-    () => `<div class="pf2-karte pf2-zls">${pfTitel(AT_TITEL, atP, "AT")}${pfTrenner("")}${pfTitel(NT_TITEL, ntP, "NT")}</div>
-      <div class="pf2-karte"><div class="label" style="margin:0 0 8px">Siegel</div><div class="pf2-sg">${siegelReihe(m)}</div></div>`,
-    () => `<div class="pf2-karte pf2-zls">${pfBalken("Kette Bibel", m.bestChain ? m.bestChain + 1 : 0, 66)}${pfBalken("Kette AT", m.chainAT ? m.chainAT + 1 : 0, 39, "at")}${pfBalken("Kette NT", m.chainNT ? m.chainNT + 1 : 0, 27, "nt")}${pfBalken("Kette rückwärts", m.chainRueck ? m.chainRueck + 1 : 0, 66)}${pfBalken("Zehn Gebote", m.chainGebote ? m.chainGebote + 1 : 0, 10)}${pfBalken("Schöpfungstage", m.chainSchoepfung ? m.chainSchoepfung + 1 : 0, 7)}</div>
-      <div class="pf2-g2">${pfKachel("bolt", m.blitz || 0, "Blitz-Rekord")}${pfKachel("bolt", m.combo != null ? m.combo : "–", "Blitz in Folge")}${pfKachel("duell", (m.duS || 0) + " / " + (m.duG || 0), "Arena-Siege / Duelle")}${pfKachel("biblionaer", pkt(m.bib || 0), "Biblionär-Rekord")}</div>`,
-    () => `<div class="pf2-karte"><div class="pf2-vz"><span>Gesammelt</span><b>${S.badges.length} von ${BADGES.length}</b></div><div class="pf2-bar"><i style="width:${(S.badges.length / BADGES.length * 100).toFixed(0)}%"></i></div></div>${badgeGrid(S.badges)}`
-  ];
-  screen.innerHTML = `${backBtn("profil", "Profil")}<h1 class="pf2-h1">Errungenschaften und Statistik</h1><div class="pf2"><div class="pf2-seg" role="tablist">${TABS.map((t, i) => `<button role="tab" aria-selected="${i === statTab}" class="${i === statTab ? "an" : ""}" data-st="${i}">${t}</button>`).join("")}</div>${teile[statTab]()}</div>`;
+const pfKopf = t => `<h1 class="pf2-h1">${t}</h1>`;
+VIEWS.errung = () => {
+  const m = lbPayload(), { atP, ntP } = fortschritt();
+  screen.innerHTML = `${backBtn("profil", "Profil")}${pfKopf("Errungenschaften")}<div class="pf2">
+    <div class="pf2-g2">${pfKachel("medal", `${S.badges.length}<small> / ${BADGES.length}</small>`, "Abzeichen")}${pfKachel("ar-schild", armorCount() + "<small> / 6</small>", "Waffenrüstung")}</div>
+    ${pfTrenner("Titel")}
+    <div class="pf2-karte pf2-zls">${pfTitel(AT_TITEL, atP, "AT")}${pfTitel(NT_TITEL, ntP, "NT")}</div>
+    ${pfTrenner("Siegel")}
+    <div class="pf2-karte"><div class="pf2-sg">${siegelReihe(m)}</div></div>
+    ${pfTrenner("Abzeichen")}
+    <div class="pf2-karte"><div class="pf2-vz"><span>Gesammelt</span><b>${S.badges.length} von ${BADGES.length}</b></div><div class="pf2-bar"><i style="width:${(S.badges.length / BADGES.length * 100).toFixed(0)}%"></i></div></div>${badgeGrid(S.badges)}</div>`;
   wireGo();
-  screen.querySelectorAll("[data-st]").forEach(b => b.onclick = () => { SFX.tap(); VIEWS.stat(+b.dataset.st); window.scrollTo(0, 0); });
+};
+VIEWS.stat = () => {
+  const m = lbPayload(), h = dayNum(today());
+  const ch = (t, v, max, kl) => pfBalken(t, v ? v + 1 : 0, max, kl);
+  screen.innerHTML = `${backBtn("profil", "Profil")}${pfKopf("Statistik")}<div class="pf2">
+    ${pfTrenner("Überblick")}
+    <div class="pf2-g2">${pfKachel("fire", (m.streak || 0) + (m.streak === 1 ? " Tag" : " Tage"), "Serie")}${pfKachel("sun", m.t28 || 0, "Spieltage in 4 Wochen")}</div>
+    <div class="pf2-karte"><div class="pf2-vz"><span>Die letzten 4 Wochen</span><b>${m.t28 || 0} Tage</b></div><div class="pf2-tage" role="img" aria-label="${m.t28 || 0} Spieltage in den letzten 4 Wochen">${Array.from({ length: 28 }, (_, i) => `<i class="${S.tage.includes(h - 27 + i) ? "an" : ""}"></i>`).join("")}</div></div>
+    ${pfTrenner("Rekorde")}
+    <div class="pf2-g2">${pfKachel("bolt", m.blitz || 0, "Blitz-Rekord")}${pfKachel("bolt", m.combo != null ? m.combo : "–", "Blitz in Folge")}${pfKachel("duell", (m.duS || 0) + " / " + (m.duG || 0), "Arena-Siege / Duelle")}${pfKachel("biblionaer", pkt(m.bib || 0), "Biblionär-Rekord")}</div>
+    ${pfTrenner("Ketten")}
+    <div class="pf2-karte pf2-zls">${ch("Kette Bibel", m.bestChain, 66)}${ch("Kette AT", m.chainAT, 39, "at")}${ch("Kette NT", m.chainNT, 27, "nt")}${ch("Kette rückwärts", m.chainRueck, 66)}${ch("Zehn Gebote", m.chainGebote, 10)}${ch("Schöpfungstage", m.chainSchoepfung, 7)}</div></div>`;
+  wireGo();
 };
 
 /* ---------- Gemeinde-Rangliste ---------- */
@@ -5638,7 +5649,7 @@ document.addEventListener("pointerdown", () => { ac(); }, { once: true });
 const APP_BONUS = 100;
 const alsApp = () => { try { return matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches || navigator.standalone === true; } catch (e) { return false; } };
 const istIos = () => { const u = navigator.userAgent || ""; return /iPhone|iPad|iPod/.test(u) || (/Macintosh/.test(u) && navigator.maxTouchPoints > 1); };
-const AH_REITER = ["home", "lernen", "spielen", "zusammen", "bib", "duelle", "rank", "ich", "profil", "stat", "badges"];
+const AH_REITER = ["home", "lernen", "spielen", "zusammen", "bib", "duelle", "rank", "ich", "profil", "stat", "errung", "badges"];
 const ahKey = "bq-app-hinweis-zu";
 function ahZuHeute() { try { return localStorage.getItem(ahKey) === today(); } catch (e) { return false; } }
 function appBonusPruefen() {
