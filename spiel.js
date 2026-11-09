@@ -1792,7 +1792,7 @@ function zvGegnerHtml() {
     ${!frei ? `<p class="small muted" style="margin:0">Du hast schon ${DU_MAX_OFFEN} offene Herausforderungen – erst müssen diese gespielt werden. Unter „Arena“ kannst du eine abbrechen.</p>` : `
     <input class="du-suche" id="duSuche" type="search" placeholder="Name suchen …" value="${esc(duSuche)}" autocomplete="off" aria-label="Gegner suchen">
     ${duGegner === null ? `<p class="small muted">Lade Gemeinde …</p>` : `<ul class="du-wahl zv2-liste">${duGegnerListeHtml(q, r => { const laeuft = offen.some(d => d.an === r.id);
-      return `<li><button class="du-person" data-zvg="${esc(r.id)}" ${laeuft ? "disabled" : ""}>${avatarLv(r, 34)}<span class="du-tx"><b>${esc(r.name)}</b><span>${duUnterzeile(r, laeuft)}</span></span></button></li>`; })}</ul>`}`}
+      return `<li><button class="du-person" data-zvg="${esc(r.id)}" ${laeuft ? "disabled" : ""}>${avatarLv(r, 34)}<span class="du-tx"><b>${esc(r.name)}</b><span>${duUnterzeile(r, laeuft)}</span></span>${laeuft ? "" : `<span class="zv2-vor" aria-hidden="true">${svg(G.ic)}</span>`}</button></li>`; })}</ul>`}`}
   </section>`;
 }
 VIEWS.zusammen = () => {
