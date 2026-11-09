@@ -4779,13 +4779,16 @@ const bibIstQuiz = d => (d.art || "vers") === "quiz";
 function bibGegnerHtml() {
   const offen = (duListe || []).filter(d => d.von === S.pid && duStatus(d) === "offen");
   const q = nameSchluessel(bibDuSuche);
-  return `<div class="card du-gegner bq-gegner" id="bqGegner">
+  return `<section class="zv2-gegner bq-gegner" id="bqGegner" aria-label="Gegner wählen">
+    <div class="zv2-gk"><span class="zv2-gic">${svg("biblionaer")}</span><span class="zv2-gt"><small>Dein Spiel</small><b>Biblionär-Duell</b></span><span class="zv2-gh">Gegner antippen – dann geht es los!</span></div>
     ${offen.length >= DU_MAX_OFFEN ? `<p class="small muted" style="margin:0">Du hast schon ${DU_MAX_OFFEN} offene Herausforderungen – erst müssen diese gespielt werden. Unten bei „Wartet auf“ kannst du eine abbrechen.</p>` : `
-    <input class="du-suche" id="bqSuche" type="search" placeholder="Wen herausfordern? Name suchen …" value="${esc(bibDuSuche)}" autocomplete="off" aria-label="Gegner suchen">
-    ${duGegner === null ? `<p class="small muted">Lade Gemeinde …</p>` : `<ul class="du-wahl">${duGegnerListeHtml(q, r => { const laeuft = offen.some(d => d.an === r.id);
-      return `<li><button class="du-person" data-bqg="${esc(r.id)}" ${laeuft ? "disabled" : ""}>${avatarLv(r, 34)}<span class="du-tx"><b>${esc(r.name)}</b><span>${duUnterzeile(r, laeuft)}</span></span>${laeuft ? "" : `<span class="du-los bq-los">${svg("biblionaer")}</span>`}</button></li>`; })}</ul>`}`}
-  </div>`;
+    <input class="du-suche" id="bqSuche" type="search" placeholder="Name suchen …" value="${esc(bibDuSuche)}" autocomplete="off" aria-label="Gegner suchen">
+    ${duGegner === null ? `<p class="small muted">Lade Gemeinde …</p>` : `<ul class="du-wahl zv2-liste">${duGegnerListeHtml(q, r => { const laeuft = offen.some(d => d.an === r.id);
+      return `<li><button class="du-person" data-bqg="${esc(r.id)}" ${laeuft ? "disabled" : ""}>${avatarLv(r, 34)}<span class="du-tx"><b>${esc(r.name)}</b><span>${duUnterzeile(r, laeuft)}</span></span>${laeuft ? "" : `<span class="zv2-vor" aria-hidden="true">${svg("biblionaer")}</span>`}</button></li>`; })}</ul>`}`}
+  </section>`;
 }
+/* 9.27: Solo/Duell als Medaillons im Stil von „Zusammen“ */
+const bqMedaille = (id, ic, kurz, sub, pct, farbe, an, extra = "") => `<button class="zv2-m${an ? " an" : ""}" id="${id}" ${extra} style="--c:${farbe};--p:${zvPr(pct)}"><span class="zv2-ring"><span class="zv2-in">${svg(ic)}</span></span><b>${kurz}</b><small>${sub}</small></button>`;
 function bibGegnerVerdrahten() {
   const neu = () => { const box = $("bqGegner"); if (box) { box.outerHTML = bibGegnerHtml(); bibGegnerVerdrahten(); } };
   const f = $("bqSuche"); if (f) f.oninput = () => { bibDuSuche = f.value; const pos = f.selectionStart; neu(); const g = $("bqSuche"); g.focus(); try { g.setSelectionRange(pos, pos); } catch (e) {} };
@@ -4834,20 +4837,19 @@ VIEWS.bib = () => {
       ${!dran.length && !warte.length && !fertig.length && duListe !== null ? `<p class="small muted bq2-leer">Noch keine Duelle – fordere oben jemanden heraus. Ihr bekommt beide dieselben 15 Fragen.</p>` : ""}
       ${andere > 0 ? `<button class="ar-mehr bq2-mehr" data-go="duelle">${andere} ${andere === 1 ? "weiteres Duell wartet" : "weitere Duelle warten"} in der Arena</button>` : ""}`;
   screen.innerHTML = `
-    ${bereichKopf("bib", { bild: "icons/biblionaer-logo.webp", t: "Biblionär", sub: "15 Bibelfragen bis zur Million", ring: [stufe, "von 15"],
-      tafel: [[S.bibSpiele || 0, S.bibSpiele === 1 ? "Spiel" : "Spiele"], [pkt(rek), "Rekord"], [S.bibMillion || 0, "Million"]],
-      zeile: { ic: "crown", t: "Rekord-Leiter", p: stufe / 15 * 100, r: `${stufe}/15` } })}
-    ${bkLabel("play", "Spielen")}
+    ${bereichKopf("bib", { bild: "icons/biblionaer-logo.webp", t: "Biblionär", sub: "15 Bibelfragen bis zur Million" })}
     ${weihSchalterHtml()}
-    <div class="bq3-start">
-      <div class="bq4-paar">
-        <button class="bq4-k bq4-solo" id="bqSolo" aria-label="Solo spielen – 1 Spieler"><span class="bq4-chip">${svg("user")}1 Spieler</span><span class="bq4-bild"><span class="bq4-av">${ichKurz}</span></span><b class="bq4-tt">Solo</b><span class="bq4-sub">${weihAktiv() ? "Weihnachtsfragen" : rek ? `Rekord ${pkt(rek)}` : "Allein üben"}</span>${svg("play")}</button>
-        ${online ? `<button class="bq4-k bq4-duell" id="bqNeu" aria-label="${bibDuWahl ? "Gegnerwahl schließen" : "Neues Duell – 2 Spieler"}" ${bibDuWahl ? 'aria-expanded="true"' : ""}><span class="bq4-chip">${svg("people")}2 Spieler</span><span class="bq4-bild"><span class="bq4-av">${ichKurz}</span><span class="bq4-vs">VS</span><span class="bq4-av f">?</span></span><b class="bq4-tt">Duell</b><span class="bq4-sub">${bibDuWahl ? "Unten Namen antippen" : "Gegen die Gemeinde"}</span>${svg(bibDuWahl ? "nein" : "bolt")}</button>`
-          : `<div class="bq4-k bq4-duell aus"><span class="bq4-chip">${svg("people")}2 Spieler</span><span class="bq4-bild"><span class="bq4-av">${ichKurz}</span><span class="bq4-vs">VS</span><span class="bq4-av f">?</span></span><b class="bq4-tt">Duell</b><span class="bq4-sub">${window.LB && window.LB.ok ? "Nur mit Eintrag in der Rangliste" : "Nur mit Internet"}</span></div>`}
+    <div class="zv"><div class="zv2-buehne bq5-buehne">
+      <div class="zv2-reihe"><span class="zv2-tit">${svg("biblionaer")}Spielen</span></div>
+      <div class="zv2-gitter bq5-gitter">
+        ${bqMedaille("bqSolo", "user", "Solo", weihAktiv() ? "Weihnachtsfragen" : rek ? `Rekord ${pkt(rek)}` : "Allein üben", stufe / 15 * 100, "#66e0d0", false, 'aria-label="Solo spielen – 1 Spieler"')}
+        ${online ? bqMedaille("bqNeu", "people", "Duell", bibDuWahl ? "Gegner antippen" : "Gegen die Gemeinde", 100, "#ff8a5c", bibDuWahl, `aria-pressed="${bibDuWahl}" aria-label="${bibDuWahl ? "Gegnerwahl schließen" : "Neues Duell – 2 Spieler"}"`)
+          : `<div class="zv2-m aus" style="--c:#ff8a5c;--p:0"><span class="zv2-ring"><span class="zv2-in">${svg("people")}</span></span><b>Duell</b><small>${window.LB && window.LB.ok ? "Nur mit Rangliste" : "Nur mit Internet"}</small></div>`}
       </div>
-      ${online && bibDuWahl ? bibGegnerHtml() : ""}
-      ${woche}
+      <p class="zv2-hinw"><span>1</span>Spiel antippen<i></i><span>2</span>Gegner<i></i><span>3</span>Los!</p>
     </div>
+    ${online && bibDuWahl ? bibGegnerHtml() : ""}
+    <div class="bq3-start">${woche}</div></div>
     ${bkLabel("duell", "Deine Duelle", dran.length)}
     <section class="bq2-duell">
       ${duell}
@@ -4863,7 +4865,7 @@ VIEWS.bib = () => {
   weihSchalterWire(() => VIEWS.bib());
   if ($("bqWoche")) $("bqWoche").onclick = () => { SFX.tap(); if (weihAktiv()) { if (ar) bibAdventStarten(); return; } if (gespielt) go("rank", "bibWoche"); else bibWocheStarten(); };
   if ($("bqNeu")) $("bqNeu").onclick = () => { SFX.tap(); bibDuWahl = !bibDuWahl; VIEWS.bib();
-    if (bibDuWahl) { duGegnerLaden().then(() => { if (current !== "bib" || !bibDuWahl) return; const b = $("bqGegner"); if (!b) return;
+    if (bibDuWahl) { const g0 = $("bqGegner"); if (g0) { let ruhig = false; try { ruhig = matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {} g0.scrollIntoView({ behavior: ruhig ? "auto" : "smooth", block: "start" }); } duGegnerLaden().then(() => { if (current !== "bib" || !bibDuWahl) return; const b = $("bqGegner"); if (!b) return;
         const fokus = document.activeElement?.id === "bqSuche"; b.outerHTML = bibGegnerHtml(); bibGegnerVerdrahten(); if (fokus) { const f = $("bqSuche"); f.focus(); f.setSelectionRange(f.value.length, f.value.length); } });
       const f = $("bqSuche"); if (f && !matchMedia("(pointer: coarse)").matches) f.focus(); } };
   bibGegnerVerdrahten();
