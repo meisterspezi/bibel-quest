@@ -426,7 +426,16 @@ function vlVerdrahten(a, verdeckt) {
   screen.querySelectorAll(".vl-wort").forEach(b => b.onclick = () => { SFX.tap(); wahl = +b.dataset.w; screen.querySelectorAll(".vl-wort").forEach(x => x.classList.toggle("gewaehlt", x === b)); P.disabled = false; });
   if (a.typ === "luecke") screen.querySelectorAll(".vl-chips .chip").forEach(b => b.onclick = () => {
     const w = text.split(" "), aktiv = a.offen[a.pos], ok = lvGleich(a.opts[+b.dataset.o], w[aktiv]);
-    if (ok) { SFX.right(a.pos); vibrate(10); a.pos++; a.opts = null; if (a.pos >= a.offen.length) vlUrteil(a, a.fehler === 0, null); else vlZeige(); }
+    if (ok) {
+      SFX.right(a.pos); vibrate(10); a.pos++; a.opts = null;
+      if (a.pos >= a.offen.length) {
+        /* letztes Wort sichtbar in die Lücke setzen, bevor das Urteil erscheint */
+        const loch = screen.querySelector(".vl-loch.jetzt"), m = w[aktiv].match(/^(.*?)([.,;:!?»«„“"'’)]*)$/u);
+        if (loch) loch.outerHTML = `<span class="vl-gefuellt">${esc(m[1])}</span>`;
+        const n = a.fehler;
+        vlUrteil(a, n === 0, n ? `Das letzte Wort war richtig – vorher gab es ${n} Fehlversuch${n > 1 ? "e" : ""}.` : null, true);
+      } else vlZeige();
+    }
     else { a.fehler++; vlFehlerWort(a.k, aktiv); SFX.wrong(); vibrate([40, 30, 40]); b.classList.remove("no"); void b.offsetWidth; b.classList.add("no"); b.disabled = true; }
   });
   if (a.typ === "kacheln") {
