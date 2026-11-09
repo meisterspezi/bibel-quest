@@ -1792,7 +1792,7 @@ function zvGegnerHtml() {
     ${!frei ? `<p class="small muted" style="margin:0">Du hast schon ${DU_MAX_OFFEN} offene Herausforderungen – erst müssen diese gespielt werden. Unter „Arena“ kannst du eine abbrechen.</p>` : `
     <input class="du-suche" id="duSuche" type="search" placeholder="Name suchen …" value="${esc(duSuche)}" autocomplete="off" aria-label="Gegner suchen">
     ${duGegner === null ? `<p class="small muted">Lade Gemeinde …</p>` : `<ul class="du-wahl zv2-liste">${duGegnerListeHtml(q, r => { const laeuft = offen.some(d => d.an === r.id);
-      return `<li><button class="du-person" data-zvg="${esc(r.id)}" ${laeuft ? "disabled" : ""}>${avatarLv(r, 34)}<span class="du-tx"><b>${esc(r.name)}</b><span>${laeuft ? "Duell läuft schon" : "Level " + (r.level || 1)}</span></span>${laeuft ? "" : `<span class="zv2-los">${svg("bolt")}</span>`}</button></li>`; })}</ul>`}`}
+      return `<li><button class="du-person" data-zvg="${esc(r.id)}" ${laeuft ? "disabled" : ""}>${avatarLv(r, 34)}<span class="du-tx"><b>${esc(r.name)}</b><span>${duUnterzeile(r, laeuft)}</span></span>${laeuft ? "" : `<span class="zv2-los">${svg("bolt")}</span>`}</button></li>`; })}</ul>`}`}
   </section>`;
 }
 VIEWS.zusammen = () => {
@@ -3863,6 +3863,22 @@ async function duGegnerLaden() {
   try { duGegner = (await window.LB.gegnerListe()).filter(r => r.id !== S.pid && r.name); } catch (e) { duGegner = []; }
   if (current === "gegner") { const box = $("duGegner"); if (box) { box.outerHTML = duGegnerHtml(); duGegnerVerdrahten(); } }
 }
+/* 9.20: Bilanz gegen einen Gegner (Siege / Unentschieden / Niederlagen) aus den fertigen Duellen; Duelle werden nach 30 Tagen gelöscht, die Bilanz zeigt also die letzten 30 Tage */
+function duBilanz(id) {
+  let sg = 0, un = 0, nd = 0;
+  (duListe || []).forEach(d => {
+    if (d.status !== "fertig" || !d.vonErg || !d.anErg) return;
+    if (!((d.von === S.pid && d.an === id) || (d.an === S.pid && d.von === id))) return;
+    const v = duMeinVgl(d); if (v > 0) sg++; else if (v < 0) nd++; else un++;
+  });
+  return { sg, un, nd, n: sg + un + nd };
+}
+const duUnterzeile = (r, laeuft) => {
+  if (laeuft) return "Duell läuft schon";
+  const b = duBilanz(r.id), lv = "Level " + (r.level || 1);
+  if (!b.n) return lv;
+  return `${lv} · <em class="du-bil" title="${b.sg} Siege, ${b.un} Unentschieden, ${b.nd} Niederlagen gegen ${esc(r.name)}"><b class="bs">${b.sg} S</b> <b class="bu">${b.un} U</b> <b class="bn">${b.nd} N</b></em>`;
+};
 /* 9.18: Gegnerliste in Arena und Biblionär: erst die eigene Gemeinde, darunter hinter einem Trennstrich Gäste und andere Gemeinden */
 function duGegnerGruppen(q) {
   const alle = (duGegner || []).filter(r => !q || nameSchluessel(r.name).includes(q)), me = meineGem();
@@ -3885,7 +3901,7 @@ function duGegnerHtml() {
     <input class="du-suche" id="duSuche" type="search" placeholder="Name suchen …" value="${esc(duSuche)}" autocomplete="off" aria-label="Gegner suchen">
     ${n ? `<div class="du-chips">${duAuswahl.map(g => `<button class="du-chip" data-raus="${esc(g.id)}" aria-label="${esc(g.name)} abwählen">${esc(g.name)}${svg("nein")}</button>`).join("")}</div>` : ""}
     ${duGegner === null ? `<p class="small muted">Lade Gemeinde …</p>` : `<ul class="du-wahl">${duGegnerListeHtml(q, r => { const laeuft = offen.some(d => d.an === r.id), an = duAuswahl.some(g => g.id === r.id);
-      return `<li><button class="du-person${an ? " gewaehlt" : ""}" data-gegner="${esc(r.id)}" aria-pressed="${an}" ${laeuft || (voll && !an) ? "disabled" : ""}>${avatarLv(r, 34)}<span class="du-tx"><b>${esc(r.name)}</b><span>${laeuft ? "Duell läuft schon" : "Level " + (r.level || 1)}</span></span>${laeuft ? "" : `<span class="du-haken">${an ? svg("check") : ""}</span>`}</button></li>`; })}</ul>`}
+      return `<li><button class="du-person${an ? " gewaehlt" : ""}" data-gegner="${esc(r.id)}" aria-pressed="${an}" ${laeuft || (voll && !an) ? "disabled" : ""}>${avatarLv(r, 34)}<span class="du-tx"><b>${esc(r.name)}</b><span>${duUnterzeile(r, laeuft)}</span></span>${laeuft ? "" : `<span class="du-haken">${an ? svg("check") : ""}</span>`}</button></li>`; })}</ul>`}
     <button class="btn primary du-fordern du-los-knopf" id="duLos" ${n ? "" : "disabled"}>${svg("bolt")} ${n ? `${esc(DU_TYPEN[typ].name)}-Duell gegen ${n === 1 ? esc(duAuswahl[0].name) : n + " Gegner"}` : `Gegner antippen (bis ${maxWahl})`}</button>
     ${n > 1 ? `<p class="small muted du-typ-info" style="margin:0">Du spielst einmal – jeder bekommt dieselben Fragen und ein eigenes Duell gegen dich.</p>` : ""}`}
   </div>`;
@@ -4690,7 +4706,7 @@ function bibGegnerHtml() {
     ${offen.length >= DU_MAX_OFFEN ? `<p class="small muted" style="margin:0">Du hast schon ${DU_MAX_OFFEN} offene Herausforderungen – erst müssen diese gespielt werden. Unten bei „Wartet auf“ kannst du eine abbrechen.</p>` : `
     <input class="du-suche" id="bqSuche" type="search" placeholder="Wen herausfordern? Name suchen …" value="${esc(bibDuSuche)}" autocomplete="off" aria-label="Gegner suchen">
     ${duGegner === null ? `<p class="small muted">Lade Gemeinde …</p>` : `<ul class="du-wahl">${duGegnerListeHtml(q, r => { const laeuft = offen.some(d => d.an === r.id);
-      return `<li><button class="du-person" data-bqg="${esc(r.id)}" ${laeuft ? "disabled" : ""}>${avatarLv(r, 34)}<span class="du-tx"><b>${esc(r.name)}</b><span>${laeuft ? "Duell läuft schon" : "Level " + (r.level || 1)}</span></span>${laeuft ? "" : `<span class="du-los bq-los">${svg("biblionaer")}</span>`}</button></li>`; })}</ul>`}`}
+      return `<li><button class="du-person" data-bqg="${esc(r.id)}" ${laeuft ? "disabled" : ""}>${avatarLv(r, 34)}<span class="du-tx"><b>${esc(r.name)}</b><span>${duUnterzeile(r, laeuft)}</span></span>${laeuft ? "" : `<span class="du-los bq-los">${svg("biblionaer")}</span>`}</button></li>`; })}</ul>`}`}
   </div>`;
 }
 function bibGegnerVerdrahten() {
