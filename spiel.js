@@ -3639,8 +3639,9 @@ const duTypAktuell = () => (DU_TYPEN[S.duTyp] ? S.duTyp : "vers");
 const duTypText = d => { const t = duTypVon(d) || "vers"; return t === "vers" ? `Lernvers ${monatName(d.k)}` : DU_TYPEN[t].name; };
 const duErgText = (art, e) => (art === "blitz" ? `${e.r} richtig` : art === "kette" ? `${e.r}/${e.n} Bücher richtig` : `${e.r}/${e.n} richtig`);
 /* 9.13: Wer gewinnt, entscheidet allein die Zahl der richtigen Antworten – bei gleicher Zahl ist es unentschieden, egal wer schneller war (die Punkte werden weiter angezeigt) */
-const duVgl = (a, b) => Math.sign((a && a.r | 0) - (b && b.r | 0));
-const duMeinVgl = d => { const ich = d.von === S.pid; return duVgl(ich ? d.vonErg : d.anErg, ich ? d.anErg : d.vonErg); };
+/* 9.29: Biblionär (art "quiz"): bei gleich vielen richtigen Antworten gewinnt, wer die höhere Wertung (Gewinnstufe) hat – wer rechtzeitig aussteigt, wird belohnt */
+const duVgl = (a, b, art) => { const v = Math.sign((a && a.r | 0) - (b && b.r | 0)); return v || (art === "quiz" ? Math.sign((a && a.p | 0) - (b && b.p | 0)) : 0); };
+const duMeinVgl = d => { const ich = d.von === S.pid; return duVgl(ich ? d.vonErg : d.anErg, ich ? d.anErg : d.vonErg, d.art); };
 const duP = p => pkt(p); /* Punkte mit Tausenderpunkt (Biblionär bis 1.000.000) */
 
 /* ---------- Auflösung „Siegelbruch“ (6.62): die Punkte des Gegners bleiben bis zum Ende versiegelt ----------
@@ -3669,7 +3670,7 @@ function sbStarten(root, o, fertig) {
     if (fertigGemacht) return; fertigGemacht = true; T.forEach(clearTimeout); R.forEach(cancelAnimationFrame); root.onclick = null;
     q("#sbZ1").textContent = duP(o.du.p); q("#sbZ2").textContent = duP(o.er.p);
     const sg = q("#sbSiegel"); if (sg) sg.remove();
-    const sieg = duVgl(o.du, o.er) > 0, remis = duVgl(o.du, o.er) === 0;
+    const sieg = duVgl(o.du, o.er, o.art) > 0, remis = duVgl(o.du, o.er, o.art) === 0;
     if (!remis) { q(sieg ? "#sbDu" : "#sbEr").classList.add("sieger"); q(sieg ? "#sbEr" : "#sbDu").classList.add("verlierer"); }
     fertig(sieg, remis);
   };
@@ -3692,7 +3693,7 @@ let duAufloesQ = [];
 function duAufloesVersuch() {
   if (!duAufloesQ.length || duSpiel || document.querySelector(".modal, .sb-ov") || !["home", "duelle", "bib", "spielen", "rank", "profil", "lernen", "ich"].includes(current)) return;
   const d = duAufloesQ.shift(), du = d.vonErg, er = d.anErg, typ = duTypVon(d) || "vers", art = DU_TYPEN[typ].art || d.art;
-  const kf = 1 /* 6.93: keine Kürzung bei Duellen */, sieg0 = duVgl(du, er) > 0, remis0 = duVgl(du, er) === 0, tal = Math.round((sieg0 ? DU_SIEG_TAL : remis0 ? DU_REMIS_TAL : 0) * kf);
+  const kf = 1 /* 6.93: keine Kürzung bei Duellen */, sieg0 = duVgl(du, er, art) > 0, remis0 = duVgl(du, er, art) === 0, tal = Math.round((sieg0 ? DU_SIEG_TAL : remis0 ? DU_REMIS_TAL : 0) * kf);
   const ov = document.createElement("div"); ov.className = "sb-ov"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");
   ov.innerHTML = `<div class="vl vl-ende du-ende sb-ende">
     <div class="sb-kopf"><small>Ergebnis ist da</small><b>${esc(duTypText(d))}-Duell gegen ${esc(d.anName)}</b></div>
@@ -3705,7 +3706,7 @@ function duAufloesVersuch() {
   sbStarten(ov, { gegner: d.anName, du, er, art }, (sieg, remis) => {
     ov.querySelector(".sb-titel").textContent = sieg ? "Gewonnen!" : remis ? "Unentschieden!" : "Knapp vorbei!";
     if (!sieg && !remis) ov.querySelector(".sb-titel").classList.add("leise");
-    ov.querySelector(".sb-zeile").textContent = sieg ? `Du hast ${d.anName} besiegt.` : remis ? "Genau gleich viele richtige Antworten – egal, wer schneller war!" : `${d.anName} war diesmal besser – fordere eine Revanche!`;
+    ov.querySelector(".sb-zeile").textContent = sieg ? (art === "quiz" && du.r === er.r ? `Gleich viele richtige Antworten – deine höhere Wertung entscheidet. Du hast ${d.anName} besiegt.` : `Du hast ${d.anName} besiegt.`) : remis ? "Genau gleich viele richtige Antworten – egal, wer schneller war!" : `${d.anName} war diesmal besser – fordere eine Revanche!`;
     if (!sieg) ov.querySelector("#sbRev").classList.add("puls");
     sbSchluss(ov, sieg || remis); /* 9.13: Unentschieden wird wie ein Sieg gefeiert */
   });
@@ -3829,7 +3830,7 @@ function duBelohnen() {
   let tal = 0;
   neu.forEach(d => {
     S.duGes = [...(S.duGes || []), d.id].slice(-60);
-    const v = duVgl(d.vonErg, d.anErg);
+    const v = duVgl(d.vonErg, d.anErg, d.art);
     const kf = 1;  /* 6.93: Duelle werden nie gekürzt (bis 6.92: gekürzt beim 5.+ Duell am Tag gegen denselben Gegner) */
     if (v > 0) tal += Math.round(DU_SIEG_TAL * kf); else if (v === 0) tal += Math.round(DU_REMIS_TAL * kf); /* der Sieg selbst wird in duZaehlen() aus den Duellen gezählt */
     duAufloesQ.push(d); /* 6.62: statt Hinweis eine Auflösung im Siegelbruch-Stil */
@@ -4185,11 +4186,11 @@ async function duEnde() {
     } else {
       if (!D.gesendet) { await L.duellErgebnis(D.id, erg, S.pid); D.gesendet = true; duListe = null; }
       angekommen();
-      const vgl = duVgl({ r: D.r }, D.gegnerErg); sieg = vgl > 0; remis = vgl === 0;
+      const vgl = duVgl({ r: D.r, p: D.p }, D.gegnerErg, D.art); sieg = vgl > 0; remis = vgl === 0;
       /* Fairplay: wer eine Herausforderung annimmt, bekommt immer etwas – dazu Sieg/Remis */
       if (!D.talGegeben) { D.talGegeben = true; tal = Math.round((DU_FAIR_TAL + (sieg ? DU_SIEG_TAL : vgl === 0 ? DU_REMIS_TAL : 0)) * (D.gleichF != null ? D.gleichF : 1)); if (sieg) S.duSiege = (S.duSiege || 0) + 1; save(); }
       titel = sieg ? "Gewonnen!" : vgl === 0 ? "Unentschieden!" : "Knapp vorbei!";
-      zeile = sieg ? `Du hast ${esc(D.gegner)} besiegt.` : vgl === 0 ? "Genau gleich viele richtige Antworten – egal, wer schneller war!" : `${esc(D.gegner)} war diesmal besser – fordere eine Revanche!`;
+      zeile = sieg ? (D.art === "quiz" && D.r === (D.gegnerErg.r | 0) ? `Gleich viele richtige Antworten – deine höhere Wertung entscheidet. Du hast ${esc(D.gegner)} besiegt.` : `Du hast ${esc(D.gegner)} besiegt.`) : vgl === 0 ? "Genau gleich viele richtige Antworten – egal, wer schneller war!" : `${esc(D.gegner)} war diesmal besser – fordere eine Revanche!`;
     }
   } catch (e) {
     /* Hat der Herausforderer das Duell inzwischen abgebrochen? Dann gibt es nichts mehr zu senden. */
