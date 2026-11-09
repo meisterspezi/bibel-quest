@@ -1769,8 +1769,8 @@ VIEWS.spielen = () => {
     <div class="zv2-reihe"><span class="zv2-tit">${svg("star")}Themen · Blitz · Vers</span></div><div class="zv2-gitter">${g.slice(4).map(x => zvMedaille(x, false, soloAttr(x))).join("")}</div></div>
     <p class="zv2-hinw"><span>1</span>Spiel antippen<i></i><span>2</span>Los geht's!</p></div>`;
   wireGo();
-  screen.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playChain(b.dataset.k)); });
-  screen.querySelectorAll("[data-tk]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playThemenKette(b.dataset.tk)); });
+  screen.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playChain(b.dataset.k), cdSolo("kette-" + b.dataset.k)); });
+  screen.querySelectorAll("[data-tk]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playThemenKette(b.dataset.tk), cdSolo("kette-" + b.dataset.tk)); });
 };
 
 /* ---------- 9.19: „Zusammen“ / Neues Duell: Medaillon-Bühne. Spiel antippen → darunter erscheint die Gegnerliste, ein Tipp auf einen Gegner startet das Duell ---------- */
@@ -2036,12 +2036,51 @@ VIEWS.blitz = () => {
     <div class="small muted">Rekord: ${S.bestBlitz} Richtige · Beste Combo: ${S.bestCombo}</div>
   </div>`;
   wireGo();
-  screen.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playBlitz(b.dataset.s)); });
+  screen.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playBlitz(b.dataset.s), cdSolo("blitz")); });
 };
-function countdown(cb) {
+/* 9.22: Countdown als Intro-Bühne – 3 Sekunden (3 · 2 · 1), dabei zeigt der Bildschirm, WAS gespielt wird (Logo der Spielart, Name, eigener Stand)
+   und bei Duellen GEGEN WEN (Du ↔ VS ↔ Gegner). Effekte im Takt: Ring läuft je Sekunde einmal um das Logo, Druckwelle + Funken, Strahlenkranz dreht schneller.
+   info = { name, ic, sub, farbe, modus, gegner:[{name, p}] } – aus cdSolo()/cdDuell(); ohne info bleibt es eine schlichte Zahl. */
+const CD_QUIZ_FARBE = "#66e0d0";
+function cdSolo(id, extra) {
+  let s0 = null; try { s0 = id === "quiz" ? null : zvSpiele().find(x => x.id === id); } catch (e) {}
+  const basis = id === "quiz" ? { name: "Wer wird Biblionär?", ic: "biblionaer", sub: spielStand("quiz")[0], farbe: CD_QUIZ_FARBE }
+    : s0 ? { name: s0.name, ic: s0.ic, sub: s0.sub, farbe: ZV_FARBE[s0.grp] } : {};
+  return Object.assign({ modus: "Solo" }, basis, extra || {});
+}
+function cdDuell() {
+  const D = duSpiel; if (!D) return {};
+  const id = D.art === "kette" ? "kette-" + D.k : D.art === "quiz" ? "quiz" : D.art;
+  const ziele = D.ziele && D.ziele.length ? D.ziele : [{ id: D.vonPid || D.an, name: D.gegner }];
+  return Object.assign(cdSolo(id), { modus: D.weih ? "Weihnachts-Duell" : "Duell", sub: "Gleiche Fragen für beide",
+    gegner: ziele.map(g => ({ name: g.name || "?", p: (duGegner || []).find(x => x.id === g.id) || null })) });
+}
+function countdown(cb, info) {
+  info = info || {};
   document.body.classList.add("spiel-laeuft");
-  let n = 3; screen.innerHTML = `<div class="result" style="padding-top:80px"><div class="big" id="cd">3</div></div>`; SFX.tick();
-  const t = setInterval(() => { n--; if (n <= 0) { clearInterval(t); tone(1047, 0, .25, "triangle", .2); cb(); } else { $("cd").textContent = n; $("cd").style.animation = "none"; void $("cd").offsetWidth; $("cd").style.animation = "pop .3s"; SFX.tick(); } }, 700); timers.push(t);
+  const farbe = info.farbe || "#f2c14e", gg = info.gegner || [];
+  const ich = { avatar: S.avatar, frame: S.frame, name: S.lbName || "Du" };
+  const seite = (p, name, extra) => `<span class="cd-sp ${extra}">${avatarHtml(p, 62)}<b>${esc(name)}</b></span>`;
+  const rechts = !gg.length ? "" : gg.length === 1 ? seite({ avatar: gg[0].p && gg[0].p.avatar, frame: gg[0].p && gg[0].p.frame, name: gg[0].name }, gg[0].name, "cd-r")
+    : `<span class="cd-sp cd-r"><span class="cd-stapel">${gg.slice(0, 3).map(g => avatarHtml({ avatar: g.p && g.p.avatar, frame: g.p && g.p.frame, name: g.name }, 46)).join("")}</span><b>${gg.length} Gegner</b></span>`;
+  const duell = gg.length ? `<div class="cd-duell">${seite(ich, "Du", "cd-l")}<span class="cd-vs">VS</span>${rechts}</div>` : "";
+  screen.innerHTML = `<div class="cd-b${gg.length ? " mit-gegner" : ""}" id="cdB" style="--cd:${farbe}">
+    <div class="cd-strahl"></div>
+    ${info.modus ? `<span class="cd-modus">${esc(info.modus)}</span>` : ""}
+    ${info.ic ? `<div class="cd-logo" id="cdLogo"><svg class="cd-ring" viewBox="0 0 200 200" aria-hidden="true"><circle class="cd-rbg" cx="100" cy="100" r="92"/><circle class="cd-rfg" id="cdFg" cx="100" cy="100" r="92"/></svg><i class="cd-welle" id="cdW"></i><span class="cd-med" id="cdM">${svg(info.ic)}</span></div>` : ""}
+    ${info.name ? `<div class="cd-name"><h1>${esc(info.name)}</h1>${info.sub ? `<span>${esc(info.sub)}</span>` : ""}</div>` : ""}
+    ${duell}
+    <div class="cd-zahl"><b id="cd">3</b></div></div>`;
+  const neu = (id, kl) => { const e = $(id); if (!e) return; e.classList.remove(kl); void e.getBoundingClientRect(); e.classList.add(kl); };
+  const takt = n => {
+    const z = $("cd"); if (!z) return;
+    z.textContent = n; z.dataset.n = n; neu("cd", "cd-pop"); neu("cdFg", "cd-lauf"); neu("cdW", "cd-wellen"); neu("cdM", "cd-puls");
+    if (n === 1 && $("cdB")) $("cdB").classList.add("letzte");
+    const l = $("cdLogo"); if (l) { const [x, y] = centerOf(l); burst(x, y, 8 + (4 - n) * 8, { speed: 3 + (4 - n) * 1.2, colors: [farbe, "#ffffff", "#fff1c2"], up: 0, g: .06 }); }
+    SFX.tick();
+  };
+  let n = 3; takt(n);
+  const t = setInterval(() => { n--; if (n <= 0) { clearInterval(t); tone(1047, 0, .25, "triangle", .2); cb(); } else takt(n); }, 1000); timers.push(t);
 }
 function playBlitz(scope) {
   const idx = []; ALL.forEach((x, i) => { if (i < ALL.length - 1 && (scope === "all" || (x.t === scope && ALL[i + 1].t === scope))) idx.push(i); });
@@ -2115,7 +2154,7 @@ VIEWS._chainAlt = () => {
       <div class="kk-rec"><b>${rec}</b><span class="small muted">/ ${max}</span></div></button>`; }).join("")}
   </div>`;
   wireGo();
-  screen.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playChain(b.dataset.k)); });
+  screen.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playChain(b.dataset.k), cdSolo("kette-" + b.dataset.k)); });
 };
 function playChain(mode) {
   const K = KETTEN[mode], seq = K.seq; let i = -1, xp = 0, lock = false; const t0 = Date.now();
@@ -2160,7 +2199,7 @@ function playChain(mode) {
       ${sieg ? `<div class="siegel-box">${siegelHtml(sieg.nachher, true, true)}<div><b>${SIEGEL[sieg.nachher].name}-Siegel</b><div class="small muted">${sieg.nachher < 4 ? "Nächstes: " + SIEGEL[sieg.nachher + 1].name + " – " + SIEGEL[sieg.nachher + 1].text : "Höchste Stufe!"}<br>Bleibt ${SIEGEL_FRISCH} Tage frisch – danach einfach wiederholen.</div></div></div>` : ""}
       <div class="rewards"><span class="pill">+${xp} XP</span><span class="pill">+${tal + (sieg ? sieg.tal : 0)} Talente</span></div>${W.hinweis}
       <button class="btn primary" id="cagain">Nochmal</button><button class="btn ghost" data-go="${heimAnsicht("spielen")}">Andere Kette</button></div>`; wireGo(); wireSing();
-    $("cagain").onclick = () => { SFX.tap(); vorlesenStop(); countdown(() => playChain(mode)); };
+    $("cagain").onclick = () => { SFX.tap(); vorlesenStop(); countdown(() => playChain(mode), cdSolo("kette-" + mode)); };
     if (full) { SFX.level(); rain(200); } else if (rec) SFX.win();
     if (xp) addXp(xp, null, "kette", { t0, f: Math.max(0, i), fm: seq.length - 1, d: `${K.name}${full ? " · komplett" : " · gerissen"}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
   }
@@ -2265,7 +2304,7 @@ function playThemenKette(id) {
       <div class="rewards"><span class="pill">+${xp} XP</span><span class="pill">+${tal} Talente</span></div>${W.hinweis}
       <div class="tk-knoepfe"><button class="btn primary" id="cagain">Nochmal</button><button class="btn ghost" data-go="${heimAnsicht("spielen")}">Andere Kette</button></div>
       ${tkErgebnis(id, i, full)}</div>`; wireGo();
-    $("cagain").onclick = () => { SFX.tap(); countdown(() => playThemenKette(id)); };
+    $("cagain").onclick = () => { SFX.tap(); countdown(() => playThemenKette(id), cdSolo("kette-" + id)); };
     if (full) { SFX.level(); rain(200); } else if (rec) SFX.win();
     if (xp) addXp(xp, null, "kette", { t0, f: Math.max(0, i), fm: seq.length - 1, d: `${K.name}${full ? " · komplett" : " · gerissen"}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
   }
@@ -3976,8 +4015,8 @@ function duSpielStarten(opt) {
   duSpiel = Object.assign({ i: 0, p: 0, r: 0, f: 0, combo: 0, maxCombo: 0, rest: DU_BLITZ_SEK, gesendet: false }, opt, { art });
   duSpiel.fragen = duFragen(opt.seed, art, opt.k, opt.erstellt ? weekKey(opt.erstellt) : weekKey(), !!opt.weih);
   document.body.classList.add("spiel-laeuft");
-  if (art === "quiz") { duSpiel.modus = "duell"; countdown(() => bibStart(duSpiel)); return; }
-  countdown(() => { duSpiel.t0 = Date.now(); if (art === "blitz") duBlitzUhr(); duZeige(); });
+  if (art === "quiz") { duSpiel.modus = "duell"; countdown(() => bibStart(duSpiel), cdDuell()); return; }
+  countdown(() => { duSpiel.t0 = Date.now(); if (art === "blitz") duBlitzUhr(); duZeige(); }, cdDuell());
 }
 /* Blitz: eine gemeinsame Uhr über alle Fragen */
 function duBlitzUhr() {
@@ -4364,7 +4403,7 @@ function bibSolo(weih) {
   go("biblionaer");
   const w = !!weih && weihnachtsDuellOk();
   const G = { modus: "solo", weih: w, fragen: bibFragen(crypto.getRandomValues(new Uint32Array(1))[0] % 2147483647, "", w ? ADV_ALLE_FRAGEN : null) };
-  countdown(() => bibStart(G));
+  countdown(() => bibStart(G), cdSolo("quiz", { modus: w ? "Weihnachts-Solo" : "Solo" }));
 }
 /* ---------- 6.80: Wochen-Sicherung (Biblionär der Woche) ----------
    Wie bei der Schatztruhe: je Spieler und Serverwoche entsteht genau ein Dokument „bibversuch/<pid>_<Wochennummer>“ (nur anlegen).
@@ -4404,7 +4443,7 @@ async function bibWocheAnfang() {
     S.bwK = wk; S.bwP = 0; S.bwFertig = false; save(); lbSync(true);
     go("biblionaer");
     const G = { modus: "woche", fragen: bibFragen(bibWocheSeed(wk), wk) };
-    countdown(() => bibStart(G));
+    countdown(() => bibStart(G), cdSolo("quiz", { modus: "Wochenrunde" }));
   } finally { bibWocheLaeuft = false; }
 }
 /* Sieger der Vorwoche: Platz 1 bekommt Krone (Abzeichen) und Talente – einmal pro Woche geprüft */

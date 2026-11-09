@@ -2257,6 +2257,52 @@ body[data-tab="rank"]{--ar-gemeinde:#5fe0b0;--ar:#5fe0b0}
 .bil-tab{display:grid;gap:3px}.bil-z{display:grid;grid-template-columns:minmax(0,1fr) repeat(3,56px);align-items:center;padding:5px 8px;border-radius:9px;background:#ffffff08;font-size:.92rem;text-align:center}.bil-z b{font-weight:800}.bil-n{display:flex;align-items:center;gap:7px;text-align:left;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bil-n svg{width:20px;height:20px;flex:none}
 .bil-z.leer{opacity:.45}.bil-z .nix{color:var(--muted)}.bil-kopf{background:none;font-size:.68rem;padding-bottom:0;line-height:1.1;text-transform:none}.bil-kopf .bil-n{color:var(--muted)}.bil-sum{background:#ffffff14;margin-top:3px;font-size:1rem}
 .zv2-vor{width:32px;height:32px;display:grid;place-items:center;flex:none}.zv2-vor svg{width:30px;height:30px;filter:drop-shadow(0 1px 4px #0006)}
+
+/* 9.22: Countdown-Intro (3-2-1) – Logo der Spielart im Mittelpunkt, bei Duellen Du ↔ VS ↔ Gegner */
+.cd-b{position:relative;isolation:isolate;overflow:hidden;min-height:calc(100dvh - 140px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:12px 4px 18px;text-align:center}
+.cd-b::before{content:"";position:absolute;inset:-20% -40%;z-index:-2;background:radial-gradient(circle at 50% 36%,color-mix(in srgb,var(--cd) 40%,transparent),transparent 56%);animation:cdGlut 1s ease-in-out infinite}
+.cd-strahl{position:absolute;left:50%;top:36%;width:780px;height:780px;margin:-390px 0 0 -390px;z-index:-1;border-radius:50%;background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--cd) 30%,transparent) 0 6deg,transparent 6deg 20deg);-webkit-mask:radial-gradient(circle,#000 6%,transparent 60%);mask:radial-gradient(circle,#000 6%,transparent 60%);animation:cdDreh 10s linear infinite}
+.cd-b.letzte .cd-strahl{animation-duration:2.2s}
+.cd-b.letzte::before{animation-duration:.5s}
+.cd-modus{display:inline-block;padding:4px 14px;border-radius:99px;font:800 .72rem var(--body);letter-spacing:.2em;text-transform:uppercase;color:var(--accent-ink);background:linear-gradient(180deg,#fff,color-mix(in srgb,var(--cd) 65%,#fff));box-shadow:0 2px 10px color-mix(in srgb,var(--cd) 50%,transparent)}
+.cd-logo{position:relative;width:204px;height:204px;display:grid;place-items:center;flex:none}
+.cd-b.mit-gegner .cd-logo{width:176px;height:176px}
+.cd-ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+.cd-rbg,.cd-rfg{fill:none;stroke-width:6}
+.cd-rbg{stroke:#ffffff26}
+.cd-rfg{stroke:var(--cd);stroke-linecap:round;stroke-dasharray:578;stroke-dashoffset:578;filter:drop-shadow(0 0 7px var(--cd))}
+.cd-rfg.cd-lauf{animation:cdLauf 1s linear forwards}
+.cd-welle{position:absolute;inset:12px;border-radius:50%;border:3px solid var(--cd);opacity:0;pointer-events:none}
+.cd-welle.cd-wellen{animation:cdWelle 1s ease-out}
+.cd-med{width:150px;height:150px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 34% 26%,#2e3878,#141a3c 72%);box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--cd) 70%,#fff),inset 0 8px 18px #ffffff1c,0 0 40px color-mix(in srgb,var(--cd) 55%,transparent),0 10px 24px #000a}
+.cd-b.mit-gegner .cd-med{width:128px;height:128px}
+.cd-med svg{width:100px;height:100px;filter:drop-shadow(0 4px 8px #0009)}
+.cd-b.mit-gegner .cd-med svg{width:84px;height:84px}
+.cd-med.cd-puls{animation:cdPuls .5s ease-out}
+.cd-name{min-width:0;max-width:100%}
+.cd-name h1{margin:0;font:800 1.55rem/1.1 var(--display);letter-spacing:.1em;text-transform:uppercase;background:linear-gradient(180deg,#fff,#fff1c2 40%,#f2c14e 75%,#c9902a);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 1px 0 #1b2a55);overflow-wrap:anywhere}
+.cd-name span{display:block;margin-top:4px;font:700 .86rem var(--body);color:color-mix(in srgb,var(--cd) 70%,#fff)}
+.cd-duell{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:6px;width:100%;max-width:360px}
+.cd-sp{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0}
+.cd-sp b{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:800 .9rem var(--body);color:#fff}
+.cd-l{animation:cdLinks .55s cubic-bezier(.2,.9,.3,1.2) both}
+.cd-r{animation:cdRechts .55s cubic-bezier(.2,.9,.3,1.2) both}
+.cd-stapel{display:flex;justify-content:center}.cd-stapel .av{margin-left:-14px}.cd-stapel .av:first-child{margin-left:0}
+.cd-vs{font:900 1.7rem var(--display);letter-spacing:.06em;background:linear-gradient(180deg,#fff,#ffb08f 55%,#ff6a4a);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 2px 0 #5a1430);animation:cdVs .5s .35s cubic-bezier(.2,.9,.3,1.4) both}
+.cd-zahl b{display:block;font:900 5.4rem/1 var(--display);color:#fff;text-shadow:0 0 26px var(--cd),0 4px 0 #0007;min-width:1.2em}
+.cd-zahl b[data-n="2"]{color:#fff1c2}
+.cd-zahl b[data-n="1"]{color:color-mix(in srgb,var(--cd) 60%,#fff);text-shadow:0 0 40px var(--cd),0 0 14px var(--cd),0 4px 0 #0007}
+.cd-zahl b.cd-pop{animation:cdZahl .6s cubic-bezier(.2,.9,.3,1.3)}
+@keyframes cdLauf{from{stroke-dashoffset:578}to{stroke-dashoffset:0}}
+@keyframes cdWelle{0%{transform:scale(.9);opacity:.9}100%{transform:scale(1.75);opacity:0}}
+@keyframes cdPuls{0%{transform:scale(1)}35%{transform:scale(1.09)}100%{transform:scale(1)}}
+@keyframes cdZahl{0%{transform:scale(2.2);opacity:0}55%{transform:scale(.92);opacity:1}100%{transform:scale(1)}}
+@keyframes cdDreh{to{transform:rotate(360deg)}}
+@keyframes cdGlut{0%,100%{opacity:.75}50%{opacity:1}}
+@keyframes cdLinks{from{transform:translateX(-70px);opacity:0}to{transform:none;opacity:1}}
+@keyframes cdRechts{from{transform:translateX(70px);opacity:0}to{transform:none;opacity:1}}
+@keyframes cdVs{from{transform:scale(2.6);opacity:0}to{transform:scale(1);opacity:1}}
+@media (prefers-reduced-motion:reduce){.cd-strahl,.cd-b::before{animation:none}.cd-rfg{stroke-dashoffset:0}}
 </style>
 </head>
 <body>
