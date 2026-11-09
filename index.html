@@ -2470,6 +2470,35 @@ body[data-tab="rank"]{--ar-gemeinde:#5fe0b0;--ar:#5fe0b0}
 .pf2-kachel svg{width:30px;height:30px}
 .pf2-seg.pf2-seg2{grid-template-columns:repeat(2,minmax(0,1fr))}.pf2-seg2 button{padding:11px 4px;font-size:.82rem}
 .pf2-kl{display:block;width:100%;color:inherit;font:inherit;cursor:pointer;padding:0;text-align:center}.pf2-kl:active{transform:scale(.985)}
+
+/* 9.34: Profil kompakt (passt ohne Scrollen auf eine Seite) */
+.pf3{gap:8px;padding-bottom:12px}
+.pf3-ausweis{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 12px;align-items:center;justify-items:stretch;text-align:left;padding:12px 14px;border-radius:18px}
+.pf3-ausweis:after{display:none}
+.pf3-id{display:grid;gap:4px;justify-items:start;min-width:0}
+.pf3-namebox{justify-content:flex-start;width:auto}
+.pf3-namebox h2{font-size:1.2rem}
+.pf3-namebox .pf2-edit{width:28px;height:28px}.pf3-namebox .pf2-edit svg{width:14px;height:14px}
+.pf3-ausweis .pf2-rang{font-size:.74rem;padding:1px 10px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pf3-xp{grid-column:1/-1;max-width:none;gap:3px}.pf3-xp>span{font-size:.76rem}
+.pf3-hinw{grid-column:1/-1;margin:0;font-size:.74rem}
+.pf3-gem{display:grid;gap:6px}
+.pf3-duo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.pf3-btn{min-height:48px;padding:6px 8px;border-radius:14px;font-size:.88rem;line-height:1.15;text-align:center}
+.pf3-gemzeile{display:flex;align-items:center;gap:8px;min-width:0;padding:0 4px}
+.pf3-gemzeile .gl,.pf3-gemzeile>svg,.pf3-gemzeile>img,.pf3-gemzeile>span:first-child{flex:none}
+.pf3-gemtx{flex:1;min-width:0;font-size:.82rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pf3-gemtx b{color:var(--fg)}
+.pf3-gemzeile .pf2-link{padding:2px 4px;font-size:.78rem}
+.pf3-hinw{padding:0 4px}
+.pf2-k.pf3-z{min-height:46px;padding:6px 12px;border-radius:16px;gap:10px;box-shadow:inset 0 1px 0 #ffffff22,0 4px 12px #0004}
+.pf2-k.pf3-z>.pf2-ic{flex:0 0 30px;width:30px;height:30px;border-radius:10px;box-shadow:0 0 10px #f2c14e30}
+.pf2-k.pf3-z>.pf2-ic svg{width:22px;height:22px}
+.pf3-z .pf2-tx{flex:1;min-width:0}.pf3-z .pf2-tx b{font:800 .9rem/1.2 var(--display);color:#f2c14e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pf3-w{flex:none;color:var(--muted);font:700 .76rem var(--body);white-space:nowrap}
+.pf3-z svg.pf2-pf{width:14px;height:14px}
+.pf3-z.gs-schalter .gs-knopf{width:40px;height:22px;border-radius:11px}.pf3-z.gs-schalter .gs-knopf::after{width:16px;height:16px}.pf3-z.gs-schalter[aria-pressed="true"] .gs-knopf::after{left:21px}
+.pf3-fuss{margin:2px 0 0;text-align:center;font-size:.68rem}
+.pf3 .fb-karte#fbLink2{margin:4px 0 0}
 </style>
 </head>
 <body>

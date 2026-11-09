@@ -2572,32 +2572,29 @@ function pfRing(p, px, txt) {
 }
 VIEWS.profil = () => {
   const li = pfLevel(), online = window.LB && window.LB.ok;
-  screen.innerHTML = `${backBtn("home", "Start")}<div class="pf2">
-    <section class="pf2-ausweis">
-      ${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "Du" }, 84)}
-      <div class="pf2-namebox" id="pfNameBox"><h2>${esc(S.lbName || "Noch ohne Namen")}</h2>${S.lbName ? `<button class="pf2-edit" id="rename" aria-label="Namen ändern">${PF_IC.stift}</button>` : ""}</div>
-      <span class="pf2-rang">${esc(rangVon())} · Level ${li.n}</span>
-      <div class="pf2-xp" aria-label="Fortschritt bis Level ${li.n + 1}"><div class="pf2-bar"><i style="width:${li.p.toFixed(1)}%"></i></div><span><b>${pkt(Math.round(S.xp))} XP</b> · noch ${pkt(li.fehlt)} bis Level ${li.n + 1}</span></div>
-      ${!S.pid && !S.offlineOnly ? `<div class="small muted">Erscheint in der Rangliste, sobald Internet da ist.</div>` : ""}
-      ${pfTrenner("Spieler")}<button class="pf2-btn" id="wechseln">${PF_IC.tausch}${svg("people")}<span>Spieler wechseln</span></button>
-      ${pfTrenner("Gemeinde")}${gemKarteHtml()}
+  /* 9.34: Profil kompakt (Variante 2) – passt ohne Scrollen auf eine Seite */
+  const zeile = (go, ic, t, w) => `<button class="pf2-zeile pf2-k pf3-z" data-go="${go}"><span class="pf2-ic">${svg(ic)}</span><span class="pf2-tx"><b>${t}</b></span>${w ? `<small class="pf3-w">${w}</small>` : ""}${PF_IC.pfeil}</button>`;
+  const tageN = streakNow() | 0;
+  screen.innerHTML = `${backBtn("home", "Start")}<div class="pf2 pf3">
+    <section class="pf2-ausweis pf3-ausweis">
+      ${avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "Du" }, 64)}
+      <div class="pf3-id"><div class="pf2-namebox pf3-namebox" id="pfNameBox"><h2>${esc(S.lbName || "Noch ohne Namen")}</h2>${S.lbName ? `<button class="pf2-edit" id="rename" aria-label="Namen ändern">${PF_IC.stift}</button>` : ""}</div>
+        <span class="pf2-rang">${esc(rangVon())} · Level ${li.n}</span></div>
+      <div class="pf2-xp pf3-xp" aria-label="Fortschritt bis Level ${li.n + 1}"><div class="pf2-bar"><i style="width:${li.p.toFixed(1)}%"></i></div><span><b>${pkt(Math.round(S.xp))} XP</b> · noch ${pkt(li.fehlt)} bis Level ${li.n + 1}</span></div>
+      ${!S.pid && !S.offlineOnly ? `<div class="small muted pf3-hinw">Erscheint in der Rangliste, sobald Internet da ist.</div>` : ""}
     </section>
-    <div class="pf2-duo">
-      <button class="pf2-k pf2-t2" data-go="errung"><span class="pf2-ic">${svg("medal")}</span><b>Errungenschaften</b><small>${S.badges.length} von ${BADGES.length} Abzeichen</small></button>
-      <button class="pf2-k pf2-t2" data-go="stat"><span class="pf2-ic">${svg("fire")}</span><b>Statistik</b><small>${streakNow() | 0} ${(streakNow() | 0) === 1 ? "Tag" : "Tage"} in Folge</small></button>
-    </div>
-    ${pfTrenner("Mehr")}
-    <button class="pf2-zeile pf2-k" data-go="share"><span class="pf2-ic">${svg("share")}</span><span class="pf2-tx"><b>Mit Freunden teilen</b><small>QR-Code</small></span>${PF_IC.pfeil}</button>
-    ${deferredInstall && !S.appBonus ? `<button class="pf2-zeile pf2-k" id="pfInstall"><span class="pf2-ic">${svg("down")}</span><span class="pf2-tx"><b>App installieren</b><small>+${APP_BONUS} Talente</small></span>${PF_IC.pfeil}</button>` : ""}
-    <button class="fb-karte" id="fbLink2" aria-label="Feedback an den Entwickler"><span class="fb-bild">${FB_BILD}</span><span class="fb-tx"><b>Feedback an den Entwickler</b><small>Idee, Lob oder Fehler? Schreib mir!</small></span></button>
-    ${entwickler && (advTestOn() || dayNum(today()) < dayNum(ADV_START)) ? `<button class="pf2-zeile pf2-k" id="advTestBtn"><span class="pf2-ic">${svg("kerze")}</span><span class="pf2-tx"><b>Advent-Testmodus</b><small>${advTestOn() ? "an – öffnen" : "starten"}</small></span>${PF_IC.pfeil}</button>` : ""}
-    ${pfTrenner("Anzeige")}
-    <button class="pf2-zeile pf2-k gs-schalter pf-gross" id="gsSchalterP" aria-pressed="${grossAn()}"><span class="pf2-ic">${svg("eye")}</span><span class="pf2-tx"><b>Große Schrift</b><small>${grossAn() ? "an" : "aus"}</small></span><i class="gs-knopf"></i></button>
+    ${gemKarteHtml()}
+    ${zeile("errung", "medal", "Errungenschaften", `${S.badges.length}/${BADGES.length}`)}
+    ${zeile("stat", "fire", "Statistik", `${tageN} ${tageN === 1 ? "Tag" : "Tage"} in Folge`)}
+    ${zeile("share", "share", "Mit Freunden teilen", "QR-Code")}
+    ${deferredInstall && !S.appBonus ? `<button class="pf2-zeile pf2-k pf3-z" id="pfInstall"><span class="pf2-ic">${svg("down")}</span><span class="pf2-tx"><b>App installieren</b></span><small class="pf3-w">+${APP_BONUS} Talente</small>${PF_IC.pfeil}</button>` : ""}
+    ${entwickler && (advTestOn() || dayNum(today()) < dayNum(ADV_START)) ? `<button class="pf2-zeile pf2-k pf3-z" id="advTestBtn"><span class="pf2-ic">${svg("kerze")}</span><span class="pf2-tx"><b>Advent-Testmodus</b></span><small class="pf3-w">${advTestOn() ? "an – öffnen" : "starten"}</small>${PF_IC.pfeil}</button>` : ""}
+    <button class="pf2-zeile pf2-k pf3-z gs-schalter pf-gross" id="gsSchalterP" aria-pressed="${grossAn()}"><span class="pf2-ic">${svg("eye")}</span><span class="pf2-tx"><b>Große Schrift</b></span><small class="pf3-w">${grossAn() ? "an" : "aus"}</small><i class="gs-knopf"></i></button>
     ${entwickler && online ? kennungHtml("kennProfil") : ""}
-    <p class="small muted" style="margin:6px 0 0">Bibelverse: ${VERS_QUELLE} © Genfer Bibelgesellschaft.</p></div>`;
+    <p class="small muted pf3-fuss">Bibelverse: ${VERS_QUELLE} © Genfer Bibelgesellschaft.</p>
+    <button class="fb-karte" id="fbLink2" aria-label="Feedback an den Entwickler"><span class="fb-bild">${FB_BILD}</span><span class="fb-tx"><b>Feedback an den Entwickler</b><small>Idee, Lob oder Fehler? Schreib mir!</small></span></button></div>`;
   wireGo(); pfGemVerdrahten();
   gemLaden().then(ch => { if (ch && current === "profil" && !document.querySelector(".modal")) { const k = $("pfGem"); if (k) { k.outerHTML = gemKarteHtml(); pfGemVerdrahten(); } } });
-  $("wechseln").onclick = () => { SFX.tap(); go("wer"); };
   $("gsSchalterP").onclick = () => { SFX.tap(); const b = $("gsSchalterP"); grossSetzen(!grossAn()); b.setAttribute("aria-pressed", grossAn()); b.querySelector("small").textContent = grossAn() ? "an" : "aus"; };
   $("fbLink2").onclick = () => { SFX.tap(); feedbackOeffnen(); };
   if ($("pfInstall")) $("pfInstall").onclick = () => { SFX.tap(); deferredInstall.prompt(); deferredInstall.userChoice.catch(() => {}).then(() => { deferredInstall = null; }); };
@@ -2614,6 +2611,7 @@ VIEWS.profil = () => {
   };
 };
 function pfGemVerdrahten() {
+  if ($("wechseln")) $("wechseln").onclick = () => { SFX.tap(); go("wer"); };
   if ($("gemBeitritt")) $("gemBeitritt").onclick = () => { SFX.tap(); gemBeitreten(); };
   if ($("gemWeg")) $("gemWeg").onclick = () => { SFX.tap(); gemVerlassen(); };
   if ($("antragWeg")) $("antragWeg").onclick = () => { SFX.tap(); const L = window.LB; if (!L || !L.ok || !L.antragLoeschen) return; L.antragLoeschen(S.pid).then(() => { ANTRAG = null; gemNeuZeichnen(); }).catch(() => toast(`${svg("nein")}<div>Das hat nicht geklappt.</div>`)); };
@@ -3108,13 +3106,15 @@ function gemVerlassen() {
     toast(`${svg("user")}<div>Du bist jetzt Gast.</div>`); gemNeuZeichnen();
   });
 }
-/* Karte oben im Profil (wie „Spieler wechseln“): eintragen · wechseln · verlassen */
+/* 9.34: Zeile oben im Profil: „Spieler wechseln“ + Gemeinde (eintragen · wechseln · Antrag) und darunter eine schmale Statuszeile */
 function gemKarteHtml() {
   const id = meineGem(), gast = id === "gast", g = gast ? null : gemInfo(id);
   const an = gast && ANTRAG && gemInfo(ANTRAG.g) ? ANTRAG : null; /* 9.11: Antrag an eine Gemeinde mit Freischaltung */
-  const hinweis = an ? (an.status === "abgelehnt" ? `Dein Antrag an ${esc(gemName(an.g))} wurde nicht freigegeben.` : `Antrag an ${esc(gemName(an.g))} gesendet – wartet auf die Freischaltung durch den Verwalter.`) : "Mit dem Passwort deiner Gemeinde kannst du einen Antrag stellen.";
-  return `<div class="pf2-gem" id="pfGem"><div class="pf2-gem-zeile">${gemLogoHtml(g, 48)}<div class="pf2-gem-tx"><span class="label">Gemeinde</span><b>${gast ? "Gast" : esc(gemName(id))}</b>${gast ? `<span class="small muted">${hinweis}</span>` : ""}</div></div>
-    ${an ? `<button class="pf2-link" id="antragWeg">${an.status === "abgelehnt" ? "Neu versuchen" : "Antrag zurückziehen"}</button>` : `<button class="pf2-btn" id="gemBeitritt">${gast ? "" : PF_IC.tausch}${svg("people")}<span>${gast ? "Gemeinde eintragen" : "Gemeinde wechseln"}</span></button>`}${gast ? "" : `<button class="pf2-link" id="gemWeg">Gemeinde verlassen</button>`}</div>`;
+  const hinweis = an ? (an.status === "abgelehnt" ? `Dein Antrag an ${esc(gemName(an.g))} wurde nicht freigegeben.` : `Antrag an ${esc(gemName(an.g))} gesendet – wartet auf die Freischaltung durch den Verwalter.`) : "";
+  const rechts = an ? `<button class="pf2-btn pf3-btn" id="antragWeg">${svg("people")}<span>${an.status === "abgelehnt" ? "Neu versuchen" : "Antrag zurückziehen"}</span></button>`
+    : `<button class="pf2-btn pf3-btn" id="gemBeitritt">${svg("people")}<span>${gast ? "Gemeinde eintragen" : "Gemeinde wechseln"}</span></button>`;
+  return `<div class="pf3-gem" id="pfGem"><div class="pf3-duo"><button class="pf2-btn pf3-btn" id="wechseln">${PF_IC.tausch}<span>Spieler wechseln</span></button>${rechts}</div>
+    <div class="pf3-gemzeile">${gemLogoHtml(g, 26)}<span class="pf3-gemtx">Gemeinde: <b>${gast ? "Gast" : esc(gemName(id))}</b></span>${gast ? "" : `<button class="pf2-link" id="gemWeg">verlassen</button>`}</div>${hinweis ? `<div class="small muted pf3-hinw">${hinweis}</div>` : ""}</div>`;
 }
 /* Logo aus einer Bilddatei: quadratisch skaliert, klein genug für die Datenbank (höchstens ca. 28 000 Zeichen) */
 function logoLesen(file) {
