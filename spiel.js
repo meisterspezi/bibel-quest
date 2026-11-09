@@ -1367,7 +1367,10 @@ function avatarHtml(p, size = 44) {
 }
 /* Avatar mit Rahmen und Level-Münze (Rangliste) */
 /* 9.11.1: Gemeindelogo als Kreis links unten (gleiche Größe wie die Level-Münze rechts unten) */
-const gemMuenze = pid => { const id = gemVon(pid), g = id === "gast" ? null : gemInfo(id); return `<span class="gmc" title="${esc(g ? g.name : "Gast")}">${gemLogoHtml(g, 20)}</span>`; };
+const gemMuenze = pid => { const id = gemVon(pid), g = id === "gast" || id === "?" ? null : gemInfo(id);
+  /* 9.30: Unbekannte Gemeinde (noch nicht geladen oder Gemeinde gelöscht) → neutrale leere Münze, nicht das Gast-Symbol und nie ein falsches Logo */
+  if (id === "?" || (id !== "gast" && !g)) return `<span class="gmc gmc-leer" aria-hidden="true"></span>`;
+  return `<span class="gmc" title="${esc(g ? g.name : "Gast")}">${gemLogoHtml(g, 20)}</span>`; };
 const avatarLv = (p, size) => `<span class="avw">${avatarHtml(p, size)}${gemMuenze(p.id || S.pid)}<span class="lvc" title="Level ${p.level || 1}">${p.level || 1}</span></span>`;
 const titelName = id => { const t = TITEL.find(x => x.id === id); return t && t.id !== "none" ? t.name : ""; };
 const ENTW_RANG = "Entwickler";
@@ -2087,7 +2090,7 @@ function countdown(cb, info) {
   if (gg.length && gg.some(g => !g.p) && window.LB && LB.gegnerListe) {
     const fertig = l => { if (!l || !l.length) return; duGegner = l.filter(r => r.id !== S.pid && r.name); gg.forEach(g => { g.p = g.p || cdGegnerFinden(g); });
       const alt = document.querySelector(".cd-duell .cd-r"); if (alt && $("cdB")) alt.outerHTML = rechtsHtml(); };
-    try { Promise.resolve(LB.gegnerListe()).then(fertig).catch(() => {}); } catch (e) {}
+    try { Promise.all([LB.gegnerListe(), gemLaden().catch(() => false)]).then(([l]) => fertig(l)).catch(() => {}); } catch (e) {} /* 9.30: mit Gemeinde-Zuordnung, sonst bleiben die Münzen später leer */
   }
   const neu = (id, kl) => { const e = $(id); if (!e) return; e.classList.remove(kl); void e.getBoundingClientRect(); e.classList.add(kl); };
   const takt = n => {
@@ -2930,7 +2933,11 @@ const gemName = id => id === "gast" ? "Gäste" : ((gemInfo(id) || {}).name || "U
 const meineGem = () => S.gem || GEM_STANDARD;
 /* 9.11: Gemeinden mit Freischaltung (pruef): Neue Spieler sind Gast, bis der Verwalter sie freischaltet. Ohne Eintrag gilt "fbg" nur, solange fbg keine Freischaltung hat. */
 const gemPruef = id => !!(gemInfo(id) || {}).pruef;
-const gemVon = pid => (pid && (pid === S.pid) ? meineGem() : (GEM_ZUORD[pid] || (gemPruef(GEM_STANDARD) ? "gast" : GEM_STANDARD)));
+/* 9.30: Solange die Gemeinden nicht geladen sind (und das Laden nicht gescheitert ist), ist die Gemeinde anderer Spieler UNBEKANNT ("?") –
+   früher galt dann jeder als Eichstätt (Standard ohne Freischaltung) und bekam das falsche Logo, bis zufällig Profil oder Rangliste geladen hatten. */
+let gemFehler = false, gemZeit = 0;
+const gemBekannt = () => gemGeladen || gemFehler;
+const gemVon = pid => (pid && (pid === S.pid) ? meineGem() : (GEM_ZUORD[pid] || (!gemBekannt() ? "?" : (gemPruef(GEM_STANDARD) ? "gast" : GEM_STANDARD))));
 let ANTRAG = null; /* mein Beitrittsantrag: {g, status: "offen" | "abgelehnt"} oder null */
 /* Passwort = Ort der Gemeinde: gespeichertes Passwort, sonst das letzte Wort des Namens („… Eichstätt“). Groß-/Kleinschreibung und Umlaute egal. */
 const gemPw = g => (g && (g.pw || String(g.name || "").trim().split(/\s+/).pop())) || "";
@@ -2945,14 +2952,14 @@ function gemLogoHtml(g, px = 40) {
 /* lädt Gemeinden + Zuordnungen; true, wenn sich etwas geändert hat. Fehlende Regeln/offline: Standard bleibt */
 async function gemLaden(neu) {
   const L = window.LB; if (!L || !L.ok || !L.gemListe) return false;
-  if (gemGeladen && !neu) return false;
+  if (gemGeladen && !neu && Date.now() - gemZeit < 600000) return false; /* 9.30: nach 10 Minuten neu holen, damit Beitritte/Freischaltungen in langen Sitzungen ankommen */
   try {
     const [g, m] = await Promise.all([L.gemListe(), L.mitgliedListe()]);
     const liste = g.filter(x => x.name).sort((a, b) => (a.ord | 0) - (b.ord | 0) || String(a.name).localeCompare(String(b.name), "de"));
     const f = liste.find(x => x.id === GEM_STANDARD);
     if (f) { f.logo = f.logo || GEM_FBG.logo; f.pw = f.pw || GEM_FBG.pw; } else liste.unshift(Object.assign({}, GEM_FBG));
     const z = {}; m.forEach(x => { if (x.g) z[x.id] = x.g; });
-    const alt = JSON.stringify([GEM, GEM_ZUORD, ANTRAG]); GEM = liste; GEM_ZUORD = z; gemGeladen = true;
+    const alt = JSON.stringify([GEM, GEM_ZUORD, ANTRAG]); GEM = liste; GEM_ZUORD = z; gemGeladen = true; gemFehler = false; gemZeit = Date.now();
     /* 9.11: eigenen Antrag und die Entscheidung des Verwalters holen (Freischaltung gilt vom Server aus) */
     if (S.pid && S.ownersSet && L.antragHolen) {
       try { const a = await L.antragHolen(S.pid); ANTRAG = a ? { g: a.g, status: a.status } : null; } catch (e) {}
@@ -2964,7 +2971,7 @@ async function gemLaden(neu) {
       }
     }
     return alt !== JSON.stringify([GEM, GEM_ZUORD, ANTRAG]);
-  } catch (e) { return false; }
+  } catch (e) { if (!gemGeladen) gemFehler = true; return false; } /* 9.30: Laden gescheitert → alter Ersatzwert statt dauerhaft leerer Münzen */
 }
 function gemSenden() {
   const L = window.LB; if (!L || !L.ok || !L.gemSetzen || !S.pid || !S.ownersSet || !S.gem || S.gemGesendet === S.gem) return;
@@ -3956,7 +3963,8 @@ const duTypKacheln = (aktiv, attr = "data-typ", marken = {}) => `<div class="du-
 /* Gegnerwahl direkt auf der Duell-Seite (keine weitere Menüebene) */
 async function duGegnerLaden() {
   if (duGegner) return;
-  try { duGegner = (await window.LB.gegnerListe()).filter(r => r.id !== S.pid && r.name); } catch (e) { duGegner = []; }
+  /* 9.30: Gemeinde-Zuordnungen gleichzeitig laden – die Liste erscheint erst, wenn die Logos stimmen („Lade Gemeinde …“) */
+  try { const [l] = await Promise.all([window.LB.gegnerListe(), gemLaden().catch(() => false)]); duGegner = l.filter(r => r.id !== S.pid && r.name); } catch (e) { duGegner = []; }
   if (current === "gegner") { const box = $("duGegner"); if (box) { box.outerHTML = duGegnerHtml(); duGegnerVerdrahten(); } }
 }
 /* 9.20: Bilanz gegen einen Gegner (Siege / Unentschieden / Niederlagen) aus den fertigen Duellen; Duelle werden nach 30 Tagen gelöscht, die Bilanz zeigt also die letzten 30 Tage */
