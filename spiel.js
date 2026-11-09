@@ -2627,17 +2627,21 @@ function pfTitel(liste, p, tag) {
 }
 function pfKachel(ic, n, t) { return `<div class="pf2-kachel">${svg(ic)}<div class="n">${n}</div><div class="t">${t}</div></div>`; }
 const pfKopf = t => `<h1 class="pf2-h1">${t}</h1>`;
-VIEWS.errung = () => {
-  const m = lbPayload(), { atP, ntP } = fortschritt();
-  screen.innerHTML = `${backBtn("profil", "Profil")}${pfKopf("Errungenschaften")}<div class="pf2">
-    <div class="pf2-g2">${pfKachel("medal", `${S.badges.length}<small> / ${BADGES.length}</small>`, "Abzeichen")}${pfKachel("ar-schild", armorCount() + "<small> / 6</small>", "Waffenrüstung")}</div>
-    ${pfTrenner("Titel")}
-    <div class="pf2-karte pf2-zls">${pfTitel(AT_TITEL, atP, "AT")}${pfTitel(NT_TITEL, ntP, "NT")}</div>
-    ${pfTrenner("Siegel")}
-    <div class="pf2-karte"><div class="pf2-sg">${siegelReihe(m)}</div></div>
-    ${pfTrenner("Abzeichen")}
-    <div class="pf2-karte"><div class="pf2-vz"><span>Gesammelt</span><b>${S.badges.length} von ${BADGES.length}</b></div><div class="pf2-bar"><i style="width:${(S.badges.length / BADGES.length * 100).toFixed(0)}%"></i></div></div>${badgeGrid(S.badges)}</div>`;
+let errTab = 0;
+VIEWS.errung = (tab) => {
+  if (typeof tab === "number") errTab = tab;
+  const m = lbPayload(), { atP, ntP } = fortschritt(), TABS = ["Übersicht", "Abzeichen"];
+  const teile = [
+    () => `<div class="pf2-g2"><button class="pf2-kachel pf2-kl" data-st="1" aria-label="Alle Abzeichen ansehen">${pfKachel("medal", `${S.badges.length}<small> / ${BADGES.length}</small>`, "Abzeichen ›").replace(/^<div class="pf2-kachel">|<\/div>$/g, "")}</button>${pfKachel("ar-schild", armorCount() + "<small> / 6</small>", "Waffenrüstung")}</div>
+      ${pfTrenner("Titel")}
+      <div class="pf2-karte pf2-zls">${pfTitel(AT_TITEL, atP, "AT")}${pfTitel(NT_TITEL, ntP, "NT")}</div>
+      ${pfTrenner("Siegel")}
+      <div class="pf2-karte"><div class="pf2-sg">${siegelReihe(m)}</div></div>`,
+    () => `<div class="pf2-karte"><div class="pf2-vz"><span>Gesammelt</span><b>${S.badges.length} von ${BADGES.length}</b></div><div class="pf2-bar"><i style="width:${(S.badges.length / BADGES.length * 100).toFixed(0)}%"></i></div></div>${badgeGrid(S.badges)}`
+  ];
+  screen.innerHTML = `${backBtn("profil", "Profil")}${pfKopf("Errungenschaften")}<div class="pf2"><div class="pf2-seg pf2-seg2" role="tablist">${TABS.map((t, i) => `<button role="tab" aria-selected="${i === errTab}" class="${i === errTab ? "an" : ""}" data-st="${i}">${t}</button>`).join("")}</div>${teile[errTab]()}</div>`;
   wireGo();
+  screen.querySelectorAll("[data-st]").forEach(b => b.onclick = () => { SFX.tap(); VIEWS.errung(+b.dataset.st); window.scrollTo(0, 0); });
 };
 VIEWS.stat = () => {
   const m = lbPayload(), h = dayNum(today());
