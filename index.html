@@ -2514,6 +2514,43 @@ body[data-tab="rank"]{--ar-gemeinde:#5fe0b0;--ar:#5fe0b0}
 .tabbar [data-tab="duelle"] .tb-ic,.tabbar [data-tab="duelle"].an .tb-ic{filter:none}
 .tabbar .tb-du{top:auto;bottom:46px;right:calc(50% - 30px);left:auto}
 .tabbar button.an .tb-du{bottom:60px}
+
+/* ===== 9.37 Design-Kritik Startseite ===== */
+/* Schriftstufen: 12 px klein · 14 px Text · 16 px Betonung */
+:root{--fs-s:.75rem;--fs-m:.875rem;--fs-l:1rem;--tap:44px}
+/* 1) Install-Hinweis: schmale Zeile über der Fußleiste, Seitenrand wie die Karten (16 px) */
+.ah{width:min(520px,calc(100% - 32px));bottom:calc(104px + env(safe-area-inset-bottom,0px));padding:8px 8px 8px 10px;border-radius:16px;display:flex;align-items:center;gap:10px;grid-template-columns:none;box-shadow:0 8px 20px #000a}
+body.mit-app-hinweis .app{padding-bottom:calc(176px + env(safe-area-inset-bottom,0px))}
+.ah-mini{width:40px;height:40px;padding:0;border-radius:10px;display:block;background:none;border:0}
+.ah-mini i.ah-app{width:40px;height:40px;animation:none}
+.ah-tx{flex:1}
+.ah-tx b{font-size:var(--fs-m);line-height:1.2;white-space:nowrap}
+.ah-tx small{font-size:var(--fs-s);line-height:1.25;color:#c4cbef;white-space:nowrap}
+.ah-knopf{flex:none;min-height:var(--tap);padding:0 12px;border-radius:12px;border:1px solid #7a4e0c66;background:linear-gradient(180deg,#fff2c0,#f2c14e 55%,#c9902a);color:#2a1d02;font:800 var(--fs-m) var(--body);display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.ah-knopf svg{width:16px;height:16px}
+.ah-x{width:var(--tap);height:var(--tap)}
+/* 2) Tippflächen mindestens 44 × 44 px */
+.hud-ton{width:var(--tap);height:var(--tap);display:grid;place-items:center;opacity:.85}
+.tz{min-height:var(--tap)}.tz-tx{font-size:var(--fs-m)}.tz-z{font-size:var(--fs-s)}.tz-lohn{font-size:var(--fs-s)}
+.hud .pill.hud-tal{min-height:var(--tap)}
+/* 3) Lesbarkeit */
+.start-aufg .bk-aufg .bk-t span{font-size:var(--fs-m);color:#ffe39a}
+.start-aufg .ez-keys i{width:24px;height:24px;opacity:.55}.start-aufg .ez-keys i.an{opacity:1}
+.start-aufg .ez-keys.verbraucht{opacity:.5}
+.bk-label{font-size:var(--fs-s)}
+@media (min-height:721px){
+  .start2 .lv.kompakt .lv-btn,.start-vers .lv-btn{height:var(--tap);font-size:var(--fs-m)}
+  .start2 .lv.kompakt .lv-btn.rund,.start-vers .lv-btn.rund{width:var(--tap)}
+  .kt-tx small{font-size:var(--fs-s);line-height:1.2;padding:3px 9px}
+}
+/* 4) Hierarchie: Kacheln ruhiger – der goldene Lernvers-Knopf bleibt die eine Hauptaktion */
+.kt{box-shadow:0 0 0 1px #0006,0 0 14px -8px var(--c),inset 0 1px 0 #ffffff1f}
+.kt::before{background:radial-gradient(circle,color-mix(in srgb,var(--c) 32%,transparent),transparent 68%)}
+.kt-tx b{color:color-mix(in srgb,var(--c) 28%,#fff3dc)}
+/* 5) Konsistenz: flache Symbole (Lektionen, Solo) bekommen ein Medaillon wie Biblionär und Arena */
+.kt-logo.med::before{content:"";position:absolute;inset:6%;border-radius:50%;background:radial-gradient(circle at 35% 28%,color-mix(in srgb,var(--c) 55%,#fff) 0,color-mix(in srgb,var(--c) 45%,#141845) 38%,#141845 100%);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 70%,#fff3dc),0 0 0 5px #141845,0 0 18px -2px var(--c),inset 0 -6px 12px #0006}
+.kt-logo.med svg{position:relative;width:58%;height:58%}
+.ah-knopf{padding:0 12px}
 </style>
 </head>
 <body>

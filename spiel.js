@@ -1708,13 +1708,13 @@ VIEWS.home = () => {
   const siegel = (() => { const f = Object.entries(KETTEN).map(([id, k]) => ({ id, k, t: S.meister[id] || [] })).filter(x => x.t.length && siegelRest(x.t) <= 5).sort((a, b) => siegelRest(a.t) - siegelRest(b.t))[0];
       return f ? `<button class="erinnerung" data-go="spielen">${siegelHtml(siegelStufe(f.t), siegelFrisch(f.t), true)}<span><b>${siegelFrisch(f.t) ? `Dein Siegel „${esc(f.k.name)}“ verblasst in ${siegelRest(f.t)} Tag(en)` : `Dein Siegel „${esc(f.k.name)}“ ist verblasst`}</b><span class="small muted">Jetzt die Kette wiederholen und auffrischen${siegelFrisch(f.t) ? "" : ` (+${AUFFRISCH_TAL} Talente)`}</span></span></button>` : ""; })();
   /* 9.15: Startseite – vier Kacheln 2×2, Logo ragt oben heraus */
-  const ktKachel = (go, c, logo, titel, sub, n = 0) => `<button class="kt" data-go="${go}" style="--c:${c}" aria-label="${titel}${n ? ` – ${n} ${n === 1 ? "Duell wartet" : "Duelle warten"}` : ""}"><span class="kt-logo">${logo}</span><span class="kt-tx"><b>${titel}</b><small>${sub}</small></span>${n ? `<i class="kt-n">${n}</i>` : ""}</button>`;
+  const ktKachel = (go, c, logo, titel, sub, n = 0) => `<button class="kt" data-go="${go}" style="--c:${c}" aria-label="${titel}${n ? ` – ${n} ${n === 1 ? "Duell wartet" : "Duelle warten"}` : ""}"><span class="kt-logo${/^<svg/.test(logo) && !logo.includes('id="dlR"') ? " med" : ""}">${logo}</span><span class="kt-tx"><b>${titel}</b><small>${sub}</small></span>${n ? `<i class="kt-n">${n}</i>` : ""}</button>`;
   const ezZeile = (go, ar, ic, t, sub, ecke = "") => `<button class="ez" data-ar="${ar}" data-go="${go}"><span class="ez-ic">${ic}</span><span class="ez-tx"><b>${t}</b><small>${sub}</small></span>${ecke}<i class="ez-pf">›</i></button>`;
   /* 8.2: „Dein Tag“ entfällt – der Kopf IST die Tagesaufgabe (Truhe statt Sonne, Schlüssel rechts), darunter wie gewohnt der Kringel-Bogen.
      Antippen klappt die drei Aufgaben auf; ist die Truhe bereit, öffnet der Kopf direkt die Truhe. */
   const keysH = `<span class="ez-keys${S.dq.bonus ? " verbraucht" : ""}" aria-hidden="true">${[0, 1, 2].map(i => `<i class="${i < erledigt ? "an" : ""}">${SCHLUESSEL}</i>`).join("")}</span>`;
   const kopfTitel = S.dq.bonus ? "Geöffnet!" : bereit ? "Öffnen!" : `Heute ${erledigt}/3`;
-  const kopfSub = S.dq.bonus ? "Belohnung abgeholt" : bereit ? "Truhe antippen zum Öffnen" : "Tagesaufgaben antippen";
+  const kopfSub = S.dq.bonus ? "Belohnung abgeholt" : bereit ? "Truhe antippen zum Öffnen" : "3 Aufgaben = 1 Schatztruhe";
   const kopfInnen = `<span class="bk-med truhe${S.dq.bonus ? " offen" : ""}">${S.dq.bonus ? TRUHE_AUF + `<i class="truhe-haken">${svg("check")}</i>` : truheZu(bereit ? 3 : erledigt)}</span><div class="bk-t"><h1>${kopfTitel}</h1><span>${kopfSub}</span></div>${keysH}`;
   const kopf = bereit
     ? `<div class="bkopf start-aufg" style="--bk:#f2c14e"><button class="bk-kopf bk-aufg bereit" id="truheKopf" aria-label="Schatztruhe mit drei Schlüsseln öffnen">${kopfInnen}</button></div>`
@@ -5680,11 +5680,10 @@ function appHinweisZeigen() {
   if (!zeigen) { if (el) el.remove(); return; }
   const ios = istIos();
   const teilen = `<svg class="ah-teilen" viewBox="0 0 13 15" aria-hidden="true"><path d="M6.5 1 V9 M3.5 4 L6.5 1 L9.5 4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M2.5 6.5 H1.5 V14 H11.5 V6.5 H10.5" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>`;
-  const html = `<div class="ah-oben"><span class="ah-mini" aria-hidden="true"><i></i><i></i><i></i><i></i><i class="ah-app"><img src="icons/icon-192.png" alt=""></i><i></i></span>
-      <span class="ah-tx"><b>Immer dabei</b><small>Hol dir die Bibel-Quest auf deinen Startbildschirm: ein Tipp, und du bist drin – auch ohne Internet.</small></span></div>
-    <span class="ah-lohn"><i>+${APP_BONUS} Talente</i><i>${svg("medal")} Abzeichen „Heimkehr“</i></span>
-    <div class="ah-unten">${ios ? `<button class="ah-schritte" id="ahInst" aria-label="Anleitung: App aufs iPhone holen"><em>${teilen} Teilen</em><span>→</span><em>Zum Home-Bildschirm</em></button>`
-      : `<button class="btn primary ah-knopf" id="ahInst">${svg("down")} App installieren</button>`}<button class="ah-x" id="ahZu" aria-label="Für heute ausblenden">${svg("nein")}</button></div>`;
+  /* 9.37 (Design-Kritik): schmale Zeile statt großer Karte – verdeckt keine Kacheln mehr */
+  const html = `<span class="ah-mini" aria-hidden="true"><i class="ah-app"><img src="icons/icon-192.png" alt=""></i></span>
+      <span class="ah-tx"><b>Immer dabei</b><small>+${APP_BONUS} Talente geschenkt</small></span>
+      <button class="ah-knopf" id="ahInst" aria-label="${ios ? "Anleitung: App aufs iPhone holen" : "App installieren"}">${ios ? teilen + " So geht’s" : svg("down") + " Installieren"}</button><button class="ah-x" id="ahZu" aria-label="Für heute ausblenden">${svg("nein")}</button>`;
   if (!el) { el = document.createElement("div"); el.id = "appHinweis"; el.className = "ah"; el.setAttribute("role", "region"); el.setAttribute("aria-label", "App installieren"); document.body.appendChild(el); }
   el.innerHTML = html;
   $("ahZu").onclick = () => { SFX.tap(); try { localStorage.setItem(ahKey, today()); } catch (e) {} appHinweisZeigen(); };
