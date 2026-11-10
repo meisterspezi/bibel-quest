@@ -604,13 +604,17 @@ function lvKarte(k, ort = "home") {
     hinweis = s.b ? "Bewahrt – du kennst diesen Vers auswendig." : s.st < LV_MAX ? (lvHeuteNeu(k) >= LV_STUFEN_TURBO ? `Stark – ${LV_STUFEN_TURBO} Stufen heute! Stufe ${s.st + 1} gibt es morgen.` : `Heute geschafft! Stufe ${s.st + 1} gibt es morgen – oder festige mit ${LV_TURBO_QUOTE} % für den Turbo.`) : aktuell ? `Gemeistert! Ab dem ${lvBewahrAb()}. ${MONATE[new Date().getMonth()]} kommt die Monatsprüfung.` : ""; }
   let fuss = knopf + `<button class="lv-btn rund" data-lv="vorlesen" aria-label="Vorlesen">${svg("sound")}</button>`;
   if (ort === "home") fuss = fuss + `<button class="lv-btn" data-go="lernverse" data-arg="home">${svg("scroll")} Archiv</button>`;
-  const stand = s.b ? `<span class="lv-siegel" aria-label="Bewahrt">${svg("siegel")}</span>` : `<span class="lv-stufe" aria-label="Stufe ${s.st} von ${LV_MAX}">${Array.from({ length: LV_MAX }, (_, i) => `<i class="${i < s.st ? "an" : ""}"></i>`).join("")}</span>`;
+  /* 9.48: einheitliche Fortschrittsanzeige für alle Monate – Ring mit Prozent + zwei Textzeilen (kein Siegel, keine Punkte) */
+  const pct = s.b ? 100 : Math.round(Math.min(LV_MAX, s.st) / LV_MAX * 100), umf = 100.53;
+  const fz1 = s.b || s.st >= LV_MAX ? `Alle ${LV_MAX} Stufen` : s.st ? `Stufe ${s.st} von ${LV_MAX}` : "Noch nicht begonnen";
+  const fz2 = s.b ? "Bewahrt" : s.st >= LV_MAX ? "Gemeistert" : s.st ? LV_STUFEN[s.st - 1] : "Los geht's";
+  const stand = `<span class="lv-fort${s.b ? " ok" : ""}" role="img" aria-label="${fz1}, ${fz2}, ${pct} Prozent"><span class="lv-fort-tx">${fz1}<b>${fz2}</b></span><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="sp" cx="20" cy="20" r="16"/><circle class="fu" cx="20" cy="20" r="16" stroke-dasharray="${(pct / 100 * umf).toFixed(1)} ${umf}" transform="rotate(-90 20 20)"/><text x="20" y="${pct >= 100 ? 23.4 : 24}" text-anchor="middle"${pct >= 100 ? ' class="voll"' : ""}>${pct}%</text></svg></span>`;
   const mt = aktuell ? lvMonatsTage(k) : 0, ziel = lvZiel();
   const monat = aktuell && !s.b ? `<div class="lv-monat"><span class="lvm-woche">Woche ${lvWoche()}/4 · Ziel Stufe ${ziel}${s.st >= ziel ? ` ${svg("check")}` : ""}</span><span class="lvm-tage ${mt ? "an" : ""}">${svg("fire")}${mt} ${mt === 1 ? "Tag" : "Tage"}</span></div>` : "";
   return `<section class="lv ${ort === "home" ? "kompakt" : ""} ${s.b ? "bewahrt" : ""}" data-lvk="${k}" aria-label="Lernvers ${esc(monatName(k))}">
     <span class="lv-fkn" aria-hidden="true"><i></i><i></i><i></i></span>
-    <div class="lv-kopf"><span class="lv-ic">${svg("scroll")}</span><span class="lv-lab">Lernvers ${esc(monatName(k))}</span>${ort === "home" ? `<span class="lv-ref">${esc(v[1])}</span>` : ""}${stand}</div>
-    <div class="lv-text">${esc(v[0])}</div>${ort === "home" ? "" : `<div class="lv-ref">${esc(v[1])} · ${VERS_QUELLE}</div>`}
+    <div class="lv-kopf"><span class="lv-ic">${svg("scroll")}</span><span class="lv-lab">Lernvers ${esc(monatName(k))}</span>${stand}</div>
+    <div class="lv-text">${esc(v[0])}</div><div class="lv-ref">${esc(v[1])}${ort === "home" ? "" : ` · ${VERS_QUELLE}`}</div>
     ${monat}${hinweis ? `<div class="lv-hinweis">${hinweis}</div>` : ""}
     <div class="lv-fuss">${fuss}</div></section>`;
 }

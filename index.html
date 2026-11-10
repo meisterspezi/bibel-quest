@@ -2565,6 +2565,17 @@ body.mit-app-hinweis .app{padding-bottom:calc(176px + env(safe-area-inset-bottom
 @keyframes lvEndeR{0%,100%{transform:none}40%{transform:translateX(-10px)}}
 .lv.lv-ein-r{animation:lvEinR .22s ease-out}.lv.lv-ein-l{animation:lvEinL .22s ease-out}
 .lv.lv-ende-l{animation:lvEndeL .3s ease-out}.lv.lv-ende-r{animation:lvEndeR .3s ease-out}
+
+/* 9.48: Lernvers-Fortschritt als Ring + Text, für alle Monate gleich */
+.lv-fort{display:flex;align-items:center;gap:8px;margin-left:auto;flex:0 0 auto;text-align:right}
+.lv-fort-tx{font:700 .68rem/1.25 var(--body);color:#e8dcb8}.lv-fort-tx b{display:block;font-weight:800;color:#f2c14e}
+.lv-fort svg{width:36px;height:36px;flex:0 0 36px}
+.lv-fort circle{fill:none;stroke-width:4}.lv-fort .sp{stroke:#ffffff22}.lv-fort .fu{stroke:#f2c14e;stroke-linecap:round}
+.lv-fort text{font:800 10.5px var(--body);fill:#f6efd8}.lv-fort text.voll{font-size:8.6px;letter-spacing:-.2px}
+.lv-fort.ok .fu{stroke:#7be0a8}.lv-fort.ok .fu,.lv-fort.ok .sp{stroke-dasharray:none}.lv-fort.ok .fu{stroke-dasharray:none}.lv-fort.ok .lv-fort-tx b{color:#7be0a8}
+.start2 .lv.kompakt .lv-ref,.start-vers .lv-ref{margin:-3px 0 6px;font-size:.66rem;white-space:nowrap}
+.start2 .lv.kompakt .lv-text{margin-bottom:8px}
+@media (max-width:360px){.lv-fort-tx{display:none}}
 </style>
 </head>
 <body>
