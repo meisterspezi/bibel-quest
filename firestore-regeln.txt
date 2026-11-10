@@ -1,5 +1,5 @@
 rules_version = '2';
-// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 9.52 – Stiftshütte entfernt; 9.28 – Sammlung gemlog (Protokoll Beitritt/Austritt); 9.13.2 – Gemeindename bis 50 Zeichen; 9.12 – Ketten-Duelle gebote/schoepfung; 9.11 – Gespräche (dialoge), Freischaltung: Gemeinden mit pruef, Sammlungen antraege, freigabe, geheim; 9.7 – Sammlung nachrichten, Gemeinden mit Passwort pw und Logo logo; 9.0 – Sammlungen gemeinden + mitglied; 7.3 – Sammlung bethlehem (Weg nach Bethlehem, Advent); 6.95 – Sammlung talente (Talente-Zählung, nur der Verwalter liest); 6.88 – xpquellen: Regel vereinfacht (Limit 1000 Auswertungen pro Schreibzugriff, ab der 4. Quelle wurde abgelehnt); 6.80 – Sammlungen bibversuch (Biblionär-Wochenrunde einmal je Serverwoche) und spendenxp (XP für Spenden einmal je Talent); 6.79 – xpquellen: neue Quelle spende (Stiftshütte); 6.78 – Sammlung tagestruhe (Schatztruhe einmal je Serverdatum); 6.76 – xpquellen: neue Quelle abgleich; 6.75 – Sammlung xpprotokoll (Einzelprotokoll der XP-Vergaben, nur anlegen); 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 9.53 – Talente-Zählung entfernt; 9.52 – Stiftshütte entfernt; 9.28 – Sammlung gemlog (Protokoll Beitritt/Austritt); 9.13.2 – Gemeindename bis 50 Zeichen; 9.12 – Ketten-Duelle gebote/schoepfung; 9.11 – Gespräche (dialoge), Freischaltung: Gemeinden mit pruef, Sammlungen antraege, freigabe, geheim; 9.7 – Sammlung nachrichten, Gemeinden mit Passwort pw und Logo logo; 9.0 – Sammlungen gemeinden + mitglied; 7.3 – Sammlung bethlehem (Weg nach Bethlehem, Advent); 6.95 – Sammlung talente (Talente-Zählung, nur der Verwalter liest); 6.88 – xpquellen: Regel vereinfacht (Limit 1000 Auswertungen pro Schreibzugriff, ab der 4. Quelle wurde abgelehnt); 6.80 – Sammlungen bibversuch (Biblionär-Wochenrunde einmal je Serverwoche) und spendenxp (XP für Spenden einmal je Talent); 6.79 – xpquellen: neue Quelle spende (Stiftshütte); 6.78 – Sammlung tagestruhe (Schatztruhe einmal je Serverdatum); 6.76 – xpquellen: neue Quelle abgleich; 6.75 – Sammlung xpprotokoll (Einzelprotokoll der XP-Vergaben, nur anlegen); 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -282,26 +282,7 @@ service cloud.firestore {
       allow create, update: if istEntwickler() && request.resource.data.keys().hasOnly(['ts']) && request.resource.data.ts is int;
       allow delete: if false;
     }
-    // 6.95: Talente-Zählung für die Verwalter-Seite „Talente-Planung“. Schreiben darf nur der Besitzer des Profils, lesen nur der Verwalter.
-    //       t = verdiente Talente je Tag (Schlüssel = Tagesnummer, höchstens 45 Tage), sd = Spieltage (höchstens 40).
-    function tlGueltig(pid) {
-      let d = request.resource.data;
-      return d.keys().hasOnly(['pid', 'name', 'tal', 's', 'v', 'a', 'p', 't', 'sd', 'updated'])
-        && d.pid == pid
-        && d.name is string && d.name.size() >= 2 && d.name.size() <= 20
-        && d.tal is int && d.tal >= 0 && d.tal <= 100000000
-        && d.s is int && d.s >= 0 && d.s <= 1000000
-        && d.v is int && d.v >= 0 && d.v <= 100000000
-        && d.a is int && d.a >= 0 && d.a <= 100000000
-        && d.p is int && d.p >= 0 && d.p <= 100000000
-        && d.t is map && d.t.size() <= 45
-        && d.sd is list && d.sd.size() <= 40;
-    }
-    match /talente/{pid} {
-      allow read: if istEntwickler();
-      allow create, update: if angemeldet() && besitzer(pid) && tlGueltig(pid);
-      allow delete: if false;
-    }
+    match /talente/{pid} { allow read, write: if false; }  // 9.53: Talente-Zählung entfernt
     match /xpquellen/{pid} {
       allow read: if angemeldet();
       allow create, update: if angemeldet() && besitzer(pid) && xqGueltig(pid);

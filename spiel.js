@@ -5,7 +5,7 @@
 
 /* ---------- Zustand & Speichern ---------- */
 const DEF = {
-  xp: 0, tal: 0, tl: null, stars: {}, right: 0,
+  xp: 0, tal: 0, stars: {}, right: 0,
   streak: 0, bestStreak: 0, lastDay: "", todayXp: 0, todayDay: "", todayRight: 0, bestDayRight: 0,
   goalStreak: 0, bestGoalStreak: 0, lastGoalDay: "",
   bestChain: 0, chainAT: 0, chainNT: 0, chainRueck: 0, chainGebote: 0, chainSchoepfung: 0, bestBlitz: 0, bestCombo: 0,
@@ -44,6 +44,7 @@ function badgesBereinigen() { S.badges = (S.badges || []).filter(id => BADGES.so
 badgesBereinigen();
 /* 9.52: Rahmen „Wolke der Herrlichkeit“ und Titel „Bezaleel“ (Stiftshütte) entfernt */
 if (S.frame === "wolke") S.frame = "none"; if (S.title === "bezaleel") S.title = "none";
+delete S.tl; delete S.tlSync; /* 9.53: Talente-Zählung entfernt */
 function geraetSpeichern() {
   if (gesperrt) return;
   const eintrag = { key: GERAET.aktiv, name: S.lbName, avatar: S.avatar, frame: S.frame, xp: Math.round(S.xp), pid: S.pid };
@@ -58,7 +59,6 @@ function lsSchreiben() {
   try {
     const alt = JSON.parse(localStorage.getItem(LS) || "null");
     if (alt && (alt.rev | 0) > (S.rev | 0)) { sperren(alt.lbName || S.lbName); return false; }
-    try { talBuchen(); } catch (e) {}
     S.rev = (S.rev | 0) + 1; localStorage.setItem(LS, JSON.stringify(S));
   } catch (e) {}
   return true;
@@ -1148,42 +1148,7 @@ function richtig(n = 1) {
   quest("right", n);
 }
 function addTal(n) { if (n <= 0) return; S.tal += n; renderHud(); save(); SFX.coin(); }
-/* 6.95: Talente-Zählung für die Verwalter-Seite „Talente-Planung“ (Postkasten). Statt an jeder der vielen Stellen, die Talente vergeben,
-   mitzuzählen, wird bei jedem Speichern (lsSchreiben) der Unterschied zum zuletzt gesehenen Guthaben gebucht: Zuwachs = verdient (gesamt und je Tag),
-   Abnahme = ausgegeben (Laden/Rüstung). Spenden an die Stiftshütte bucht die Spendenfunktion selbst (p) und setzt l, damit sie nicht als Ausgabe zählen.
-   S.tl = { s: Tag des Zählbeginns (dayNum), l: zuletzt gesehenes Guthaben, v: verdient, a: ausgegeben, p: gespendet, t: { dayNum: verdient an dem Tag (letzte 40 Tage) } }.
-   Vor dem Zählbeginn gibt es keine Daten – das bisherige Guthaben wird nicht als „verdient“ gezählt. */
-function talBuchen() {
-  if (typeof S.tal !== "number") return;
-  const n = dayNum(today());
-  if (!S.tl || typeof S.tl !== "object") S.tl = { s: n, l: S.tal | 0, v: 0, a: 0, p: 0, t: {} };
-  const T = S.tl, d = (S.tal | 0) - (T.l | 0); if (!T.t || typeof T.t !== "object") T.t = {};
-  if (d > 0) { T.v = (T.v | 0) + d; const k = String(n); T.t[k] = (T.t[k] | 0) + d; }
-  else if (d < 0) T.a = (T.a | 0) - d;
-  T.l = S.tal | 0;
-  Object.keys(T.t).forEach(k => { if (+k < n - 40) delete T.t[k]; });
-}
-/* Zusammenführen mit einem anderen Gerät/Spielstand r: je Summe der höhere Wert, Zählbeginn der frühere, Tageswerte je Tag der höhere */
-function talMischen(r) {
-  const b = r && r.tl, a = S.tl;
-  if (b && typeof b === "object") {
-    if (!a || typeof a !== "object") S.tl = JSON.parse(JSON.stringify(b));
-    else {
-      a.s = Math.min(a.s | 0 || b.s | 0, b.s | 0 || a.s | 0); ["v", "a", "p"].forEach(k => { a[k] = Math.max(a[k] | 0, b[k] | 0); });
-      a.t = a.t || {}; Object.entries(b.t || {}).forEach(([k, v]) => { a.t[k] = Math.max(a.t[k] | 0, v | 0); });
-    }
-  }
-  if (S.tl) S.tl.l = S.tal | 0;   /* der Sprung durch das Zusammenführen ist kein neu verdientes Guthaben */
-}
-/* Zählung für die Datenbank (Sammlung „talente“, nur der Verwalter liest) */
-function talSenden() {
-  const L = window.LB; if (!L || !L.ok || !L.talSetzen || !S.pid || S.offlineOnly || !S.lbName) return;
-  try { talBuchen(); } catch (e) { return; }
-  const T = S.tl; if (!T) return;
-  const d = { tal: S.tal | 0, s: T.s | 0, v: T.v | 0, a: T.a | 0, p: T.p | 0, t: T.t || {}, sd: (S.tage || []).filter(x => x >= (T.s | 0)).slice(-35) };
-  const sig = JSON.stringify(d); if (S.tlSync === sig) return;
-  L.talSetzen(S.pid, S.lbName, d).then(() => { S.tlSync = sig; save(); }).catch(() => {});   /* still: solange die Regeln noch nicht veröffentlicht sind, passiert nichts */
-}
+/* 9.53: Talente-Zählung (6.95, Sammlung „talente“) entfernt – keine Auswertung der Talente mehr, entlastet die Datenbank */
 /* ---------- Level-Belohnungen (v6.39) ----------
    S.lvLohn = höchstes Level, dessen Belohnung schon ausgezahlt ist (0 = noch nie nach neuem Plan gerechnet).
    Talente für jedes übersprungene Level werden mitgezahlt; Skins schalten sich über need:"lvN" von selbst frei. */
@@ -2715,7 +2680,6 @@ function lbSync(now) {
   lbTimer = setTimeout(() => {
     try { bethSenden(); } catch (e) {} /* 7.3: Weg nach Bethlehem */
     try { xqSenden(); } catch (e) {} /* 6.73: XP-Quellen */
-    try { talSenden(); } catch (e) {} /* 6.95: Talente-Zählung */
     try { gemSenden(); } catch (e) {} /* 9.0: Gemeinde-Zuordnung */
     const opts = {}; if (!S.ownersSet && eigenePid(S.pid)) opts.owners = [L.uid];
     const ok = () => { if (opts.owners) { S.ownersSet = true; lsSchreiben(); geraetSpeichern(); } };
@@ -2784,7 +2748,6 @@ function zusammenfuehren(r) {
   const max = k => { S[k] = Math.max(+S[k] || 0, +r[k] || 0); };
   const xpVorher = +S.xp || 0;
   ["xp", "tal", "right", "bestStreak", "bestChain", "chainAT", "chainNT", "chainRueck", "chainGebote", "chainSchoepfung", "bestBlitz", "bestCombo", "questBonusCount", "bestGoalStreak", "bestDayRight", "duSiege", "duSpiele", "duGesendet", "duAngenommen", "lvLohn", "bibRekord", "bibSpiele", "bibMillion"].forEach(max);
-  try { talMischen(r); } catch (e) {}
   /* Wochenrunde: die neuere Woche gewinnt; in derselben Woche zählt der höhere Wert (ein Versuch wird nie zurückgesetzt) */
   if ((r.bwK || "") > (S.bwK || "")) { if (S.bwK && S.bwK !== r.bwK) { S.bwVK = S.bwK; S.bwVP = S.bwP | 0; } S.bwK = r.bwK; S.bwP = r.bwP | 0; S.bwFertig = !!r.bwFertig; }
   else if (r.bwK && r.bwK === S.bwK) { S.bwP = Math.max(S.bwP | 0, r.bwP | 0); S.bwFertig = !!(S.bwFertig || r.bwFertig); }
@@ -3423,17 +3386,8 @@ VIEWS.nachrichten = () => {
     L.nachrichtSenden({ art, titel, text, g, ver: art === "patch" ? APP_VERSION : "" }).then(() => { SFX.coin(); $("nText").value = ""; $("nZahl").textContent = "0 / 2000 Zeichen"; b.disabled = false; toast(`${svg("check")}<div>Nachricht gesendet.</div>`); NACH = null; liste(); })
       .catch(() => { b.disabled = false; toast(`${svg("nein")}<div>Das hat nicht geklappt (Firebase-Regeln von Version 9.7 eingespielt?).</div>`); }); };
 };
-const rkSchalterHtml = scope => `<nav class="kb-tabs rk-scope" aria-label="Rangliste für" style="grid-template-columns:repeat(${meineGem() === "gast" ? 2 : 3},1fr)">${(meineGem() === "gast" ? [] : [["gemeinde", "Meine Gemeinde", "people"]]).concat([["gemeinden", "Gemeinden", "crown"], ["welt", "Welt", "star"]]).map(([k, t, ic]) => `<button data-scope="${k}" aria-pressed="${k === scope}" aria-selected="${k === scope}">${svg(ic)}<span>${t}</span></button>`).join("")}</nav>`;
-const rankScope = () => { const g = meineGem() === "gast"; const sc = S.rankScope || (g ? "welt" : "gemeinde"); return g && sc === "gemeinde" ? "welt" : sc; };
-/* Gemeinde-Wertung: Gesamtsumme aller XP je Gemeinde – mit Logo, Platz-Marke und vollem (umbrechendem) Namen */
-function gemeindenWertungHtml(spieler) {
-  const sum = {}, anz = {}; GEM.forEach(g => { sum[g.id] = 0; anz[g.id] = 0; });
-  spieler.forEach(r => { const g = gemVon(r.id); if (g === "gast" || !(g in sum)) return; sum[g] += r.xp | 0; anz[g]++; });
-  const zeilen = GEM.map(g => ({ g, s: sum[g.id], n: anz[g.id] })).sort((a, b) => b.s - a.s || a.g.name.localeCompare(b.g.name, "de")), top = Math.max(1, zeilen[0] ? zeilen[0].s : 1);
-  let platz = 0, vor = null;
-  return `<div class="gw-liste">${zeilen.map((z, i) => { if (vor === null || z.s !== vor) platz = i + 1; vor = z.s; const ich = z.g.id === meineGem(), avg = z.n ? Math.round(z.s / z.n) : 0;
-    return `<div class="gw-zeile${platz <= 3 && z.s > 0 ? " p" + platz : ""}${ich ? " me" : ""}" title="${esc(z.g.name)}"><div class="gw-logo">${gemLogoHtml(z.g, 52)}<i class="gw-pl">${platz}</i></div><div class="gw-tx"><b${z.g.name.length > 30 ? ' class="lang"' : ""}>${esc(z.g.name)}</b><span class="small muted"><span class="gw-n">${z.n} Spieler</span>${z.n ? ` <span class="gw-n">· Ø ${pkt(avg)} XP</span>` : ""}</span>${ich ? '<span class="you">Deine Gemeinde</span>' : ""}</div><div class="gw-sum"><b>${pkt(z.s)}</b><small>XP gesamt</small></div><i class="gw-balken"><i style="width:${Math.round(z.s / top * 100)}%"></i></i></div>`; }).join("")}</div>`;
-}
+const rkSchalterHtml = scope => `<nav class="kb-tabs rk-scope" aria-label="Rangliste für" style="grid-template-columns:repeat(${meineGem() === "gast" ? 1 : 2},1fr)">${(meineGem() === "gast" ? [] : [["gemeinde", "Meine Gemeinde", "people"]]).concat([["welt", "Welt", "star"]]).map(([k, t, ic]) => `<button data-scope="${k}" aria-pressed="${k === scope}" aria-selected="${k === scope}">${svg(ic)}<span>${t}</span></button>`).join("")}</nav>`;
+const rankScope = () => { const g = meineGem() === "gast"; const sc = S.rankScope && S.rankScope !== "gemeinden" ? S.rankScope : (g ? "welt" : "gemeinde"); return g && sc === "gemeinde" ? "welt" : sc; }; /* 9.53: Gemeinde-Vergleich entfernt */
 /* Vier Kategorien; Unterteilungen erscheinen als kleiner Umschalter im Listenkopf */
 const RANK_KAT = [
   { id: "erfahrung", name: "Erfahrung", icon: "star", tabs: ["woche", "gesamt"] },
@@ -3473,12 +3427,6 @@ VIEWS.rank = (tab) => {
   if (!S.pid && !S.ownersSet) { lbStart(); }
   const scope = rankScope();
   gemLaden().then(ch => { if (ch && current === "rank") go("rank", rankTab); });
-  if (scope === "gemeinden") {
-    screen.innerHTML = html + `<div class="stack rk">${rkSchalterHtml(scope)}<div class="card rk-liste"><div class="rk-kopf"><div><b>Gemeinde-Wertung</b><span class="small muted">Alle XP der Spieler zusammen</span></div></div><div id="rbody"><p class="muted" style="margin:0">Lade …</p></div></div></div>`;
-    wireGo(); screen.querySelectorAll("[data-scope]").forEach(b => b.onclick = () => { SFX.tap(); S.rankScope = b.dataset.scope; save(); go("rank", rankTab); });
-    gemLaden(true).then(() => L.alleSpieler()).then(sp => { if (current === "rank" && $("rbody")) $("rbody").innerHTML = gemeindenWertungHtml(sp); }).catch(() => { if ($("rbody")) $("rbody").innerHTML = `<p class="muted" style="margin:0">Die Wertung konnte nicht geladen werden.</p>`; });
-    return;
-  }
   const T = RANK_TABS[rankTab];
   const kat = katVon(rankTab); letzterTab[kat.id] = rankTab;
   const varianten = kat.tabs.length > 1 ? kat.tabs.map(k => `<button data-tab="${k}" aria-pressed="${k === rankTab}">${TAB_LABEL[k]}</button>`).join("")
@@ -5141,7 +5089,9 @@ async function postkastenMelden(kat, text, schluessel) {
 /* Statusberichte für den Verwalter: neue App-Version, Wochenbericht */
 async function statusBerichte() {
   const L = window.LB; if (!entwickler || !L || !L.alleSpieler) return;
-  if (S.pkVersion !== APP_VERSION) { await postkastenMelden("status", `App-Version ${APP_VERSION} ist aktiv${S.pkVersion ? ` (vorher ${S.pkVersion})` : ""}.`, "version-" + APP_VERSION); S.pkVersion = APP_VERSION; save(); }
+  if (S.pkVersion !== APP_VERSION) { await postkastenMelden("status", `App-Version ${APP_VERSION} ist aktiv${S.pkVersion ? ` (vorher ${S.pkVersion})` : ""}.`, "version-" + APP_VERSION); S.pkVersion = APP_VERSION; save();
+    /* 9.53: nur die neueste Versionsmeldung behalten */
+    try { const l = await L.feedbackListe(true); for (const f of pkAlteVersionen(l)) await L.feedbackLoeschen(f.id).catch(() => {}); } catch (e) {} }
   const wk = weekKey(); if (S.pkWoche === wk) return;
   try {
     const alle = await L.alleSpieler(), vorher = S.pkWoche;
@@ -5159,6 +5109,9 @@ let postfachFilter = "neu", pkSuche = "", pkAuswahl = false, pkSuchOffen = false
    darunter die Post (einklappbar, Suche per Lupe, Kategorie als Auswahl, Sammelaktionen im Auswahlmodus).
    Ampel: grün = nichts Offenes, orange = offene Hinweise im Postkasten, grau = noch nicht geprüft. Der Punkt erscheint auch am Postkasten-Symbol. */
 const pkIstXp = f => /^XP-Prüfung:/.test(f.text || "");
+/* 9.53: Versionsmeldungen („App-Version x ist aktiv“) – nur die neueste wird gezeigt, ältere können auf einmal gelöscht werden */
+const pkIstVersion = f => pkKat(f) === "status" && /^App-Version /.test(f.text || "");
+const pkAlteVersionen = liste => liste.filter(pkIstVersion).sort((a, b) => (b.zeit || 0) - (a.zeit || 0)).slice(1);
 const pkIstDup = f => pkKat(f) === "datenbank" && /^(Bitte prüfen: „|Automatisch zusammengeführt: „|„.+“ konnte nicht zusammengeführt)/.test(f.text || "");
 const pkDatum = z => z ? new Date(z).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
 VIEWS.postfach = (kat) => {
@@ -5169,12 +5122,13 @@ VIEWS.postfach = (kat) => {
   screen.innerHTML = `${backBtn("home", "Start")}<div class="pk-kopf"><h1>Postkasten</h1><span class="pk-ikonen">
     <button class="iconbtn" id="pkLupe" aria-label="Suchen" aria-pressed="${pkSuchOffen}"><span aria-hidden="true">🔍</span></button>
     <button class="iconbtn" id="pkWahl" aria-label="Auswählen" aria-pressed="${pkAuswahl}">☑</button></span></div>
-  <div class="pk-pins" aria-label="Prüfungen">${zeile("pkXp", "medal", "XP-Prüfung", xpTag, 'data-go="xppruefung"')}${zeile("pkDup", "people", "Doppelte Namen", dupTag, 'id2="x"')}<button class="pk-pin" id="pkAnt" data-go="antraege"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("people")} Beitrittsanträge</b><span class="small muted" data-pkinfo>${antragOffen ? antragOffen + " offen" : "Freischaltung für neue Mitglieder"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkDlg" data-go="dialoge"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("chat")} Gespräche mit Spielern</b><span class="small muted" data-pkinfo>${dlgNeuDev() ? dlgNeuDev() + " neue Antwort" + (dlgNeuDev() === 1 ? "" : "en") : "Einzelne Spieler anschreiben"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGemLog" data-go="gemprotokoll"><span class="pk-pt"><b>${svg("scroll")} Gemeinde-Protokoll</b><span class="small muted">Wer wann beigetreten oder ausgetreten ist</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGem" data-go="gemverwaltung"><span class="pk-pt"><b>${svg("people")} Gemeinden</b><span class="small muted">Gemeinden anlegen, Spieler zuordnen</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkTal" data-go="talente"><span class="pk-pt"><b>${svg("tal")} Talente-Planung</b><span class="small muted">Guthaben und Ø pro Tag je Spieler</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkNach" data-go="nachrichten"><span class="pk-pt"><b>${svg("chat")} Nachricht an Spieler</b><span class="small muted">Patchnotes und Mitteilungen senden</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button></div>
+  <div class="pk-pins" aria-label="Prüfungen">${zeile("pkXp", "medal", "XP-Prüfung", xpTag, 'data-go="xppruefung"')}${zeile("pkDup", "people", "Doppelte Namen", dupTag, 'id2="x"')}<button class="pk-pin" id="pkAnt" data-go="antraege"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("people")} Beitrittsanträge</b><span class="small muted" data-pkinfo>${antragOffen ? antragOffen + " offen" : "Freischaltung für neue Mitglieder"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkDlg" data-go="dialoge"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("chat")} Gespräche mit Spielern</b><span class="small muted" data-pkinfo>${dlgNeuDev() ? dlgNeuDev() + " neue Antwort" + (dlgNeuDev() === 1 ? "" : "en") : "Einzelne Spieler anschreiben"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGemLog" data-go="gemprotokoll"><span class="pk-pt"><b>${svg("scroll")} Gemeinde-Protokoll</b><span class="small muted">Wer wann beigetreten oder ausgetreten ist</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGem" data-go="gemverwaltung"><span class="pk-pt"><b>${svg("people")} Gemeinden</b><span class="small muted">Gemeinden anlegen, Spieler zuordnen</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkNach" data-go="nachrichten"><span class="pk-pt"><b>${svg("chat")} Nachricht an Spieler</b><span class="small muted">Patchnotes und Mitteilungen senden</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button></div>
   <div class="card rk-liste" style="margin-top:10px">
     <div class="pk-suchzeile" ${pkSuchOffen ? "" : "hidden"}><input type="search" id="pkSuche" placeholder="Suchen (Text, Name, Version)" value="${esc(pkSuche)}" aria-label="Post durchsuchen" autocomplete="off"></div>
     <div class="pk-filter"><div class="rk-var" role="group" aria-label="Filter">${[["neu", "Neu"], ["todo", "ToDo"], ["alle", "Alle"], ["erledigt", "Erledigt"]].map(([k, n]) => `<button data-pf="${k}" aria-pressed="${k === postfachFilter}">${n}<i class="pk-n" data-pfn="${k}"></i></button>`).join("")}</div>
       <select id="pkKat" aria-label="Kategorie">${PK_KAT.map(([k, n]) => `<option value="${k}" ${k === pkKategorie ? "selected" : ""}>${n}</option>`).join("")}</select></div>
     <div class="pk-leiste" id="pkLeiste" ${pkAuswahl ? "" : "hidden"}><label class="small"><input type="checkbox" id="pkAlle"> Alle</label><span class="small muted" id="pkGewZahl"></span><span class="pk-aktion"><button class="btn ghost mini" id="pkTodo">ToDo</button><button class="btn ghost mini" id="pkErl">Erledigt</button><button class="btn ghost mini" id="pkDel">Löschen</button></span></div>
+    <div id="pkVerBox"></div>
     <div class="stack" id="pfListe" style="margin-top:6px"><p class="muted small">Lade …</p></div></div>`;
   wireGo();
   const ampel = (id, zustand, text) => { const e = $(id); if (!e) return; e.dataset.ampel = zustand; const i = e.querySelector("[data-pkinfo]"); if (i && text) i.textContent = text; };
@@ -5199,7 +5153,12 @@ VIEWS.postfach = (kat) => {
     pkOffenPruef = xpOff + dupOff + antragOffen; renderHud();
     ampel("pkXp", xpOff ? "orange" : xpTag ? "gruen" : "grau", xpOff ? `${xpOff} offen · ${tagText(xpTag)}` : "");
     ampel("pkDup", dupOff ? "orange" : dupTag ? "gruen" : "grau", dupOff ? `${dupOff} offen · ${tagText(dupTag)}` : "");
-    const basis = liste.filter(passt), zahl = k => basis.filter(f => pkIn(f, k)).length;
+    const altV = pkAlteVersionen(liste), altIds = new Set(altV.map(f => f.id));
+    if ($("pkVerBox")) { $("pkVerBox").innerHTML = altV.length ? `<button class="btn ghost mini" id="pkVerWeg" style="margin:6px 0 0">${svg("nein")} ${altV.length} alte Versionsmeldungen löschen</button>` : "";
+      if ($("pkVerWeg")) $("pkVerWeg").onclick = () => { SFX.tap(); modal(`<h2>${altV.length} alte Versionsmeldungen löschen?</h2><p class="muted small">Die neueste Versionsmeldung bleibt. Das lässt sich nicht rückgängig machen.</p><button class="btn primary" data-close="ja">Löschen</button><button class="btn ghost" data-close>Abbrechen</button>`, async a => {
+        if (a !== "ja") return; let fehler = 0; for (const f of altV) { try { await L.feedbackLoeschen(f.id); pkTodoSetzen(f.id, false); liste = liste.filter(x => x.id !== f.id); } catch (e) { fehler++; } }
+        zeichne(); toast(fehler ? `<div>${fehler} Meldungen konnten nicht gelöscht werden.</div>` : `<div>Alte Versionsmeldungen gelöscht.</div>`); }); }; }
+    const basis = liste.filter(passt).filter(f => !altIds.has(f.id)), zahl = k => basis.filter(f => pkIn(f, k)).length;
     ["neu", "todo", "alle", "erledigt"].forEach(k => { const e = screen.querySelector(`[data-pfn="${k}"]`); if (e) e.textContent = zahl(k) ? " " + zahl(k) : ""; });
     const z = basis.filter(f => pkIn(f, postfachFilter));
     [...pkGew].forEach(id => { if (!z.some(f => f.id === id)) pkGew.delete(id); });
@@ -5476,46 +5435,6 @@ function xqRateVerdrahten(z) {
   const box = $("xqRate"); if (!box) return;
   box.querySelectorAll("[data-ratem]").forEach(b => b.onclick = () => { if (b.dataset.ratem === (window.__xqRateModus || "heute")) return; SFX.tap(); window.__xqRateModus = b.dataset.ratem; box.innerHTML = xqRateInnen(z); xqRateVerdrahten(z); });
 }
-/* 6.95: Talente-Planung (nur Verwalter) – Guthaben je Spieler, verdiente Talente pro Tag und Prognose, wie viel die Gemeinde für Events wie die
-   Stiftshütte spenden kann. Datenquellen: Sammlung „talente“ (Zählung ab Version 6.95, siehe talBuchen) und „stiftshuette“ (alle Spenden). */
-const talZ1 = v => (Math.round((+v || 0) * 10) / 10).toLocaleString("de-DE", { minimumFractionDigits: 0, maximumFractionDigits: 1 });
-function talAuswerten(tz, stift) {
-  const n = dayNum(today()), gesp = new Map((stift || []).map(r => [r.pid, Object.values(r.s || {}).reduce((a, v) => a + (v | 0), 0)]));
-  return tz.map(r => {
-    const s = (r.s | 0) || n, t = r.t || {}, ab = Math.max(s, n - 34), summe = (von, bis) => Object.entries(t).reduce((a, [k, v]) => (+k >= von && +k <= bis) ? a + (v | 0) : a, 0);
-    const spiel = (r.sd || []).filter(x => x >= ab).length, tage7 = Math.max(1, Math.min(7, n - s + 1));
-    return { pid: r.pid, name: r.name || "?", tal: r.tal | 0, v: r.v | 0, a: r.a | 0, p: gesp.get(r.pid) | 0, s, spiel, proSpiel: spiel ? summe(ab, n) / spiel : null, pro7: summe(n - 6, n) / tage7, tage7, stand: xqMs(r.updated) };
-  });
-}
-function talPrognose(z) {
-  const guth = z.reduce((a, r) => a + r.tal, 0), fluss = z.reduce((a, r) => a + r.pro7, 0);
-  return { guth, fluss };
-}
-VIEWS.talente = () => {
-  const L = window.LB;
-  screen.innerHTML = `${backBtn("postfach", "Postkasten")}<h1>Talente-Planung</h1>
-  <details class="small muted tp-hinweis"><summary>Hinweis zur Zählung</summary><p style="margin:6px 0 0">Gezählt wird ab Version 6.95, je Spieler ab dem Tag, an dem seine App die neue Version zum ersten Mal öffnet. Davor gibt es keine Daten. Die Durchschnitte werden mit jedem Tag verlässlicher.</p><p style="margin:6px 0 0">Prognose: Die Spalten zeigen, wie viel Prozent der Spieler ihr Guthaben und alle neu verdienten Talente spenden. Die Abschnitte werden nacheinander gefüllt und öffnen frühestens am angegebenen Montag; das Datum ist ein Richtwert nach dem Zufluss der letzten 7 Tage. Ø/Spieltag zählt nur Tage, an denen gespielt wurde, Ø 7 Tage jeden Kalendertag.</p></details>
-  <div class="stack" id="talListe"><p class="muted small">Lade …</p></div>`;
-  wireGo();
-  if (!entwickler || !L || !L.ok || !L.talListe) { $("talListe").innerHTML = `<p class="muted">Die Talente-Planung braucht Internet und Verwalter-Rechte.</p>`; return; }
-  Promise.all([L.talListe(), L.alleSpieler ? L.alleSpieler() : Promise.resolve([])]).then(([tz, sp]) => {
-    const z = talAuswerten(tz, []).sort((a, b) => b.tal - a.tal), pr = talPrognose(z), hat = new Set(z.map(r => r.pid));
-    const ohne = (sp || []).filter(r => r.name && !hat.has(r.id)).map(r => r.name).sort((a, b) => a.localeCompare(b, "de"));
-    const kachel = (zahl, text) => `<div class="tp-k"><b>${zahl}</b><span>${text}</span></div>`;
-    const kopf = `<div class="tp-kacheln">${kachel(pkt(pr.guth), "Guthaben")}${kachel(talZ1(pr.fluss) + "/Tag", "Zufluss · Ø 7 Tage")}</div>`;
-    const zeile = r => `<div class="tp-s"><div class="tp-zeile"><b>${esc(r.name)}</b><span>${pkt(r.tal)}</span><span>${r.proSpiel === null ? "–" : talZ1(r.proSpiel)}</span><span>${talZ1(r.pro7)}</span></div>
-      <div class="tp-d">seit ${esc(datumVon(r.s).toLocaleDateString("de-DE", { day: "numeric", month: "numeric" }))} verdient ${pkt(r.v)} · Laden ${pkt(r.a)} · gespendet ${pkt(r.p)} · ${r.spiel} Spieltage</div></div>`;
-    const liste = `<div class="card tp-liste"><div class="tp-zeile tp-zk"><span>Spieler</span><span>Guthaben</span><span>Ø/Spieltag</span><span>Ø 7 Tage</span></div>${z.map(zeile).join("") || `<p class="small muted">Noch keine Zählung.</p>`}</div>`;
-    $("talListe").innerHTML = kopf + liste + (ohne.length ? `<div class="small muted">Noch ohne Zählung (App noch nicht in 6.95 geöffnet): ${ohne.map(esc).join(", ")}</div>` : "") +
-      `<button class="btn ghost mini" id="talCsv" style="align-self:flex-start">${svg("scroll")} Als CSV (Excel)</button>`;
-    if ($("talCsv")) $("talCsv").onclick = () => {
-      SFX.tap(); const num = v => v === null ? "" : String(Math.round(v * 10) / 10).replace(".", ","), kopfz = ["Spieler", "Spieler-ID", "Guthaben", "Verdient seit Zaehlbeginn", "Zaehlbeginn", "Spieltage (35 Tage)", "Durchschnitt je Spieltag", "Durchschnitt pro Tag (7 Tage)", "Im Laden ausgegeben", "Stiftshuette gespendet", "Stand"];
-      const zeilen = z.map(r => [r.name, r.pid, r.tal, r.v, datumVon(r.s).toLocaleDateString("de-DE"), r.spiel, num(r.proSpiel), num(r.pro7), r.a, r.p, r.stand ? xqZeit(r.stand) : ""].map(xqCsvFeld).join(";"));
-      const url = URL.createObjectURL(new Blob(["﻿" + [kopfz.join(";"), ...zeilen].join("\r\n") + "\r\n"], { type: "text/csv;charset=utf-8" })), a = document.createElement("a");
-      a.href = url; a.download = `talente-gemeinde-${xqDateiTag()}.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
-    };
-  }).catch(e => { $("talListe").innerHTML = `<p class="muted">Konnte nicht geladen werden (${esc((e && e.code) || "Fehler")}). Sind die neuen Firebase-Regeln (Version 6.95) veröffentlicht?</p>`; });
-};
 VIEWS.xppruefung = () => {
   const L = window.LB;
   screen.innerHTML = `${backBtn("postfach", "Postkasten")}<h1>XP-Prüfung</h1>

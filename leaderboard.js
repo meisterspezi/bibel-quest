@@ -169,10 +169,6 @@ if (!configured) {
     LB.bethSetzen = async (pid, name, s, g) => { await LB.signIn(); await fs.setDoc(ref("bethlehem", pid), { pid, name, s, g, updated: fs.serverTimestamp() }); };
     // 6.73: XP-Quellen je Spieler {pid, name, alt, q:{Quelle:XP}, n:{Quelle:Anzahl}, m:{Quelle:größte Vergabe}, tag:{Tag:XP}, std:{"Tag-Std":XP}, bel:[{z:Zeit(ms), x:XP, t:Talente, a:truhe|gestern, d:Truhen-Tag}]}
     LB.xpListe = async () => { const q = await fs.getDocs(fs.collection(db, "xpquellen")); return q.docs.map(d => ({ pid: d.id, ...d.data() })); };
-    // 6.95: Talente-Zählung – talente/<pid> = { pid, name, tal (Guthaben), s (Zählbeginn, Tagesnummer), v (verdient), a (im Laden ausgegeben), p (gespendet),
-    //       t (verdiente Talente je Tag, letzte 40 Tage), sd (Spieltage), updated }. Schreiben nur der Besitzer, lesen nur der Verwalter.
-    LB.talSetzen = async (pid, name, x) => { await LB.signIn(); await fs.setDoc(ref("talente", pid), { pid, name, tal: x.tal | 0, s: x.s | 0, v: x.v | 0, a: x.a | 0, p: x.p | 0, t: x.t || {}, sd: x.sd || [], updated: fs.serverTimestamp() }); };
-    LB.talListe = async () => { const q = await fs.getDocs(fs.collection(db, "talente")); return q.docs.map(d => ({ pid: d.id, ...d.data() })); };
     LB.xpHolen = async (pid) => { await LB.signIn(); const s = await fs.getDoc(ref("xpquellen", pid)); return s.exists() ? s.data() : null; };  // 6.81
     LB.abgleichAnfordern = async (id) => { await LB.signIn(); await fs.setDoc(ref("abgleich", id), { ts: Date.now() }); };  // 6.88 (nur Verwalter)
     LB.abgleichHolen = async (pid) => { await LB.signIn(); let t = 0; for (const id of [pid, "_alle"]) { try { const d = await fs.getDoc(ref("abgleich", id)); if (d.exists()) t = Math.max(t, +d.data().ts || 0); } catch (e) {} } return t; };  // 6.88
@@ -283,9 +279,9 @@ if (!configured) {
         const d = await f(); zsMerken(name, d); return d;
       };
     };
-    // Spielerliste 10 Min. (daraus auch Gegnerliste und alle Ranglisten), Gemeinden/Mitglieder/Nachrichten 60 Min., Advent 15 Min., Verwalter-Listen 30 Min. (nicht zeitkritisch)
-    Object.entries({ alleSpieler: 10, mitgliedListe: 60, gemListe: 60, nachrichtenListe: 60, bethListe: 15,
-      feedbackListe: 30, antragListe: 30, dialogAlle: 30, xpListe: 30, talListe: 30 }).forEach(([n, m]) => zwischen(n, m * MIN));
+    // Spielerliste 30 Min. (9.53; daraus auch Gegnerliste und alle Ranglisten), Gemeinden/Mitglieder/Nachrichten 60 Min., Advent 15 Min., Verwalter-Listen 30 Min. (nicht zeitkritisch)
+    Object.entries({ alleSpieler: 30, mitgliedListe: 60, gemListe: 60, nachrichtenListe: 60, bethListe: 15,
+      feedbackListe: 30, antragListe: 30, dialogAlle: 30, xpListe: 30 }).forEach(([n, m]) => zwischen(n, m * MIN));
     // Nach eigenen Änderungen die betroffene Liste neu holen, damit man sie sofort sieht
     const nachher = (name, ...listen) => { const f = LB[name]; if (!f) return; LB[name] = async (...a) => { const r = await f(...a); zsWeg(...listen); return r; }; };
     nachher("feedbackErledigt", "feedbackListe"); nachher("feedbackLoeschen", "feedbackListe");
@@ -304,7 +300,7 @@ if (!configured) {
     const FELD = { gesamt: "xp", kette_bibel: "bestChain", kette_at: "chainAT", kette_nt: "chainNT", kette_rueck: "chainRueck", treue: "t28", bewaehrt: "bew", abzeichen: "badges", blitz: "blitz", combo: "combo", duSiege: "duS", duSpiele: "duG", bibRekord: "bib" };
     let eigen = null;
     const push0 = LB.push; LB.push = async (pid, data, opts) => { const r = await push0(pid, data, opts); eigen = { pid, d: data }; return r; };
-    const RL_TTL = 5 * MIN;
+    const RL_TTL = 15 * MIN; /* 9.53: Biblionär-Woche */
     LB.watch = (kind, week, cb, onErr) => {
       let weg = false;
       const k = "rl:" + kind + ":" + (kind === "woche" || kind === "bibWoche" ? week : "");
