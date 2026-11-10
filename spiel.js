@@ -591,6 +591,10 @@ function vlEnde() {
 }
 
 /* ----- Karte auf der Startseite und im Archiv ----- */
+/* 9.50: Lernvers-Karte im „Himmlisches Licht“-Look: Schriftrolle auf nachtblauem Grund mit Lichtstrahlen, goldenes Band mit Buch-Medaillon, leuchtendes Kreuz rechts, darunter der Ton-Knopf */
+const LV_SZENE = `<svg class="lvd-szene" viewBox="0 0 358 190" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="lvdS" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b3270"/><stop offset="1" stop-color="#171c44"/></linearGradient><radialGradient id="lvdG" cx=".5" cy="0" r=".9"><stop offset="0" stop-color="#ffe49a" stop-opacity=".55"/><stop offset=".5" stop-color="#f2c14e" stop-opacity=".14"/><stop offset="1" stop-color="#f2c14e" stop-opacity="0"/></radialGradient></defs><rect width="358" height="190" fill="url(#lvdS)"/><rect width="358" height="190" fill="url(#lvdG)"/><g fill="#ffe9a8" opacity=".12"><path d="M179 -6 L40 190 L90 190Z"/><path d="M179 -6 L150 190 L205 190Z"/><path d="M179 -6 L268 190 L318 190Z"/><path d="M179 -6 L358 120 L358 160Z"/><path d="M179 -6 L0 110 L0 150Z"/></g><g fill="#fff" opacity=".7"><circle cx="30" cy="20" r="1.3"/><circle cx="90" cy="40" r="1"/><circle cx="300" cy="22" r="1.4"/><circle cx="240" cy="12" r="1"/></g></svg>`;
+const LV_KREUZ = `<span class="lvd-kreuz" aria-hidden="true"><svg viewBox="0 0 30 52"><defs><linearGradient id="lvdK" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6d0"/><stop offset="1" stop-color="#f2c14e"/></linearGradient></defs><rect x="12" y="2" width="6" height="48" rx="1.6" fill="url(#lvdK)"/><rect x="3" y="13" width="24" height="6" rx="1.6" fill="url(#lvdK)"/></svg></span>`;
+const LV_BUCH = `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 6.5C9.8 5 6.6 4.6 3.5 5.4v12c3.1-.8 6.3-.4 8.5 1.1 2.2-1.5 5.4-1.9 8.5-1.1v-12c-3.1-.8-6.3-.4-8.5 1.1Z" fill="#fff3d0" stroke="#e8c36a" stroke-width="1.2" stroke-linejoin="round"/><path d="M12 6.5v12" stroke="#c99a3a" stroke-width="1.2"/></svg>`;
 function lvKarte(k, ort = "home") {
   const v = MONATSVERSE[k]; if (!v) return "";
   const s = lvStand(k), aktuell = k === monatKey();
@@ -606,15 +610,15 @@ function lvKarte(k, ort = "home") {
   if (ort === "home") fuss = fuss + `<button class="lv-btn" data-go="lernverse" data-arg="home">${svg("scroll")} Archiv</button>`;
   /* 9.48: einheitliche Fortschrittsanzeige für alle Monate – Ring mit Prozent + zwei Textzeilen (kein Siegel, keine Punkte) */
   const pct = s.b ? 100 : Math.round(Math.min(LV_MAX, s.st) / LV_MAX * 100), umf = 100.53;
-  const fz1 = s.b || s.st >= LV_MAX ? `Alle ${LV_MAX} Stufen` : s.st ? `Stufe ${s.st} von ${LV_MAX}` : "Noch nicht begonnen";
+  const fz1 = s.b || s.st >= LV_MAX ? `Alle ${LV_MAX} Stufen` : s.st ? `Stufe ${s.st} von ${LV_MAX}` : "Noch offen";
   const fz2 = s.b ? "Bewahrt" : s.st >= LV_MAX ? "Gemeistert" : s.st ? LV_STUFEN[s.st - 1] : "Los geht's";
   const stand = `<span class="lv-fort${s.b ? " ok" : ""}" role="img" aria-label="${fz1}, ${fz2}, ${pct} Prozent"><span class="lv-fort-tx">${fz1}<b>${fz2}</b></span><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="sp" cx="20" cy="20" r="16"/><circle class="fu" cx="20" cy="20" r="16" stroke-dasharray="${(pct / 100 * umf).toFixed(1)} ${umf}" transform="rotate(-90 20 20)"/><text x="20" y="${pct >= 100 ? 23.4 : 24}" text-anchor="middle"${pct >= 100 ? ' class="voll"' : ""}>${pct}%</text></svg></span>`;
   const mt = aktuell ? lvMonatsTage(k) : 0, ziel = lvZiel();
   const monat = aktuell && !s.b ? `<div class="lv-monat"><span class="lvm-woche">Woche ${lvWoche()}/4 · Ziel Stufe ${ziel}${s.st >= ziel ? ` ${svg("check")}` : ""}</span><span class="lvm-tage ${mt ? "an" : ""}">${svg("fire")}${mt} ${mt === 1 ? "Tag" : "Tage"}</span></div>` : "";
-  return `<section class="lv ${ort === "home" ? "kompakt" : ""} ${s.b ? "bewahrt" : ""}" data-lvk="${k}" aria-label="Lernvers ${esc(monatName(k))}">
-    <span class="lv-fkn" aria-hidden="true"><i></i><i></i><i></i></span>
-    <div class="lv-kopf"><span class="lv-ic">${svg("scroll")}</span><span class="lv-lab">Lernvers ${esc(monatName(k))}</span>${stand}</div>
-    <div class="lv-text">${esc(v[0])}</div><div class="lv-ref">${esc(v[1])}${ort === "home" ? "" : ` · ${VERS_QUELLE}`}</div>
+  return `<section class="lv lvd ${ort === "home" ? "kompakt" : ""} ${s.b ? "bewahrt" : ""}" data-lvk="${k}" aria-label="Lernvers ${esc(monatName(k))}">
+    ${LV_SZENE}${LV_KREUZ}
+    <div class="lv-kopf"><span class="lv-ic">${LV_BUCH}</span><span class="lv-lab">Lernvers ${esc(monatName(k))}</span>${stand}</div>
+    <div class="lvd-rolle"><div class="lv-text">${esc(v[0])}</div><div class="lv-ref"><i></i><span>${esc(v[1])}${ort === "home" ? "" : ` · ${VERS_QUELLE}`}</span></div></div>
     ${monat}${hinweis ? `<div class="lv-hinweis">${hinweis}</div>` : ""}
     <div class="lv-fuss">${fuss}</div></section>`;
 }
