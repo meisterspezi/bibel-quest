@@ -286,6 +286,21 @@ if (!configured) {
       return fs.onSnapshot(q, snap => cb(aktiv(snap.docs)), e => onErr && onErr(e));
     };
 
+    // 9.52 Lese-Zwischenspeicher: große Listen höchstens alle 10 Minuten vom Server holen (Spark-Tageslimit 50.000 Lesezugriffe).
+    // Aufruf mit true (z. B. Verwalter-Ansichten) liest immer frisch. Zeitstempel werden als ISO-Text gespeichert (Date.parse funktioniert).
+    const zsPlain = v => Array.isArray(v) ? v.map(zsPlain) : v && typeof v === "object" ? (v.toMillis ? new Date(v.toMillis()).toISOString() : Object.fromEntries(Object.entries(v).map(([k, x]) => [k, zsPlain(x)]))) : v;
+    const zwischen = (name, ttl) => {
+      const f = LB[name]; if (!f) return;
+      LB[name] = async (frisch) => {
+        const k = "bq-zs:" + name;
+        if (!frisch) { try { const c = JSON.parse(localStorage.getItem(k) || "null"); if (c && Date.now() - c.t < ttl && Array.isArray(c.d)) return c.d; } catch (e) {} }
+        const d = await f();
+        try { localStorage.setItem(k, JSON.stringify({ t: Date.now(), d: zsPlain(d) })); } catch (e) {}
+        return d;
+      };
+    };
+    ["alleSpieler", "gegnerListe", "mitgliedListe", "gemListe", "stiftListe"].forEach(n => zwischen(n, 10 * 60000));
+
     LB.ok = true;
     dispatchEvent(new Event("lb-ready"));
   } catch (e) {

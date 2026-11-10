@@ -3041,7 +3041,7 @@ async function gemLaden(neu) {
   const L = window.LB; if (!L || !L.ok || !L.gemListe) return false;
   if (gemGeladen && !neu && Date.now() - gemZeit < 600000) return false; /* 9.30: nach 10 Minuten neu holen, damit Beitritte/Freischaltungen in langen Sitzungen ankommen */
   try {
-    const [g, m] = await Promise.all([L.gemListe(), L.mitgliedListe()]);
+    const [g, m] = await Promise.all([L.gemListe(!!neu), L.mitgliedListe(!!neu)]);
     const liste = g.filter(x => x.name).sort((a, b) => (a.ord | 0) - (b.ord | 0) || String(a.name).localeCompare(String(b.name), "de"));
     const f = liste.find(x => x.id === GEM_STANDARD);
     if (f) { f.logo = f.logo || GEM_FBG.logo; f.pw = f.pw || GEM_FBG.pw; } else liste.unshift(Object.assign({}, GEM_FBG));
