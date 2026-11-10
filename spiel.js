@@ -3433,7 +3433,7 @@ VIEWS.rank = (tab) => {
   const L = window.LB;
   /* 6.58: Kopf im Arena-Stil – Ring = eigener Platz in der gewählten Liste, Tafel Level/Abzeichen/Spieler (nach dem Laden nachgetragen) */
   let html = bereichKopf("gemeinde", { ic: "trophy", t: "Rangliste", sub: meineGem() === "gast" ? "Alle Spieler" : gemName(meineGem()), ring: ["–", "Platz"], ringId: "bkPlatz",
-    tafel: [[levelOf(S.xp), "Level"], [`${S.badges.length}`, "Abzeichen"], ["–", "Spieler", "bkSpieler"]] }) + rlSchalter("rank") + `<div id="shMiniBox">${stiftMiniHtml() || adventMiniHtml()}</div>` + bkLabel("trophy", "Ranglisten");
+    tafel: [[levelOf(S.xp), "Level"], [`${S.badges.length}`, "Abzeichen"], ["–", "Spieler", "bkSpieler"]] }) + `<div id="shMiniBox">${stiftMiniHtml() || adventMiniHtml()}</div>` + bkLabel("trophy", "Ranglisten");
   stiftLaden().then(() => { const b = $("shMiniBox"); if (b && current === "rank") { b.innerHTML = stiftMiniHtml() || adventMiniHtml(); wireGo(); } });
   if (!L) { screen.innerHTML = html + `<div class="card"><p class="muted" style="margin:0">Rangliste wird geladen …</p></div>`; wireGo(); return; }
   if (!L.configured) { screen.innerHTML = html + `<div class="card stack"><b>Noch nicht eingerichtet</b><p class="muted small" style="margin:0">Die Rangliste braucht einen gemeinsamen Online-Speicher. Bis dahin kannst du ganz normal spielen – dein Fortschritt wird später übernommen.</p></div>`; wireGo(); return; }
