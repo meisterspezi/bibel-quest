@@ -2095,7 +2095,7 @@ VIEWS.blitz = () => {
     <div class="small muted">Rekord: ${S.bestBlitz} Richtige · Beste Combo: ${S.bestCombo}</div>
   </div>`;
   wireGo();
-  screen.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playBlitz(b.dataset.s), cdSolo("blitz")); });
+  screen.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playBlitz(b.dataset.s), cdBlitz(b.dataset.s)); });
 };
 /* 9.22: Countdown als Intro-Bühne – 3 Sekunden (3 · 2 · 1), dabei zeigt der Bildschirm, WAS gespielt wird (Logo der Spielart, Name, eigener Stand)
    und bei Duellen GEGEN WEN (Du ↔ VS ↔ Gegner). Effekte im Takt: Ring läuft je Sekunde einmal um das Logo, Druckwelle + Funken, Strahlenkranz dreht schneller.
@@ -2107,6 +2107,9 @@ function cdSolo(id, extra) {
     : s0 ? { name: s0.name, ic: s0.ic, sub: s0.sub, farbe: ZV_FARBE[s0.grp] } : {};
   return Object.assign({ modus: "Solo" }, basis, extra || {});
 }
+/* 9.46: Blitz-Countdown je Bereich – Ganze Bibel (Koralle), Altes Testament (Gold), Neues Testament (Rosé), jeweils mit dem Logo des Bereichs */
+const CD_BLITZ = { all: { ic: "kette-bibel", sub: "Ganze Bibel", farbe: "#ff8a5c" }, AT: { ic: "kette-at", sub: "Altes Testament", farbe: "#ffc94d" }, NT: { ic: "kette-nt", sub: "Neues Testament", farbe: "#ff6fa8" } };
+const cdBlitz = scope => { const c = CD_BLITZ[scope] || CD_BLITZ.all; return cdSolo("blitz", { name: "Blitz", ic: c.ic, sub: c.sub + " · 60 Sekunden", farbe: c.farbe }); };
 function cdDuell() {
   const D = duSpiel; if (!D) return {};
   const id = D.art === "kette" ? "kette-" + D.k : D.art === "quiz" ? "quiz" : D.art;
