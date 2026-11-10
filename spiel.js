@@ -304,7 +304,10 @@ function vlStart(arg) {
   VL = { t0: Date.now(), k, stufe, bonus, modus: pruefung ? "pruefung" : neu ? "lernen" : "festigen", liste: lvAufgaben(k, stufe, pruefung ? "pruefung" : "lernen", bonus), i: 0, gesamt: 0, ersteRichtig: 0, fehlerWoerter: {}, wiederholt: new Set(), serie: 0, durchfall: false };
   VL.gesamt = VL.liste.length;
   document.body.classList.add("spiel-laeuft");
-  vlZeige();
+  /* 9.45: Countdown (3 · 2 · 1 · LOS) im Saphirblau des Lernvers – wie bei den Ketten und beim Blitz */
+  const L = VL;
+  countdown(() => { if (VL !== L) return; VL.t0 = Date.now(); vlZeige(); },
+    cdSolo("vers", { name: "Lernvers " + monatName(k), modus: pruefung ? "Monatsprüfung" : neu ? "Neue Stufe" : "Festigen", sub: `Stufe ${stufe} · ${LV_STUFEN[stufe - 1]}` }));
 }
 function vlKopf() {
   const fertig = Math.min(VL.i, VL.gesamt) / VL.gesamt;
