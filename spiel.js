@@ -1765,9 +1765,7 @@ VIEWS.home = () => {
   screen.innerHTML = `<div class="stack start start2 start8">
     ${kopf}
     ${adventMiniHtml(true)}${siegel}
-    ${bkLabel("scroll", "Lernvers")}
     <div class="start-vers">${MONATSVERSE[monatKey()] ? lvStartHtml(lvMonate().includes(lvAnsicht) ? lvAnsicht : (lvAnsicht = monatKey()), lvMonate()) : `<button class="vers-zeile" id="versZeile" aria-expanded="false">${versHtml(vKey, "tag klein")}<span class="vz-mehr">mehr</span></button>`}</div>
-    ${bkLabel("play", "Los geht's")}
     <div class="kt-grid">
       ${ktKachel("lernen", "var(--ar-lernen)", svg("book"), "Lektionen", "66 Bücher der Bibel")}
       ${ktKachel("spielen", "var(--ar-spielen)", svg("user"), "Solo", "Blitz · Ketten · Lernvers")}
