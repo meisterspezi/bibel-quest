@@ -201,7 +201,6 @@ const RAHMEN = [
   { id: "oelzweig", name: "Ölzweig", price: -1, need: "lv20", bezug: "Am Abend kam die Taube zu Noah zurück, mit einem frischen Ölblatt im Schnabel. Da wusste er: Das Wasser ist gesunken (1. Mose 8,11)." },
   { id: "saeule", name: "Wolken- und Feuersäule", price: -1, need: "lv40", bezug: "Der HERR zog vor ihnen her, bei Tag in einer Wolkensäule und bei Nacht in einer Feuersäule – vierzig Jahre lang durch die Wüste (2. Mose 13,21)." },
   { id: "feuergold", name: "Im Feuer erprobt", price: -1, need: "ruestGold", bezug: "Damit die Echtheit eures Glaubens, die viel kostbarer ist als das vergängliche Gold, das durchs Feuer erprobt wird, sich erweist (1. Petrus 1,7)." },
-  { id: "wolke", name: "Wolke der Herrlichkeit", price: -1, need: "bezaleel", bezug: "Da bedeckte die Wolke die Stiftshütte, und die Herrlichkeit des HERRN erfüllte die Wohnung (2. Mose 40,34)." },
   { id: "jerusalem", name: "Neues Jerusalem", price: -1, need: "lv30", bezug: "Die Mauern der heiligen Stadt ruhen auf zwölf Edelsteinen, ihre zwölf Tore sind zwölf Perlen und die Straße ist reines Gold (Offenbarung 21,19-21)." }
 ];
 const TITEL = [
@@ -217,7 +216,6 @@ const TITEL = [
   { id: "meister", name: "Bibel-Meister", price: -1, need: "chain66", bezug: "Esra war ein kundiger Schriftgelehrter im Gesetz des Mose (Esra 7,6)." },
   { id: "gewappnet", name: "Gewappnet", price: -1, need: "armor", bezug: "Zieht die ganze Waffenrüstung Gottes an (Epheser 6,11)." },
   { id: "jubeljahr", name: "Jubeljahr", price: -1, need: "lv50", bezug: "Ihr sollt das fünfzigste Jahr heiligen und sollt eine Freilassung ausrufen im Land. Ein Jubeljahr soll es euch sein (3. Mose 25,10)." },
-  { id: "bezaleel", name: "Bezaleel", price: -1, need: "bezaleel", bezug: "Gott erfüllte Bezaleel mit Weisheit und Kunstfertigkeit für alles Werk an der Stiftshütte (2. Mose 31,2-5)." },
   { id: "treu", name: "Treuer Knecht", price: -1, need: "lv5", bezug: "Wer über wenigem treu gewesen ist, den will der Herr über vieles setzen (Matthäus 25,21)." }
 ];
 
@@ -338,7 +336,6 @@ const BADGES = [
   { id: "gemeinschaft", kat: "gemeinschaft", name: "Gemeinschaft", d: "Der Gemeinde-Rangliste beigetreten", ic: "people", ok: s => !!s.lbName },
   { id: "heimkehr", kat: "gemeinschaft", name: "Heimkehr", d: "Bibel-Quest als App auf dem Startbildschirm", ic: "down", ok: s => !!s.appBonus },
   { id: "ruestGold", kat: "gemeinschaft", name: "Im Feuer erprobt", d: "Die ganze Waffenrüstung in Gold veredelt", ic: "ar-schild", ok: s => RUESTUNG.every(r => ((s.ruestStufe || {})[r.id] | 0) >= 2) },
-  { id: "bezaleel", kat: "gemeinschaft", name: "Bezaleel", d: "Beim Bau der Stiftshütte mitgeholfen bis zur Einweihung", ic: "people", ok: s => !!s.stiftEingeweiht && Object.values(s.stift || {}).some(v => v > 0) },
   { id: "halljahr", kat: "ausdauer", name: "Halljahr", d: "Level 50 erreicht (3. Mose 25,10)", ic: "crown", ok: s => (s.lvLohn | 0) >= 50 },
   { id: "podest", kat: "gemeinschaft", name: "Auf dem Podest", d: "Platz 1–3 in der Wochen-Rangliste", ic: "trophy", ok: s => s.podium },
   { id: "wochensieger", kat: "gemeinschaft", name: "Wochensieger", d: "Platz 1 der Woche bei mindestens 5 Spielern", ic: "trophy", tal: 20, ok: s => s.wochensieger },

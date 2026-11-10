@@ -1,5 +1,5 @@
 rules_version = '2';
-// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 9.52 – Stiftshütte entfernt, Lesezähler für die Budgetwarnung; 9.28 – Sammlung gemlog (Protokoll Beitritt/Austritt); 9.13.2 – Gemeindename bis 50 Zeichen; 9.12 – Ketten-Duelle gebote/schoepfung; 9.11 – Gespräche (dialoge), Freischaltung: Gemeinden mit pruef, Sammlungen antraege, freigabe, geheim; 9.7 – Sammlung nachrichten, Gemeinden mit Passwort pw und Logo logo; 9.0 – Sammlungen gemeinden + mitglied; 7.3 – Sammlung bethlehem (Weg nach Bethlehem, Advent); 6.95 – Sammlung talente (Talente-Zählung, nur der Verwalter liest); 6.88 – xpquellen: Regel vereinfacht (Limit 1000 Auswertungen pro Schreibzugriff, ab der 4. Quelle wurde abgelehnt); 6.80 – Sammlungen bibversuch (Biblionär-Wochenrunde einmal je Serverwoche) und spendenxp (XP für Spenden einmal je Talent); 6.79 – xpquellen: neue Quelle spende (Stiftshütte); 6.78 – Sammlung tagestruhe (Schatztruhe einmal je Serverdatum); 6.76 – xpquellen: neue Quelle abgleich; 6.75 – Sammlung xpprotokoll (Einzelprotokoll der XP-Vergaben, nur anlegen); 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 9.52 – Stiftshütte entfernt; 9.28 – Sammlung gemlog (Protokoll Beitritt/Austritt); 9.13.2 – Gemeindename bis 50 Zeichen; 9.12 – Ketten-Duelle gebote/schoepfung; 9.11 – Gespräche (dialoge), Freischaltung: Gemeinden mit pruef, Sammlungen antraege, freigabe, geheim; 9.7 – Sammlung nachrichten, Gemeinden mit Passwort pw und Logo logo; 9.0 – Sammlungen gemeinden + mitglied; 7.3 – Sammlung bethlehem (Weg nach Bethlehem, Advent); 6.95 – Sammlung talente (Talente-Zählung, nur der Verwalter liest); 6.88 – xpquellen: Regel vereinfacht (Limit 1000 Auswertungen pro Schreibzugriff, ab der 4. Quelle wurde abgelehnt); 6.80 – Sammlungen bibversuch (Biblionär-Wochenrunde einmal je Serverwoche) und spendenxp (XP für Spenden einmal je Talent); 6.79 – xpquellen: neue Quelle spende (Stiftshütte); 6.78 – Sammlung tagestruhe (Schatztruhe einmal je Serverdatum); 6.76 – xpquellen: neue Quelle abgleich; 6.75 – Sammlung xpprotokoll (Einzelprotokoll der XP-Vergaben, nur anlegen); 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -386,20 +386,6 @@ service cloud.firestore {
     // 9.52: Stiftshütte und Spenden-XP entfernt – die Sammlungen stiftshuette und spendenxp sind gesperrt
     match /stiftshuette/{pid} { allow read, write: if false; }
     match /spendenxp/{id} { allow read, write: if false; }
-
-    // 9.52: Lesezähler für die Budgetwarnung – lesezaehler/<Tag JJJJ-MM-TT> = { n: gezählte Lesezugriffe aller Geräte, z: Zeit }.
-    // Jedes angemeldete Gerät darf n nur erhöhen (höchstens 20.000 auf einmal), lesen darf nur der Entwickler.
-    function leseOk(tag) {
-      let d = request.resource.data;
-      return angemeldet() && tag.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
-        && d.keys().hasOnly(['n', 'z']) && d.n is int && d.z == request.time
-        && (resource == null ? (d.n > 0 && d.n <= 20000) : (d.n > resource.data.n && d.n - resource.data.n <= 20000));
-    }
-    match /lesezaehler/{tag} {
-      allow get: if istEntwickler();
-      allow create, update: if leseOk(tag);
-      allow delete: if false;
-    }
 
     // 9.0 Gemeinden: nur der Verwalter legt Gemeinden an; jeder liest sie
     match /gemeinden/{id} {

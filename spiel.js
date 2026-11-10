@@ -42,6 +42,8 @@ if (!S.bestStreak) S.bestStreak = S.streak || 0;
 /* Abzeichen, die es nicht mehr gibt (z. B. „Ein Leib“ seit Wegfall der Gemeinde-Treue), aussortieren */
 function badgesBereinigen() { S.badges = (S.badges || []).filter(id => BADGES.some(b => b.id === id)); }
 badgesBereinigen();
+/* 9.52: Rahmen „Wolke der Herrlichkeit“ und Titel „Bezaleel“ (Stiftshütte) entfernt */
+if (S.frame === "wolke") S.frame = "none"; if (S.title === "bezaleel") S.title = "none";
 function geraetSpeichern() {
   if (gesperrt) return;
   const eintrag = { key: GERAET.aktiv, name: S.lbName, avatar: S.avatar, frame: S.frame, xp: Math.round(S.xp), pid: S.pid };
@@ -5115,7 +5117,6 @@ async function entwicklerPruefen() {
     if (!entwickler) { renderHud(); return; }
     await doppelteZusammenfuehren();
     await statusBerichte();
-    leseWarnung().catch(() => {}); /* 9.52 */
     await xpBerichte();
     const liste = await L.feedbackListe(); postfachNeu = liste.filter(pkIstNeu).length;
     try { antragOffen = L.antragListe ? (await L.antragListe()).filter(a => a.status === "offen").length : 0; } catch (e) { antragOffen = 0; }
@@ -5159,37 +5160,6 @@ let postfachFilter = "neu", pkSuche = "", pkAuswahl = false, pkSuchOffen = false
    Ampel: grün = nichts Offenes, orange = offene Hinweise im Postkasten, grau = noch nicht geprüft. Der Punkt erscheint auch am Postkasten-Symbol. */
 const pkIstXp = f => /^XP-Prüfung:/.test(f.text || "");
 const pkIstDup = f => pkKat(f) === "datenbank" && /^(Bitte prüfen: „|Automatisch zusammengeführt: „|„.+“ konnte nicht zusammengeführt)/.test(f.text || "");
-/* ---------- 9.52: Budgetwarnung (Firebase Spark: 50.000 Lesezugriffe am Tag, danach liefert die Datenbank nichts mehr bis ca. 9 Uhr) ----------
-   Jedes Gerät zählt seine Lesezugriffe und meldet sie gesammelt an lesezaehler/<Tag> (siehe leaderboard.js). Der Verwalter sieht die Summe
-   im Postkasten (Zeile „Datenbank heute“) und bekommt ab 60 % einen Hinweis, ab 85 % eine Warnung (Fenster + Eintrag im Postkasten).
-   Nicht mitgezählt: Geräte mit alter App-Version und die Firebase-Konsole – der echte Wert kann höher sein. */
-const LESE_LIMIT = 50000, LESE_HINWEIS = 0.6, LESE_WARNUNG = 0.85;
-let LESE_STAND = null;
-const leseAmpel = n => n >= LESE_LIMIT * LESE_WARNUNG ? "rot" : n >= LESE_LIMIT * LESE_HINWEIS ? "orange" : "gruen";
-const leseText = n => `ca. ${pkt(n)} von ${pkt(LESE_LIMIT)} Lesezugriffen (${Math.round(n / LESE_LIMIT * 100)} %)`;
-async function leseWarnung() {
-  const L = window.LB; if (!entwickler || !L || !L.ok || !L.leseGesamt) return null;
-  try { if (L.leseMelden) await L.leseMelden(true); } catch (e) {}
-  const n = await L.leseGesamt(); LESE_STAND = { n, z: Date.now(), ich: L.leseHeute ? L.leseHeute() : 0 };
-  const stufe = n >= LESE_LIMIT * LESE_WARNUNG ? "warnung" : n >= LESE_LIMIT * LESE_HINWEIS ? "hinweis" : "";
-  if (stufe) {
-    const tag = L.leseTag ? L.leseTag() : today(), k = "bq-lesew-" + tag + "-" + stufe; let schon = false; try { schon = localStorage.getItem(k) === "1"; localStorage.setItem(k, "1"); } catch (e) {}
-    if (!schon) {
-      postkastenMelden("datenbank", `Budgetwarnung: Heute schon ${leseText(n)} im kostenlosen Firebase-Tarif. Ab 50.000 liefert die Datenbank bis ca. 9 Uhr nichts mehr (Duelle, Rangliste, Speichern).`, "lese-" + tag + "-" + stufe);
-      toast(`${svg("netz")}<div><b>${stufe === "warnung" ? "Budgetwarnung" : "Hinweis Datenbank"}</b><div class="small muted">Heute schon ${leseText(n)}.</div></div>`);
-    }
-  }
-  return n;
-}
-function leseInfo() {
-  const st = LESE_STAND, n = st ? st.n : 0;
-  modal(`<div class="label">Datenbank heute</div><h2 style="margin:0">${st ? pkt(n) + " Lesezugriffe" : "Noch nicht geprüft"}</h2>
-    <div class="sh-balken"><i style="width:${Math.min(100, n / LESE_LIMIT * 100)}%"></i></div>
-    <p class="muted small" style="margin:0">Kostenlos sind ${pkt(LESE_LIMIT)} am Tag (neuer Tag um ca. 9 Uhr). Hinweis ab ${Math.round(LESE_HINWEIS * 100)} %, Warnung ab ${Math.round(LESE_WARNUNG * 100)} %.
-    Gezählt wird von allen Geräten mit App-Version 9.52 oder neuer; die Firebase-Konsole und alte App-Versionen fehlen, der echte Wert kann also höher sein.${st ? ` Dieses Gerät: ${pkt(st.ich)}.` : ""}</p>
-    <button class="btn primary" data-close>OK</button>`);
-}
-setInterval(() => { if (entwickler) leseWarnung().catch(() => {}); }, 30 * 60000); /* 9.52: während die App offen ist, alle 30 Min. */
 const pkDatum = z => z ? new Date(z).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
 VIEWS.postfach = (kat) => {
   const L = window.LB; if (kat && PK_KAT.some(k => k[0] === kat)) pkKategorie = kat;
@@ -5199,7 +5169,7 @@ VIEWS.postfach = (kat) => {
   screen.innerHTML = `${backBtn("home", "Start")}<div class="pk-kopf"><h1>Postkasten</h1><span class="pk-ikonen">
     <button class="iconbtn" id="pkLupe" aria-label="Suchen" aria-pressed="${pkSuchOffen}"><span aria-hidden="true">🔍</span></button>
     <button class="iconbtn" id="pkWahl" aria-label="Auswählen" aria-pressed="${pkAuswahl}">☑</button></span></div>
-  <div class="pk-pins" aria-label="Prüfungen"><button class="pk-pin" id="pkLese" data-ampel="${LESE_STAND ? leseAmpel(LESE_STAND.n) : "grau"}"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("netz")} Datenbank heute</b><span class="small muted" data-pkinfo>${LESE_STAND ? leseText(LESE_STAND.n) : "wird geprüft …"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button>${zeile("pkXp", "medal", "XP-Prüfung", xpTag, 'data-go="xppruefung"')}${zeile("pkDup", "people", "Doppelte Namen", dupTag, 'id2="x"')}<button class="pk-pin" id="pkAnt" data-go="antraege"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("people")} Beitrittsanträge</b><span class="small muted" data-pkinfo>${antragOffen ? antragOffen + " offen" : "Freischaltung für neue Mitglieder"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkDlg" data-go="dialoge"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("chat")} Gespräche mit Spielern</b><span class="small muted" data-pkinfo>${dlgNeuDev() ? dlgNeuDev() + " neue Antwort" + (dlgNeuDev() === 1 ? "" : "en") : "Einzelne Spieler anschreiben"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGemLog" data-go="gemprotokoll"><span class="pk-pt"><b>${svg("scroll")} Gemeinde-Protokoll</b><span class="small muted">Wer wann beigetreten oder ausgetreten ist</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGem" data-go="gemverwaltung"><span class="pk-pt"><b>${svg("people")} Gemeinden</b><span class="small muted">Gemeinden anlegen, Spieler zuordnen</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkTal" data-go="talente"><span class="pk-pt"><b>${svg("tal")} Talente-Planung</b><span class="small muted">Guthaben und Ø pro Tag je Spieler</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkNach" data-go="nachrichten"><span class="pk-pt"><b>${svg("chat")} Nachricht an Spieler</b><span class="small muted">Patchnotes und Mitteilungen senden</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button></div>
+  <div class="pk-pins" aria-label="Prüfungen">${zeile("pkXp", "medal", "XP-Prüfung", xpTag, 'data-go="xppruefung"')}${zeile("pkDup", "people", "Doppelte Namen", dupTag, 'id2="x"')}<button class="pk-pin" id="pkAnt" data-go="antraege"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("people")} Beitrittsanträge</b><span class="small muted" data-pkinfo>${antragOffen ? antragOffen + " offen" : "Freischaltung für neue Mitglieder"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkDlg" data-go="dialoge"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("chat")} Gespräche mit Spielern</b><span class="small muted" data-pkinfo>${dlgNeuDev() ? dlgNeuDev() + " neue Antwort" + (dlgNeuDev() === 1 ? "" : "en") : "Einzelne Spieler anschreiben"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGemLog" data-go="gemprotokoll"><span class="pk-pt"><b>${svg("scroll")} Gemeinde-Protokoll</b><span class="small muted">Wer wann beigetreten oder ausgetreten ist</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGem" data-go="gemverwaltung"><span class="pk-pt"><b>${svg("people")} Gemeinden</b><span class="small muted">Gemeinden anlegen, Spieler zuordnen</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkTal" data-go="talente"><span class="pk-pt"><b>${svg("tal")} Talente-Planung</b><span class="small muted">Guthaben und Ø pro Tag je Spieler</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkNach" data-go="nachrichten"><span class="pk-pt"><b>${svg("chat")} Nachricht an Spieler</b><span class="small muted">Patchnotes und Mitteilungen senden</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button></div>
   <div class="card rk-liste" style="margin-top:10px">
     <div class="pk-suchzeile" ${pkSuchOffen ? "" : "hidden"}><input type="search" id="pkSuche" placeholder="Suchen (Text, Name, Version)" value="${esc(pkSuche)}" aria-label="Post durchsuchen" autocomplete="off"></div>
     <div class="pk-filter"><div class="rk-var" role="group" aria-label="Filter">${[["neu", "Neu"], ["todo", "ToDo"], ["alle", "Alle"], ["erledigt", "Erledigt"]].map(([k, n]) => `<button data-pf="${k}" aria-pressed="${k === postfachFilter}">${n}<i class="pk-n" data-pfn="${k}"></i></button>`).join("")}</div>
@@ -5220,8 +5190,6 @@ VIEWS.postfach = (kat) => {
     } catch (e) { modal(`<h2>Prüfung fehlgeschlagen</h2><p class="muted small">${esc((e && e.code) || "")} ${esc(String((e && e.message) || e).slice(0, 200))}</p><button class="btn primary" data-close>OK</button>`, () => go("postfach")); }
   };
   $("pkDup").onclick = dupLauf;
-  $("pkLese").onclick = () => { SFX.tap(); leseInfo(); };
-  if (!LESE_STAND || Date.now() - LESE_STAND.z > 10 * 60000) leseWarnung().then(n => { if (n != null && current === "postfach") ampel("pkLese", leseAmpel(n), leseText(n)); }).catch(() => {});
   if (!entwickler || !L || !L.ok) { $("pfListe").innerHTML = `<p class="muted">Der Postkasten braucht Internet.</p>`; return; }
   let liste = [];
   const passt = f => (pkKategorie === "alle" || pkKat(f) === pkKategorie) && (!pkSuche.trim() || [f.text, f.name, f.ver, f.geraet, f.art].some(s => String(s || "").toLowerCase().includes(pkSuche.trim().toLowerCase())));
@@ -5789,9 +5757,6 @@ setTimeout(() => { appBonusPruefen(); appHinweisZeigen(); }, 1200);
     <g fill="#fff" stroke="#c9d6f2" stroke-width=".6"><circle cx="13" cy="44" r="6"/><circle cx="10" cy="54" r="5"/><circle cx="16" cy="63" r="5"/><circle cx="14" cy="34" r="4"/></g>
     <g fill="url(#wrF)" stroke="#7a2a08" stroke-width=".6"><path d="M87 66c-4-4-5-9-2-14c1 4 3 5 4 5c0-5 2-9 5-12c-1 5 2 8 2 12c0 6-4 9-9 9z"/><path d="M85 40c-3-3-3-7-1-10c1 3 2 4 3 4c0-3 1-6 4-8c-1 4 1 6 1 9c0 4-3 6-7 5z"/></g>${glanz}</svg>`;
   R.feuergold = `<svg class="av-fr" viewBox="0 0 100 100" aria-hidden="true"><circle class="fr-schein" cx="50" cy="50" r="47" fill="url(#wrRschein)"/>${ring("url(#wrR_gold)", 7)}${um(16, (i, a) => `<path d="M${(50 + 40 * Math.cos(a)).toFixed(2)} ${(50 + 40 * Math.sin(a)).toFixed(2)}L${(50 + (i % 2 ? 45 : 48) * Math.cos(a)).toFixed(2)} ${(50 + (i % 2 ? 45 : 48) * Math.sin(a)).toFixed(2)}" stroke="#ffb54a" stroke-width="${i % 2 ? 1.6 : 2.6}" stroke-linecap="round"/>`)}${um(6, (i, a) => `<circle cx="${(50 + 35 * Math.cos(a)).toFixed(2)}" cy="${(50 + 35 * Math.sin(a)).toFixed(2)}" r="2.8" fill="#fff6c8" stroke="#a0520a" stroke-width=".8"/>`)}${glanz}</svg>`;
-  R.wolke = `<svg class="av-fr" viewBox="0 0 100 100" aria-hidden="true"><circle class="fr-schein" cx="50" cy="50" r="47" fill="url(#wrRschein)"/>${ring("url(#wrR_licht)")}
-    <g fill="#fff" stroke="#c9d6f2" stroke-width=".7"><ellipse cx="50" cy="13" rx="20" ry="7"/><circle cx="38" cy="11" r="7"/><circle cx="50" cy="7" r="8"/><circle cx="62" cy="11" r="7"/></g>
-    <path d="M50 20V30" stroke="#ffe39a" stroke-width="2" stroke-linecap="round"/>${glanz}</svg>`;
 })();
 
 /* 9.52: Stiftshütte (6.68) und Spenden-XP entfernt – spart Lesezugriffe (Sammlungen stiftshuette/spendenxp werden nicht mehr gelesen). */

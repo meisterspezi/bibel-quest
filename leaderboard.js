@@ -21,16 +21,6 @@ if (!configured) {
     const db = fs.getFirestore(app);
     const spieler = fs.collection(db, "spieler");
     const ref = (c, id) => fs.doc(db, c, id);
-    // 9.52 Lesezähler: jedes gelesene Dokument zählen (Firebase rechnet je Dokument, eine leere Abfrage zählt als 1).
-    // Der Tag richtet sich wie das Firebase-Tageskontingent nach der Zeit in Kalifornien (Wechsel ca. 9 Uhr deutscher Zeit).
-    const leseTag = () => { try { return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date()); } catch (e) { return new Date(Date.now() - 8 * 36e5).toISOString().slice(0, 10); } };
-    const LESE_KEY = "bq-lese";
-    const leseZaehlen = n => { try { const t = leseTag(), c = JSON.parse(localStorage.getItem(LESE_KEY) || "null") || {};
-      if (c.t !== t) { c.t = t; c.n = 0; c.g = 0; } c.n = (c.n | 0) + Math.max(1, n | 0); localStorage.setItem(LESE_KEY, JSON.stringify(c)); } catch (e) {} };
-    const gD = async q => { const s = await fs.getDocs(q); leseZaehlen(s.size); return s; };
-    const g1 = async r => { const s = await fs.getDoc(r); leseZaehlen(1); return s; };
-    LB.leseHeute = () => { try { const c = JSON.parse(localStorage.getItem(LESE_KEY) || "null"); return c && c.t === leseTag() ? c.n | 0 : 0; } catch (e) { return 0; } };
-    LB.leseTag = leseTag;
 
     // Bereits angemeldete Geräte sofort erkennen; neue erst beim Beitreten anmelden
     await auth.authStateReady();
@@ -55,20 +45,20 @@ if (!configured) {
       const upd = { owners: fs.arrayUnion(pid, LB.uid), updated: fs.serverTimestamp() };
       if (opts.code) upd.code = opts.code;
       await fs.updateDoc(ref("spieler", pid), upd);
-      const s = await g1(ref("spieler", pid));
+      const s = await fs.getDoc(ref("spieler", pid));
       return s.exists() ? s.data() : null;
     };
 
     // Vom Verwalter angelegte Zusammenführung für dieses Gerät?
     LB.getMergeTarget = async () => {
       if (!LB.uid) return null;
-      try { const s = await g1(ref("zusammenfuehren", LB.uid)); return s.exists() ? s.data().zu || null : null; }
+      try { const s = await fs.getDoc(ref("zusammenfuehren", LB.uid)); return s.exists() ? s.data().zu || null : null; }
       catch (e) { return null; }
     };
 
     // Kompletter Spielstand (nur für die Geräte des Spielers lesbar)
     LB.loadState = async (pid) => {
-      const s = await g1(ref("spielstand", pid));
+      const s = await fs.getDoc(ref("spielstand", pid));
       if (!s.exists()) return null;
       try { return JSON.parse(s.data().daten); } catch (e) { return null; }
     };
@@ -87,7 +77,7 @@ if (!configured) {
     };
     LB.resolveLinkCode = async (code) => {
       await LB.signIn();
-      const s = await g1(ref("kopplung", code));
+      const s = await fs.getDoc(ref("kopplung", code));
       if (!s.exists()) return null;
       const d = s.data();
       if (d.exp && d.exp.toMillis() < Date.now()) return null;
@@ -102,7 +92,7 @@ if (!configured) {
 
     // Wer hat sich über meinen Einladungslink angemeldet?
     LB.invitees = async (pid) => {
-      const s = await gD(fs.query(spieler, fs.where("von", "==", pid), fs.limit(50)));
+      const s = await fs.getDocs(fs.query(spieler, fs.where("von", "==", pid), fs.limit(50)));
       return s.docs.map(d => ({ id: d.id, ...d.data() }));
     };
 
@@ -117,31 +107,31 @@ if (!configured) {
 
     // Feedback-Postfach (nur für den Entwickler – die Regeln prüfen das)
     LB.entwicklerPid = async () => {
-      try { const d = await g1(ref("einstellungen", "entwickler")); return d.exists() ? d.data().pid || null : null; } catch (e) { return null; }
+      try { const d = await fs.getDoc(ref("einstellungen", "entwickler")); return d.exists() ? d.data().pid || null : null; } catch (e) { return null; }
     };
     LB.feedbackListe = async () => {
-      const s = await gD(fs.query(fs.collection(db, "feedback"), fs.orderBy("zeit", "desc"), fs.limit(200)));
+      const s = await fs.getDocs(fs.query(fs.collection(db, "feedback"), fs.orderBy("zeit", "desc"), fs.limit(200)));
       return s.docs.map(d => { const x = d.data(); return { id: d.id, ...x, zeit: x.zeit && x.zeit.toMillis ? x.zeit.toMillis() : Date.parse(x.geschrieben || "") || 0 }; });
     };
     LB.feedbackErledigt = async (id, wert) => { await fs.updateDoc(ref("feedback", id), { erledigt: !!wert }); };
     LB.feedbackLoeschen = async (id) => { await fs.deleteDoc(ref("feedback", id)); };
 
-    LB.holeSpieler = async (pid) => { const d = await g1(ref("spieler", pid)); return d.exists() ? { id: d.id, ...d.data() } : null; };
+    LB.holeSpieler = async (pid) => { const d = await fs.getDoc(ref("spieler", pid)); return d.exists() ? { id: d.id, ...d.data() } : null; };
 
     // Einträge mit „zu“ wurden zusammengeführt und werden nirgends mehr angezeigt
     const aktiv = docs => docs.map(d => ({ id: d.id, ...d.data() })).filter(r => !r.zu);
     LB.findeName = async (name) => {
-      const s = await gD(fs.query(spieler, fs.where("name", "==", name), fs.limit(10)));
+      const s = await fs.getDocs(fs.query(spieler, fs.where("name", "==", name), fs.limit(10)));
       return aktiv(s.docs).slice(0, 5);
     };
 
     LB.nameTaken = async (name) => {
-      const s = await gD(fs.query(spieler, fs.where("name", "==", name), fs.limit(10)));
+      const s = await fs.getDocs(fs.query(spieler, fs.where("name", "==", name), fs.limit(10)));
       return aktiv(s.docs).length > 0;
     };
 
     // Für den Verwalter: alle Einträge (zum Finden doppelter Namen) und Zusammenführen in einem Schritt
-    LB.alleSpieler = async () => aktiv((await gD(fs.query(spieler, fs.limit(500)))).docs);
+    LB.alleSpieler = async () => aktiv((await fs.getDocs(fs.query(spieler, fs.limit(500)))).docs);
     LB.verwalterZusammenfuehren = async (ziel, dups, werte) => {
       await LB.signIn();
       const b = fs.writeBatch(db);
@@ -175,17 +165,17 @@ if (!configured) {
       await fs.updateDoc(ref("duelle", id), ...felder);
     };
     // 7.3: Weg nach Bethlehem – Gaben je Spieler {pid, name, s: {"1".."8": Talente}, g: {"1".."8": Wegzehrung}}
-    LB.bethListe = async () => { const q = await gD(fs.collection(db, "bethlehem")); return q.docs.map(d => ({ pid: d.id, ...d.data() })); };
+    LB.bethListe = async () => { const q = await fs.getDocs(fs.collection(db, "bethlehem")); return q.docs.map(d => ({ pid: d.id, ...d.data() })); };
     LB.bethSetzen = async (pid, name, s, g) => { await LB.signIn(); await fs.setDoc(ref("bethlehem", pid), { pid, name, s, g, updated: fs.serverTimestamp() }); };
     // 6.73: XP-Quellen je Spieler {pid, name, alt, q:{Quelle:XP}, n:{Quelle:Anzahl}, m:{Quelle:größte Vergabe}, tag:{Tag:XP}, std:{"Tag-Std":XP}, bel:[{z:Zeit(ms), x:XP, t:Talente, a:truhe|gestern, d:Truhen-Tag}]}
-    LB.xpListe = async () => { const q = await gD(fs.collection(db, "xpquellen")); return q.docs.map(d => ({ pid: d.id, ...d.data() })); };
+    LB.xpListe = async () => { const q = await fs.getDocs(fs.collection(db, "xpquellen")); return q.docs.map(d => ({ pid: d.id, ...d.data() })); };
     // 6.95: Talente-Zählung – talente/<pid> = { pid, name, tal (Guthaben), s (Zählbeginn, Tagesnummer), v (verdient), a (im Laden ausgegeben), p (gespendet),
     //       t (verdiente Talente je Tag, letzte 40 Tage), sd (Spieltage), updated }. Schreiben nur der Besitzer, lesen nur der Verwalter.
     LB.talSetzen = async (pid, name, x) => { await LB.signIn(); await fs.setDoc(ref("talente", pid), { pid, name, tal: x.tal | 0, s: x.s | 0, v: x.v | 0, a: x.a | 0, p: x.p | 0, t: x.t || {}, sd: x.sd || [], updated: fs.serverTimestamp() }); };
-    LB.talListe = async () => { const q = await gD(fs.collection(db, "talente")); return q.docs.map(d => ({ pid: d.id, ...d.data() })); };
-    LB.xpHolen = async (pid) => { await LB.signIn(); const s = await g1(ref("xpquellen", pid)); return s.exists() ? s.data() : null; };  // 6.81
+    LB.talListe = async () => { const q = await fs.getDocs(fs.collection(db, "talente")); return q.docs.map(d => ({ pid: d.id, ...d.data() })); };
+    LB.xpHolen = async (pid) => { await LB.signIn(); const s = await fs.getDoc(ref("xpquellen", pid)); return s.exists() ? s.data() : null; };  // 6.81
     LB.abgleichAnfordern = async (id) => { await LB.signIn(); await fs.setDoc(ref("abgleich", id), { ts: Date.now() }); };  // 6.88 (nur Verwalter)
-    LB.abgleichHolen = async (pid) => { await LB.signIn(); let t = 0; for (const id of [pid, "_alle"]) { try { const d = await g1(ref("abgleich", id)); if (d.exists()) t = Math.max(t, +d.data().ts || 0); } catch (e) {} } return t; };  // 6.88
+    LB.abgleichHolen = async (pid) => { await LB.signIn(); let t = 0; for (const id of [pid, "_alle"]) { try { const d = await fs.getDoc(ref("abgleich", id)); if (d.exists()) t = Math.max(t, +d.data().ts || 0); } catch (e) {} } return t; };  // 6.88
     LB.xpSetzen = async (pid, name, x) => { await LB.signIn(); await fs.setDoc(ref("xpquellen", pid), { pid, name, alt: x.alt | 0, q: x.q || {}, n: x.n || {}, m: x.m || {}, tag: x.tag || {}, std: x.std || {}, bel: Array.isArray(x.bel) ? x.bel.slice(-100) : [], updated: fs.serverTimestamp() }); };
     // 6.75: XP-Protokoll – je XP-Vergabe ein Dokument (nur anlegen, nie ändern): {pid, name, z:Zeit(ms, Uhr des Geräts), q:Quelle, x:XP, v:XP-Stand vorher,
     //       s:Spielzeit(Sek.), f:Fortschritt, fm:möglicher Höchstwert, d:Kurztext, ver:App-Version, gebucht:Serverzeit}. Dokument-ID: <pid>_<z>_<n>
@@ -195,19 +185,19 @@ if (!configured) {
         const id = pid + "_" + e.z + "_" + (e.n | 0), d = { pid, name, z: e.z, q: e.q, x: e.x, v: e.v, ver: e.ver || "", gebucht: fs.serverTimestamp() };
         ["s", "f", "fm"].forEach(k => { if (Number.isFinite(e[k])) d[k] = e[k] | 0; }); if (e.d) d.d = String(e.d).slice(0, 60);
         try { await fs.setDoc(ref("xpprotokoll", id), d); fertig.push(e); }
-        catch (err) { try { const g = await g1(ref("xpprotokoll", id)); if (g.exists()) { fertig.push(e); continue; } } catch (e2) {} break; }  // schon da = fertig, sonst später nochmal
+        catch (err) { try { const g = await fs.getDoc(ref("xpprotokoll", id)); if (g.exists()) { fertig.push(e); continue; } } catch (e2) {} break; }  // schon da = fertig, sonst später nochmal
       }
       return fertig;
     };
     // Verwalter: alle Einträge der letzten Zeit (seitMs) bzw. die letzten n Einträge eines Spielers (Dokument-ID beginnt mit der Spieler-ID)
-    LB.xpProtokollNeu = async (seitMs, n = 3000) => { const q = await gD(fs.query(fs.collection(db, "xpprotokoll"), fs.where("z", ">", seitMs), fs.orderBy("z", "desc"), fs.limit(n))); return q.docs.map(d => ({ id: d.id, ...d.data() })); };
+    LB.xpProtokollNeu = async (seitMs, n = 3000) => { const q = await fs.getDocs(fs.query(fs.collection(db, "xpprotokoll"), fs.where("z", ">", seitMs), fs.orderBy("z", "desc"), fs.limit(n))); return q.docs.map(d => ({ id: d.id, ...d.data() })); };
     // 6.82: aufsteigend nach Dokument-ID (<pid>_<Zeit>_<Nr>, Zeit hat 13 Ziffern → zeitlich sortiert). Absteigend brauchte einen Index,
     //       den es nicht gibt („failed-precondition“). seitMs grenzt auf neuere Einträge ein; Ergebnis neueste zuerst.
-    LB.xpProtokoll = async (pid, n = 200, seitMs = 0) => { const q = await gD(fs.query(fs.collection(db, "xpprotokoll"), fs.where(fs.documentId(), ">=", pid + "_" + (seitMs > 0 ? String(Math.floor(seitMs)) : "")), fs.where(fs.documentId(), "<", pid + "`"), fs.orderBy(fs.documentId()), fs.limit(n))); return q.docs.map(d => ({ id: d.id, ...d.data() })).sort((x, y) => y.z - x.z); };
+    LB.xpProtokoll = async (pid, n = 200, seitMs = 0) => { const q = await fs.getDocs(fs.query(fs.collection(db, "xpprotokoll"), fs.where(fs.documentId(), ">=", pid + "_" + (seitMs > 0 ? String(Math.floor(seitMs)) : "")), fs.where(fs.documentId(), "<", pid + "`"), fs.orderBy(fs.documentId()), fs.limit(n))); return q.docs.map(d => ({ id: d.id, ...d.data() })).sort((x, y) => y.z - x.z); };
     // 6.78: Schatztruhe – höchstens einmal je Spieler und Serverdatum (Dokument-ID <pid>_<JJJJMMTT>, nur anlegen)
     LB.truheBuchen = async (pid, name, tag, ver) => {
       await LB.signIn(); const id = pid + "_" + tag;
-      try { const g = await g1(ref("tagestruhe", id)); if (g.exists()) return "schon"; }
+      try { const g = await fs.getDoc(ref("tagestruhe", id)); if (g.exists()) return "schon"; }
       catch (e) { return e && e.code === "permission-denied" ? "regeln" : "netz"; }
       try { await fs.setDoc(ref("tagestruhe", id), { pid, name, tag, z: Date.now(), ver: String(ver || "").slice(0, 12), gebucht: fs.serverTimestamp() }); return "ok"; }
       catch (e) { return e && e.code === "permission-denied" ? "tag" : "netz"; }
@@ -215,7 +205,7 @@ if (!configured) {
     // 6.80: Wochen-Sicherung Biblionär – je Spieler und Serverwoche ein Dokument bibversuch/<pid>_<Wochennummer> (nur anlegen)
     LB.bibVersuch = async (pid, name, w, wk, ver) => {
       await LB.signIn(); const id = pid + "_" + w;
-      try { const g = await g1(ref("bibversuch", id)); if (g.exists()) return "schon"; }
+      try { const g = await fs.getDoc(ref("bibversuch", id)); if (g.exists()) return "schon"; }
       catch (e) { return e && e.code === "permission-denied" ? "regeln" : "netz"; }
       try { await fs.setDoc(ref("bibversuch", id), { pid, name, w, wk: String(wk || "").slice(0, 10), z: Date.now(), ver: String(ver || "").slice(0, 12), gebucht: fs.serverTimestamp() }); return "ok"; }
       catch (e) { return e && e.code === "permission-denied" ? "tag" : "netz"; }
@@ -223,7 +213,7 @@ if (!configured) {
     LB.duellAblehnen = async (id, pid) => { await LB.signIn(); await fs.updateDoc(ref("duelle", id), { status: "abgelehnt", am: pid }); };
     LB.duellLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("duelle", id)); };
     LB.meineDuelle = async (pid) => {
-      const s = await gD(fs.query(duelle, fs.where("teil", "array-contains", pid), fs.limit(60)));
+      const s = await fs.getDocs(fs.query(duelle, fs.where("teil", "array-contains", pid), fs.limit(60)));
       return s.docs.map(duDaten).sort((x, y) => y.erstellt - x.erstellt);
     };
     // „Biblionär der Woche“ (6.40): eigene Sammlung biblionaer/{Woche}_{pid} = { pid, wk, p, name, av, fr, lv }
@@ -236,41 +226,41 @@ if (!configured) {
       if (e.av) d.av = String(e.av).slice(0, 20); if (e.fr) d.fr = String(e.fr).slice(0, 20);
       await fs.setDoc(ref("biblionaer", e.wk + "_" + e.pid), d);
     };
-    LB.bibWoche = async (week) => (await gD(fs.query(bibliothek, fs.where("wk", "==", week), fs.limit(200)))).docs.map(bibZeile);
-    LB.gegnerListe = async () => aktiv((await gD(fs.query(spieler, fs.orderBy("xp", "desc"), fs.limit(150)))).docs);
+    LB.bibWoche = async (week) => (await fs.getDocs(fs.query(bibliothek, fs.where("wk", "==", week), fs.limit(200)))).docs.map(bibZeile);
+    LB.gegnerListe = async () => aktiv((await fs.getDocs(fs.query(spieler, fs.orderBy("xp", "desc"), fs.limit(150)))).docs);
 
     // 9.0 Gemeinden: Liste legt nur der Verwalter an (Sammlung gemeinden); jeder Spieler ordnet sich über mitglied/{pid} einer Gemeinde zu
-    LB.gemListe = async () => (await gD(fs.collection(db, "gemeinden"))).docs.map(d => ({ id: d.id, ...d.data() }));
-    LB.mitgliedListe = async () => (await gD(fs.query(fs.collection(db, "mitglied"), fs.limit(500)))).docs.map(d => ({ id: d.id, g: d.data().g }));
+    LB.gemListe = async () => (await fs.getDocs(fs.collection(db, "gemeinden"))).docs.map(d => ({ id: d.id, ...d.data() }));
+    LB.mitgliedListe = async () => (await fs.getDocs(fs.query(fs.collection(db, "mitglied"), fs.limit(500)))).docs.map(d => ({ id: d.id, g: d.data().g }));
     LB.gemSetzen = async (pid, name, g, durch) => {
       await LB.signIn();
-      let vorher = null; try { const d = await g1(ref("mitglied", pid)); if (d.exists()) vorher = String(d.data().g || ""); } catch (e) {}
+      let vorher = null; try { const d = await fs.getDoc(ref("mitglied", pid)); if (d.exists()) vorher = String(d.data().g || ""); } catch (e) {}
       await fs.setDoc(ref("mitglied", pid), { pid, name, g, updated: fs.serverTimestamp() });
       /* 9.28 Protokoll: jede Änderung der Zuordnung mit Server-Zeitstempel (Sammlung gemlog, nur der Verwalter liest) */
       if (vorher !== g) { try { await fs.addDoc(fs.collection(db, "gemlog"), { pid, name: String(name || "").slice(0, 20), von: vorher || "", nach: g, durch: durch === "verwalter" ? "verwalter" : "spieler", zeit: fs.serverTimestamp() }); } catch (e) {} }
     };
-    LB.gemProtokoll = async (n) => (await gD(fs.query(fs.collection(db, "gemlog"), fs.orderBy("zeit", "desc"), fs.limit(n || 300)))).docs.map(d => { const x = d.data(); return { id: d.id, pid: x.pid, name: x.name || "", von: x.von || "", nach: x.nach || "", durch: x.durch || "spieler", zeit: x.zeit && x.zeit.toMillis ? x.zeit.toMillis() : 0 }; });
+    LB.gemProtokoll = async (n) => (await fs.getDocs(fs.query(fs.collection(db, "gemlog"), fs.orderBy("zeit", "desc"), fs.limit(n || 300)))).docs.map(d => { const x = d.data(); return { id: d.id, pid: x.pid, name: x.name || "", von: x.von || "", nach: x.nach || "", durch: x.durch || "spieler", zeit: x.zeit && x.zeit.toMillis ? x.zeit.toMillis() : 0 }; });
     LB.gemAnlegen = async (id, name, ord, extra) => { await LB.signIn(); const d = { name, ord: ord | 0 }; if (extra && extra.pw) d.pw = String(extra.pw).slice(0, 30); if (extra && extra.logo) d.logo = String(extra.logo).slice(0, 30000); if (extra && extra.pruef) d.pruef = true; await fs.setDoc(ref("gemeinden", id), d); };
     // 9.11 Freischaltung: Anträge (antraege/{pid}), Freigaben je Gerät (freigabe/{uid}) und der Joker-Schlüssel (geheim/joker)
     LB.antragSenden = async (pid, name, g) => { await LB.signIn(); await fs.setDoc(ref("antraege", pid), { pid, name: String(name || "").slice(0, 20), g, status: "offen", zeit: fs.serverTimestamp() }); };
-    LB.antragHolen = async (pid) => { const d = await g1(ref("antraege", pid)); return d.exists() ? { id: d.id, ...d.data() } : null; };
-    LB.antragListe = async () => (await gD(fs.query(fs.collection(db, "antraege"), fs.limit(200)))).docs.map(d => { const x = d.data(); return { id: d.id, pid: x.pid, name: x.name || "", g: x.g || "", status: x.status || "offen", zeit: x.zeit && x.zeit.toMillis ? x.zeit.toMillis() : 0 }; });
+    LB.antragHolen = async (pid) => { const d = await fs.getDoc(ref("antraege", pid)); return d.exists() ? { id: d.id, ...d.data() } : null; };
+    LB.antragListe = async () => (await fs.getDocs(fs.query(fs.collection(db, "antraege"), fs.limit(200)))).docs.map(d => { const x = d.data(); return { id: d.id, pid: x.pid, name: x.name || "", g: x.g || "", status: x.status || "offen", zeit: x.zeit && x.zeit.toMillis ? x.zeit.toMillis() : 0 }; });
     LB.antragAblehnen = async (pid) => { await LB.signIn(); await fs.updateDoc(ref("antraege", pid), { status: "abgelehnt" }); };
     LB.antragLoeschen = async (pid) => { await LB.signIn(); await fs.deleteDoc(ref("antraege", pid)); };
     LB.freigabeSetzen = async (uids, g, pid) => { await LB.signIn(); for (const u of uids) await fs.setDoc(ref("freigabe", u), { g, pid, zeit: fs.serverTimestamp() }); };
     LB.freigabeEntfernen = async (uids) => { await LB.signIn(); for (const u of uids) await fs.deleteDoc(ref("freigabe", u)); };
-    LB.jokerSchluessel = async () => { await LB.signIn(); const d = await g1(ref("geheim", "joker")); return d.exists() ? String(d.data().k || "") : ""; };
+    LB.jokerSchluessel = async () => { await LB.signIn(); const d = await fs.getDoc(ref("geheim", "joker")); return d.exists() ? String(d.data().k || "") : ""; };
     LB.jokerSchluesselSetzen = async (k) => { await LB.signIn(); await fs.setDoc(ref("geheim", "joker"), { k: String(k).slice(0, 120) }); };
     // 9.11 Gespräche zwischen Verwalter und einzelnen Spielern (Sammlung dialoge): von = "dev" (Verwalter) oder "spieler"
     const dlgZeile = d => { const x = d.data(); return { id: d.id, pid: x.pid, name: x.name || "", von: x.von, text: x.text || "", zeit: x.zeit && x.zeit.toMillis ? x.zeit.toMillis() : 0 }; };
-    LB.dialogHolen = async (pid) => (await gD(fs.query(fs.collection(db, "dialoge"), fs.where("pid", "==", pid), fs.limit(200)))).docs.map(dlgZeile).sort((a, b) => a.zeit - b.zeit);
-    LB.dialogAlle = async () => (await gD(fs.query(fs.collection(db, "dialoge"), fs.limit(400)))).docs.map(dlgZeile).sort((a, b) => a.zeit - b.zeit);
+    LB.dialogHolen = async (pid) => (await fs.getDocs(fs.query(fs.collection(db, "dialoge"), fs.where("pid", "==", pid), fs.limit(200)))).docs.map(dlgZeile).sort((a, b) => a.zeit - b.zeit);
+    LB.dialogAlle = async () => (await fs.getDocs(fs.query(fs.collection(db, "dialoge"), fs.limit(400)))).docs.map(dlgZeile).sort((a, b) => a.zeit - b.zeit);
     LB.dialogSenden = async (pid, name, von, text) => { await LB.signIn(); await fs.addDoc(fs.collection(db, "dialoge"), { pid, name: String(name || "").slice(0, 20), von, text: String(text).slice(0, 1000), zeit: fs.serverTimestamp() }); };
     LB.dialogLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("dialoge", id)); };
     LB.gemLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("gemeinden", id)); };
 
     // 9.7 Nachrichten des Entwicklers an die Spieler (Patchnotes u. Ä.): nur der Verwalter schreibt, angemeldete Spieler lesen
-    LB.nachrichtenListe = async () => (await gD(fs.query(fs.collection(db, "nachrichten"), fs.orderBy("zeit", "desc"), fs.limit(30)))).docs.map(d => { const x = d.data(); return { id: d.id, art: x.art || "info", titel: x.titel || "", text: x.text || "", g: x.g || "alle", ver: x.ver || "", zeit: x.zeit && x.zeit.toMillis ? x.zeit.toMillis() : 0 }; });
+    LB.nachrichtenListe = async () => (await fs.getDocs(fs.query(fs.collection(db, "nachrichten"), fs.orderBy("zeit", "desc"), fs.limit(30)))).docs.map(d => { const x = d.data(); return { id: d.id, art: x.art || "info", titel: x.titel || "", text: x.text || "", g: x.g || "alle", ver: x.ver || "", zeit: x.zeit && x.zeit.toMillis ? x.zeit.toMillis() : 0 }; });
     LB.nachrichtSenden = async (n) => { await LB.signIn(); const d = { art: n.art === "patch" ? "patch" : "info", titel: String(n.titel).slice(0, 60), text: String(n.text).slice(0, 2000), g: String(n.g || "alle").slice(0, 30), zeit: fs.serverTimestamp() }; if (n.ver) d.ver = String(n.ver).slice(0, 20); await fs.addDoc(fs.collection(db, "nachrichten"), d); };
     LB.nachrichtLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("nachrichten", id)); };
 
@@ -332,7 +322,7 @@ if (!configured) {
       else (async () => {
         try {
           let rows;
-          if (kind === "bibWoche") rows = (await gD(fs.query(bibliothek, fs.where("wk", "==", week), fs.limit(200)))).docs.map(bibZeile);
+          if (kind === "bibWoche") rows = (await fs.getDocs(fs.query(bibliothek, fs.where("wk", "==", week), fs.limit(200)))).docs.map(bibZeile);
           else { /* aus der gemeinsamen Spielerliste (eine Abfrage für alle Ranglisten) – wie die Datenbank-Sortierung: nur Einträge mit dem Feld */
             const f = FELD[kind] || "xp", alle = await LB.alleSpieler();
             rows = kind === "woche" ? alle.filter(r => r.week === week) : alle.filter(r => r[f] !== undefined).sort((a, b) => (b[f] || 0) - (a[f] || 0)).slice(0, 100);
@@ -342,22 +332,6 @@ if (!configured) {
       })();
       return () => { weg = true; };
     };
-
-    // 9.52 Budgetwarnung: jedes Gerät meldet seine gezählten Lesezugriffe gesammelt an lesezaehler/<Tag> (Feld n, nur Erhöhung).
-    // Höchstens alle 15 Minuten bzw. beim Verlassen der App – das kostet nur wenige Schreibzugriffe am Tag.
-    LB.leseMelden = async (zwingen) => {
-      if (!auth.currentUser) return;
-      let c; try { c = JSON.parse(localStorage.getItem(LESE_KEY) || "null"); } catch (e) { return; }
-      if (!c || c.t !== leseTag()) return;
-      const neu = (c.n | 0) - (c.g | 0); if (neu <= 0) return;
-      if (!zwingen && Date.now() - (+c.z || 0) < 15 * MIN) return;
-      const teil = Math.min(neu, 20000);
-      try { await fs.setDoc(ref("lesezaehler", c.t), { n: fs.increment(teil), z: fs.serverTimestamp() }, { merge: true });
-        c.g = (c.g | 0) + teil; c.z = Date.now(); localStorage.setItem(LESE_KEY, JSON.stringify(c)); } catch (e) {}
-    };
-    LB.leseGesamt = async (tag) => { const d = await g1(ref("lesezaehler", tag || leseTag())); return d.exists() ? (d.data().n | 0) : 0; };
-    setInterval(() => LB.leseMelden(false), 5 * MIN);
-    addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") LB.leseMelden(true); });
 
     LB.ok = true;
     dispatchEvent(new Event("lb-ready"));
