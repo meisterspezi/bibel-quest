@@ -161,21 +161,17 @@ function monatsversHtml() {
 const versHtml = (key, cls = "") => { const v = VERSE[key]; return v ? `<figure class="vers ${cls}"><blockquote>${esc(v[0])}</blockquote><figcaption>${esc(v[1])} · ${VERS_QUELLE}</figcaption></figure>` : ""; };
 /* ---------- Lernvers des Monats: Vers-Lektion nach Duolingo-Art ----------
    Ausblende-Methode in 5 Stufen (jede Stufe verdeckt mehr, schwache Wörter bleiben länger verdeckt)
-   + Monatsgerüst: Wochenziel, höchstens eine neue Stufe pro Tag, Übungstage, Monatsprüfung (= Bewahren) am Monatsende,
+   + ein klarer Weg: 5 Stufen (höchstens eine neue pro Tag) → Prüfung (bestanden = Vers gemeistert), dazu die Übungstage,
    frühere Lernverse tauchen in den Lektionen zur Wiederholung auf. */
 const LV_MAX = 5;
 const LV_STUFEN = ["Kennenlernen", "Ordnen", "Ergänzen", "Anfangsbuchstaben", "Auswendig"];
 const LV_TAL = [5, 5, 5, 5, 10];   /* Talente beim ersten Erreichen von Stufe 1 … 5 – je Vers einmal */
-const LV_BEWAHR_TAL = 15;          /* Monatsprüfung bestanden („Vers bewahrt“) */
-const LV_BEWAHR_TAGE = 7;          /* Monatsprüfung geht in den letzten 7 Tagen des Monats */
+const LV_PRUEF_TAL = 15;           /* Prüfung bestanden („Vers gemeistert“) */
 const LEKTION_XP_FAKTOR = 0.25; /* Grund-XP einer Lektion: 75 % weniger (6.93) */
 const LV_XP = 30, LV_XP_RICHTIG = 48; /* XP je Lektion + je Aufgabe, die beim ersten Versuch sitzt */
 const LV_STUFEN_PRO_TAG = 1;       /* neue Stufen pro Tag – danach wird „gefestigt“ (XP, Übungstag) */
-const LV_TURBO_QUOTE = 90;         /* Turbo: wer eine Lektion mit so viel % beim ersten Versuch schafft … */
-const LV_STUFEN_TURBO = 3;         /* … darf am selben Tag bis zu so viele Stufen gehen und bekommt Bonus-Aufgaben */
-const LV_PRUEF_QUOTE = 0.9;        /* Monatsprüfung: so viel vom Vers muss stimmen */
+const LV_PRUEF_QUOTE = 0.9;        /* Prüfung: so viel vom Vers muss stimmen */
 const LV_FREI_QUOTE = 0.85;        /* freies Aufsagen in den Lektionen */
-const LV_WOCHENZIEL = [2, 3, 4, 5]; /* Ziel-Stufe in Woche 1 … 4 des Monats */
 const monatKey = (d = new Date()) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
 const monatName = k => MONATE[+k.slice(5) - 1] + (k.slice(0, 4) !== String(new Date().getFullYear()) ? " " + k.slice(0, 4) : "");
 /* Umzug: bis Version 6.29 gab es 3 Stufen (Wörter im Kopf aufsagen) → auf die neuen 5 Stufen umrechnen */
@@ -183,14 +179,9 @@ function lvMig(v) { if (!v || v.v === 2) return v; const alt = [0, 2, 3, 5][Math
 if (S.lv) Object.keys(S.lv).forEach(k => { S.lv[k] = lvMig(S.lv[k]); });
 const lvStand = k => { const s = (S.lv && S.lv[k]) || {}; return { st: s.st || 0, b: !!s.b, tage: s.tage || [], sw: s.sw || {}, auf: s.auf || "", an: s.an || 0, q: s.q || 0, qd: s.qd || "" }; };
 function lvSetzen(k, neu) { if (!S.lv) S.lv = {}; S.lv[k] = Object.assign({ v: 2 }, S.lv[k] || {}, neu, { v: 2 }); }
-const lvLetzterTag = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); };
-const lvBewahrAb = () => lvLetzterTag() - LV_BEWAHR_TAGE + 1;
-const lvBewahrFenster = k => k === monatKey() && new Date().getDate() >= lvBewahrAb();
-const lvWoche = () => Math.min(4, Math.ceil(new Date().getDate() / 7));
-const lvZiel = () => LV_WOCHENZIEL[lvWoche() - 1];
 const lvHeuteNeu = k => { const s = lvStand(k); return s.auf === today() ? s.an : 0; };
-const lvTurbo = k => { const s = lvStand(k); return s.qd === today() && s.q >= LV_TURBO_QUOTE; };
-const lvStufeFrei = k => lvStand(k).st < LV_MAX && (lvHeuteNeu(k) < LV_STUFEN_PRO_TAG || (lvTurbo(k) && lvHeuteNeu(k) < LV_STUFEN_TURBO));
+const s0Fertig = k => { const x = lvStand(k); return x.st >= LV_MAX && !x.b; }; /* Prüfung ist frei: alle 5 Stufen geschafft, Vers noch nicht gemeistert */
+const lvStufeFrei = k => lvStand(k).st < LV_MAX && lvHeuteNeu(k) < LV_STUFEN_PRO_TAG;
 const lvMonatsTage = k => { const s = lvStand(k), [y, m] = k.split("-").map(Number); return s.tage.filter(n => { const d = datumVon(n); return d.getFullYear() === y && d.getMonth() + 1 === m; }).length; };
 
 /* ----- Wörter & Vergleich (tolerant: Groß/klein, Satzzeichen, Umlaute, ein Tippfehler bei langen Wörtern) ----- */
@@ -253,7 +244,7 @@ function lvStelleAehnlich(ref) {
 }
 
 /* ----- Aufgaben einer Lektion ----- */
-function lvAufgaben(k, stufe, modus, bonus) {
+function lvAufgaben(k, stufe, modus) {
   const [text, ref] = MONATSVERSE[k], s = lvStand(k), sw = s.sw;
   const a = [], A = (typ, x = {}) => a.push(Object.assign({ typ, k, stufe }, x));
   if (modus === "pruefung") { A("stelle", { schwer: true }); A("frei", { hilfe: false, quote: LV_PRUEF_QUOTE }); return a; } /* auch hier: leicht → schwer */
@@ -266,12 +257,6 @@ function lvAufgaben(k, stufe, modus, bonus) {
   /* Wiederholung: ein früherer Lernvers, der schon geübt wurde */
   const frueher = Object.keys(MONATSVERSE).filter(x => x < k && lvStand(x).st >= 2);
   if (frueher.length) { const f = pick(frueher), fs = lvStand(f).st; a.splice(Math.min(a.length, 3), 0, { typ: pick(fs >= 4 ? ["stelle", "luecke", "fortsetzung"] : ["stelle", "fortsetzung"]), k: f, stufe: fs, anteil: 0.5, schwer: fs >= 4, wdh: true }); }
-  /* Turbo: zwei Bonus-Aufgaben aus der nächsten (bzw. schwersten) Stufe */
-  if (bonus) {
-    const extra = { 1: [["kacheln", { stoer: 0 }], ["luecke", { anteil: 0.25 }]], 2: [["luecke", { anteil: 0.5 }], ["kacheln", { stoer: 2 }]], 3: [["tippen", { anteil: 0.75, buchstabe: true }], ["kacheln", { stoer: 3 }]],
-      4: [["tippen", { anteil: 1, buchstabe: true }], ["frei", { hilfe: true, quote: LV_FREI_QUOTE }]], 5: [["tippen", { anteil: 1 }], ["frei", { hilfe: false, quote: LV_FREI_QUOTE }]] }[stufe];
-    extra.forEach(([typ, x]) => a.push(Object.assign({ typ, k, stufe: Math.min(LV_MAX, stufe + 1), bonus: true, sw }, x)));
-  }
   /* Reihenfolge innerhalb der Lektion: immer von leicht nach schwer (stabil – gleich schwere Aufgaben behalten ihre Reihenfolge) */
   void ref; return a.map((x, i) => [x, i]).sort((p, q) => lvSchwer(p[0]) - lvSchwer(q[0]) || p[1] - q[1]).map(p => p[0]);
 }
@@ -298,16 +283,15 @@ const LV_SR = window.SpeechRecognition || window.webkitSpeechRecognition || null
 function vlStart(arg) {
   const [k0, art] = String(arg || "").split("|"), k = MONATSVERSE[k0] ? k0 : monatKey();
   if (!MONATSVERSE[k]) { go("lernverse"); return; }
-  const s = lvStand(k), pruefung = art === "pruefung" && k === monatKey() && s.st >= LV_MAX && !s.b && lvBewahrFenster(k);
+  const s = lvStand(k), pruefung = art === "pruefung" && s0Fertig(k);
   const neu = !pruefung && lvStufeFrei(k), stufe = pruefung ? LV_MAX : neu ? s.st + 1 : Math.max(1, s.st);
-  const bonus = !pruefung && lvTurbo(k);
-  VL = { t0: Date.now(), k, stufe, bonus, modus: pruefung ? "pruefung" : neu ? "lernen" : "festigen", liste: lvAufgaben(k, stufe, pruefung ? "pruefung" : "lernen", bonus), i: 0, gesamt: 0, ersteRichtig: 0, fehlerWoerter: {}, wiederholt: new Set(), serie: 0, durchfall: false };
+  VL = { t0: Date.now(), k, stufe, modus: pruefung ? "pruefung" : neu ? "lernen" : "festigen", liste: lvAufgaben(k, stufe, pruefung ? "pruefung" : "lernen"), i: 0, gesamt: 0, ersteRichtig: 0, fehlerWoerter: {}, wiederholt: new Set(), serie: 0, durchfall: false };
   VL.gesamt = VL.liste.length;
   document.body.classList.add("spiel-laeuft");
   /* 9.45: Countdown (3 · 2 · 1 · LOS) im Saphirblau des Lernvers – wie bei den Ketten und beim Blitz */
   const L = VL;
   countdown(() => { if (VL !== L) return; VL.t0 = Date.now(); vlZeige(); },
-    cdSolo("vers", { name: "Lernvers " + monatName(k), modus: pruefung ? "Monatsprüfung" : neu ? "Neue Stufe" : "Festigen", sub: `Stufe ${stufe} · ${LV_STUFEN[stufe - 1]}` }));
+    cdSolo("vers", { name: "Lernvers " + monatName(k), modus: pruefung ? "Prüfung" : neu ? "Neue Stufe" : "Festigen", sub: `Stufe ${stufe} · ${LV_STUFEN[stufe - 1]}` }));
 }
 function vlKopf() {
   const fertig = Math.min(VL.i, VL.gesamt) / VL.gesamt;
@@ -317,8 +301,7 @@ function vlKopf() {
 }
 function vlTitel(a) {
   if (a.wdh) return `<span class="vl-titel wdh">${svg("step")} Wiederholung · Lernvers ${esc(monatName(a.k))}</span>`;
-  if (VL.modus === "pruefung") return `<span class="vl-titel pruef">${svg("siegel")} Monatsprüfung</span>`;
-  if (a.bonus) return `<span class="vl-titel bonus">${svg("bolt")} Bonus · Turbo · Stufe ${a.stufe}</span>`;
+  if (VL.modus === "pruefung") return `<span class="vl-titel pruef">${svg("siegel")} Prüfung</span>`;
   return `<span class="vl-titel">Stufe ${VL.stufe} · ${LV_STUFEN[VL.stufe - 1]}${VL.modus === "festigen" ? " · festigen" : ""}</span>`;
 }
 function vlZeige() {
@@ -557,19 +540,18 @@ function vlEnde() {
   const tage = s.tage.includes(dayNum(today())) ? s.tage : [...s.tage, dayNum(today())].slice(-40);
   let titel = "Lektion geschafft!", zeile = "", tal = 0, siegel = false;
   if (modus === "pruefung") {
-    if (!VL.durchfall) { lvSetzen(k, { b: true, tage }); tal = LV_BEWAHR_TAL; siegel = true; titel = "Vers bewahrt!"; zeile = "Du kennst den Lernvers auswendig – das Abzeichen gehört dir."; }
-    else { lvSetzen(k, { tage }); titel = "Fast geschafft!"; zeile = `Übe noch ein wenig – bis zum ${lvLetzterTag()}. ${MONATE[new Date().getMonth()]} kannst du die Prüfung jederzeit wiederholen.`; }
+    if (!VL.durchfall) { lvSetzen(k, { b: true, tage }); tal = LV_PRUEF_TAL; siegel = true; titel = "Vers gemeistert!"; zeile = "Du kennst den Lernvers auswendig – das Abzeichen gehört dir."; }
+    else { lvSetzen(k, { tage }); titel = "Fast geschafft!"; zeile = "Übe noch ein wenig – du kannst die Prüfung jederzeit wiederholen."; }
   } else if (modus === "lernen" && stufe > s.st) {
     lvSetzen(k, { st: stufe, tage, auf: today(), an: lvHeuteNeu(k) + 1, q: quote, qd: today() }); tal = LV_TAL[stufe - 1];
-    titel = stufe < LV_MAX ? `Stufe ${stufe} geschafft!` : "Vers gemeistert!";
-    zeile = stufe < LV_MAX ? `Als Nächstes: Stufe ${stufe + 1} – ${LV_STUFEN[stufe]}.` : (k === monatKey() ? `In den letzten ${LV_BEWAHR_TAGE} Tagen des Monats kommt die Monatsprüfung.` : "Du kannst ihn jederzeit wiederholen.");
-  } else { lvSetzen(k, { tage, q: quote, qd: today() }); titel = "Gut gefestigt!"; zeile = s.st < LV_MAX ? `Als Nächstes: Stufe ${s.st + 1} – ${LV_STUFEN[s.st]}.` : "Täglich wiederholen hält den Vers frisch."; }
-  const turboWeiter = modus !== "pruefung" && lvStufeFrei(k) && lvHeuteNeu(k) >= LV_STUFEN_PRO_TAG;
+    titel = stufe < LV_MAX ? `Stufe ${stufe} geschafft!` : "Alle 5 Stufen geschafft!";
+    zeile = stufe < LV_MAX ? `Als Nächstes: Stufe ${stufe + 1} – ${LV_STUFEN[stufe]}.` : "Jetzt wartet die Prüfung: Sag den Vers auswendig auf – dann ist er gemeistert.";
+  } else { lvSetzen(k, { tage, q: quote, qd: today() }); titel = "Gut gefestigt!"; zeile = s.st < LV_MAX ? `Als Nächstes: Stufe ${s.st + 1} – ${LV_STUFEN[s.st]}.` : s.b ? "Täglich wiederholen hält den Vers frisch." : "Du bist bereit für die Prüfung."; }
   const morgen = modus !== "pruefung" && !lvStufeFrei(k) && lvStand(k).st < LV_MAX;
-  if (turboWeiter) zeile += ` <b class="vle-turbo">${svg("bolt")} Turbo! Mit ${quote} % geht es heute gleich weiter.</b>`;
-  else if (morgen) zeile += lvHeuteNeu(k) >= LV_STUFEN_TURBO ? " Für heute ist das Maximum erreicht – morgen geht es weiter." : ` Morgen geht es weiter – oder schaffe beim Festigen ${LV_TURBO_QUOTE} % für den Turbo.`;
+  if (morgen) zeile += " Morgen geht es weiter.";
   const xp = LV_XP + LV_XP_RICHTIG * VL.ersteRichtig;
   const monatTage = lvMonatsTage(k), aktuell = k === monatKey(), neuSt = lvStand(k).st;
+  const zurPruefung = modus !== "pruefung" && s0Fertig(k);
   const xInfo = { t0: VL.t0, f: Math.min(VL.i, VL.gesamt), fm: VL.gesamt, d: `Stufe ${stufe} · ${modus === "pruefung" ? "Prüfung" : modus === "lernen" ? "lernen" : "festigen"} · ${quote} % sofort richtig` };
   VL = null;
   richtig(Math.max(1, Math.round(ohneLesen * quote / 100))); quest("lernvers", 1); quest("runde", 1);
@@ -582,11 +564,11 @@ function vlEnde() {
       <div><b>+${xp}</b><span>XP</span></div>
       ${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>Talente</span></div>` : ""}
     </div>
-    ${aktuell ? `<div class="vle-monat">${svg("fire")}<span>An <b>${monatTage}</b> ${monatTage === 1 ? "Tag" : "Tagen"} im ${MONATE[new Date().getMonth()]} geübt · Woche ${lvWoche()}/4 · Ziel Stufe ${lvZiel()} ${neuSt >= lvZiel() ? svg("check", "var(--good)") : ""}</span></div>` : ""}
+    ${aktuell ? `<div class="vle-monat">${svg("fire")}<span>An <b>${monatTage}</b> ${monatTage === 1 ? "Tag" : "Tagen"} im ${MONATE[new Date().getMonth()]} geübt</span></div>` : ""}
     <div class="lv-stufe gross" aria-label="Stufe ${neuSt} von ${LV_MAX}">${Array.from({ length: LV_MAX }, (_, i) => `<i class="${i < neuSt ? "an" : ""}"></i>`).join("")}</div>
-    ${turboWeiter ? `<button class="btn primary breit" id="vlTurbo">${svg("bolt")} Weiter mit Stufe ${neuSt + 1}</button><button class="btn ghost breit" id="vlFertig">Für heute fertig</button>` : `<button class="btn primary breit" id="vlFertig">Weiter</button>`}</div>`;
+    ${zurPruefung ? `<button class="btn primary breit" id="vlPruef">${svg("siegel")} Jetzt zur Prüfung</button><button class="btn ghost breit" id="vlFertig">Später</button>` : `<button class="btn primary breit" id="vlFertig">Weiter</button>`}</div>`;
   $("vlFertig").onclick = () => { SFX.tap(); go(heimAnsicht("home")); };
-  if ($("vlTurbo")) $("vlTurbo").onclick = () => { SFX.tap(); go("verslektion", k); };
+  if ($("vlPruef")) $("vlPruef").onclick = () => { SFX.tap(); go("verslektion", k + "|pruefung"); };
   setTimeout(() => { addXp(xp, $("vlFertig"), "vers", xInfo); if (tal) addTal(tal); save(); checkBadges(); lbSync(); }, 350);
 }
 
@@ -599,22 +581,22 @@ function lvKarte(k, ort = "home") {
   const v = MONATSVERSE[k]; if (!v) return "";
   const s = lvStand(k), aktuell = k === monatKey();
   const tal = n => `<span class="lv-tal">+${n}${TAL_MUENZE}</span>`;
-  const pruefung = aktuell && s.st >= LV_MAX && !s.b && lvBewahrFenster(k), frei = lvStufeFrei(k);
+  const pruefung = s0Fertig(k), frei = lvStufeFrei(k);
   let knopf, hinweis = "";
-  if (pruefung) { knopf = `<button class="lv-btn gold" data-lv="pruefung">${svg("siegel")} Monatsprüfung ${tal(LV_BEWAHR_TAL)}</button>`; hinweis = "Monatsende: Weißt du ihn noch auswendig? Bewahre den Vers für das Abzeichen."; }
-  else if (frei) { knopf = `<button class="lv-btn gold" data-lv="start">${svg(lvTurbo(k) ? "bolt" : "star")} Stufe ${s.st + 1}: ${LV_STUFEN[s.st]} ${tal(LV_TAL[s.st])}</button>`;
-    if (lvTurbo(k) && lvHeuteNeu(k)) hinweis = `Turbo: Du lernst sicher – heute geht noch ${LV_STUFEN_TURBO - lvHeuteNeu(k) === 1 ? "eine Stufe" : "bis zu " + (LV_STUFEN_TURBO - lvHeuteNeu(k)) + " Stufen"}, mit Bonus-Aufgaben.`; }
+  if (pruefung) { knopf = `<button class="lv-btn gold" data-lv="pruefung">${svg("siegel")} Prüfung ${tal(LV_PRUEF_TAL)}</button>`; hinweis = "Alle 5 Stufen geschafft! Sag den Vers jetzt auswendig auf – dann ist er gemeistert."; }
+  else if (frei) knopf = `<button class="lv-btn gold" data-lv="start">${svg("star")} Stufe ${s.st + 1}: ${LV_STUFEN[s.st]} ${tal(LV_TAL[s.st])}</button>`;
   else { knopf = `<button class="lv-btn ${s.st < LV_MAX && aktuell ? "gold" : ""}" data-lv="start">${svg("step")} ${s.st < LV_MAX ? "Festigen" : "Wiederholen"}</button>`;
-    hinweis = s.b ? "Bewahrt – du kennst diesen Vers auswendig." : s.st < LV_MAX ? (lvHeuteNeu(k) >= LV_STUFEN_TURBO ? `Stark – ${LV_STUFEN_TURBO} Stufen heute! Stufe ${s.st + 1} gibt es morgen.` : `Heute geschafft! Stufe ${s.st + 1} gibt es morgen – oder festige mit ${LV_TURBO_QUOTE} % für den Turbo.`) : aktuell ? `Gemeistert! Ab dem ${lvBewahrAb()}. ${MONATE[new Date().getMonth()]} kommt die Monatsprüfung.` : ""; }
+    hinweis = s.b ? "Gemeistert – du kennst diesen Vers auswendig." : `Heute geschafft! Stufe ${s.st + 1} gibt es morgen.`; }
   let fuss = knopf + `<button class="lv-btn rund" data-lv="vorlesen" aria-label="Vorlesen">${svg("sound")}</button>`;
   if (ort === "home") fuss = fuss + `<button class="lv-btn" data-go="lernverse" data-arg="home">${svg("scroll")} Archiv</button>`;
   /* 9.48: einheitliche Fortschrittsanzeige für alle Monate – Ring mit Prozent + zwei Textzeilen (kein Siegel, keine Punkte) */
-  const pct = s.b ? 100 : Math.round(Math.min(LV_MAX, s.st) / LV_MAX * 100), umf = 100.53;
-  const fz1 = s.b || s.st >= LV_MAX ? `Alle ${LV_MAX} Stufen` : s.st ? `Stufe ${s.st} von ${LV_MAX}` : "Noch offen";
-  const fz2 = s.b ? "Bewahrt" : s.st >= LV_MAX ? "Gemeistert" : s.st ? LV_STUFEN[s.st - 1] : "Los geht's";
+  /* Weg: 5 Stufen + Prüfung = 6 Schritte */
+  const pct = s.b ? 100 : Math.round(Math.min(LV_MAX, s.st) / (LV_MAX + 1) * 100), umf = 100.53;
+  const fz1 = s.st >= LV_MAX ? `Alle ${LV_MAX} Stufen` : s.st ? `Stufe ${s.st} von ${LV_MAX}` : "Noch offen";
+  const fz2 = s.b ? "Gemeistert" : s.st >= LV_MAX ? "Zur Prüfung" : s.st ? LV_STUFEN[s.st - 1] : "Los geht's";
   const stand = `<span class="lv-fort${s.b ? " ok" : ""}" role="img" aria-label="${fz1}, ${fz2}, ${pct} Prozent"><span class="lv-fort-tx">${fz1}<b>${fz2}</b></span><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="sp" cx="20" cy="20" r="16"/><circle class="fu" cx="20" cy="20" r="16" stroke-dasharray="${(pct / 100 * umf).toFixed(1)} ${umf}" transform="rotate(-90 20 20)"/><text x="20" y="${pct >= 100 ? 23.4 : 24}" text-anchor="middle"${pct >= 100 ? ' class="voll"' : ""}>${pct}%</text></svg></span>`;
-  const mt = aktuell ? lvMonatsTage(k) : 0, ziel = lvZiel();
-  const monat = aktuell && !s.b ? `<div class="lv-monat"><span class="lvm-woche">Woche ${lvWoche()}/4 · Ziel Stufe ${ziel}${s.st >= ziel ? ` ${svg("check")}` : ""}</span><span class="lvm-tage ${mt ? "an" : ""}">${svg("fire")}${mt} ${mt === 1 ? "Tag" : "Tage"}</span></div>` : "";
+  const mt = aktuell ? lvMonatsTage(k) : 0;
+  const monat = aktuell && !s.b ? `<div class="lv-monat"><span class="lvm-tage ${mt ? "an" : ""}">${svg("fire")}${mt} ${mt === 1 ? "Tag" : "Tage"} geübt</span></div>` : "";
   return `<section class="lv lvd ${ort === "home" ? "kompakt" : ""} ${s.b ? "bewahrt" : ""}" data-lvk="${k}" aria-label="Lernvers ${esc(monatName(k))}">
     ${LV_SZENE}${LV_KREUZ}
     <div class="lv-kopf"><span class="lv-ic">${LV_BUCH}</span><span class="lv-lab">Lernvers ${esc(monatName(k))}</span>${stand}</div>
@@ -1825,9 +1807,9 @@ VIEWS.verslektion = vlStart; /* Vers-Lektion (Code oben beim Lernvers) */
 /* Archiv: alle Lernverse bis zum laufenden Monat, neuester zuerst */
 VIEWS.lernverse = (zurueck) => {
   const jetzt = monatKey(), keys = Object.keys(MONATSVERSE).filter(k => k <= jetzt).sort().reverse();
-  const fertig = keys.filter(k => lvStand(k).st >= LV_MAX).length, bew = keys.filter(k => lvStand(k).b).length;
+  const fertig = keys.filter(k => lvStand(k).b).length;
   screen.innerHTML = `${backBtn(zurueck === "home" ? "home" : "lernen")}${seitenKopf("Lernverse", `${fertig}/${keys.length} gemeistert`)}
-    <p class="small muted lv-intro">Alle Lernverse der Gemeinde. Jeden Monat kommt einer dazu – präge ihn dir in fünf Stufen ein, eine pro Tag – wer sicher ist (Turbo ab 90 %), schafft bis zu drei. Frühere Verse tauchen in den Lektionen zur Wiederholung auf. ${bew ? `Bewahrt: <b>${bew}</b>` : "Am Monatsende wartet die Monatsprüfung – dann ist der Vers bewahrt."}</p>
+    <p class="small muted lv-intro">Alle Lernverse der Gemeinde. Jeden Monat kommt einer dazu: Lerne ihn in fünf Stufen, eine pro Tag, und sag ihn dann in der Prüfung auswendig auf – dann ist er gemeistert. Frühere Verse tauchen in den Lektionen zur Wiederholung auf.</p>
     <div class="stack lv-archiv">${keys.map(k => lvKarte(k, "archiv")).join("")}</div>`;
   wireGo(); lvVerdrahten();
 };
@@ -1841,7 +1823,7 @@ const BLITZ_ZIELE = [10, 20, 30, 40, 50, 60, 80, 100, 130, 160, 200];
 function spielStand(id) {
   if (id === "blitz") { const r = S.bestBlitz | 0, z = BLITZ_ZIELE.find(x => x > r) || r; return r ? [`Rekord ${r} · Ziel ${z}`, Math.min(100, r / z * 100)] : ["Noch nicht gespielt", 0]; }
   if (id === "quiz") { const st = BIB_LEITER.filter(p => p <= (S.bibRekord || 0)).length; return st ? [`Rekord: Frage ${st} von ${BIB_LEITER.length}`, st / BIB_LEITER.length * 100] : ["Noch nicht gespielt", 0]; }
-  if (id === "vers") { const k = monatKey(); if (!MONATSVERSE[k]) return ["", null]; const st = Math.min(LV_MAX, lvStand(k).st); return [st >= LV_MAX ? "Vers des Monats gemeistert" : st ? `Stufe ${st} von ${LV_MAX}` : "Neuer Vers wartet", st / LV_MAX * 100]; }
+  if (id === "vers") { const k = monatKey(); if (!MONATSVERSE[k]) return ["", null]; const x = lvStand(k), st = Math.min(LV_MAX, x.st); return [x.b ? "Vers des Monats gemeistert" : st >= LV_MAX ? "Prüfung wartet" : st ? `Stufe ${st} von ${LV_MAX}` : "Neuer Vers wartet", (x.b ? LV_MAX + 1 : st) / (LV_MAX + 1) * 100]; }
   if (id === "lied") { const n = Math.min(8, S.songHeard.length); return [`${n} von 8 Strophen gehört`, n / 8 * 100]; }
   return ["", null];
 }
@@ -1882,7 +1864,7 @@ function zvSpiele() {
   const t = id => { const K = TKETTEN[id], n = Math.min(K.items.length, S[K.key] ? S[K.key] + 1 : 0);
     return { id: "kette-" + id, ic: K.ic, name: K.name, kurz: K.name, sub: n ? `${n} von ${K.items.length}` : "Los geht's!", pct: n / K.items.length * 100, grp: id }; };
   const bp = spielStand("blitz")[1], [vs0, vp] = spielStand("vers"), r = S.bestBlitz | 0;
-  const vs = vs0.startsWith("Neuer") ? "Neuer Vers!" : vs0.startsWith("Vers des") ? "Gemeistert" : vs0;
+  const vs = vs0.startsWith("Neuer") ? "Neuer Vers!" : vs0.startsWith("Vers des") ? "Gemeistert" : vs0.startsWith("Prüfung") ? "Prüfung!" : vs0;
   return [k("bibel"), k("at"), k("nt"), k("rueck"), t("gebote"), t("schoepfung"),
     { id: "blitz", ic: "bolt", name: "Blitz", kurz: "Blitz", sub: r ? `Rekord ${r}` : "Los geht's!", pct: bp, grp: "blitz" },
     { id: "vers", ic: "scroll", name: "Lernvers", kurz: "Lernvers", sub: vs, pct: vp, grp: "vers" }];
@@ -2829,7 +2811,7 @@ function zusammenfuehren(r) {
   if (r.dq && r.dq.day === today() && S.dq && S.dq.day === today()) {
     S.dq.items.forEach((it, k) => { const o = r.dq.items[k]; if (o && o.id === it.id) { it.prog = Math.max(it.prog, o.prog); it.done = it.done || o.done; } }); S.dq.bonus = S.dq.bonus || r.dq.bonus; S.dq.geschafft = S.dq.geschafft || r.dq.geschafft || r.dq.bonus;
   }
-  /* Lernverse: je Monat höchste Stufe, bewahrt bleibt bewahrt */
+  /* Lernverse: je Monat höchste Stufe, gemeistert bleibt gemeistert */
   if (!S.lv) S.lv = {};
   Object.entries(r.lv || {}).forEach(([k, v0]) => { const v = lvMig(v0); if (!v) return; const a = lvMig(S.lv[k]) || { st: 0, b: false };
     const sw = Object.assign({}, v.sw || {}); Object.entries(a.sw || {}).forEach(([i, n]) => { sw[i] = Math.max(sw[i] || 0, n); });
