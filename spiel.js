@@ -86,7 +86,6 @@ async function allesSenden() {
   const L = window.LB; if (!S.lbName || !S.pid || !L || !L.ok || S.offlineOnly) return;
   const auf = [L.push(S.pid, lbPayload(), {}).catch(() => {})];
   if (S.ownersSet && L.saveState) auf.push(L.saveState(S.pid, spielstandExport()).catch(() => {}));
-  try { stiftSenden(); } catch (e) {}
   try { bethSenden(); } catch (e) {}
   if (S.xq && L.xpSetzen) auf.push(L.xpSetzen(S.pid, S.lbName, xqKuerzen(S.xq)).then(() => { S.xqSync = JSON.stringify(S.xq); lsSchreiben(); }).catch(e => xqNachholen(e)));
   auf.push(xqLogLeeren(S.pid, S.lbName, XQ_LOGKEY()));
@@ -918,7 +917,7 @@ function xqZaehlen(n, q) {
    bis zu 20 Tage bzw. 96 Stunden – dann lehnte die Datenbank die XP-Quellen still ab, bis wieder XP vergeben wurden. */
 function xqKuerzen(x) {
   if (!x) return x; x.tag = x.tag || {}; x.std = x.std || {};
-  const tk = Object.keys(x.tag).sort(); while (tk.length > 10) delete x.tag[tk.shift()];
+  const tk = Object.keys(x.tag).sort(); while (tk.length > 7) delete x.tag[tk.shift()]; /* 9.52: 7 Tage */
   const sk = Object.keys(x.std).sort(); while (sk.length > 48) delete x.std[sk.shift()];
   return x;
 }
@@ -1113,6 +1112,7 @@ async function xqNachholen(e) {
 /* 6.85: Beim Start einmal prüfen, ob die Datenbank alles hat, was dieses Gerät gezählt hat – sonst nachholen */
 async function xqStartPruefung() {
   const L = window.LB; if (gesperrt || !L || !L.ok || !L.xpHolen || !S.xq || !S.xq.q || !S.pid || !S.lbName || S.offlineOnly) return;
+  const spK = "bq-xqsp-" + S.pid; try { if (Date.now() - (+localStorage.getItem(spK) || 0) < 6 * 36e5) return; localStorage.setItem(spK, String(Date.now())); } catch (e) {} /* 9.52: höchstens alle 6 Std. */
   let srv = null; try { await L.signIn(); srv = await L.xpHolen(S.pid); } catch (e) { return; }
   // 6.88: Der Verwalter hat einen Abgleich angefordert (für diesen Spieler oder alle) – einmal je Anforderung ausführen
   try {
@@ -1491,7 +1491,7 @@ function go(name, arg) {
 const SONNE_STRAHLEN = [0, 1, 2, 3, 4, 5, 6, 7].map(k => `<path d="M50 8 L55 27 L45 27 Z" transform="rotate(${k * 45} 50 50)"/><path d="M50 14 L53.5 27 L46.5 27 Z" transform="rotate(${k * 45 + 22.5} 50 50)"/>`).join("");
 ICONS.sun = `<g class="wr" transform="scale(.24)"><defs><radialGradient id="snM" cx=".4" cy=".3" r=".8"><stop offset="0" stop-color="#3a4ca8"/><stop offset=".6" stop-color="#1b2250"/><stop offset="1" stop-color="#0e1226"/></radialGradient><linearGradient id="snG" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#fff7d6"/><stop offset=".45" stop-color="#f2c14e"/><stop offset="1" stop-color="#b9821f"/></linearGradient><radialGradient id="snD" cx=".38" cy=".32" r=".8"><stop offset="0" stop-color="#ffffff"/><stop offset=".35" stop-color="#fff0bf"/><stop offset=".75" stop-color="#f2c14e"/><stop offset="1" stop-color="#b9821f"/></radialGradient></defs><circle cx="50" cy="50" r="47" fill="url(#snM)" stroke="url(#snG)" stroke-width="2.5"/><g fill="url(#snG)" stroke="#0e1226" stroke-width=".6" stroke-linejoin="round">${SONNE_STRAHLEN}</g><circle cx="50" cy="50" r="23" fill="url(#snD)" stroke="#8a5d12" stroke-width="1"/><ellipse cx="43" cy="41" rx="8" ry="4.5" fill="#fff" opacity=".45" transform="rotate(-30 43 41)"/></g>`;
 const TABS = [["home", "Start", "sun"], ["lernen", "Lektionen", "book"], ["spielen", "Solo", "user"], ["bib", "Biblionär", "biblionaer"], ["duelle", "Arena", "arena"], ["rank", "Rangliste", "trophy"]]; /* 9.14: Arena + Biblionär statt „Zusammen“ (VIEWS.zusammen bleibt im Code, ist aber nicht mehr im Menü) */
-const TAB_VON = { stift: "rank", advent: "home", beth: "home", kal: "home", duell: "duelle", zusammen: "duelle", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen", biblionaer: "bib",
+const TAB_VON = { advent: "home", beth: "home", kal: "home", duell: "duelle", zusammen: "duelle", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen", biblionaer: "bib",
   bib: "bib", gemverwaltung: "", gegner: "duelle", duelle: "duelle", rank: "rank", shop: "rank", ich: "", profil: "", stat: "", errung: "", badges: "", wer: "", postfach: "", neuigkeiten: "", nachrichten: "" };
 /* rote Zahl am Duell-Reiter: wartende Herausforderungen */
 function tbDuSetzen() { let a = 0, b = 0; try { a = duFuerMich().length; b = duFuerBib().length; } catch (e) {} [["tbDu", a], ["tbBib", b]].forEach(([id, n]) => { const t = $(id); if (!t) return; t.hidden = !n; t.textContent = n; }); }
@@ -2711,7 +2711,6 @@ function lbSync(now) {
   if (!S.pid) S.pid = neuePid();
   clearTimeout(lbTimer);
   lbTimer = setTimeout(() => {
-    try { stiftSenden(); } catch (e) {} /* 6.68: noch nicht gesendete Spenden */
     try { bethSenden(); } catch (e) {} /* 7.3: Weg nach Bethlehem */
     try { xqSenden(); } catch (e) {} /* 6.73: XP-Quellen */
     try { talSenden(); } catch (e) {} /* 6.95: Talente-Zählung */
@@ -2890,7 +2889,8 @@ function beitrittFehler(e, nochmal) {
 async function lbStart() {
   const L = window.LB; if (!L || !L.ok || !L.uid) return;
   feedbackNachsenden(); entwicklerPruefen();
-  if (S.lbName && S.pid && !S.menschenfischer && L.invitees) {
+  if (S.lbName && S.pid && !S.menschenfischer && L.invitees && S.invTag !== today()) { /* 9.52: einmal am Tag */
+    S.invTag = today();
     L.invitees(S.pid).then(rows => {
       rows = rows.filter(r => r.id !== S.pid); let neu = false;
       if (!S.fischerDabei && rows.some(r => (Array.isArray(r.tl) && r.tl.length >= 1) || (r.xp || 0) > 0)) { S.fischerDabei = true; neu = true; }
@@ -2921,11 +2921,12 @@ async function lbStart() {
     if (S.lbName && !S.pid) { await offlineNamePruefen(); return; }
     if (S.lbName) {
       /* 6.64: Gerät hat eine neue Kennung und steht nicht mehr in der Geräteliste → still neu verbinden (vor dem Laden) */
-      if (S.ownersSet && S.pid !== L.uid && L.holeSpieler) { const e0 = await L.holeSpieler(S.pid).catch(() => null);
+      let e0 = null; /* 9.52: Eintrag nur einmal lesen und unten wiederverwenden */
+      if (S.ownersSet && S.pid !== L.uid && L.holeSpieler) { e0 = await L.holeSpieler(S.pid).catch(() => null);
         if (e0 && !e0.zu && Array.isArray(e0.owners) && !e0.owners.includes(L.uid)) await geraetNeuVerbinden(""); }
       if (S.ownersSet || S.pid !== L.uid) { const r = await L.loadState(S.pid).catch(() => null); if (r) { zusammenfuehren(r); save(); renderHud(); } }
       /* Höhere Werte aus dem eigenen Ranglisten-Eintrag übernehmen (z. B. nach automatischem Zusammenführen) */
-      if (L.holeSpieler) { const e = await L.holeSpieler(S.pid).catch(() => null);
+      if (L.holeSpieler) { const e = e0 && !(e0.owners && !e0.owners.includes(L.uid)) ? e0 : await L.holeSpieler(S.pid).catch(() => null);
         if (e && !e.zu && (e.xp || 0) > S.xp) { zusammenfuehren(ausRangliste(e)); save(); renderHud(); }
         /* Duell-Zahlen aus der Rangliste nie nach unten überschreiben (z. B. vom Verwalter nachgetragen) */
         else if (e && !e.zu && ((e.duS | 0) > (S.duSiege | 0) || (e.duG | 0) > (S.duSpiele | 0))) { S.duSiege = Math.max(S.duSiege | 0, e.duS | 0); S.duSpiele = Math.max(S.duSpiele | 0, e.duG | 0); save(); } }
@@ -2937,8 +2938,6 @@ async function lbStart() {
         if (["spielen", "duelle", "home"].includes(current) && !document.querySelector(".modal") && !duSpiel) go(current);
       });
       bibSiegerPruefen();
-      /* 6.68: Stiftshütte – offene Spenden senden, fertige Abschnitte feiern */
-      stiftSenden(); stiftLaden().then(() => { if (["home", "rank", "stift"].includes(current)) setTimeout(stiftFeiern, 1500); });
       /* 7.3: Advent – Gaben senden, Stationen feiern, Willkommen */
       bethSenden(); bethLaden().then(() => { if (["home", "advent", "beth"].includes(current)) setTimeout(() => { bethFeiern(); adventStartHinweis(); }, 1500); });
     }
@@ -2981,7 +2980,7 @@ async function offlineNamePruefen() {
 }
 let letzterAbgleich = 0;
 document.addEventListener("visibilitychange", async () => {
-  if (document.visibilityState !== "visible" || Date.now() - letzterAbgleich < 30000) return;
+  if (document.visibilityState !== "visible" || Date.now() - letzterAbgleich < 10 * 60000) return; /* 9.52: 10 Min. statt 30 s */
   letzterAbgleich = Date.now(); const L = window.LB;
   if (L && L.ok && S.lbName && S.pid && S.ownersSet) { try { const r = await L.loadState(S.pid); if (r) { zusammenfuehren(r); save(); renderHud(); if (current === "home") go("home"); } } catch (e) {} }
 });
@@ -3039,7 +3038,7 @@ function gemLogoHtml(g, px = 40) {
 /* lädt Gemeinden + Zuordnungen; true, wenn sich etwas geändert hat. Fehlende Regeln/offline: Standard bleibt */
 async function gemLaden(neu) {
   const L = window.LB; if (!L || !L.ok || !L.gemListe) return false;
-  if (gemGeladen && !neu && Date.now() - gemZeit < 600000) return false; /* 9.30: nach 10 Minuten neu holen, damit Beitritte/Freischaltungen in langen Sitzungen ankommen */
+  if (gemGeladen && !neu && Date.now() - gemZeit < 3600000) return false; /* 9.52: 60 Minuten (Lesekontingent) */ /* 9.30: nach 10 Minuten neu holen, damit Beitritte/Freischaltungen in langen Sitzungen ankommen */
   try {
     const [g, m] = await Promise.all([L.gemListe(!!neu), L.mitgliedListe(!!neu)]);
     const liste = g.filter(x => x.name).sort((a, b) => (a.ord | 0) - (b.ord | 0) || String(a.name).localeCompare(String(b.name), "de"));
@@ -3265,7 +3264,7 @@ VIEWS.gemprotokoll = () => {
   };
   $("glSuche").oninput = e => { gemLogSuche = e.target.value; zeichne(); };
   $("glFilter").querySelectorAll("[data-f]").forEach(b => b.onclick = () => { SFX.tap(); gemLogFilter = b.dataset.f; zeichne(); });
-  Promise.all([gemLaden(true), L.gemProtokoll(500)]).then(([, l]) => { if (current !== "gemprotokoll") return; liste = l; zeichne(); })
+  Promise.all([gemLaden(true), L.gemProtokoll(200)]).then(([, l]) => { if (current !== "gemprotokoll") return; liste = l; zeichne(); })
     .catch(() => { if ($("glBox")) $("glBox").innerHTML = `<p class="muted">Das Protokoll konnte nicht geladen werden (Firebase-Regeln von 9.28 eingespielt?).</p>`; });
   wireGo();
 };
@@ -3304,7 +3303,8 @@ function dlgBlasen(liste, ichBin) {
 /* Spieler: Gespräch laden; bei neuer Nachricht vom Entwickler ein Fenster zeigen (nur auf ruhigen Hauptseiten) */
 function dlgPruefen() {
   const L = window.LB; if (!S.lbName || !S.pid || !S.ownersSet || !L || !L.ok || !L.dialogHolen || gesperrt) return;
-  if (Date.now() - dlgGezeigt < 5 * 60000 && DLG) return; dlgGezeigt = Date.now();
+  const dk = "bq-dlg-" + S.pid; let dz = 0; try { dz = +localStorage.getItem(dk) || 0; } catch (e) {}
+  if (Date.now() - Math.max(dlgGezeigt, dz) < 30 * 60000) return; dlgGezeigt = Date.now(); try { localStorage.setItem(dk, String(dlgGezeigt)); } catch (e) {} /* 9.52: 30 Min. */
   L.dialogHolen(S.pid).then(l => {
     DLG = l; const n = dlgNeuSpieler(); if (!n) return;
     if (!["home", "lernen", "spielen", "zusammen", "rank"].includes(current) || document.querySelector(".modal") || document.body.classList.contains("spiel-laeuft")) return;
@@ -3368,7 +3368,7 @@ const nachUngelesen = () => (NACH || []).filter(n => nachSichtbar(n) && !(S.nach
 async function nachLaden(erzwingen) {
   const L = window.LB; if (!L || !L.ok || !L.nachrichtenListe) return NACH;
   if (!erzwingen && NACH && Date.now() - nachGeladen < 10 * 60000) return NACH;
-  try { NACH = (await L.nachrichtenListe()).filter(n => n.titel && n.text); nachGeladen = Date.now(); } catch (e) {}
+  try { NACH = (await L.nachrichtenListe(erzwingen === "frisch")).filter(n => n.titel && n.text); nachGeladen = Date.now(); } catch (e) {}
   return NACH;
 }
 function nachGelesen(liste) { S.nachGel = ((S.nachGel || []).concat(liste.map(n => n.id).filter(id => !(S.nachGel || []).includes(id)))).slice(-60); save(); }
@@ -3411,7 +3411,7 @@ VIEWS.nachrichten = () => {
   screen.querySelectorAll("[data-art]").forEach(b => b.onclick = () => { SFX.tap(); art = b.dataset.art; screen.querySelectorAll("[data-art]").forEach(x => x.setAttribute("aria-pressed", x === b));
     const t = $("nTitel"); if (art === "patch" && !t.value.trim()) t.value = "Neu in Version " + APP_VERSION; if (art === "info" && /^Neu in Version/.test(t.value)) t.value = ""; });
   $("nText").oninput = () => { $("nZahl").textContent = `${$("nText").value.length} / 2000 Zeichen`; };
-  const liste = () => nachLaden(true).then(() => { if (current !== "nachrichten") return; const l = NACH || [];
+  const liste = () => nachLaden("frisch").then(() => { if (current !== "nachrichten") return; const l = NACH || [];
     $("nListe").innerHTML = l.length ? l.map(n => `<div class="card stack">${nachKarte(n, false)}<div class="topline"><span class="small muted">An: ${esc(n.g === "alle" ? "Alle Spieler" : n.g === "gast" ? "Nur Gäste" : gemName(n.g))}</span><button class="btn ghost mini" data-del="${esc(n.id)}">Löschen</button></div></div>`).join("") : `<p class="muted small">Noch nichts gesendet.</p>`;
     screen.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { SFX.tap(); L.nachrichtLoeschen(b.dataset.del).then(() => { NACH = null; liste(); }).catch(() => toast(`${svg("nein")}<div>Löschen hat nicht geklappt.</div>`)); }); });
   liste(); gemLaden().then(ch => { if (ch && current === "nachrichten") { const sel = $("nEmpf"), v = sel.value; sel.innerHTML = [["alle", "Alle Spieler"]].concat(GEM.map(g => [g.id, g.name])).concat([["gast", "Nur Gäste"]]).map(([k, n]) => `<option value="${esc(k)}">${esc(n)}</option>`).join(""); sel.value = v; } });
@@ -3462,8 +3462,7 @@ VIEWS.rank = (tab) => {
   const L = window.LB;
   /* 6.58: Kopf im Arena-Stil – Ring = eigener Platz in der gewählten Liste, Tafel Level/Abzeichen/Spieler (nach dem Laden nachgetragen) */
   let html = bereichKopf("gemeinde", { ic: "trophy", t: "Rangliste", sub: meineGem() === "gast" ? "Alle Spieler" : gemName(meineGem()), ring: ["–", "Platz"], ringId: "bkPlatz",
-    tafel: [[levelOf(S.xp), "Level"], [`${S.badges.length}`, "Abzeichen"], ["–", "Spieler", "bkSpieler"]] }) + `<div id="shMiniBox">${stiftMiniHtml() || adventMiniHtml()}</div>` + bkLabel("trophy", "Ranglisten");
-  stiftLaden().then(() => { const b = $("shMiniBox"); if (b && current === "rank") { b.innerHTML = stiftMiniHtml() || adventMiniHtml(); wireGo(); } });
+    tafel: [[levelOf(S.xp), "Level"], [`${S.badges.length}`, "Abzeichen"], ["–", "Spieler", "bkSpieler"]] }) + `<div id="shMiniBox">${adventMiniHtml()}</div>` + bkLabel("trophy", "Ranglisten");
   if (!L) { screen.innerHTML = html + `<div class="card"><p class="muted" style="margin:0">Rangliste wird geladen …</p></div>`; wireGo(); return; }
   if (!L.configured) { screen.innerHTML = html + `<div class="card stack"><b>Noch nicht eingerichtet</b><p class="muted small" style="margin:0">Die Rangliste braucht einen gemeinsamen Online-Speicher. Bis dahin kannst du ganz normal spielen – dein Fortschritt wird später übernommen.</p></div>`; wireGo(); return; }
   if (!L.ok) { screen.innerHTML = html + `<div class="card stack"><b>Keine Verbindung</b><p class="muted small" style="margin:0">Für die Rangliste brauchst du Internet. Deine Punkte werden übertragen, sobald du wieder online bist.</p><button class="btn" id="retry">Neu laden</button></div>`; wireGo(); $("retry").onclick = () => location.reload(); return; }
@@ -5116,6 +5115,7 @@ async function entwicklerPruefen() {
     if (!entwickler) { renderHud(); return; }
     await doppelteZusammenfuehren();
     await statusBerichte();
+    leseWarnung().catch(() => {}); /* 9.52 */
     await xpBerichte();
     const liste = await L.feedbackListe(); postfachNeu = liste.filter(pkIstNeu).length;
     try { antragOffen = L.antragListe ? (await L.antragListe()).filter(a => a.status === "offen").length : 0; } catch (e) { antragOffen = 0; }
@@ -5159,6 +5159,37 @@ let postfachFilter = "neu", pkSuche = "", pkAuswahl = false, pkSuchOffen = false
    Ampel: grün = nichts Offenes, orange = offene Hinweise im Postkasten, grau = noch nicht geprüft. Der Punkt erscheint auch am Postkasten-Symbol. */
 const pkIstXp = f => /^XP-Prüfung:/.test(f.text || "");
 const pkIstDup = f => pkKat(f) === "datenbank" && /^(Bitte prüfen: „|Automatisch zusammengeführt: „|„.+“ konnte nicht zusammengeführt)/.test(f.text || "");
+/* ---------- 9.52: Budgetwarnung (Firebase Spark: 50.000 Lesezugriffe am Tag, danach liefert die Datenbank nichts mehr bis ca. 9 Uhr) ----------
+   Jedes Gerät zählt seine Lesezugriffe und meldet sie gesammelt an lesezaehler/<Tag> (siehe leaderboard.js). Der Verwalter sieht die Summe
+   im Postkasten (Zeile „Datenbank heute“) und bekommt ab 60 % einen Hinweis, ab 85 % eine Warnung (Fenster + Eintrag im Postkasten).
+   Nicht mitgezählt: Geräte mit alter App-Version und die Firebase-Konsole – der echte Wert kann höher sein. */
+const LESE_LIMIT = 50000, LESE_HINWEIS = 0.6, LESE_WARNUNG = 0.85;
+let LESE_STAND = null;
+const leseAmpel = n => n >= LESE_LIMIT * LESE_WARNUNG ? "rot" : n >= LESE_LIMIT * LESE_HINWEIS ? "orange" : "gruen";
+const leseText = n => `ca. ${pkt(n)} von ${pkt(LESE_LIMIT)} Lesezugriffen (${Math.round(n / LESE_LIMIT * 100)} %)`;
+async function leseWarnung() {
+  const L = window.LB; if (!entwickler || !L || !L.ok || !L.leseGesamt) return null;
+  try { if (L.leseMelden) await L.leseMelden(true); } catch (e) {}
+  const n = await L.leseGesamt(); LESE_STAND = { n, z: Date.now(), ich: L.leseHeute ? L.leseHeute() : 0 };
+  const stufe = n >= LESE_LIMIT * LESE_WARNUNG ? "warnung" : n >= LESE_LIMIT * LESE_HINWEIS ? "hinweis" : "";
+  if (stufe) {
+    const tag = L.leseTag ? L.leseTag() : today(), k = "bq-lesew-" + tag + "-" + stufe; let schon = false; try { schon = localStorage.getItem(k) === "1"; localStorage.setItem(k, "1"); } catch (e) {}
+    if (!schon) {
+      postkastenMelden("datenbank", `Budgetwarnung: Heute schon ${leseText(n)} im kostenlosen Firebase-Tarif. Ab 50.000 liefert die Datenbank bis ca. 9 Uhr nichts mehr (Duelle, Rangliste, Speichern).`, "lese-" + tag + "-" + stufe);
+      toast(`${svg("netz")}<div><b>${stufe === "warnung" ? "Budgetwarnung" : "Hinweis Datenbank"}</b><div class="small muted">Heute schon ${leseText(n)}.</div></div>`);
+    }
+  }
+  return n;
+}
+function leseInfo() {
+  const st = LESE_STAND, n = st ? st.n : 0;
+  modal(`<div class="label">Datenbank heute</div><h2 style="margin:0">${st ? pkt(n) + " Lesezugriffe" : "Noch nicht geprüft"}</h2>
+    <div class="sh-balken"><i style="width:${Math.min(100, n / LESE_LIMIT * 100)}%"></i></div>
+    <p class="muted small" style="margin:0">Kostenlos sind ${pkt(LESE_LIMIT)} am Tag (neuer Tag um ca. 9 Uhr). Hinweis ab ${Math.round(LESE_HINWEIS * 100)} %, Warnung ab ${Math.round(LESE_WARNUNG * 100)} %.
+    Gezählt wird von allen Geräten mit App-Version 9.52 oder neuer; die Firebase-Konsole und alte App-Versionen fehlen, der echte Wert kann also höher sein.${st ? ` Dieses Gerät: ${pkt(st.ich)}.` : ""}</p>
+    <button class="btn primary" data-close>OK</button>`);
+}
+setInterval(() => { if (entwickler) leseWarnung().catch(() => {}); }, 30 * 60000); /* 9.52: während die App offen ist, alle 30 Min. */
 const pkDatum = z => z ? new Date(z).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
 VIEWS.postfach = (kat) => {
   const L = window.LB; if (kat && PK_KAT.some(k => k[0] === kat)) pkKategorie = kat;
@@ -5168,7 +5199,7 @@ VIEWS.postfach = (kat) => {
   screen.innerHTML = `${backBtn("home", "Start")}<div class="pk-kopf"><h1>Postkasten</h1><span class="pk-ikonen">
     <button class="iconbtn" id="pkLupe" aria-label="Suchen" aria-pressed="${pkSuchOffen}"><span aria-hidden="true">🔍</span></button>
     <button class="iconbtn" id="pkWahl" aria-label="Auswählen" aria-pressed="${pkAuswahl}">☑</button></span></div>
-  <div class="pk-pins" aria-label="Prüfungen">${zeile("pkXp", "medal", "XP-Prüfung", xpTag, 'data-go="xppruefung"')}${zeile("pkDup", "people", "Doppelte Namen", dupTag, 'id2="x"')}<button class="pk-pin" id="pkAnt" data-go="antraege"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("people")} Beitrittsanträge</b><span class="small muted" data-pkinfo>${antragOffen ? antragOffen + " offen" : "Freischaltung für neue Mitglieder"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkDlg" data-go="dialoge"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("chat")} Gespräche mit Spielern</b><span class="small muted" data-pkinfo>${dlgNeuDev() ? dlgNeuDev() + " neue Antwort" + (dlgNeuDev() === 1 ? "" : "en") : "Einzelne Spieler anschreiben"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGemLog" data-go="gemprotokoll"><span class="pk-pt"><b>${svg("scroll")} Gemeinde-Protokoll</b><span class="small muted">Wer wann beigetreten oder ausgetreten ist</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGem" data-go="gemverwaltung"><span class="pk-pt"><b>${svg("people")} Gemeinden</b><span class="small muted">Gemeinden anlegen, Spieler zuordnen</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkTal" data-go="talente"><span class="pk-pt"><b>${svg("tal")} Talente-Planung</b><span class="small muted">Guthaben, Ø pro Tag, Spenden-Prognose</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkNach" data-go="nachrichten"><span class="pk-pt"><b>${svg("chat")} Nachricht an Spieler</b><span class="small muted">Patchnotes und Mitteilungen senden</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button></div>
+  <div class="pk-pins" aria-label="Prüfungen"><button class="pk-pin" id="pkLese" data-ampel="${LESE_STAND ? leseAmpel(LESE_STAND.n) : "grau"}"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("netz")} Datenbank heute</b><span class="small muted" data-pkinfo>${LESE_STAND ? leseText(LESE_STAND.n) : "wird geprüft …"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button>${zeile("pkXp", "medal", "XP-Prüfung", xpTag, 'data-go="xppruefung"')}${zeile("pkDup", "people", "Doppelte Namen", dupTag, 'id2="x"')}<button class="pk-pin" id="pkAnt" data-go="antraege"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("people")} Beitrittsanträge</b><span class="small muted" data-pkinfo>${antragOffen ? antragOffen + " offen" : "Freischaltung für neue Mitglieder"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkDlg" data-go="dialoge"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("chat")} Gespräche mit Spielern</b><span class="small muted" data-pkinfo>${dlgNeuDev() ? dlgNeuDev() + " neue Antwort" + (dlgNeuDev() === 1 ? "" : "en") : "Einzelne Spieler anschreiben"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGemLog" data-go="gemprotokoll"><span class="pk-pt"><b>${svg("scroll")} Gemeinde-Protokoll</b><span class="small muted">Wer wann beigetreten oder ausgetreten ist</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGem" data-go="gemverwaltung"><span class="pk-pt"><b>${svg("people")} Gemeinden</b><span class="small muted">Gemeinden anlegen, Spieler zuordnen</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkTal" data-go="talente"><span class="pk-pt"><b>${svg("tal")} Talente-Planung</b><span class="small muted">Guthaben und Ø pro Tag je Spieler</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkNach" data-go="nachrichten"><span class="pk-pt"><b>${svg("chat")} Nachricht an Spieler</b><span class="small muted">Patchnotes und Mitteilungen senden</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button></div>
   <div class="card rk-liste" style="margin-top:10px">
     <div class="pk-suchzeile" ${pkSuchOffen ? "" : "hidden"}><input type="search" id="pkSuche" placeholder="Suchen (Text, Name, Version)" value="${esc(pkSuche)}" aria-label="Post durchsuchen" autocomplete="off"></div>
     <div class="pk-filter"><div class="rk-var" role="group" aria-label="Filter">${[["neu", "Neu"], ["todo", "ToDo"], ["alle", "Alle"], ["erledigt", "Erledigt"]].map(([k, n]) => `<button data-pf="${k}" aria-pressed="${k === postfachFilter}">${n}<i class="pk-n" data-pfn="${k}"></i></button>`).join("")}</div>
@@ -5189,6 +5220,8 @@ VIEWS.postfach = (kat) => {
     } catch (e) { modal(`<h2>Prüfung fehlgeschlagen</h2><p class="muted small">${esc((e && e.code) || "")} ${esc(String((e && e.message) || e).slice(0, 200))}</p><button class="btn primary" data-close>OK</button>`, () => go("postfach")); }
   };
   $("pkDup").onclick = dupLauf;
+  $("pkLese").onclick = () => { SFX.tap(); leseInfo(); };
+  if (!LESE_STAND || Date.now() - LESE_STAND.z > 10 * 60000) leseWarnung().then(n => { if (n != null && current === "postfach") ampel("pkLese", leseAmpel(n), leseText(n)); }).catch(() => {});
   if (!entwickler || !L || !L.ok) { $("pfListe").innerHTML = `<p class="muted">Der Postkasten braucht Internet.</p>`; return; }
   let liste = [];
   const passt = f => (pkKategorie === "alle" || pkKat(f) === pkKategorie) && (!pkSuche.trim() || [f.text, f.name, f.ver, f.geraet, f.art].some(s => String(s || "").toLowerCase().includes(pkSuche.trim().toLowerCase())));
@@ -5354,10 +5387,10 @@ async function xpPruefDaten(opt) {
   liste.evOk = ev !== null; return liste;
 }
 async function xpBerichte() {
-  const L = window.LB; if (!entwickler || !L || !L.xpListe || !L.alleSpieler || Date.now() - (S.xpPruefZ | 0) < 3 * 36e5) return;
+  const L = window.LB; if (!entwickler || !L || !L.xpListe || !L.alleSpieler || Date.now() - (+S.xpPruefZ || 0) < 24 * 36e5) return; /* 9.52: einmal am Tag */
   try {
     /* Hintergrundprüfung liest nur Einträge seit der letzten Prüfung (nicht jedes Mal alle 7 Tage) – schont das tägliche Lese-Kontingent */
-    const z = await xpPruefDaten({ seit: Math.max(Date.now() - 7 * 864e5, (S.xpPruefZ | 0) - 6e5), limit: 1500 });
+    const z = await xpPruefDaten({ seit: Math.max(Date.now() - 7 * 864e5, (+S.xpPruefZ || 0) - 6e5), limit: 600 });
     for (const r of z) { const h = r.flags.filter(f => f.hart); if (h.length) await postkastenMelden("datenbank", `XP-Prüfung: ${r.name} (${r.xp.toLocaleString("de-DE")} XP) – ${h.map(f => f.t).join("; ")}. Details: Postkasten → XP-Prüfung.`, "xp-" + r.id + "-" + today() + "-" + String(hash(h.map(f => f.t).join("|")))); }
     S.xpSeen = {}; z.forEach(r => { if (r.hat) S.xpSeen[r.id] = { xp: r.xp, sum: r.summe, z: Date.now() }; });
     S.xpPruef = today(); S.xpPruefZ = Date.now(); save();
@@ -5405,7 +5438,7 @@ function xqLueckeHtml(a) {
 const XQ_ZIEL_MIN = { solo: 150, duell: 225 };
 /* 7.0: Zeitraum-Umschalter für „Gemeinde gesamt“ und jeden Spieler (je eigener Schalter, Standard Heute). Heute/7 Tage/30 Tage werden aus dem
    Einzelprotokoll (r.ev, bis 30 Tage / 4000 Einträge) berechnet, „Gesamt“ ist die bisherige Ansicht aus der Zählung (inkl. Anfangsbestand und „ohne Quelle“). */
-const XQ_ZEIT = { heute: "Heute", woche: "7 Tage", monat: "30 Tage", gesamt: "Gesamt" };
+const XQ_ZEIT = { heute: "Heute", woche: "7 Tage", gesamt: "Gesamt" };
 const xqZModus = k => { const m = (window.__xqZ || {})[k]; return XQ_ZEIT[m] ? m : "heute"; };
 const xqZSeg = k => { const m = xqZModus(k); return `<div class="seg xq-evseg" role="tablist" aria-label="Zeitraum" style="grid-template-columns:repeat(4,1fr)">${Object.entries(XQ_ZEIT).map(([v, t]) => `<button type="button" role="tab" data-zk="${esc(k)}" data-zm="${v}" aria-selected="${v === m}">${t}</button>`).join("")}</div>`; };
 function xqZPeriode(evs, modus) {
@@ -5452,7 +5485,7 @@ function xqZVerdrahten(z, ohne) {
   });
 }
 function xqTagStart() { const t = new Date(); t.setHours(0, 0, 0, 0); return t.getTime(); }
-const XQ_RATE_ZEIT = { heute: "Heute", woche: "7 Tage", monat: "30 Tage" };
+const XQ_RATE_ZEIT = { heute: "Heute", woche: "7 Tage" };
 function xqRateInnen(z) {
   const modus = XQ_RATE_ZEIT[window.__xqRateModus] ? window.__xqRateModus : "heute", seit = modus === "heute" ? xqTagStart() : Date.now() - (modus === "woche" ? 7 : 30) * 864e5;
   const g = {};
@@ -5463,7 +5496,7 @@ function xqRateInnen(z) {
   const zeilen = ALLE.map(q => { const o = g[q]; return { q, n: o ? o.n : 0, s: o ? o.s : 0, r: o ? o.x / (o.s / 60) : null }; });
   const seg = `<div class="seg xq-evseg" role="tablist" aria-label="Zeitraum" style="grid-template-columns:repeat(3,1fr)">${Object.entries(XQ_RATE_ZEIT).map(([k, t]) => `<button type="button" role="tab" data-ratem="${k}" aria-selected="${k === modus}">${t}</button>`).join("")}</div>`;
   const kopf = `<div class="topline"><b>XP pro Minute</b><span class="small muted">Ziel ${XQ_ZIEL_MIN.solo} (Duell ${XQ_ZIEL_MIN.duell})</span></div>${seg}`;
-  if (!zeilen.some(t => t.n)) return `${kopf}<div class="small muted">${modus === "heute" ? "Heute" : modus === "woche" ? "In den letzten 7 Tagen" : "In den letzten 30 Tagen"} gibt es noch keine Messwerte. Sie erscheinen, sobald Spieler die Version 6.79 oder neuer nutzen und das Protokoll lesbar ist.</div>`;
+  if (!zeilen.some(t => t.n)) return `${kopf}<div class="small muted">${modus === "heute" ? "Heute" : "In den letzten 7 Tagen"} gibt es noch keine Messwerte. Sie erscheinen, sobald Spieler die Version 6.79 oder neuer nutzen und das Protokoll lesbar ist.</div>`;
   const dauer = sek => sek >= 120 ? Math.round(sek / 60) + " Min" : Math.round(sek) + " s";
   const mit = zeilen.filter(t => t.r != null).sort((a, b) => b.r - a.r), ohne = zeilen.filter(t => t.r == null);
   return `${kopf}${mit.map(t => {
@@ -5486,13 +5519,9 @@ function talAuswerten(tz, stift) {
     return { pid: r.pid, name: r.name || "?", tal: r.tal | 0, v: r.v | 0, a: r.a | 0, p: gesp.get(r.pid) | 0, s, spiel, proSpiel: spiel ? summe(ab, n) / spiel : null, pro7: summe(n - 6, n) / tage7, tage7, stand: xqMs(r.updated) };
   });
 }
-function talPrognose(z, stift) {
-  const sum = STIFT.map(() => 0); (stift || []).forEach(r => { for (let k = 1; k <= 8; k++) sum[k - 1] += (r.s || {})[k] | 0; });
-  let k = 0; while (k < 8 && sum[k] >= STIFT[k].ziel) k++;
-  const rest = k < 8 ? STIFT[k].ziel - sum[k] : 0, restAlle = STIFT.reduce((a, x, i) => i >= k ? a + Math.max(0, x.ziel - sum[i]) : a, 0);
-  const guth = z.reduce((a, r) => a + r.tal, 0), fluss = z.reduce((a, r) => a + r.pro7, 0), gespendet = sum.reduce((a, v) => a + v, 0);
-  const tage = (need, q) => { const vorrat = guth * q, f = fluss * q; return need <= vorrat ? 0 : f > 0 ? Math.ceil((need - vorrat) / f) : null; };
-  return { k, rest, restAlle, guth, fluss, gespendet, tage, sum };
+function talPrognose(z) {
+  const guth = z.reduce((a, r) => a + r.tal, 0), fluss = z.reduce((a, r) => a + r.pro7, 0);
+  return { guth, fluss };
 }
 VIEWS.talente = () => {
   const L = window.LB;
@@ -5501,30 +5530,15 @@ VIEWS.talente = () => {
   <div class="stack" id="talListe"><p class="muted small">Lade …</p></div>`;
   wireGo();
   if (!entwickler || !L || !L.ok || !L.talListe) { $("talListe").innerHTML = `<p class="muted">Die Talente-Planung braucht Internet und Verwalter-Rechte.</p>`; return; }
-  Promise.all([L.talListe(), L.stiftListe ? L.stiftListe() : Promise.resolve([]), L.alleSpieler ? L.alleSpieler() : Promise.resolve([])]).then(([tz, stift, sp]) => {
-    const z = talAuswerten(tz, stift).sort((a, b) => b.tal - a.tal), pr = talPrognose(z, stift), hat = new Set(z.map(r => r.pid));
+  Promise.all([L.talListe(), L.alleSpieler ? L.alleSpieler() : Promise.resolve([])]).then(([tz, sp]) => {
+    const z = talAuswerten(tz, []).sort((a, b) => b.tal - a.tal), pr = talPrognose(z), hat = new Set(z.map(r => r.pid));
     const ohne = (sp || []).filter(r => r.name && !hat.has(r.id)).map(r => r.name).sort((a, b) => a.localeCompare(b, "de"));
-    const st = pr.k < 8 ? STIFT[pr.k] : null, ziel = STIFT.reduce((a, x) => a + x.ziel, 0);
     const kachel = (zahl, text) => `<div class="tp-k"><b>${zahl}</b><span>${text}</span></div>`;
-    const kopf = `<div class="tp-kacheln">${kachel(pkt(pr.guth), "Guthaben")}${kachel(talZ1(pr.fluss) + "/Tag", "Zufluss · Ø 7 Tage")}${kachel(pkt(pr.gespendet), "gespendet von " + pkt(ziel))}</div>`;
-    /* Prognose je Abschnitt: voraussichtlicher Tag, an dem der Abschnitt voll ist. Die Abschnitte werden nacheinander gefüllt, deshalb zählt der Bedarf
-       aller Abschnitte bis dahin (noch fehlende Talente). Frühestens am Montag, an dem der Abschnitt öffnet; das Guthaben darf vorher gespart werden. */
-    const heute = dayNum(today()), jahr = new Date().getFullYear(), q3 = [1, 0.5, 0.25];
-    const dat = tag => { const d = datumVon(tag); return d.toLocaleDateString("de-DE", d.getFullYear() === jahr ? { day: "numeric", month: "numeric" } : { day: "numeric", month: "numeric", year: "2-digit" }); };
-    let cum = 0;
-    const abschnitte = STIFT.map((a, i) => {
-      const rest = Math.max(0, a.ziel - pr.sum[i]), offen = dayNum(STIFT_START) + 7 * i; cum += rest;
-      const zelle = q => { if (!rest) return "✓"; const t = pr.tage(cum, q); return t === null ? "–" : dat(Math.max(heute + t, offen)); };
-      return `<div class="tp-s"><div class="tp-zeile"><b>${i + 1}. ${esc(a.kurz)}</b>${q3.map(q => `<span>${zelle(q)}</span>`).join("")}</div>
-        <div class="tp-d">Ziel ${pkt(a.ziel)} · ${rest ? "noch " + pkt(rest) : "voll"} · öffnet ${esc(dat(offen))}${i === pr.k ? " · jetzt offen" : ""}</div></div>`;
-    }).join("");
-    const prog = `<div class="card tp-prog"><div class="topline"><b>Prognose je Abschnitt</b><span class="small muted">≈ ${pkt(Math.round(pr.fluss * 7))} pro Woche</span></div>
-      <div class="tp-zeile tp-zk"><span>Voll am</span>${q3.map(q => `<span>${Math.round(q * 100)} %</span>`).join("")}</div>${abschnitte}
-      <div class="small muted" style="margin-top:4px">${pr.restAlle ? `Bis zur Bundeslade fehlen noch ${pkt(pr.restAlle)} Talente.` : "Alle Abschnitte sind erreicht."}</div></div>`;
+    const kopf = `<div class="tp-kacheln">${kachel(pkt(pr.guth), "Guthaben")}${kachel(talZ1(pr.fluss) + "/Tag", "Zufluss · Ø 7 Tage")}</div>`;
     const zeile = r => `<div class="tp-s"><div class="tp-zeile"><b>${esc(r.name)}</b><span>${pkt(r.tal)}</span><span>${r.proSpiel === null ? "–" : talZ1(r.proSpiel)}</span><span>${talZ1(r.pro7)}</span></div>
       <div class="tp-d">seit ${esc(datumVon(r.s).toLocaleDateString("de-DE", { day: "numeric", month: "numeric" }))} verdient ${pkt(r.v)} · Laden ${pkt(r.a)} · gespendet ${pkt(r.p)} · ${r.spiel} Spieltage</div></div>`;
     const liste = `<div class="card tp-liste"><div class="tp-zeile tp-zk"><span>Spieler</span><span>Guthaben</span><span>Ø/Spieltag</span><span>Ø 7 Tage</span></div>${z.map(zeile).join("") || `<p class="small muted">Noch keine Zählung.</p>`}</div>`;
-    $("talListe").innerHTML = kopf + prog + liste + (ohne.length ? `<div class="small muted">Noch ohne Zählung (App noch nicht in 6.95 geöffnet): ${ohne.map(esc).join(", ")}</div>` : "") +
+    $("talListe").innerHTML = kopf + liste + (ohne.length ? `<div class="small muted">Noch ohne Zählung (App noch nicht in 6.95 geöffnet): ${ohne.map(esc).join(", ")}</div>` : "") +
       `<button class="btn ghost mini" id="talCsv" style="align-self:flex-start">${svg("scroll")} Als CSV (Excel)</button>`;
     if ($("talCsv")) $("talCsv").onclick = () => {
       SFX.tap(); const num = v => v === null ? "" : String(Math.round(v * 10) / 10).replace(".", ","), kopfz = ["Spieler", "Spieler-ID", "Guthaben", "Verdient seit Zaehlbeginn", "Zaehlbeginn", "Spieltage (35 Tage)", "Durchschnitt je Spieltag", "Durchschnitt pro Tag (7 Tage)", "Im Laden ausgegeben", "Stiftshuette gespendet", "Stand"];
@@ -5543,7 +5557,7 @@ VIEWS.xppruefung = () => {
   wireGo();
   if (!entwickler || !L || !L.ok || !L.xpListe) { $("xpListe").innerHTML = `<p class="muted">Die XP-Prüfung braucht Internet und Verwalter-Rechte.</p>`; return; }
   const zahl = v => (+v || 0).toLocaleString("de-DE");
-  xpPruefDaten({ seit: Date.now() - 30 * 864e5, limit: 4000 }).then(z => {
+  xpPruefDaten({ seit: Date.now() - 7 * 864e5, limit: 1500 }) /* 9.52: 7 statt 30 Tage */.then(z => {
    const zeichnen = () => {
     const ohne = !!S.xqOhneAlt;   // 6.80: „Vor der Zählung“ ausblenden → nur gezählte XP, danach sortiert
     z.sort((a, b) => (b.level - a.level) || (b.xp - a.xp) || String(a.name).localeCompare(String(b.name), "de"));   // 7.2: höchstes Level oben, bei gleichem Level mehr XP zuerst
@@ -5592,7 +5606,7 @@ VIEWS.xppruefung = () => {
     });
     screen.querySelectorAll("details[data-xqlu]").forEach(d => d.addEventListener("toggle", () => {
       const r = z.find(x => x.id === d.dataset.xqlu); if (!d.open || !r || r.luecke || d.dataset.laedt) return; d.dataset.laedt = "1"; const box = d.querySelector(".xq-luliste");
-      L.xpProtokoll(r.id, 2000).then(l => { r.luecke = xqLueckenAnalyse(r, l, l.length < 2000); r.luecke.geteilt = r.geteilt || []; box.innerHTML = xqLueckeHtml(r.luecke);
+      L.xpProtokoll(r.id, 600, Date.now() - 7 * 864e5).then(l => { r.luecke = xqLueckenAnalyse(r, l, false); r.luecke.geteilt = r.geteilt || []; box.innerHTML = xqLueckeHtml(r.luecke);
         const bar = $("xqBar-" + r.id); if (bar) bar.innerHTML = xqAnteilHtml(xqAnteileLuecke(r, r.luecke, !!S.xqOhneAlt)); })
         .catch(e => { d.dataset.laedt = ""; box.textContent = "Konnte nicht geladen werden (" + ((e && e.code) || "Fehler") + ")."; });
     }));
@@ -5610,7 +5624,7 @@ VIEWS.xppruefung = () => {
           const kopf = modus === "heute" ? "heute" : "7 Tage";
           inh.className = "xq-evinhalt";
           inh.innerHTML = l.length ? `<div class="small muted" style="margin-bottom:6px">${alle.length > l.length ? `Die letzten ${l.length} von ${alle.length} Vergaben` : `${l.length} ${l.length === 1 ? "Vergabe" : "Vergaben"}`} (${kopf}) · zusammen +${summe.toLocaleString("de-DE")} XP · neueste zuerst · Uhrzeit laut Gerät des Spielers</div>${l.map(xqEreignisHtml).join("")}<button class="btn ghost mini" data-xqcsv style="margin-top:4px">${svg("scroll")} Dieses Protokoll als CSV</button>` : `<div class="small muted">${modus === "heute" ? "Heute noch keine protokollierten Vergaben." : "In den letzten 7 Tagen keine protokollierten Vergaben."}</div>`;
-          const kn = inh.querySelector("[data-xqcsv]"); if (kn) kn.onclick = async () => { SFX.tap(); kn.disabled = true; try { const voll = await L.xpProtokoll(pid, 5000); xqCsvLaden(`xp-protokoll-${String(((z.find(r => r.id === pid) || {}).name) || "spieler").replace(/[^\w-]+/g, "_")}-${xqDateiTag()}.csv`, voll); } catch (e) { toast("<div>Export fehlgeschlagen.</div>"); } kn.disabled = false; };
+          const kn = inh.querySelector("[data-xqcsv]"); if (kn) kn.onclick = async () => { SFX.tap(); kn.disabled = true; try { const voll = await L.xpProtokoll(pid, 2000, Date.now() - 7 * 864e5); /* 9.52: CSV der letzten 7 Tage */ xqCsvLaden(`xp-protokoll-${String(((z.find(r => r.id === pid) || {}).name) || "spieler").replace(/[^\w-]+/g, "_")}-${xqDateiTag()}.csv`, voll); } catch (e) { toast("<div>Export fehlgeschlagen.</div>"); } kn.disabled = false; };
         } catch (e) { inh.textContent = "Konnte nicht geladen werden (" + ((e && e.code) || "Fehler") + ")."; d.dataset.geladen = ""; }
       };
       zeigen(window.__xqEvModus === "woche" ? "woche" : "heute");
@@ -5780,194 +5794,7 @@ setTimeout(() => { appBonusPruefen(); appHinweisZeigen(); }, 1200);
     <path d="M50 20V30" stroke="#ffe39a" stroke-width="2" stroke-linecap="round"/>${glanz}</svg>`;
 })();
 
-/* ---------- 6.68: Gemeinsamer Bau der Stiftshütte ----------
-   Spenden je Spieler in der Sammlung „stiftshuette“ ({pid, name, s: {"1": Talente, …, "8": …}}). Summe = alle Spieler.
-   Ein Abschnitt k ist offen, wenn alle vorigen fertig sind und seine Woche begonnen hat. Ist das Ziel erreicht: „mehr als genug“. */
-let stiftDaten = null, stiftZeit = 0, stiftLaedt = null;
-const stiftWoche = () => Math.floor((dayNum(today()) - dayNum(STIFT_START)) / 7);
-const stiftMontag = k => { const d = datumVon(dayNum(STIFT_START) + 7 * k); return d.toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long" }); };
-function stiftLaden(neu) {
-  const L = window.LB; if (!L || !L.ok || !L.stiftListe) return Promise.resolve(stiftDaten);
-  if (!neu && stiftDaten && Date.now() - stiftZeit < 60e3) return Promise.resolve(stiftDaten);
-  if (stiftLaedt) return stiftLaedt;
-  stiftLaedt = L.stiftListe().then(rows => { stiftDaten = rows; stiftZeit = Date.now(); return rows; }).catch(() => stiftDaten).finally(() => { stiftLaedt = null; });
-  return stiftLaedt;
-}
-function stiftStand() {
-  const sum = STIFT.map(() => 0), spender = STIFT.map(() => []);
-  const zeilen = (stiftDaten || []).filter(r => r.pid !== S.pid);
-  if (S.pid || Object.keys(S.stift || {}).length) { const eig = (stiftDaten || []).find(r => r.pid === S.pid) || { s: {} }; const s = {}; for (let k = 1; k <= 8; k++) s[k] = Math.max((eig.s || {})[k] | 0, (S.stift || {})[k] | 0); zeilen.push({ pid: S.pid, name: S.lbName, s, ich: true }); }
-  zeilen.forEach(r => { for (let k = 1; k <= 8; k++) { const v = (r.s || {})[k] | 0; if (v > 0) { sum[k - 1] += v; spender[k - 1].push(r.ich ? "Du" : r.name); } } });
-  let k = 0; while (k < 8 && sum[k] >= STIFT[k].ziel) k++;
-  const woche = stiftWoche();
-  return { sum, spender, k, fertig: k, eingeweiht: k >= 8, woche, offen: k < 8 && woche >= k, vorStart: woche < 0 };
-}
-/* Schrägansicht von oben: x = Länge 0–100 Ellen, y = Tiefe 0–50, z = Höhe. Die Wohnung ist (künstlerisch) etwas größer
-   gezeichnet als im Maßstab, die vordere Wand und das Dach fehlen – so schaut man hinein. */
-function stiftBild(st) {
-  const P = (x, y, z = 0) => `${(10 + x * 2.6 + y * 0.8).toFixed(1)},${(204 - y * 1.8 - z * 3.6).toFixed(1)}`;
-  const X = (...a) => P(...a).split(",")[0], Y = (...a) => P(...a).split(",")[1];
-  const poly = (pts, attr) => `<polygon points="${pts.map(q => P(...q)).join(" ")}" ${attr}/>`;
-  const linie = (a, b, attr) => `<line x1="${X(...a)}" y1="${Y(...a)}" x2="${X(...b)}" y2="${Y(...b)}" ${attr}/>`;
-  const teil = (k, inner) => `<g class="sh-teil ${st.fertig >= k ? "an" : st.k + 1 === k && st.offen ? "bau" : "aus"}">${inner}</g>`;
-  const pfosten = (x1, y1, x2, y2, n) => Array.from({ length: n + 1 }, (_, i) => { const x = x1 + (x2 - x1) * i / n, y = y1 + (y2 - y1) * i / n; return linie([x, y, 0], [x, y, 5.6], `stroke="#d9b24a" stroke-width="1.5"`) + `<circle cx="${X(x, y, 5.6)}" cy="${Y(x, y, 5.6)}" r="1" fill="#e3e9f6"/>`; }).join("");
-  const zaun = (a, b, extra = "") => poly([[...a, 0.6], [...b, 0.6], [...b, 5], [...a, 5]], `fill="#f1ead6" stroke="#cfc6aa" stroke-width=".5" ${extra}`);
-  const box = (x1, y1, x2, y2, h, oben, vorne, rechts, rand) => poly([[x1, y1, h], [x2, y1, h], [x2, y2, h], [x1, y2, h]], `fill="${oben}" stroke="${rand}" stroke-width=".6"`)
-    + poly([[x1, y1, 0], [x2, y1, 0], [x2, y1, h], [x1, y1, h]], `fill="${vorne}" stroke="${rand}" stroke-width=".6"`) + poly([[x2, y1, 0], [x2, y2, 0], [x2, y2, h], [x2, y1, h]], `fill="${rechts}" stroke="${rand}" stroke-width=".6"`);
-  const glut = (x, y, z, r, id = "shGlut") => `<circle cx="${X(x, y, z)}" cy="${Y(x, y, z)}" r="${r}" fill="url(#${id})"/>`;
-  const sterne = Array.from({ length: 24 }, (_, i) => `<circle cx="${(i * 47) % 320}" cy="${(i * 29) % 64 + 5}" r="${i % 4 ? .8 : 1.4}" fill="#fff" opacity="${i % 3 ? .55 : .9}"/>`).join("");
-  const T = { x1: 52, x2: 92, y1: 15, y2: 35, h: 13, vh: 82 };   /* Wohnung; Vorhang bei x = vh */
-  return `<svg class="sh-bild" viewBox="0 0 320 215" role="img" aria-label="Die Stiftshütte: ${st.fertig} von 8 Bauabschnitten fertig">
-  <defs><linearGradient id="shNacht" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d1636"/><stop offset="1" stop-color="#2a2552"/></linearGradient>
-    <linearGradient id="shSand" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a07a46"/><stop offset="1" stop-color="#6b4f2a"/></linearGradient>
-    <linearGradient id="shHolz" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#c18c45"/><stop offset="1" stop-color="#8a5a24"/></linearGradient>
-    <linearGradient id="shGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3c4"/><stop offset=".6" stop-color="#f2c14e"/><stop offset="1" stop-color="#a07c22"/></linearGradient>
-    <linearGradient id="shVorhang" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3a4fc0"/><stop offset=".5" stop-color="#7a3aa8"/><stop offset="1" stop-color="#c0263a"/></linearGradient>
-    <radialGradient id="shGlut"><stop offset="0" stop-color="#fff6c8"/><stop offset=".45" stop-color="#ffb54a" stop-opacity=".75"/><stop offset="1" stop-color="#ff6b3a" stop-opacity="0"/></radialGradient>
-    <radialGradient id="shHerrl"><stop offset="0" stop-color="#fffbe8"/><stop offset=".5" stop-color="#ffe39a" stop-opacity=".6"/><stop offset="1" stop-color="#ffe39a" stop-opacity="0"/></radialGradient></defs>
-  <rect width="320" height="215" fill="url(#shNacht)"/>${sterne}
-  <path d="M0 120Q70 100 150 110T320 96V215H0Z" fill="#4a3820"/><path d="M0 200Q90 180 190 192T320 182V215H0Z" fill="url(#shSand)" opacity=".7"/>
-  ${poly([[0, 0], [100, 0], [100, 50], [0, 50]], `fill="#c49a5c" opacity=".6"`)}
-  ${teil(1, `${zaun([0, 50], [100, 50])}${zaun([100, 0], [100, 50])}${pfosten(0, 50, 100, 50, 20)}${pfosten(100, 0, 100, 50, 10)}`)}
-  ${poly([[T.x1, T.y1], [T.x2, T.y1], [T.x2, T.y2], [T.x1, T.y2]], `fill="#6b4c2c" opacity=".75"`)}
-  ${teil(4, `${poly([[T.x1, T.y2, 0], [T.x2, T.y2, 0], [T.x2, T.y2, T.h], [T.x1, T.y2, T.h]], `fill="url(#shHolz)" stroke="#4a2c10" stroke-width=".8"`)}
-    ${Array.from({ length: 26 }, (_, i) => linie([T.x1 + 1.5 + i * 1.5, T.y2, 0], [T.x1 + 1.5 + i * 1.5, T.y2, T.h], `stroke="#6b4318" stroke-width=".55"`)).join("")}
-    ${poly([[T.x2, T.y1, 0], [T.x2, T.y2, 0], [T.x2, T.y2, T.h], [T.x2, T.y1, T.h]], `fill="#9a6a30" stroke="#4a2c10" stroke-width=".8"`)}
-    ${Array.from({ length: 27 }, (_, i) => poly([[T.x1 + .2 + i * 1.5, T.y2 - .4, 0], [T.x1 + 1.2 + i * 1.5, T.y2 - .4, 0], [T.x1 + 1.2 + i * 1.5, T.y2 - .4, .6], [T.x1 + .2 + i * 1.5, T.y2 - .4, .6]], `fill="#e3e9f6"`)).join("")}
-    ${Array.from({ length: 27 }, (_, i) => poly([[T.x1 + .2 + i * 1.5, T.y1, 0], [T.x1 + 1.2 + i * 1.5, T.y1, 0], [T.x1 + 1.2 + i * 1.5, T.y1, 1.4], [T.x1 + .2 + i * 1.5, T.y1, 1.4]], `fill="#a8743c" stroke="#e3e9f6" stroke-width=".3"`)).join("")}
-    ${[0, 1, 2, 3, 4].map(i => linie([T.x1, T.y1 + i * 5, 0], [T.x1, T.y1 + i * 5, T.h], `stroke="url(#shGold)" stroke-width="1.8"`)).join("")}`)}
-  ${teil(5, `${poly([[T.x1 - 1, T.y2 + .6, T.h], [T.x2 + 1, T.y2 + .6, T.h], [T.x2 + 1, T.y2 - 5, T.h + 1.6], [T.x1 - 1, T.y2 - 5, T.h + 1.6]], `fill="#3a2a2a" stroke="#1a1010" stroke-width=".6"`)}
-    ${poly([[T.x1 - 1, T.y2 - 5, T.h + 1.6], [T.x2 + 1, T.y2 - 5, T.h + 1.6], [T.x2 + 1, T.y2 - 8, T.h + 1.2], [T.x1 - 1, T.y2 - 8, T.h + 1.2]], `fill="#b03a3a" stroke="#5a1414" stroke-width=".6"`)}
-    ${poly([[T.x2 + .4, T.y1 - .5, 0], [T.x2 + .4, T.y2 + .6, 0], [T.x2 + .4, T.y2 + .6, T.h + .4], [T.x2 + .4, T.y1 - .5, T.h + .4]], `fill="#8a2a2a" opacity=".55"`)}`)}
-  ${teil(6, `${glut(57, 18.5, 5, 16)}${linie([57, 18.5, 0], [57, 18.5, 7], `stroke="url(#shGold)" stroke-width="2"`)}
-    ${[[-3, 4.5], [-2, 5.5], [-1, 6.4], [1, 6.4], [2, 5.5], [3, 4.5]].map(([d, z]) => `<path d="M${P(57, 18.5, 2.5)} Q${P(57 + d, 18.5, 2.5)} ${P(57 + d, 18.5, z)}" stroke="url(#shGold)" stroke-width="1.4" fill="none"/><circle cx="${X(57 + d, 18.5, z + .4)}" cy="${Y(57 + d, 18.5, z + .4)}" r="1.4" fill="#fff6c8"/>`).join("")}<circle cx="${X(57, 18.5, 7.4)}" cy="${Y(57, 18.5, 7.4)}" r="1.5" fill="#fff6c8"/>
-    ${box(60, 29, 68, 32.5, 3, "url(#shGold)", "#d9a640", "#a07c22", "#7a5208")}
-    ${[61.5, 64, 66.5].map(x => `<ellipse cx="${X(x, 30.8, 3.3)}" cy="${Y(x, 30.8, 3.3)}" rx="3" ry="1.3" fill="#f6e2b0" stroke="#a07c22" stroke-width=".4"/>`).join("")}
-    ${box(77, 23.5, 79, 26.5, 3.2, "url(#shGold)", "#d9a640", "#a07c22", "#7a5208")}<path d="M${P(78, 25, 3.4)} q3 -5 0 -9 q-3 -4 1 -8" stroke="#e3e9f6" stroke-width="1.1" fill="none" opacity=".75"/>`)}
-  ${teil(7, `${poly([[T.vh, T.y1, 0], [T.vh, T.y2, 0], [T.vh, T.y2, T.h], [T.vh, T.y1, T.h]], `fill="url(#shVorhang)" opacity=".86" stroke="#2a1a4a" stroke-width=".7"`)}
-    <path d="M${P(T.vh, 20, 7)} q5 -9 11 -4 M${P(T.vh, 30, 7)} q5 -9 11 -4" stroke="#ffe39a" stroke-width="1.3" fill="none"/>`)}
-  ${teil(8, `${glut(87, 25, 3, 26, "shHerrl")}${box(84.5, 23.5, 89.5, 26.5, 2.4, "url(#shGold)", "#e0b04a", "#a07c22", "#7a5208")}
-    <path d="M${P(85.2, 25, 2.6)} q-2 -6 3.4 -5 M${P(88.8, 25, 2.6)} q2 -6 -3.4 -5" stroke="url(#shGold)" stroke-width="1.6" fill="none"/>`)}
-  ${teil(2, `${glut(21.5, 24.5, 4.5, 15)}${box(18, 21, 25, 28, 3.2, "#7a4a24", "#c98a4b", "#a56a32", "#5a3410")}${[[18, 21], [25, 21], [25, 28], [18, 28]].map(([x, y]) => `<circle cx="${X(x, y, 3.4)}" cy="${Y(x, y, 3.4)}" r="1.2" fill="#e8b27a"/>`).join("")}`)}
-  ${teil(3, `<ellipse cx="${X(37, 24.5, 2.2)}" cy="${Y(37, 24.5, 2.2)}" rx="10" ry="4.2" fill="#b8c8e0" stroke="#e3e9f6" stroke-width="1.1"/><ellipse cx="${X(37, 24.5, 2.2)}" cy="${Y(37, 24.5, 2.2)}" rx="6.5" ry="2.4" fill="#7fc8ff" opacity=".75"/>${linie([37, 24.5, 0], [37, 24.5, 1.9], `stroke="#9fb6d8" stroke-width="3.4"`)}`)}
-  ${teil(1, `${zaun([0, 0], [100, 0], `opacity=".5"`)}${zaun([0, 0], [0, 50], `opacity=".45"`)}${poly([[0, 20, 0.6], [0, 30, 0.6], [0, 30, 5], [0, 20, 5]], `fill="url(#shVorhang)" opacity=".9"`)}${pfosten(0, 0, 100, 0, 20)}${pfosten(0, 0, 0, 50, 10)}`)}
-  ${st.eingeweiht ? `<g class="sh-wolke">${glut(72, 25, 22, 70, "shHerrl")}<g fill="#fff" stroke="#dfe6f6" stroke-width=".8"><ellipse cx="${X(72, 25, 23)}" cy="${Y(72, 25, 23)}" rx="62" ry="14"/><circle cx="${X(56, 25, 25)}" cy="${Y(56, 25, 25)}" r="15"/><circle cx="${X(72, 25, 28)}" cy="${Y(72, 25, 28)}" r="18"/><circle cx="${X(88, 25, 25)}" cy="${Y(88, 25, 25)}" r="14"/></g></g>`
-    : `<g class="sh-feuer"><path d="M${P(72, 25, 20)} c-6 -10 4 -14 0 -26 c8 8 10 18 4 26 z" fill="url(#shGlut)"/><ellipse cx="${X(72, 25, 19)}" cy="${Y(72, 25, 19)}" rx="9" ry="20" fill="url(#shGlut)" opacity=".55"/></g>`}
-  </svg>`;
-}
-/* Kompakter Bauweg: 8 Medaillons in einer Reihe */
-function stiftWeg(st) {
-  return `<ol class="sh-weg" aria-label="Bauabschnitte">${STIFT.map((a, i) => { const z = i < st.fertig ? "fertig" : i === st.k && st.offen ? "jetzt" : i === st.k ? "naechst" : "spaeter";
-    return `<li class="${z}" title="${i + 1}. ${esc(a.n)}"><span>${z === "fertig" ? svg("check") : i + 1}</span><small>${esc(a.kurz)}</small></li>`; }).join("")}</ol>`;
-}
-function stiftNamen(liste) {
-  const n = [...new Set(liste)]; if (!n.length) return "";
-  const du = n.includes("Du"), rest = n.filter(x => x !== "Du");
-  const zeig = (du ? ["Du"] : []).concat(rest.slice(0, du ? 3 : 4)), mehr = n.length - zeig.length;
-  return zeig.map(x => `<b>${esc(x)}</b>`).join(", ") + (mehr > 0 ? ` und ${mehr} weitere` : "");
-}
-/* Kleine Karte auf dem Gemeinde-Reiter */
-function stiftMiniHtml() {
-  if (!STIFT_AKTIV) return "";
-  const st = stiftStand(), a = STIFT[Math.min(st.k, 7)], pz = st.eingeweiht ? 100 : Math.min(100, Math.round(st.sum[st.k] / a.ziel * 100));
-  const zeile = st.eingeweiht ? "Eingeweiht – die Wolke erfüllt die Hütte" : st.vorStart ? `Baustart ${stiftMontag(0)}` : st.offen ? `${st.k + 1}/8 · ${a.n}` : `${st.k}/8 fertig · weiter ${stiftMontag(st.k)}`;
-  return `<button class="sh-mini" data-go="stift" aria-label="Stiftshütte: ${esc(zeile)}">${svg("zelt")}<span class="sh-mini-tx"><b>Stiftshütte</b><small>${esc(zeile)}</small><i class="sh-balken klein"><i style="width:${st.vorStart ? 0 : pz}%"></i></i></span><span class="sh-pfeil">›</span></button>`;
-}
-VIEWS.stift = () => {
-  if (!STIFT_AKTIV) { go("home"); return; }
-  const st = stiftStand(), a = STIFT[Math.min(st.k, 7)], ist = st.eingeweiht ? 0 : st.sum[st.k], rest = st.eingeweiht ? 0 : Math.max(0, a.ziel - ist);
-  const pz = st.eingeweiht ? 100 : Math.min(100, Math.round(ist / a.ziel * 100)), online = window.LB && LB.ok && LB.stiftSetzen && S.pid && !S.offlineOnly;
-  const tageNoch = 7 - ((dayNum(today()) - dayNum(STIFT_START)) % 7 + 7) % 7;
-  let karte;
-  if (st.eingeweiht) karte = `<div class="sh-karte fertig"><div class="sh-z1"><b>Eingeweiht!</b><small>alle 8 Abschnitte</small></div><p class="sh-vers">„Da bedeckte die Wolke die Stiftshütte, und die Herrlichkeit des HERRN erfüllte die Wohnung.“ (2. Mose 40,34)</p>
-      <p class="sh-geber">Gebaut von ${stiftNamen(st.spender.flat())}</p></div>`;
-  else if (st.vorStart) karte = `<div class="sh-karte"><div class="sh-z1"><b>1 · ${esc(a.n)}</b><small>ab ${esc(stiftMontag(0))}</small></div><p class="sh-vers">${esc(a.k)} (${esc(a.v)})</p>
-      <p class="sh-geber">Am Montag beginnt der Bau. Jede Woche öffnet ein neuer Abschnitt – sammle schon Talente! „Jeder, den sein Herz willig machte, brachte dem HERRN eine Gabe“ (2. Mose 35,21).</p></div>`;
-  else if (!st.offen) karte = `<div class="sh-karte genug"><div class="sh-z1"><b>Es ist mehr als genug!</b><small>${st.k}/8 fertig</small></div><p class="sh-vers">„Das Volk bringt viel mehr, als für den Dienst an dem Werk nötig ist“ (2. Mose 36,5). Der nächste Abschnitt „${esc(a.n)}“ beginnt ${esc(stiftMontag(st.k))}.</p>
-      <p class="sh-geber">Zuletzt gaben ${stiftNamen(st.spender[st.k - 1])}</p></div>`;
-  else karte = `<div class="sh-karte"><div class="sh-z1"><b>${st.k + 1} · ${esc(a.n)}</b><small>${st.woche > st.k ? "läuft weiter" : `noch ${tageNoch} ${tageNoch === 1 ? "Tag" : "Tage"}`}</small></div><p class="sh-vers">${esc(a.k)} (${esc(a.v)})</p>
-      <div class="sh-balken"><i style="width:${pz}%"></i></div><div class="sh-zahlen"><span>${pkt(ist)} von ${pkt(a.ziel)} Talenten</span><span>${pz} %</span></div>
-      ${online ? `<div class="sh-spenden">${[10, 50, 100].map(v => `<button data-sp="${v}" ${S.tal < 1 ? "disabled" : ""}>+${v}</button>`).join("")}<button class="haupt" data-sp="frei">Spenden</button></div>` : `<p class="small muted" style="margin:0">Spenden geht nur mit Internet und Eintrag in der Rangliste.</p>`}
-      <p class="sh-geber">${st.spender[st.k].length ? `Diese Woche gaben ${stiftNamen(st.spender[st.k])}` : "Sei der Erste, der für diesen Abschnitt gibt!"}</p></div>`;
-  screen.innerHTML = `${backBtn("rank", "Gemeinde")}${bereichKopf("gemeinde", { ic: "zelt", t: "Stiftshütte", sub: "Die Gemeinde baut gemeinsam", ring: [st.fertig, "von 8"] })}
-    <div class="sh-buehne">${stiftBild(st)}</div>${stiftWeg(st)}${karte}
-    <p class="small muted sh-fuss">Spender werden mit Namen genannt, Beträge bleiben verborgen (Matthäus 6,3). Du hast ${pkt(S.tal)} Talente.</p>`;
-  wireGo();
-  screen.querySelectorAll("[data-sp]").forEach(b => b.onclick = () => { const v = b.dataset.sp;
-    if (v === "frei") { stiftSpendeWahl(); return; } stiftSpenden(+v, b); });
-  if (!stiftDaten || Date.now() - stiftZeit > 60e3) stiftLaden(true).then(() => { if (current === "stift" && !document.querySelector(".modal")) VIEWS.stift(); stiftFeiern(); });
-  else stiftFeiern();
-};
-function stiftSpendeWahl() {
-  const st = stiftStand(), rest = Math.max(0, STIFT[st.k].ziel - st.sum[st.k]), max = Math.min(S.tal, rest);
-  const m = modal(`<div class="label">Gabe für die Stiftshütte</div><h2 style="margin:0">${esc(STIFT[st.k].n)}</h2><p class="muted small" style="margin:0">Noch ${pkt(rest)} Talente bis zum Ziel · du hast ${pkt(S.tal)}.<br>Für jedes gespendete Talent bekommst du ${STIFT_XP_PRO_TAL} XP.</p>
-    <input class="field" id="spBetrag" type="number" inputmode="numeric" min="1" max="${max}" value="${Math.min(max, 25)}" aria-label="Talente spenden">
-    <button class="btn primary" id="spOk" ${max < 1 ? "disabled" : ""}>Spenden</button><button class="btn ghost" data-close>Abbrechen</button>`);
-  m.querySelector("#spOk").onclick = () => { const v = Math.floor(+m.querySelector("#spBetrag").value || 0); m.remove(); stiftSpenden(v); };
-}
-/* 6.79: Wer für die Stiftshütte gibt, bekommt XP – 12 XP je gespendetem Talent (ein Talent kostet beim Spielen etwa 30 XP Aufwand, die Gabe ist ein Opfer für alle) */
-const STIFT_XP_PRO_TAL = 12;
-function stiftSpenden(v, el) {
-  const st = stiftStand(); if (!st.offen) return;
-  const rest = Math.max(0, STIFT[st.k].ziel - st.sum[st.k]); v = Math.min(v | 0, rest, S.tal);
-  if (v < 1) { SFX.wrong(); toast(`${TAL_MUENZE}<div>${S.tal < 1 ? "Du hast gerade keine Talente." : "Dieser Abschnitt ist schon voll."}</div>`); return; }
-  const k = String(st.k + 1), xpLohn = v * STIFT_XP_PRO_TAL;
-  try { talBuchen(); } catch (e) {} S.tal -= v; if (S.tl) { S.tl.p = (S.tl.p | 0) + v; S.tl.l = S.tal | 0; }
-  S.stift = Object.assign({}, S.stift, { [k]: ((S.stift || {})[k] | 0) + v }); save(); renderHud();
-  SFX.coin(); if (el) { const [x, y] = centerOf(el); burst(x, y, 40, { up: 5 }); }
-  stiftSenden();
-  const voll = st.sum[st.k] + v >= STIFT[st.k].ziel;
-  VIEWS.stift();
-  if (voll) setTimeout(stiftFeiern, 500);
-  else toast(`${svg("zelt")}<div><b>Danke für deine Gabe!</b><div class="small muted">+${v} für „${esc(STIFT[st.k].n)}“ · +${xpLohn} XP</div></div>`);
-}
-/* 6.80: XP für Spenden werden auf dem Server gegengebucht: Dokument „spendenxp/<pid>_stift<Abschnitt>“ merkt, für wie viele Talente
-   schon XP gezahlt wurden (nur steigend, höchstens so viel wie in der Stiftshütte wirklich gespendet ist). So zählt jedes gespendete
-   Talent nur einmal – auch bei zurückgesetzten App-Daten oder mehreren Geräten. Ohne Server-Regeln wird wie bisher direkt gutgeschrieben. */
-let spendeXpLaeuft = false;
-async function spendeXpAbgleichen() {
-  if (spendeXpLaeuft) return; spendeXpLaeuft = true;
-  try {
-    const L = window.LB; S.spendeXp = S.spendeXp || {};
-    for (const k of Object.keys(S.stift || {})) {
-      const total = S.stift[k] | 0, schuld = total - (S.spendeXp[k] | 0); if (schuld < 1) continue;
-      let tal = 0;
-      if (!L || !L.ok || !L.spendeXpBuchen || !S.pid || !S.lbName || S.offlineOnly) tal = schuld;
-      else { let r; try { r = await L.spendeXpBuchen(S.pid, S.lbName, k, total, APP_VERSION); } catch (e) { r = "netz"; }
-        if (r === "netz") break; tal = r === "regeln" ? schuld : Math.max(0, r.neu - r.vorher); }
-      S.spendeXp[k] = total; save();
-      if (tal > 0) { const a = STIFT[+k - 1]; addXp(tal * STIFT_XP_PRO_TAL, null, "spende", { d: `Stiftshütte · ${a ? a.kurz : k} · ${tal} Talente` }); }
-    }
-  } finally { spendeXpLaeuft = false; }
-}
-function stiftSenden() {
-  const L = window.LB; if (!L || !L.ok || !L.stiftSetzen || !S.pid || S.offlineOnly) return;
-  const sig = JSON.stringify(S.stift || {}); if (sig === "{}") return; if (S.stiftSync === sig) { spendeXpAbgleichen(); return; }
-  const s = {}; Object.entries(S.stift || {}).forEach(([k, v]) => { if (+k >= 1 && +k <= 8 && v > 0) s[k] = Math.min(v | 0, 20000); });
-  L.stiftSetzen(S.pid, S.lbName, s).then(() => { S.stiftSync = sig; save(); stiftDaten = (stiftDaten || []).filter(r => r.pid !== S.pid).concat([{ pid: S.pid, name: S.lbName, s }]); spendeXpAbgleichen(); })
-    .catch(e => dbFehler("Stiftshütte speichern", e));
-}
-/* Feiern: jeder fertige Abschnitt einmal für alle, die dafür gegeben haben; die Einweihung für alle Spender */
-function stiftFeiern() {
-  if (document.querySelector(".modal")) return;
-  const st = stiftStand(); let neu = false;
-  if (st.eingeweiht && !S.stiftEingeweiht) { S.stiftEingeweiht = true; neu = true; save(); checkBadges();
-    if (Object.values(S.stift || {}).some(v => v > 0)) {
-      [0, 900, 2000].forEach(t => setTimeout(() => { SFX.level(); rain(150); }, t));
-      modal(`<div class="label">Einweihung</div><div class="sh-feier">${stiftBild(st)}</div><h2 style="margin:0">Die Stiftshütte ist fertig!</h2><p class="muted small" style="margin:0">„Da bedeckte die Wolke die Stiftshütte, und die Herrlichkeit des HERRN erfüllte die Wohnung“ (2. Mose 40,34). Danke, dass du mitgebaut hast!</p>
-        <div class="vle-werte"><div><b>${avatarHtml({ avatar: S.avatar, frame: "wolke", name: S.lbName }, 44)}</b><span>Rahmen „Wolke der Herrlichkeit“</span></div><div><b>${svg("scroll")}</b><span>Titel „Bezaleel“</span></div></div>
-        <button class="btn primary" data-close>Amen</button>`); return; }
-  }
-  for (let i = 0; i < st.fertig; i++) { const k = String(i + 1);
-    if ((S.stift || {})[k] > 0 && !(S.stiftGefeiert || []).includes(k)) {
-      S.stiftGefeiert = [...(S.stiftGefeiert || []), k]; save(); SFX.badge(); rain(100);
-      modal(`<div class="label">Bauabschnitt ${k} von 8 fertig</div><div class="sh-feier">${stiftBild(Object.assign({}, st, { fertig: Math.max(st.fertig, i + 1) }))}</div><h2 style="margin:0">${esc(STIFT[i].n)}</h2>
-        <p class="muted small" style="margin:0">„Es ist mehr als genug!“ (2. Mose 36,7) – Gebaut von ${stiftNamen(st.spender[i])}.</p><button class="btn primary" data-close="ok">Weiter</button>`, () => setTimeout(stiftFeiern, 300));
-      return; }
-  }
-  return neu;
-}
-
+/* 9.52: Stiftshütte (6.68) und Spenden-XP entfernt – spart Lesezugriffe (Sammlungen stiftshuette/spendenxp werden nicht mehr gelesen). */
 /* 6.69: Die Stammeswappen (6.68) wurden aus dem Laden genommen – gekaufte Wappen werden voll erstattet */
 const STAEMME_ERSTATTUNG = { ruben: 80, simeon: 90, levi: 100, juda: 110, sebulon: 120, issaschar: 140, dan: 150, gad: 160, asser: 180, naftali: 200, josef: 220, benjamin: 250 };
 function staemmeErstatten() {

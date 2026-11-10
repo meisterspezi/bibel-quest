@@ -243,21 +243,7 @@ const RUEST_STUFE = [
 ];
 const RUEST_VEREDEL_PREIS = { guertel: [150, 250], panzer: [170, 290], schuhe: [190, 330], schild: [210, 370], helm: [230, 410], schwert: [250, 450] };
 
-/* ---------- 6.68: Gemeinsamer Bau der Stiftshütte (2. Mose 25–40) ----------
-   Jede Woche ab Montag öffnet ein Abschnitt. Ist das Ziel erreicht: „Es ist mehr als genug!“ (2. Mose 36,5-7) –
-   der nächste Abschnitt öffnet am folgenden Montag. Spender werden mit Namen genannt, Beträge bleiben verborgen (Matthäus 6,3). */
-const STIFT_AKTIV = false;   /* 7.3: Stiftshütte bleibt im Code, wird aber nicht mehr angezeigt (Advent statt Stiftshütte) */
-const STIFT_START = "2026-11-09";
-const STIFT = [
-  { n: "Vorhof aus Leinen", kurz: "Vorhof", v: "2. Mose 27,9-18", ziel: 800, k: "Umhänge aus gezwirntem Leinen, 100 Ellen lang, an Säulen mit silbernen Haken." },
-  { n: "Brandopferaltar", kurz: "Altar", v: "2. Mose 27,1-8", ziel: 1000, k: "Ein Altar aus Akazienholz, mit Erz überzogen, mit Hörnern an den vier Ecken." },
-  { n: "Waschbecken", kurz: "Becken", v: "2. Mose 38,8", ziel: 1200, k: "Aus Erz gemacht – aus den Spiegeln der Frauen, die am Eingang dienten." },
-  { n: "Bretter & Silberfüße", kurz: "Bretter", v: "2. Mose 26,15-25", ziel: 1400, k: "Aufrechte Bretter aus Akazienholz, jedes auf zwei Füßen aus Silber." },
-  { n: "Decken & Felle", kurz: "Decken", v: "2. Mose 26,7-14", ziel: 1600, k: "Decken aus Ziegenhaar und darüber rot gefärbte Widderfelle." },
-  { n: "Leuchter, Tisch & Räucheraltar", kurz: "Leuchter", v: "2. Mose 25,23-40", ziel: 1800, k: "Der goldene Leuchter mit sieben Lampen, der Tisch für die Schaubrote und der goldene Räucheraltar." },
-  { n: "Vorhang mit Cherubim", kurz: "Vorhang", v: "2. Mose 26,31-33", ziel: 2000, k: "Aus blauem und rotem Purpur und Karmesin – er trennt das Heilige vom Allerheiligsten." },
-  { n: "Bundeslade", kurz: "Lade", v: "2. Mose 25,10-22", ziel: 2500, k: "Mit reinem Gold überzogen, darauf der Gnadenthron mit zwei Cherubim." }
-];
+/* 9.52: Daten der Stiftshütte entfernt */
 /* Epheser 6,14-17 – wird Stück für Stück angelegt */
 const RUESTUNG = [
   { id: "guertel", name: "Gürtel der Wahrheit", price: 50, vers: "So steht nun fest, eure Lenden umgürtet mit Wahrheit …", ref: "Epheser 6,14" },
