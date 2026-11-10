@@ -5026,6 +5026,13 @@ function feedbackOeffnen() {
 
 /* ---------- Feedback-Postfach (nur für den Entwickler) ---------- */
 let entwickler = false, postfachNeu = 0;
+/* 9.44: ToDo im Postkasten – Einträge, die der Verwalter später bearbeitet. Sie zählen nicht als neu (kein Punkt, keine Zahl) und bleiben dort,
+   bis er sie auf „Erledigt“ setzt. Die Ids liegen im eigenen Spielstand (S.pkTodo), also ohne Änderung der Firebase-Regeln. */
+const pkTodoIds = () => (S.pkTodo && typeof S.pkTodo === "object" ? S.pkTodo : (S.pkTodo = {}));
+const pkIstTodo = f => !f.erledigt && !!pkTodoIds()[f.id];
+const pkIstNeu = f => !f.erledigt && !pkIstTodo(f);
+const pkIn = (f, k) => k === "alle" ? true : k === "neu" ? pkIstNeu(f) : k === "todo" ? pkIstTodo(f) : !!f.erledigt;
+function pkTodoSetzen(id, an) { const t = pkTodoIds(); if (an) t[id] = 1; else delete t[id]; save(); }
 /* Profil-ID des Verwalters (einstellungen/entwickler) – sein Rang heißt für alle „Entwickler“ */
 let ENTW_PID = null;
 /* Doppelte Namen automatisch zusammenführen.
@@ -5081,10 +5088,10 @@ async function entwicklerPruefen() {
     await doppelteZusammenfuehren();
     await statusBerichte();
     await xpBerichte();
-    const liste = await L.feedbackListe(); postfachNeu = liste.filter(f => !f.erledigt).length;
+    const liste = await L.feedbackListe(); postfachNeu = liste.filter(pkIstNeu).length;
     try { antragOffen = L.antragListe ? (await L.antragListe()).filter(a => a.status === "offen").length : 0; } catch (e) { antragOffen = 0; }
     try { if (L.dialogAlle) DLG_ALLE = await L.dialogAlle(); } catch (e) {}
-    pkOffenPruef = liste.filter(f => !f.erledigt && (pkIstXp(f) || pkIstDup(f))).length + antragOffen + dlgNeuDev(); renderHud();
+    pkOffenPruef = liste.filter(f => pkIstNeu(f) && (pkIstXp(f) || pkIstDup(f))).length + antragOffen + dlgNeuDev(); renderHud();
     if (["home", "profil"].includes(current) && !document.querySelector(".modal")) go(current);
   } catch (e) { entwickler = false; }
 }
@@ -5135,9 +5142,9 @@ VIEWS.postfach = (kat) => {
   <div class="pk-pins" aria-label="Prüfungen">${zeile("pkXp", "medal", "XP-Prüfung", xpTag, 'data-go="xppruefung"')}${zeile("pkDup", "people", "Doppelte Namen", dupTag, 'id2="x"')}<button class="pk-pin" id="pkAnt" data-go="antraege"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("people")} Beitrittsanträge</b><span class="small muted" data-pkinfo>${antragOffen ? antragOffen + " offen" : "Freischaltung für neue Mitglieder"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkDlg" data-go="dialoge"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("chat")} Gespräche mit Spielern</b><span class="small muted" data-pkinfo>${dlgNeuDev() ? dlgNeuDev() + " neue Antwort" + (dlgNeuDev() === 1 ? "" : "en") : "Einzelne Spieler anschreiben"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGemLog" data-go="gemprotokoll"><span class="pk-pt"><b>${svg("scroll")} Gemeinde-Protokoll</b><span class="small muted">Wer wann beigetreten oder ausgetreten ist</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGem" data-go="gemverwaltung"><span class="pk-pt"><b>${svg("people")} Gemeinden</b><span class="small muted">Gemeinden anlegen, Spieler zuordnen</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkTal" data-go="talente"><span class="pk-pt"><b>${svg("tal")} Talente-Planung</b><span class="small muted">Guthaben, Ø pro Tag, Spenden-Prognose</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkNach" data-go="nachrichten"><span class="pk-pt"><b>${svg("chat")} Nachricht an Spieler</b><span class="small muted">Patchnotes und Mitteilungen senden</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button></div>
   <div class="card rk-liste" style="margin-top:10px">
     <div class="pk-suchzeile" ${pkSuchOffen ? "" : "hidden"}><input type="search" id="pkSuche" placeholder="Suchen (Text, Name, Version)" value="${esc(pkSuche)}" aria-label="Post durchsuchen" autocomplete="off"></div>
-    <div class="pk-filter"><div class="rk-var" role="group" aria-label="Filter">${[["neu", "Neu"], ["alle", "Alle"], ["erledigt", "Erledigt"]].map(([k, n]) => `<button data-pf="${k}" aria-pressed="${k === postfachFilter}">${n}<i class="pk-n" data-pfn="${k}"></i></button>`).join("")}</div>
+    <div class="pk-filter"><div class="rk-var" role="group" aria-label="Filter">${[["neu", "Neu"], ["todo", "ToDo"], ["alle", "Alle"], ["erledigt", "Erledigt"]].map(([k, n]) => `<button data-pf="${k}" aria-pressed="${k === postfachFilter}">${n}<i class="pk-n" data-pfn="${k}"></i></button>`).join("")}</div>
       <select id="pkKat" aria-label="Kategorie">${PK_KAT.map(([k, n]) => `<option value="${k}" ${k === pkKategorie ? "selected" : ""}>${n}</option>`).join("")}</select></div>
-    <div class="pk-leiste" id="pkLeiste" ${pkAuswahl ? "" : "hidden"}><label class="small"><input type="checkbox" id="pkAlle"> Alle</label><span class="small muted" id="pkGewZahl"></span><span class="pk-aktion"><button class="btn ghost mini" id="pkErl">Erledigt</button><button class="btn ghost mini" id="pkDel">Löschen</button></span></div>
+    <div class="pk-leiste" id="pkLeiste" ${pkAuswahl ? "" : "hidden"}><label class="small"><input type="checkbox" id="pkAlle"> Alle</label><span class="small muted" id="pkGewZahl"></span><span class="pk-aktion"><button class="btn ghost mini" id="pkTodo">ToDo</button><button class="btn ghost mini" id="pkErl">Erledigt</button><button class="btn ghost mini" id="pkDel">Löschen</button></span></div>
     <div class="stack" id="pfListe" style="margin-top:6px"><p class="muted small">Lade …</p></div></div>`;
   wireGo();
   const ampel = (id, zustand, text) => { const e = $(id); if (!e) return; e.dataset.ampel = zustand; const i = e.querySelector("[data-pkinfo]"); if (i && text) i.textContent = text; };
@@ -5157,42 +5164,45 @@ VIEWS.postfach = (kat) => {
   let liste = [];
   const passt = f => (pkKategorie === "alle" || pkKat(f) === pkKategorie) && (!pkSuche.trim() || [f.text, f.name, f.ver, f.geraet, f.art].some(s => String(s || "").toLowerCase().includes(pkSuche.trim().toLowerCase())));
   const zeichne = () => {
-    postfachNeu = liste.filter(f => !f.erledigt).length; renderHud();
-    const xpOff = liste.filter(f => !f.erledigt && pkIstXp(f)).length, dupOff = liste.filter(f => !f.erledigt && pkIstDup(f)).length;
+    postfachNeu = liste.filter(pkIstNeu).length; renderHud();
+    const xpOff = liste.filter(f => pkIstNeu(f) && pkIstXp(f)).length, dupOff = liste.filter(f => pkIstNeu(f) && pkIstDup(f)).length;
     pkOffenPruef = xpOff + dupOff + antragOffen; renderHud();
     ampel("pkXp", xpOff ? "orange" : xpTag ? "gruen" : "grau", xpOff ? `${xpOff} offen · ${tagText(xpTag)}` : "");
     ampel("pkDup", dupOff ? "orange" : dupTag ? "gruen" : "grau", dupOff ? `${dupOff} offen · ${tagText(dupTag)}` : "");
-    const basis = liste.filter(passt), zahl = k => basis.filter(f => k === "alle" ? true : k === "neu" ? !f.erledigt : f.erledigt).length;
-    ["neu", "alle", "erledigt"].forEach(k => { const e = screen.querySelector(`[data-pfn="${k}"]`); if (e) e.textContent = zahl(k) ? " " + zahl(k) : ""; });
-    const z = basis.filter(f => postfachFilter === "alle" || (postfachFilter === "neu" ? !f.erledigt : f.erledigt));
+    const basis = liste.filter(passt), zahl = k => basis.filter(f => pkIn(f, k)).length;
+    ["neu", "todo", "alle", "erledigt"].forEach(k => { const e = screen.querySelector(`[data-pfn="${k}"]`); if (e) e.textContent = zahl(k) ? " " + zahl(k) : ""; });
+    const z = basis.filter(f => pkIn(f, postfachFilter));
     [...pkGew].forEach(id => { if (!z.some(f => f.id === id)) pkGew.delete(id); });
     if ($("pkGewZahl")) $("pkGewZahl").textContent = pkGew.size ? pkGew.size + " gewählt" : "nichts gewählt";
+    if ($("pkTodo")) { $("pkTodo").disabled = !pkGew.size; $("pkTodo").hidden = postfachFilter === "erledigt"; $("pkTodo").textContent = postfachFilter === "todo" ? "Zu Neu" : "ToDo"; }
     if ($("pkErl")) $("pkErl").disabled = !pkGew.size; if ($("pkDel")) $("pkDel").disabled = !pkGew.size;
     if ($("pkAlle")) $("pkAlle").checked = z.length > 0 && pkGew.size === z.length;
     $("pfListe").innerHTML = z.length ? z.map(f => { const kt = pkKat(f); const art = kt === "feedback" ? (ART_NAME[f.art] || f.art) : kt === "datenbank" ? "DB" : ART_NAME[kt]; const kurz = String(f.text || "").replace(/\s+/g, " ").trim();
-      return `<details class="card pf pk-${kt} ${f.erledigt ? "erledigt" : ""}" data-id="${esc(f.id)}">
-        <summary>${pkAuswahl ? `<input type="checkbox" class="pk-cb" data-cb="${esc(f.id)}" ${pkGew.has(f.id) ? "checked" : ""} aria-label="Auswählen">` : ""}<span class="pf-art art-${esc(kt === "feedback" ? f.art : kt)}">${esc(art)}</span><span class="pk-vorschau">${esc(kurz.length > 70 ? kurz.slice(0, 70) + " …" : kurz)}</span>${f.erledigt ? "" : `<i class="pk-punkt" aria-label="neu"></i>`}<span class="small muted pk-zeit">${esc(pkDatum(f.zeit))}</span></summary>
+      return `<details class="card pf pk-${kt} ${f.erledigt ? "erledigt" : ""}${pkIstTodo(f) ? " pk-ist-todo" : ""}" data-id="${esc(f.id)}">
+        <summary>${pkAuswahl ? `<input type="checkbox" class="pk-cb" data-cb="${esc(f.id)}" ${pkGew.has(f.id) ? "checked" : ""} aria-label="Auswählen">` : ""}<span class="pf-art art-${esc(kt === "feedback" ? f.art : kt)}">${esc(art)}</span><span class="pk-vorschau">${esc(kurz.length > 70 ? kurz.slice(0, 70) + " …" : kurz)}</span>${pkIstNeu(f) ? `<i class="pk-punkt" aria-label="neu"></i>` : pkIstTodo(f) ? `<span class="pk-todo-m">ToDo</span>` : ""}<span class="small muted pk-zeit">${esc(pkDatum(f.zeit))}</span></summary>
         <p class="pf-text">${esc(f.text)}</p>
         <div class="small muted">${kt === "feedback" ? (f.name ? `von <b>${esc(f.name)}</b>` : "anonym") : (f.name ? esc(f.name) : "automatisch")} · ${esc(f.ver || "?")} · ${esc(String(f.geraet || "").replace(/^(status|datenbank) · /, ""))}</div>
-        ${pkAuswahl ? "" : `<div class="row-btns" style="margin-top:8px"><button class="btn ghost mini" data-erl="${esc(f.id)}">${f.erledigt ? "Wieder als neu" : "Erledigt"}</button><button class="btn ghost mini" data-del="${esc(f.id)}">Löschen</button></div>`}</details>`; }).join("")
+        ${pkAuswahl ? "" : `<div class="row-btns" style="margin-top:8px">${pkIstNeu(f) ? `<button class="btn ghost mini" data-todo="${esc(f.id)}">ToDo</button>` : ""}<button class="btn ghost mini" data-erl="${esc(f.id)}">${f.erledigt ? "Wieder als neu" : "Erledigt"}</button>${pkIstTodo(f) ? `<button class="btn ghost mini" data-todo="${esc(f.id)}">Zu Neu</button>` : ""}<button class="btn ghost mini" data-del="${esc(f.id)}">Löschen</button></div>`}</details>`; }).join("")
       : `<p class="muted" style="margin:6px 0">${pkSuche.trim() ? "Nichts gefunden." : postfachFilter === "neu" ? "Nichts Neues. 🙂" : "Keine Einträge."}</p>`;
     if (pkAuswahl) $("pfListe").querySelectorAll("details.pf > summary").forEach(s => s.onclick = e => { e.preventDefault(); const id = s.parentElement.dataset.id; if (pkGew.has(id)) pkGew.delete(id); else pkGew.add(id); zeichne(); });
-    $("pfListe").querySelectorAll("[data-erl]").forEach(b => b.onclick = async () => { SFX.tap(); const f = liste.find(x => x.id === b.dataset.erl); try { await L.feedbackErledigt(f.id, !f.erledigt); f.erledigt = !f.erledigt; zeichne(); } catch (e) { toast("<div>Das hat nicht geklappt.</div>"); } });
+    $("pfListe").querySelectorAll("[data-erl]").forEach(b => b.onclick = async () => { SFX.tap(); const f = liste.find(x => x.id === b.dataset.erl); try { await L.feedbackErledigt(f.id, !f.erledigt); f.erledigt = !f.erledigt; pkTodoSetzen(f.id, false); zeichne(); } catch (e) { toast("<div>Das hat nicht geklappt.</div>"); } });
+    $("pfListe").querySelectorAll("[data-todo]").forEach(b => b.onclick = () => { SFX.tap(); const f = liste.find(x => x.id === b.dataset.todo); if (!f) return; pkTodoSetzen(f.id, !pkIstTodo(f)); zeichne(); });
     $("pfListe").querySelectorAll("[data-del]").forEach(b => b.onclick = () => { SFX.tap();
       modal(`<h2>Eintrag löschen?</h2><p class="muted small">Das lässt sich nicht rückgängig machen.</p><button class="btn primary" data-close="ja">Löschen</button><button class="btn ghost" data-close>Abbrechen</button>`, async a => {
-        if (a !== "ja") return; try { await L.feedbackLoeschen(b.dataset.del); liste = liste.filter(x => x.id !== b.dataset.del); zeichne(); } catch (e) { toast("<div>Löschen hat nicht geklappt.</div>"); } }); });
+        if (a !== "ja") return; try { await L.feedbackLoeschen(b.dataset.del); pkTodoSetzen(b.dataset.del, false); liste = liste.filter(x => x.id !== b.dataset.del); zeichne(); } catch (e) { toast("<div>Löschen hat nicht geklappt.</div>"); } }); });
   };
   $("pkSuche").oninput = e => { pkSuche = e.target.value; zeichne(); };
-  $("pkAlle").onchange = e => { const z = liste.filter(passt).filter(f => postfachFilter === "alle" || (postfachFilter === "neu" ? !f.erledigt : f.erledigt)); pkGew.clear(); if (e.target.checked) z.forEach(f => pkGew.add(f.id)); zeichne(); };
+  $("pkAlle").onchange = e => { const z = liste.filter(passt).filter(f => pkIn(f, postfachFilter)); pkGew.clear(); if (e.target.checked) z.forEach(f => pkGew.add(f.id)); zeichne(); };
   $("pkErl").onclick = async () => { SFX.tap(); const ziel = liste.filter(f => pkGew.has(f.id)); if (!ziel.length) return; let fehler = 0;
-    for (const f of ziel) { try { await L.feedbackErledigt(f.id, postfachFilter !== "erledigt"); f.erledigt = postfachFilter !== "erledigt"; } catch (e) { fehler++; } }
+    for (const f of ziel) { try { await L.feedbackErledigt(f.id, postfachFilter !== "erledigt"); f.erledigt = postfachFilter !== "erledigt"; pkTodoSetzen(f.id, false); } catch (e) { fehler++; } }
     pkGew.clear(); zeichne(); if (fehler) toast(`<div>${fehler} Einträge konnten nicht geändert werden.</div>`); };
   $("pkDel").onclick = () => { SFX.tap(); const ziel = liste.filter(f => pkGew.has(f.id)); if (!ziel.length) return;
     modal(`<h2>${ziel.length} ${ziel.length === 1 ? "Eintrag" : "Einträge"} löschen?</h2><p class="muted small">Das lässt sich nicht rückgängig machen.</p><button class="btn primary" data-close="ja">Löschen</button><button class="btn ghost" data-close>Abbrechen</button>`, async a => {
       if (a !== "ja") return; let fehler = 0;
-      for (const f of ziel) { try { await L.feedbackLoeschen(f.id); liste = liste.filter(x => x.id !== f.id); } catch (e) { fehler++; } }
+      for (const f of ziel) { try { await L.feedbackLoeschen(f.id); pkTodoSetzen(f.id, false); liste = liste.filter(x => x.id !== f.id); } catch (e) { fehler++; } }
       pkGew.clear(); zeichne(); if (fehler) toast(`<div>${fehler} Einträge konnten nicht gelöscht werden.</div>`); }); };
-  L.feedbackListe().then(l => { liste = l; zeichne(); }).catch(() => { $("pfListe").innerHTML = `<p class="muted">Postkasten konnte nicht geladen werden.</p>`; });
+  $("pkTodo").onclick = () => { SFX.tap(); const ziel = liste.filter(f => pkGew.has(f.id)); if (!ziel.length) return; const an = postfachFilter !== "todo"; ziel.forEach(f => { if (!f.erledigt) pkTodoSetzen(f.id, an); }); pkGew.clear(); zeichne(); };
+  L.feedbackListe().then(l => { liste = l; if (l.length < 200) { const t = pkTodoIds(); let ch = false; Object.keys(t).forEach(id => { if (!l.some(x => x.id === id)) { delete t[id]; ch = true; } }); if (ch) save(); } zeichne(); }).catch(() => { $("pfListe").innerHTML = `<p class="muted">Postkasten konnte nicht geladen werden.</p>`; });
 };
 
 /* ---------- XP-Prüfung (6.73, ausgebaut in 6.75) ----------
