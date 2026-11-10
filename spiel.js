@@ -625,6 +625,40 @@ function lvVerdrahten() {
     });
   });
 }
+/* ----- 9.47: Lernvers auf der Startseite – nach rechts wischen = Vormonat, nach links = wieder vor.
+   Punkte unter der Karte zeigen den Monat und lassen sich auch antippen (Alternative zum Wischen). ----- */
+var lvAnsicht = null;
+const lvMonate = () => Object.keys(MONATSVERSE).filter(k => k <= monatKey()).sort().slice(-12);
+function lvStartHtml(k, keys) {
+  const punkte = keys.length > 1 ? `<div class="lv-punkte" role="tablist" aria-label="Lernvers-Monat – nach links oder rechts wischen">${keys.map(x => `<button role="tab" data-lvm="${x}" aria-selected="${x === k}" aria-label="Lernvers ${esc(monatName(x))}"><i></i></button>`).join("")}</div>` : "";
+  return lvKarte(k) + punkte;
+}
+function lvStartVerdrahten(box) {
+  const keys = lvMonate(); if (keys.length < 2) return;
+  const zeigen = (k, richtung) => {
+    lvAnsicht = k; box.innerHTML = lvStartHtml(k, keys); lvVerdrahten(); punkteVerdrahten();
+    const karte = box.querySelector(".lv"); if (karte && richtung) { karte.classList.add(richtung > 0 ? "lv-ein-r" : "lv-ein-l"); }
+  };
+  const wechsel = dir => {
+    const i = keys.indexOf(lvAnsicht || monatKey()) + dir;
+    if (i < 0 || i >= keys.length) { const karte = box.querySelector(".lv"); if (karte) { karte.classList.remove("lv-ende-l", "lv-ende-r"); void karte.offsetWidth; karte.classList.add(dir < 0 ? "lv-ende-l" : "lv-ende-r"); } return; }
+    SFX.tap(); zeigen(keys[i], dir);
+  };
+  function punkteVerdrahten() {
+    box.querySelectorAll("[data-lvm]").forEach(b => b.onclick = () => { const von = keys.indexOf(lvAnsicht || monatKey()), nach = keys.indexOf(b.dataset.lvm); if (nach === von) return; SFX.tap(); zeigen(b.dataset.lvm, nach > von ? 1 : -1); });
+  }
+  punkteVerdrahten();
+  if (box.dataset.wisch) return; box.dataset.wisch = "1";
+  let x0 = 0, y0 = 0, aktiv = false;
+  box.addEventListener("touchstart", e => { if (e.touches.length !== 1) { aktiv = false; return; } x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; aktiv = true; }, { passive: true });
+  box.addEventListener("touchcancel", () => { aktiv = false; }, { passive: true });
+  box.addEventListener("touchend", e => {
+    if (!aktiv) return; aktiv = false;
+    const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+    if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.4) return; /* nur deutlich waagerechte Wischer – Senkrechtes scrollt weiter */
+    wechsel(dx > 0 ? -1 : 1); /* nach rechts wischen = früherer Monat */
+  }, { passive: true });
+}
 const pick = a => a[Math.floor(Math.random() * a.length)];
 
 /* ---------- Sound (Synthesizer) ---------- */
@@ -1454,6 +1488,7 @@ function go(name, arg) {
   if (current && HAUPT_ANSICHTEN.includes(current)) ursprung = current;
   VL = null; applyTheme(); clearTimers(); vorlesenStop(); lbUnsub.forEach(u => { try { u(); } catch (e) {} }); lbUnsub = [];
   if (!S.lbName && name !== "name") name = "name";
+  if (name !== current) lvAnsicht = null; /* 9.47: Startseite zeigt wieder den Vers des laufenden Monats */
   current = name; window.scrollTo(0, 0); document.body.classList.remove("spiel-laeuft");
   tabbarSetzen(name); (VIEWS[name] || VIEWS.home)(arg);
   try { staemmeErstatten(); appBonusPruefen(); appHinweisZeigen(); nachPruefen(); } catch (e) {} /* beim allerersten go() sind die Konstanten unten noch nicht bereit */
@@ -1727,7 +1762,7 @@ VIEWS.home = () => {
     ${kopf}
     ${adventMiniHtml(true)}${siegel}
     ${bkLabel("scroll", "Lernvers")}
-    <div class="start-vers">${MONATSVERSE[monatKey()] ? lvKarte(monatKey()) : `<button class="vers-zeile" id="versZeile" aria-expanded="false">${versHtml(vKey, "tag klein")}<span class="vz-mehr">mehr</span></button>`}</div>
+    <div class="start-vers">${MONATSVERSE[monatKey()] ? lvStartHtml(lvMonate().includes(lvAnsicht) ? lvAnsicht : (lvAnsicht = monatKey()), lvMonate()) : `<button class="vers-zeile" id="versZeile" aria-expanded="false">${versHtml(vKey, "tag klein")}<span class="vz-mehr">mehr</span></button>`}</div>
     ${bkLabel("play", "Los geht's")}
     <div class="kt-grid">
       ${ktKachel("lernen", "var(--ar-lernen)", svg("book"), "Lektionen", "66 Bücher der Bibel")}
@@ -1744,7 +1779,7 @@ VIEWS.home = () => {
   const tb = $("truheBtn"); if (tb) tb.onclick = () => truheOeffnen(tb);
   const tk = $("truheKopf"); if (tk) tk.onclick = () => truheOeffnen(tk);
   const td = $("torDuell"); if (td) td.onclick = () => { SFX.tap(); go("duelle"); };
-  lvVerdrahten();
+  lvVerdrahten(); { const sv = screen.querySelector(".start-vers"); if (sv && sv.querySelector("[data-lvk]")) lvStartVerdrahten(sv); }
   if (S.lbName) levelNachreichen();
   const vz = $("versZeile"); if (vz) { vz.onclick = () => { const auf = vz.getAttribute("aria-expanded") !== "true"; vz.setAttribute("aria-expanded", auf); };
     requestAnimationFrame(() => { const bq = vz.querySelector("blockquote"); if (bq && bq.scrollHeight <= bq.clientHeight + 2) vz.classList.add("passt"); }); }

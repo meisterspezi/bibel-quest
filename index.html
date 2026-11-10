@@ -2551,6 +2551,20 @@ body.mit-app-hinweis .app{padding-bottom:calc(176px + env(safe-area-inset-bottom
 .kt-logo.med::before{content:"";position:absolute;inset:6%;border-radius:50%;background:radial-gradient(circle at 35% 28%,color-mix(in srgb,var(--c) 55%,#fff) 0,color-mix(in srgb,var(--c) 45%,#141845) 38%,#141845 100%);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 70%,#fff3dc),0 0 0 5px #141845,0 0 18px -2px var(--c),inset 0 -6px 12px #0006}
 .kt-logo.med svg{position:relative;width:58%;height:58%}
 .ah-knopf{padding:0 12px}
+
+/* 9.47: Lernvers auf der Startseite wischbar (Vormonate) – Punkte unter der Karte, sanftes Einblenden, Gummiband am Ende */
+.start-vers{touch-action:pan-y}
+.lv-punkte{display:flex;justify-content:center;gap:2px;margin-top:2px}
+.lv-punkte button{all:unset;box-sizing:border-box;cursor:pointer;width:22px;height:18px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
+.lv-punkte button i{display:block;width:6px;height:6px;border-radius:50%;background:rgba(242,193,78,.35);transition:width .2s,background .2s}
+.lv-punkte button[aria-selected="true"] i{width:16px;border-radius:4px;background:#f2c14e}
+.lv-punkte button:focus-visible i{outline:2px solid #fff;outline-offset:2px}
+@keyframes lvEinR{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:none}}
+@keyframes lvEinL{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+@keyframes lvEndeL{0%,100%{transform:none}40%{transform:translateX(10px)}}
+@keyframes lvEndeR{0%,100%{transform:none}40%{transform:translateX(-10px)}}
+.lv.lv-ein-r{animation:lvEinR .22s ease-out}.lv.lv-ein-l{animation:lvEinL .22s ease-out}
+.lv.lv-ende-l{animation:lvEndeL .3s ease-out}.lv.lv-ende-r{animation:lvEndeR .3s ease-out}
 </style>
 </head>
 <body>
