@@ -175,8 +175,17 @@ if (!configured) {
     LB.xpSetzen = async (pid, name, x) => { await LB.signIn(); await fs.setDoc(ref("xpquellen", pid), { pid, name, alt: x.alt | 0, q: x.q || {}, n: x.n || {}, m: x.m || {}, tag: x.tag || {}, std: x.std || {}, bel: Array.isArray(x.bel) ? x.bel.slice(-100) : [], updated: fs.serverTimestamp() }); };
     // 6.75: XP-Protokoll – je XP-Vergabe ein Dokument (nur anlegen, nie ändern): {pid, name, z:Zeit(ms, Uhr des Geräts), q:Quelle, x:XP, v:XP-Stand vorher,
     //       s:Spielzeit(Sek.), f:Fortschritt, fm:möglicher Höchstwert, d:Kurztext, ver:App-Version, gebucht:Serverzeit}. Dokument-ID: <pid>_<z>_<n>
+    // 9.55: Paket – bis zu 25 Vergaben in EINEM Dokument <pid>_<z>_<n>p = {pid, name, z (erste Vergabe), ev: [{z, n, q, x, v, s, f, fm, d, ver}], gebucht}.
+    //       Solange die neuen Regeln nicht veröffentlicht sind („permission-denied“), wird wie bisher einzeln gespeichert.
+    let xpPaket = true;
+    const xpFeld = e => { const d = { z: e.z, n: e.n | 0, q: e.q, x: e.x, v: e.v, ver: e.ver || "" }; ["s", "f", "fm"].forEach(k => { if (Number.isFinite(e[k])) d[k] = e[k] | 0; }); if (e.d) d.d = String(e.d).slice(0, 60); return d; };
     LB.xpEreignisse = async (pid, name, liste) => {
       await LB.signIn(); const fertig = [];
+      liste = (liste || []).slice(0, 25); if (!liste.length) return fertig;
+      if (xpPaket) {
+        try { await fs.setDoc(ref("xpprotokoll", pid + "_" + liste[0].z + "_" + (liste[0].n | 0) + "p"), { pid, name, z: liste[0].z, ev: liste.map(xpFeld), gebucht: fs.serverTimestamp() }); return liste; }
+        catch (err) { if (!err || err.code !== "permission-denied") return fertig; xpPaket = false; }
+      }
       for (const e of liste) {
         const id = pid + "_" + e.z + "_" + (e.n | 0), d = { pid, name, z: e.z, q: e.q, x: e.x, v: e.v, ver: e.ver || "", gebucht: fs.serverTimestamp() };
         ["s", "f", "fm"].forEach(k => { if (Number.isFinite(e[k])) d[k] = e[k] | 0; }); if (e.d) d.d = String(e.d).slice(0, 60);
@@ -185,11 +194,17 @@ if (!configured) {
       }
       return fertig;
     };
+    // 9.55: Pakete beim Lesen wieder in einzelne Vergaben auflösen (gleiche Form wie die alten Einzel-Dokumente); doppelte (Paket + einzeln) nur einmal
+    const xpFlach = docs => { const aus = [], da = new Set();
+      docs.forEach(d => { const x = d.data();
+        (Array.isArray(x.ev) ? x.ev.map((e, i) => { const { n, ...r } = e; return { k: x.pid + "_" + e.z + "_" + (n | 0), e: { id: d.id + "#" + i, pid: x.pid, name: x.name, gebucht: x.gebucht, ...r } }; }) : [{ k: d.id, e: { id: d.id, ...x } }])
+          .forEach(o => { if (!da.has(o.k)) { da.add(o.k); aus.push(o.e); } }); });
+      return aus; };
     // Verwalter: alle Einträge der letzten Zeit (seitMs) bzw. die letzten n Einträge eines Spielers (Dokument-ID beginnt mit der Spieler-ID)
-    LB.xpProtokollNeu = async (seitMs, n = 3000) => { const q = await fs.getDocs(fs.query(fs.collection(db, "xpprotokoll"), fs.where("z", ">", seitMs), fs.orderBy("z", "desc"), fs.limit(n))); return q.docs.map(d => ({ id: d.id, ...d.data() })); };
+    LB.xpProtokollNeu = async (seitMs, n = 3000) => { const q = await fs.getDocs(fs.query(fs.collection(db, "xpprotokoll"), fs.where("z", ">", seitMs), fs.orderBy("z", "desc"), fs.limit(n))); return xpFlach(q.docs).sort((x, y) => y.z - x.z); };
     // 6.82: aufsteigend nach Dokument-ID (<pid>_<Zeit>_<Nr>, Zeit hat 13 Ziffern → zeitlich sortiert). Absteigend brauchte einen Index,
     //       den es nicht gibt („failed-precondition“). seitMs grenzt auf neuere Einträge ein; Ergebnis neueste zuerst.
-    LB.xpProtokoll = async (pid, n = 200, seitMs = 0) => { const q = await fs.getDocs(fs.query(fs.collection(db, "xpprotokoll"), fs.where(fs.documentId(), ">=", pid + "_" + (seitMs > 0 ? String(Math.floor(seitMs)) : "")), fs.where(fs.documentId(), "<", pid + "`"), fs.orderBy(fs.documentId()), fs.limit(n))); return q.docs.map(d => ({ id: d.id, ...d.data() })).sort((x, y) => y.z - x.z); };
+    LB.xpProtokoll = async (pid, n = 200, seitMs = 0) => { const q = await fs.getDocs(fs.query(fs.collection(db, "xpprotokoll"), fs.where(fs.documentId(), ">=", pid + "_" + (seitMs > 0 ? String(Math.floor(seitMs)) : "")), fs.where(fs.documentId(), "<", pid + "`"), fs.orderBy(fs.documentId()), fs.limit(n))); return xpFlach(q.docs).sort((x, y) => y.z - x.z); };
     // 6.78: Schatztruhe – höchstens einmal je Spieler und Serverdatum (Dokument-ID <pid>_<JJJJMMTT>, nur anlegen)
     LB.truheBuchen = async (pid, name, tag, ver) => {
       await LB.signIn(); const id = pid + "_" + tag;
@@ -308,6 +323,7 @@ if (!configured) {
     const FELD = { gesamt: "xp", kette_bibel: "bestChain", kette_at: "chainAT", kette_nt: "chainNT", kette_rueck: "chainRueck", treue: "t28", bewaehrt: "bew", abzeichen: "badges", blitz: "blitz", combo: "combo", duSiege: "duS", duSpiele: "duG", bibRekord: "bib" };
     let eigen = null;
     const push0 = LB.push; LB.push = async (pid, data, opts) => { const r = await push0(pid, data, opts); eigen = { pid, d: data }; return r; };
+    LB.eigenMerken = (pid, data) => { eigen = { pid, d: data }; };  // 9.55: eigener Fortschritt in den Ranglisten, auch wenn seltener gespeichert wird
     const RL_TTL = 15 * MIN; /* 9.53: Biblionär-Woche */
     LB.watch = (kind, week, cb, onErr) => {
       let weg = false;

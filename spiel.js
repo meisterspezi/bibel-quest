@@ -968,15 +968,19 @@ function xqEreignis(n, q, info, vor) {
   const l = xqLogLesen(); l.push(e); xqLogSchreiben(l);
 }
 let xqLogLaeuft = false;
-async function xqLogSenden() {
+/* 9.55: gesammelt senden – erst ab 10 Einträgen, nach 10 Minuten oder sofort (App-Start, Verlassen der App, Spielerwechsel).
+   Die Datenbank bekommt dann ein Paket-Dokument statt eines Dokuments je XP-Vergabe. */
+const XQ_LOG_AB = 10, XQ_LOG_ALT = 10 * 60000;
+async function xqLogSenden(sofort) {
   const L = window.LB; if (xqLogLaeuft || !L || !L.ok || !L.xpEreignisse || !S.pid || S.offlineOnly || !S.lbName) return;
   const l = xqLogLesen(); if (!l.length) return;
+  if (!sofort && l.length < XQ_LOG_AB && Date.now() - (+l[0].z || 0) < XQ_LOG_ALT) return;
   xqLogLaeuft = true;
   try {
     const fertig = await L.xpEreignisse(S.pid, S.lbName, l.slice(0, 25));
     if (fertig && fertig.length) { const ids = new Set(fertig.map(e => e.z + "_" + e.n)); xqLogSchreiben(xqLogLesen().filter(e => !ids.has(e.z + "_" + e.n))); }
     xqLogLaeuft = false;
-    if (fertig && fertig.length === 25 && xqLogLesen().length) setTimeout(xqLogSenden, 500);
+    if (fertig && fertig.length === 25 && xqLogLesen().length) setTimeout(() => xqLogSenden(true), 500);
   } catch (e) { xqLogLaeuft = false; /* bewusst still, siehe xqSenden */ }
 }
 /* 6.83: Protokoll eines Spielers (Schlüssel key) vollständig abschicken – in 25er-Paketen, gesendete Einträge werden entfernt */
@@ -2676,11 +2680,18 @@ function lbPayload() {
   };
 }
 let lbTimer = null, cloudTimer = null;
+/* 9.55 Schreibzugriffe sparen (Ziel: 500 Spieler im kostenlosen Tarif): Rangliste höchstens 1× je Minute und nur bei geänderten Werten,
+   Spielstand höchstens alle 2 Minuten, XP-Protokoll als Paket. Beim Verlassen der App geht alles sofort raus. */
+const LB_ABSTAND = 60000, CLOUD_ABSTAND = 120000;
+let lbZuletzt = 0, lbGesendet = "", cloudZuletzt = 0, eigenTimer = null;
 function lbSync(now) {
   const L = window.LB; if (gesperrt || !S.lbName || S.offlineOnly || !L || !L.ok || !L.uid || namePruefungLaeuft) return;
   if (!S.pid) S.pid = neuePid();
   clearTimeout(lbTimer);
+  /* die eigene Zeile in den Ranglisten zeigt den Fortschritt weiter sofort (nur auf diesem Gerät, ohne Datenbank) */
+  if (L.eigenMerken && !eigenTimer) eigenTimer = setTimeout(() => { eigenTimer = null; try { if (S.pid && S.lbName) L.eigenMerken(S.pid, lbPayload()); } catch (e) {} }, 2500);
   lbTimer = setTimeout(() => {
+    lbTimer = null; lbZuletzt = Date.now();
     try { bethSenden(); } catch (e) {} /* 7.3: Weg nach Bethlehem */
     try { xqSenden(); } catch (e) {} /* 6.73: XP-Quellen */
     try { gemSenden(); } catch (e) {} /* 9.0: Gemeinde-Zuordnung */
@@ -2695,11 +2706,14 @@ function lbSync(now) {
     const bgSig = (S.bibSpiele | 0) + ":" + S.lbName + ":" + (S.avatar || "") + ":" + (S.frame || "") + ":" + levelOf(S.xp);
     if ((S.bibSpiele | 0) > 0 && L.bibWocheSetzen && S.bgSync !== bgSig)
       L.bibWocheSetzen({ pid: S.pid, wk: BIB_GESAMT, p: Math.min(S.bibSpiele | 0, 1000000), name: S.lbName, av: S.avatar, fr: S.frame, lv: levelOf(S.xp) }).then(() => { S.bgSync = bgSig; save(); }).catch(e => dbFehler("Biblionär-Spiele speichern", e));
-    L.push(S.pid, lbPayload(), opts).then(ok).catch(e => {
+    /* unveränderte Werte nicht nochmal schreiben (außer beim ausdrücklichen Sofort-Senden, z. B. beim App-Start) */
+    const daten = lbPayload(), sig = S.pid + JSON.stringify(daten);
+    if (!now && !opts.owners && sig === lbGesendet) return;
+    L.push(S.pid, daten, opts).then(() => { lbGesendet = sig; ok(); }).catch(e => {
       if (e && e.code === "permission-denied") return L.push(S.pid, ohneBib(), opts).then(ok).catch(e2 => dbFehler("Rangliste speichern", e2));
       dbFehler("Rangliste speichern", e);
     });
-  }, now ? 0 : 2500);
+  }, now ? 0 : Math.max(2500, lbZuletzt + LB_ABSTAND - Date.now()));
 }
 /* Datenbankfehler (z. B. abgelehnt durch die Regeln) an den Verwalter melden – Verbindungsprobleme nicht.
    6.64: Bei „permission-denied“ zuerst prüfen, ob dieses Gerät noch in der Geräteliste des Profils steht.
@@ -2742,8 +2756,24 @@ function geraetNeuVerbinden(was) {
 function cloudSync(now) {
   const L = window.LB; if (gesperrt || !S.lbName || S.offlineOnly || !S.pid || !S.ownersSet || !L || !L.ok || !L.saveState) return;
   clearTimeout(cloudTimer);
-  cloudTimer = setTimeout(() => { L.saveState(S.pid, spielstandExport()).catch(e => dbFehler("Spielstand sichern", e)); }, now ? 0 : 4000);
+  /* 9.55: höchstens alle 2 Minuten sichern (bisher nach jeder 4-Sekunden-Pause) – beim Verlassen der App wird sofort gesichert (sofortSenden) */
+  cloudTimer = setTimeout(cloudJetzt, now ? 0 : Math.max(4000, cloudZuletzt + CLOUD_ABSTAND - Date.now()));
 }
+function cloudJetzt() {
+  clearTimeout(cloudTimer); cloudTimer = null;
+  const L = window.LB; if (gesperrt || !S.lbName || S.offlineOnly || !S.pid || !S.ownersSet || !L || !L.ok || !L.saveState) return;
+  cloudZuletzt = Date.now();
+  L.saveState(S.pid, spielstandExport()).catch(e => dbFehler("Spielstand sichern", e));
+}
+/* 9.55: App wird verlassen (anderes Fenster, Bildschirm aus, geschlossen): alles Wartende sofort abschicken */
+function sofortSenden() {
+  if (gesperrt) return;
+  if (lbTimer) lbSync(true);
+  if (cloudTimer) cloudJetzt();
+  try { xqLogSenden(true); } catch (e) {}
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") sofortSenden(); });
+addEventListener("pagehide", sofortSenden);
 function spielstandExport() { const c = JSON.parse(JSON.stringify(S)); delete c.mute; delete c.beat; return c; }
 /* Zwei Spielstände zusammenführen – nichts geht verloren */
 function zusammenfuehren(r) {
