@@ -251,9 +251,12 @@ if (!configured) {
     //       Jetzt: die neuesten 100 (Index duelle: teil [Arrays] + erstellt [absteigend]). Fehlt der Index noch („failed-precondition“),
     //       werden alle Duelle des Spielers geladen und hier sortiert – vollständig, kostet aber mehr Lesezugriffe.
     const DU_MAX = 100; let duIndex = true;
-    LB.meineDuelle = async (pid) => {
+    // 9.57: seitMs = nur Duelle, die seitdem angelegt wurden (die App fragt normalerweise die letzten 8 Tage ab – offene Duelle sind nie älter;
+    //       ältere Ergebnisse merkt sie sich selbst). Nutzt denselben Index (teil + erstellt).
+    LB.meineDuelle = async (pid, seitMs) => {
       const meine = fs.where("teil", "array-contains", pid); let s = null;
-      if (duIndex) try { s = await fs.getDocs(fs.query(duelle, meine, fs.orderBy("erstellt", "desc"), fs.limit(DU_MAX))); }
+      const neu = seitMs > 0 ? [fs.where("erstellt", ">", fs.Timestamp.fromMillis(seitMs))] : [];
+      if (duIndex) try { s = await fs.getDocs(fs.query(duelle, meine, ...neu, fs.orderBy("erstellt", "desc"), fs.limit(DU_MAX))); }
         catch (e) { if (!e || e.code !== "failed-precondition") throw e; duIndex = false; LB.duIndexFehlt = true; console.warn("Duelle: Index fehlt – lade alle.", e.message); }
       if (!s) s = await fs.getDocs(fs.query(duelle, meine));
       return s.docs.map(duDaten).sort((x, y) => y.erstellt - x.erstellt).slice(0, DU_MAX);

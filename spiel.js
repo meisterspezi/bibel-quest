@@ -3886,6 +3886,9 @@ function duAblehnenFrage(d, spielen) {
    (Arena/Biblionär 2 Min., Startseite 10 Min., Rückkehr in die App 5 Min.). Neu gezeichnet wird nur bei einer Änderung. */
 const DU_FRISCH_REITER = 2 * 60000, DU_FRISCH_START = 10 * 60000, DU_FRISCH_ZURUECK = 5 * 60000, DU_GES_MAX = 150, DU_AUFLOES_MAX = 5, DU_LOHN_TAGE = 14;
 let duGeladen = 0, duFrischLaeuft = false;
+const DU_FENSTER_TAGE = 8, DU_MERK_MAX = 40;
+function duMerkLesen() { try { const l = JSON.parse(localStorage.getItem(LS + ":dufertig") || "[]"); return Array.isArray(l) ? l.filter(d => d && d.id && d.vonErg && d.anErg && d.status === "fertig") : []; } catch (e) { return []; } }
+function duMerkSchreiben(l) { try { localStorage.setItem(LS + ":dufertig", JSON.stringify(l.map(d => ({ id: d.id, v: d.v, art: d.art, k: d.k, modus: d.modus, von: d.von, an: d.an, vonName: d.vonName, anName: d.anName, vonErg: d.vonErg, anErg: d.anErg, seed: d.seed, opt: d.opt, status: d.status, erstellt: d.erstellt, ablauf: d.ablauf, fertig: d.fertig })))); } catch (e) {} }
 const duSig = () => (duListe || []).map(d => d.id + ":" + d.status).join("|");
 function duAuffrischen(maxAlt) {
   if (!duOk() || duSpiel || duListe === null || duFrischLaeuft || Date.now() - duGeladen < maxAlt) return;
@@ -3902,7 +3905,11 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 async function duAktualisieren() {
   if (!duOk()) return duListe;
   try {
-    const L = window.LB, alle = await L.meineDuelle(S.pid), jetzt = Date.now();
+    /* 9.57 schlanker laden: nur Duelle der letzten 8 Tage (offene sind höchstens 7 Tage alt). War die App länger nicht offen, reicht das Fenster
+       bis 8 Tage vor den letzten Abruf zurück (höchstens 30 Tage) – so geht kein Ergebnis verloren. Ältere Ergebnisse kommen aus dem Gerätespeicher. */
+    const L = window.LB, jetzt = Date.now(), standKey = LS + ":dustand", letzter = Math.min(jetzt, +localStorage.getItem(standKey) || 0);
+    const seit = Math.max(jetzt - DU_TAGE_HALTEN * 864e5, (letzter || 0) - DU_FENSTER_TAGE * 864e5);
+    const alle = await L.meineDuelle(S.pid, seit);
     duListe = alle.filter(d => {
       /* nur Varianten anzeigen, die diese App-Version kennt (spätere Duell-Arten bleiben unberührt) */
       if (!duTypVon(d) || (d.modus || "1v1") !== "1v1" || !d.vonErg || (d.status === "fertig" && !d.anErg)) return false;
@@ -3911,6 +3918,12 @@ async function duAktualisieren() {
       if (alt && (d.status !== "offen" || jetzt > d.ablauf)) { if (d.status !== "fertig") L.duellLoeschen(d.id).catch(() => {}); return false; }
       return true;
     });
+    /* gemerkte Ergebnisse (fertige Duelle ändern sich nie mehr) ergänzen und die neuesten wieder merken */
+    const da = new Set(alle.map(d => d.id));
+    duMerkLesen().forEach(d => { if (!da.has(d.id) && jetzt - d.erstellt <= DU_TAGE_HALTEN * 864e5 && duTypVon(d)) duListe.push(d); });
+    duListe.sort((x, y) => y.erstellt - x.erstellt);
+    duMerkSchreiben(duListe.filter(d => d.status === "fertig" && d.vonErg && d.anErg).slice(0, DU_MERK_MAX));
+    try { localStorage.setItem(standKey, String(jetzt)); } catch (e) {}
     duGeladen = Date.now();
     duFehler = ""; duBelohnen(); duZaehlen(); tbDuSetzen();
   } catch (e) { duFehler = "laden"; }
