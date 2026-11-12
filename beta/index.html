@@ -2554,6 +2554,49 @@ section.lv.lvd .lv-fuss .lv-btn.hoert{background:color-mix(in srgb,var(--bad) 35
 .bt-zeile b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bt-zeile small{color:var(--muted)}
 .bt-zeile i{font-style:normal;font-weight:800;font-size:.72rem;padding:3px 10px;border-radius:99px;background:rgba(255,255,255,.08);color:var(--muted)}
 .bt-zeile[aria-pressed="true"] i{background:linear-gradient(180deg,#ffd98a,#f2c14e);color:#0e1226}
+/* ===== 9.61 Weihnachts-Ausgabe „Stille Nacht“: Schnee, Stern, Schneehauben, Christbaumkugeln (nur mit body.weih-an) ===== */
+#weihSchnee{position:fixed;inset:0;z-index:6;pointer-events:none;overflow:hidden}
+#weihSchnee i{position:absolute;top:-12px;border-radius:50%;background:#fff;animation:weihFall linear infinite}
+#weihSchnee svg{position:absolute;top:-16px;color:#fff;animation:weihFall linear infinite}
+@keyframes weihFall{0%{transform:translate3d(0,-20px,0) rotate(0)}50%{transform:translate3d(var(--dx),50vh,0) rotate(90deg)}100%{transform:translate3d(0,104vh,0) rotate(180deg)}}
+@media (prefers-reduced-motion:reduce){#weihSchnee i,#weihSchnee svg{animation-play-state:paused}}
+.weih-fl{width:1em;height:1em;flex:none}
+.weih-haube{position:absolute;left:-2px;right:-2px;top:-9px;height:20px;pointer-events:none;z-index:2}
+.weih-haube svg{width:100%;height:100%;display:block;filter:drop-shadow(0 2px 2px #0b1030aa)}
+.weih-kopf{position:relative}
+.weih-stern{position:absolute;right:2px;top:-6px;width:64px;height:64px;pointer-events:none;filter:drop-shadow(0 0 10px #fff1c2)}
+@media (prefers-reduced-motion:no-preference){.weih-stern{animation:weihFunkel 3.6s ease-in-out infinite}}
+@keyframes weihFunkel{50%{opacity:.72;transform:scale(.94)}}
+body.weih-an .weih-kopf .bk-kopf::after{height:12px;border-bottom:0;background:radial-gradient(circle at 50% 0,#fff 0,#eaf4ff 5px,transparent 6px) 0 0/13px 12px repeat-x,linear-gradient(#ffffffcc,#ffffffcc) 0 0/100% 2px no-repeat;opacity:.9}
+body.weih-an .weih-kopf .bk-t span{color:#bfe3ff;padding-right:58px}
+body.weih-an .weih-kopf .bk-med.bild img{filter:drop-shadow(0 0 12px #bfe3ffaa)}
+.weih-schalter button .weih-fl{width:17px;height:17px}
+.weih-schalter button[data-wm="1"][aria-checked="true"]{background:linear-gradient(180deg,#e9f4ff,#a9cdf2);color:#14234f;box-shadow:0 0 12px #bfe3ff66}
+body.weih-an .weih-schalter{margin-bottom:14px;border-color:#bfe3ff33}
+.zv2-buehne.weih{position:relative;overflow:visible;background:linear-gradient(180deg,#22386f,#141c46 70%);box-shadow:inset 0 0 0 1px #bfe3ff55,0 0 24px #7fc8ff22}
+/* Solo und Duell als Christbaumkugeln: goldene Kappe, Faden, Glanzlicht */
+.zv2-buehne.weih .zv2-ring{position:relative;margin-top:14px}
+.zv2-buehne.weih .zv2-ring::before{content:"";position:absolute;left:50%;top:-13px;width:18px;height:12px;margin-left:-9px;border-radius:4px 4px 2px 2px;background:linear-gradient(90deg,#b8862a,#fff1c2,#b8862a);box-shadow:0 0 0 1px #6b4a10;z-index:3}
+.zv2-buehne.weih .zv2-ring::after{content:"";position:absolute;left:50%;top:-34px;width:1.5px;height:22px;background:#f2c14eaa}
+.zv2-buehne.weih .zv2-in{background:radial-gradient(circle at 34% 28%,#ffffff55,transparent 45%),radial-gradient(circle at 50% 60%,color-mix(in srgb,var(--c) 55%,#1b1238),#1b1238)}
+.bq4-woche.weih{background:linear-gradient(170deg,#274a86,#16224f);box-shadow:inset 0 0 0 1px #bfe3ff66}
+.bq4-woche.weih .bq4-kr{box-shadow:inset 0 0 0 2px #fff1c2;background:radial-gradient(circle,#fff1c255,transparent 70%)}
+/* Weihnachts-Duelle in Listen */
+.weih-marke{display:inline-flex;align-items:center;gap:3px;margin-left:5px;padding:3px 7px 3px 5px;border-radius:8px;font:800 .7rem/1 var(--body);font-style:normal;letter-spacing:0;text-transform:none;color:#14234f;background:linear-gradient(180deg,#e9f4ff,#a9cdf2);box-shadow:0 0 8px #bfe3ff66;vertical-align:1px;white-space:nowrap}
+.weih-marke .weih-fl{width:12px;height:12px}
+.bq2-tx b .weih-marke span,.ar-zeile .weih-marke span{display:none}.bq2-tx b .weih-marke,.ar-zeile .weih-marke{padding:3px 4px}
+.du-chip>.weih-fl,.bq2-e .bq2-tx b>.weih-fl{width:13px;height:13px;margin-right:4px;color:#bfe3ff;vertical-align:-2px;filter:none}
+/* Spiel im Weihnachtslicht: Frage, Antworten, Countdown, Ergebnis */
+body.weih-an .bib-titel{color:#d6ecff}.bib-titel .weih-fl{width:18px;height:18px}
+body.weih-an .bib-frage-box{margin-top:6px;background:radial-gradient(120% 90% at 50% 0%,#bfe3ff26,transparent 60%),linear-gradient(180deg,#22386f,#141c46);border-color:#bfe3ff77;box-shadow:0 0 24px -6px #bfe3ff88,inset 0 1px 0 #ffffff1f}
+body.weih-an .bib-frage-box.st3{border-color:#f2c14e88;box-shadow:0 0 24px -6px #f2c14e77,inset 0 1px 0 #ffffff1f}
+body.weih-an .bib-frage-box .bib-thema{color:#bfe3ff}body.weih-an .bib-frage-box.st3 .bib-thema{color:#ffd77a}
+body.weih-an .bib-opt{border-color:#bfe3ff3d}
+body.weih-an .bib-opt i{background:radial-gradient(circle at 40% 30%,#fff,#d6ecff 55%,#8fb6e0);color:#14234f}
+body.weih-an .bib-opt.eingeloggt i,body.weih-an .bib-opt.richtig i{background:radial-gradient(circle at 40% 30%,#fff6c8,#f2c14e 60%,#a8781a);color:#2a1d02}
+body.weih-an .bib-zeit i{background:linear-gradient(90deg,var(--bad),#ffcf5a 40%,#bfe3ff)}
+body.weih-an .bib-ende .bib-ic{filter:drop-shadow(0 0 14px #bfe3ffaa)}
+body.weih-an .bib-ende .bib-gross b{text-shadow:0 0 18px #bfe3ff88}
 </style>
 </head>
 <body>
