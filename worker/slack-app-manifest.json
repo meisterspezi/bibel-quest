@@ -1,0 +1,28 @@
+{
+  "display_information": {
+    "name": "Bibelbuch-Quest",
+    "description": "Feedback, Meldungen und Nachrichten der Bibelbuch-Quest-App",
+    "background_color": "#1b2146"
+  },
+  "features": {
+    "bot_user": {
+      "display_name": "Bibelbuch-Quest",
+      "always_online": true
+    }
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": [
+        "chat:write",
+        "channels:history",
+        "channels:join",
+        "reactions:write"
+      ]
+    }
+  },
+  "settings": {
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": false,
+    "token_rotation_enabled": false
+  }
+}

@@ -1,0 +1,48 @@
+# Veröffentlicht die Slack-Brücke (worker/) bei Cloudflare, sobald sich dort etwas ändert.
+# Braucht die Secrets CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SLACK_BOT_TOKEN, SLACK_SIGNING_SECRET und FIREBASE_SERVICE_ACCOUNT.
+name: Slack-Brücke veröffentlichen
+on:
+  push:
+    branches: [main]
+    paths: ["worker/**", ".github/workflows/worker.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      SLACK_SIGNING_SECRET: ${{ secrets.SLACK_SIGNING_SECRET }}
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+    steps:
+      - name: Zugänge prüfen
+        id: pruef
+        run: |
+          fehlt=""
+          for n in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID SLACK_BOT_TOKEN SLACK_SIGNING_SECRET FIREBASE_SERVICE_ACCOUNT; do
+            if [ -z "${!n}" ]; then fehlt="$fehlt $n"; fi
+          done
+          if [ -n "$fehlt" ]; then
+            echo "::warning::Slack-Brücke nicht veröffentlicht – es fehlen die Secrets:$fehlt"
+            echo "bereit=nein" >> "$GITHUB_OUTPUT"
+          else
+            echo "bereit=ja" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v5
+        if: steps.pruef.outputs.bereit == 'ja'
+      - uses: actions/setup-node@v5
+        if: steps.pruef.outputs.bereit == 'ja'
+        with:
+          node-version: 22
+      - name: Veröffentlichen
+        if: steps.pruef.outputs.bereit == 'ja'
+        working-directory: worker
+        run: |
+          npx --yes wrangler@4 deploy
+          for n in SLACK_BOT_TOKEN SLACK_SIGNING_SECRET FIREBASE_SERVICE_ACCOUNT; do
+            printf '%s' "${!n}" | npx --yes wrangler@4 secret put "$n"
+          done

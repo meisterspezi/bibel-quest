@@ -1,0 +1,26 @@
+# Meldet jede Veröffentlichung (Stand auf main) in Slack #builds-deployments. Braucht das Secret SLACK_BOT_TOKEN – ohne passiert nichts.
+name: Veröffentlichung melden
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  melden:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: Slack
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          KANAL: C0CJ2U1KSG0
+          BETREFF: ${{ github.event.head_commit.message }}
+          LINK: ${{ github.event.head_commit.url }}
+        run: |
+          if [ -z "$SLACK_BOT_TOKEN" ]; then echo "SLACK_BOT_TOKEN fehlt – keine Meldung."; exit 0; fi
+          version=$(grep -o 'APP_VERSION = "[^"]*"' daten.js | cut -d'"' -f2)
+          text=$(printf ':rocket: *Bibelbuch-Quest %s ist veröffentlicht*\n%s\n<%s|Änderung ansehen> · auf den Geräten in ein paar Minuten' "$version" "$(printf '%s' "$BETREFF" | head -1)" "$LINK")
+          sende() { curl -sS -X POST "https://slack.com/api/$1" -H "Authorization: Bearer $SLACK_BOT_TOKEN" -H "Content-Type: application/json; charset=utf-8" --data "$2"; }
+          sende conversations.join "$(jq -n --arg c "$KANAL" '{channel:$c}')" > /dev/null
+          sende chat.postMessage "$(jq -n --arg c "$KANAL" --arg t "$text" '{channel:$c,text:$t,unfurl_links:false}')" | jq -e '.ok' > /dev/null || echo "::warning::Slack-Meldung fehlgeschlagen"

@@ -1,0 +1,19 @@
+# Bibelbuch-Quest – Slack-Brücke (Cloudflare Worker). Wird über .github/workflows/worker.yml veröffentlicht.
+# Geheimnisse (NICHT hier eintragen, nur als GitHub-Secrets): SLACK_BOT_TOKEN, SLACK_SIGNING_SECRET, FIREBASE_SERVICE_ACCOUNT
+name = "bibel-quest-slack"
+main = "worker.mjs"
+compatibility_date = "2025-06-01"
+workers_dev = true
+
+[vars]
+PROJEKT = "bibel-quest"
+K_FEEDBACK = "C0CH2A8TGSX"   # user-feedback
+K_ALARM = "C0CH6J11Z9U"      # alerts-crashes
+K_METRIK = "C0CH38EAFDK"     # metrics
+K_PATCH = "C0CJ2U1PCLQ"      # patchnotes
+# Slack-Mitglieder-IDs (mit Komma getrennt), die Patchnotes senden und Spielern schreiben dürfen. Leer = jedes menschliche Mitglied des Kanals.
+ADMINS = "U0CGB9GHFB9"   # Michael
+
+[triggers]
+# alle 15 Minuten: Liegengebliebenes nachsenden · täglich 18:00 UTC (19/20 Uhr in Deutschland): Tageszahlen
+crons = ["*/15 * * * *", "0 18 * * *"]

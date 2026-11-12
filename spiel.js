@@ -5156,6 +5156,22 @@ async function postkastenMelden(kat, text, schluessel) {
   try { if (localStorage.getItem(k) === heute) return; } catch (e) {}
   try { await L.feedback({ text: text.slice(0, 2000), art: "info", ver: APP_VERSION, geraet: (kat + " · " + geraetBeschreibung()).slice(0, 80), ...(S.lbName ? { name: S.lbName, pid: S.pid || "" } : {}) }); try { localStorage.setItem(k, heute); } catch (e) {} } catch (e) {}
 }
+/* 9.58: Programmfehler (Abstürze) melden – landen über die Slack-Brücke in #alerts-crashes. Je Gerät derselbe Fehler höchstens einmal
+   am Tag (postkastenMelden) und höchstens 3 Meldungen am Tag; Netz-Aussetzer und fremde Skripte (Erweiterungen) werden nicht gemeldet. */
+const ABSTURZ_MAX = 3, ABSTURZ_STILL = /Script error|ResizeObserver|Failed to fetch|Load failed|NetworkError|AbortError|The operation was aborted|offline|unavailable|Importing a module script failed|dynamically imported module/i;
+function absturzMelden(msg, quelle, stack) {
+  try {
+    msg = String(msg || "").slice(0, 300); if (!msg || ABSTURZ_STILL.test(msg)) return;
+    if (quelle && !String(quelle).startsWith(location.origin)) return;
+    const k = "bq-absturz", h = today(); let z = {}; try { z = JSON.parse(localStorage.getItem(k) || "{}"); } catch (e) {}
+    if (z.t !== h) z = { t: h, n: 0 }; if (z.n >= ABSTURZ_MAX) return;
+    z.n++; try { localStorage.setItem(k, JSON.stringify(z)); } catch (e) {}
+    const wo = String(quelle || "").replace(location.origin, "").replace(/\?.*$/, ""), spur = String(stack || "").split("\n").slice(0, 4).map(x => x.trim().replace(location.origin, "")).join(" | ").slice(0, 500);
+    postkastenMelden("absturz", `${msg}${wo ? " @ " + wo : ""} · Ansicht ${typeof current === "string" ? current : "?"} · Spieler ${S.lbName || "?"}${spur ? "\n" + spur : ""}`, "abs-" + hash(msg + wo));
+  } catch (e) {}
+}
+addEventListener("error", e => absturzMelden(e.message, e.filename ? `${e.filename}:${e.lineno}:${e.colno}` : "", e.error && e.error.stack));
+addEventListener("unhandledrejection", e => { const r = e.reason; if (r && r.code) return; /* Firebase-Fehler meldet dbFehler() */ absturzMelden(r && r.message ? r.message : String(r), "", r && r.stack); });
 /* Statusberichte für den Verwalter: neue App-Version, Wochenbericht */
 async function statusBerichte() {
   const L = window.LB; if (!entwickler || !L || !L.alleSpieler) return;

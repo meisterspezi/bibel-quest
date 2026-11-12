@@ -97,12 +97,18 @@ if (!configured) {
     };
 
     // Feedback an den Entwickler (nur anlegen – lesen kann es nur der Entwickler in der Firebase-Konsole)
+    // 9.58 Slack-Brücke (worker/worker.mjs): nach dem Speichern kurz anstupsen, damit Feedback und Dialog-Nachrichten sofort in Slack ankommen.
+    // Gesendet wird nur die Dokument-ID – den Inhalt liest die Brücke selbst aus der Datenbank. Ohne Adresse (BRUECKE_URL in daten.js)
+    // oder bei einem Fehler passiert nichts; die Brücke holt Liegengebliebenes alle 15 Minuten selbst ab.
+    const anstupsen = (art, id) => { try { const u = typeof BRUECKE_URL === "string" ? BRUECKE_URL.replace(/\/+$/, "") : ""; if (!u || !id) return;
+      fetch(u + "/neu", { method: "POST", headers: { "content-type": "text/plain" }, body: JSON.stringify({ art, id }), keepalive: true }).catch(() => {}); } catch (e) {} };
     LB.feedback = async (f) => {
       await LB.signIn();
       const d = { text: String(f.text).slice(0, 2000), art: f.art, ver: f.ver, geraet: f.geraet, uid: LB.uid, zeit: fs.serverTimestamp() };
       if (f.name) { d.name = f.name; if (f.pid) d.pid = f.pid; }
       if (f.wann) d.geschrieben = f.wann;
-      await fs.addDoc(fs.collection(db, "feedback"), d);
+      const r = await fs.addDoc(fs.collection(db, "feedback"), d);
+      anstupsen("feedback", r.id);
     };
 
     // Feedback-Postfach (nur für den Entwickler – die Regeln prüfen das)
@@ -301,7 +307,7 @@ if (!configured) {
     const dlgZeile = d => { const x = d.data(); return { id: d.id, pid: x.pid, name: x.name || "", von: x.von, text: x.text || "", zeit: x.zeit && x.zeit.toMillis ? x.zeit.toMillis() : 0 }; };
     LB.dialogHolen = async (pid) => (await fs.getDocs(fs.query(fs.collection(db, "dialoge"), fs.where("pid", "==", pid), fs.limit(200)))).docs.map(dlgZeile).sort((a, b) => a.zeit - b.zeit);
     LB.dialogAlle = async () => (await fs.getDocs(fs.query(fs.collection(db, "dialoge"), fs.limit(400)))).docs.map(dlgZeile).sort((a, b) => a.zeit - b.zeit);
-    LB.dialogSenden = async (pid, name, von, text) => { await LB.signIn(); await fs.addDoc(fs.collection(db, "dialoge"), { pid, name: String(name || "").slice(0, 20), von, text: String(text).slice(0, 1000), zeit: fs.serverTimestamp() }); };
+    LB.dialogSenden = async (pid, name, von, text) => { await LB.signIn(); const r = await fs.addDoc(fs.collection(db, "dialoge"), { pid, name: String(name || "").slice(0, 20), von, text: String(text).slice(0, 1000), zeit: fs.serverTimestamp() }); if (von === "spieler") anstupsen("dialog", r.id); };
     LB.dialogLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("dialoge", id)); };
     LB.gemLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("gemeinden", id)); };
 
