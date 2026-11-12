@@ -42,11 +42,32 @@ function adventWoche() { const t = adventTag() - dayNum(ADV_START); return t < 0
 const advRunde = () => { const t = adventTag() - dayNum(ADV_START); return t < 0 || t > dayNum(ADV_SICHT_BIS) - dayNum(ADV_START) ? 0 : Math.min(6, Math.floor(t / 7) + 1); };
 const advRundeName = w => (w <= 4 ? w + ". Advent" : w === 5 ? "Weihnachtswoche" : "Epiphanias");
 /* Modus „Weihnachten“ für Solo, Woche und Duell – wählbar im Advent, im Reiter Biblionär und in der Arena (nur 1. Advent bis 8. Januar) */
-let weihModus = false;
+/* 9.61: In der Weihnachtszeit ist „Weihnachten“ vorgewählt. Wer auf „Klassisch“ stellt, behält das bis zum nächsten Start der App. */
+let weihModus = true;
 const weihAktiv = () => weihModus && weihnachtsDuellOk();
+const WEIH_FLOCKE = `<svg class="weih-fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M3.3 7l17.4 10M3.3 17L20.7 7M12 5.5l-2.2-2M12 5.5l2.2-2M12 18.5l-2.2 2M12 18.5l2.2 2M6.4 8.8l-.6-2.9M6.4 8.8l-2.8 1M17.6 15.2l.6 2.9M17.6 15.2l2.8-1M6.4 15.2l-2.8-1M6.4 15.2l-.6 2.9M17.6 8.8l2.8 1M17.6 8.8l.6-2.9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+const WEIH_HAUBE = `<span class="weih-haube" aria-hidden="true"><svg viewBox="0 0 340 20" preserveAspectRatio="none"><path d="M8 12C8 5 14 3 24 3h292c10 0 16 2 16 9 0 4-4 5-7 3s-7-2-10 1-8 4-12 1-9-3-13 0-9 5-14 1-10-2-14 1-10 4-15 0-11-2-15 2-10 3-14-1-10-3-15 1-11 4-16 0-9-3-14 0-10 5-15 1-10-2-14 1-9 4-14 0-9-2-13 1-9 3-13 0-8-2-11 0-9 2-9-3z" fill="#fff"/><path d="M30 6h280" stroke="#dcecff" stroke-width="1.5" stroke-linecap="round" opacity=".7"/></svg></span>`;
+const WEIH_STERN = `<svg class="weih-stern" viewBox="0 0 64 64" aria-hidden="true"><defs><radialGradient id="weihSt"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#fff1c2"/><stop offset="1" stop-color="#f2c14e" stop-opacity="0"/></radialGradient></defs><circle cx="34" cy="26" r="20" fill="url(#weihSt)" opacity=".5"/><path d="M34 2l3.4 19.5L56 26l-18.6 4.5L34 62l-3.4-31.5L12 26l18.6-4.5z" fill="#fff8dc" stroke="#f2c14e" stroke-width="1"/><path d="M34 14l1.6 10.4L46 26l-10.4 1.6L34 38l-1.6-10.4L22 26l10.4-1.6z" fill="#fff"/></svg>`;
+/* Schnee und Weihnachts-Farben für die laufende Ansicht: go() räumt ab, Biblionär-Reiter und Weihnachts-Spiele schalten ein.
+   Die Flocken liegen fest über dem Bild, lassen Tipps durch und stehen bei „Bewegung reduzieren“ still. */
+function weihDeko(an) {
+  an = !!an; document.body.classList.toggle("weih-an", an);
+  let el = document.getElementById("weihSchnee");
+  if (!an) { if (el) el.remove(); return; }
+  if (el) return;
+  let r = 7; const z = () => (r = (r * 16807) % 2147483647) / 2147483647;
+  el = document.createElement("div"); el.id = "weihSchnee"; el.setAttribute("aria-hidden", "true"); let h = "";
+  for (let k = 0; k < 40; k++) {
+    const gr = 2 + z() * 4.5, dauer = 9 + z() * 10, stil = `left:${(z() * 100).toFixed(1)}%;opacity:${(.45 + z() * .5).toFixed(2)};animation-duration:${dauer.toFixed(1)}s;animation-delay:-${(z() * dauer).toFixed(1)}s;--dx:${(z() * 60 - 30).toFixed(0)}px;`;
+    h += z() < .2 ? WEIH_FLOCKE.replace("<svg ", `<svg style="${stil}width:${(gr * 3).toFixed(0)}px;height:${(gr * 3).toFixed(0)}px" `) : `<i style="${stil}width:${gr.toFixed(1)}px;height:${gr.toFixed(1)}px"></i>`;
+  }
+  el.innerHTML = h; document.body.appendChild(el);
+}
+/* Kleine Schneeflocken-Marke für Weihnachts-Duelle in allen Listen */
+const weihMarke = d => d && d.opt && d.opt.w ? `<i class="weih-marke" title="Weihnachts-Duell">${WEIH_FLOCKE}<span>Weihnachten</span></i>` : "";
 function weihSchalterHtml() {
   if (!weihnachtsDuellOk()) return "";
-  return `<div class="weih-schalter" role="radiogroup" aria-label="Biblionär-Modus"><button role="radio" aria-checked="${!weihModus}" data-wm="0">${svg("biblionaer")}Normal</button><button role="radio" aria-checked="${weihModus}" data-wm="1">${svg("kerze")}Weihnachten</button></div>`;
+  return `<div class="weih-schalter" role="radiogroup" aria-label="Biblionär-Modus"><button role="radio" aria-checked="${weihModus}" data-wm="1">${WEIH_FLOCKE}Weihnachten</button><button role="radio" aria-checked="${!weihModus}" data-wm="0">${svg("biblionaer")}Klassisch</button></div>`;
 }
 function weihSchalterWire(neu) {
   screen.querySelectorAll("[data-wm]").forEach(b => b.onclick = () => { SFX.tap(); weihModus = b.dataset.wm === "1"; neu(); });
@@ -375,7 +396,7 @@ function advBibLos(w) {
   A().advBib = Object.assign({}, A().advBib, { [w]: 0 }); save();
   go("biblionaer");
   const G = { modus: "advent", adv: w, weih: true, fragen: bibFragen(hash("advent" + w), "", ADV_BIB_FRAGEN[w] || ADV_ALLE_FRAGEN) };
-  countdown(() => bibStart(G));
+  countdown(() => bibStart(G), { weih: true });
 }
 
 /* ---------- Zusammenführen mit einem anderen Gerät: nie Fortschritt verlieren ---------- */
