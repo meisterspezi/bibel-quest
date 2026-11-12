@@ -7,7 +7,11 @@ workers_dev = true
 
 [vars]
 PROJEKT = "bibel-quest"
-K_FEEDBACK = "C0CH2A8TGSX"   # user-feedback
+K_FEEDBACK = "C0CH2A8TGSX"   # user-feedback (Gespräche mit Spielern, „An Name:“, Feedback ohne Kategorie)
+K_IDEE = "C0CHAST8U0Z"       # feedback-idee
+K_FEHLER = "C0CJ3BL2Q4Q"     # feedback-fehler
+K_LOB = "C0CGTJWJAG7"        # feedback-lob
+K_FRAGE = "C0CH8QASGQ2"      # feedback-frage
 K_ALARM = "C0CH6J11Z9U"      # alerts-crashes
 K_METRIK = "C0CH38EAFDK"     # metrics
 K_PATCH = "C0CJ2U1PCLQ"      # patchnotes

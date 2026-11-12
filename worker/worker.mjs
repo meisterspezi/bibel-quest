@@ -2,7 +2,8 @@
 //
 // App → Slack:  Die App speichert Feedback und Dialog-Nachrichten wie bisher in Firestore und stupst danach /neu an ({art, id}).
 //               Der Worker liest GENAU dieses Dokument (also nur, was die Firebase-Regeln durchgelassen haben) und postet es:
-//               Feedback und Dialoge in einen Faden je Spieler in #user-feedback, Meldungen der App (art "info": Datenbank-Fehler,
+//               Feedback nach Kategorie in #feedback-idee / -fehler / -lob / -frage (jedes Feedback ein eigener Beitrag, Antworten im Faden
+//               gehen an den Spieler), Dialog-Nachrichten in den Faden, in dem zuletzt mit dem Spieler geschrieben wurde, Meldungen der App (art "info": Datenbank-Fehler,
 //               Abstürze, Status) nach #alerts-crashes. Alle 15 Minuten wird nachgesendet, was kein Stupser erreicht hat.
 // Slack → App:  Antwort im Faden eines Spielers → Nachricht im Dialog der App. „An <Name>: <Text>“ in #user-feedback → neuer Dialog.
 //               Nachricht in #patchnotes → Neuigkeit für alle Spieler (erste Zeile = Titel).
@@ -92,7 +93,12 @@ export function klartext(ev) {
 
 /* ---------- App → Slack ---------- */
 const ART = { idee: ["bulb", "Idee"], fehler: ["beetle", "Fehler"], lob: ["heart", "Lob"], frage: ["question", "Frage"], info: ["information_source", "Meldung"] };
-// Ein Faden je Spieler in #user-feedback (slackfaden/{pid} = {ts, name}); alles von und an diesen Spieler landet dort
+// Kategorie → Kanal (ohne eigenen Kanal: #user-feedback)
+const kanalFuer = (env, art) => ({ idee: env.K_IDEE, fehler: env.K_FEHLER, lob: env.K_LOB, frage: env.K_FRAGE })[art] || env.K_FEEDBACK;
+const feedbackKanaele = env => [env.K_FEEDBACK, env.K_IDEE, env.K_FEHLER, env.K_LOB, env.K_FRAGE].filter(Boolean);
+// slackfaden/{pid} = {ts: persönlicher Faden in #user-feedback, lts/lk: Faden und Kanal, in dem zuletzt mit dem Spieler geschrieben wurde}
+const fadenMerken = (env, pid, name, lts, lk) => fsSetzen(env, "slackfaden/" + encodeURIComponent(pid), { lts, lk, name: name || "", pid });
+// Persönlicher Faden je Spieler in #user-feedback – für Gespräche ohne vorheriges Feedback
 async function faden(env, pid, name) {
   const f = await fsHolen(env, "slackfaden/" + encodeURIComponent(pid));
   if (f && f.ts) return f.ts;
@@ -107,15 +113,19 @@ async function feedbackSenden(env, f) {
   if (f.art === "info") {  // Meldung der App selbst: Kategorie steht vorn im Gerätetext („datenbank · …“, „absturz · …“, „status · …“)
     const kat = String(f.geraet || "").split(" · ")[0] || "meldung", ernst = kat === "absturz" || kat === "datenbank";
     m = await sagen(env, env.K_ALARM, `${ernst ? ":rotating_light:" : ":information_source:"} *${esc(kat)}*\n${esc(f.text)}\n${fuss}`);
-  } else if (f.pid) {
-    m = await sagen(env, env.K_FEEDBACK, `:${ic}: *${titel}* von *${esc(f.name || "?")}*\n${esc(f.text)}\n${fuss}`, { thread_ts: await faden(env, f.pid, f.name), reply_broadcast: true });
-  } else m = await sagen(env, env.K_FEEDBACK, `:${ic}: *${titel}* (ohne Profil – Antworten nicht möglich)\n${esc(f.text)}\n${fuss}`);
+  } else if (f.pid) {  // eigener Beitrag im Kanal der Kategorie; Antworten im Faden darunter gehen an den Spieler
+    const k = kanalFuer(env, f.art);
+    m = await sagen(env, k, `:${ic}: *${titel}* von *${esc(f.name || "?")}*\n${esc(f.text)}\n${fuss}`);
+    await fadenMerken(env, f.pid, f.name, m.ts, k);
+  } else m = await sagen(env, kanalFuer(env, f.art), `:${ic}: *${titel}* (ohne Profil – Antworten nicht möglich)\n${esc(f.text)}\n${fuss}`);
   await fsSetzen(env, "feedback/" + f.id, { slack: m.ts }, true);
   return true;
 }
 async function dialogSenden(env, d) {
   if (!d || d.slack || d.von !== "spieler" || !d.pid) return false;
-  const m = await sagen(env, env.K_FEEDBACK, `:speech_balloon: *${esc(d.name || "?")}*: ${esc(d.text)}`, { thread_ts: await faden(env, d.pid, d.name), reply_broadcast: true });
+  // in den Faden, in dem zuletzt mit dem Spieler geschrieben wurde (sein Feedback oder deine Antwort) – sonst in seinen persönlichen Faden
+  const f = await fsHolen(env, "slackfaden/" + encodeURIComponent(d.pid)), wo = f && f.lts && f.lk ? { k: f.lk, ts: f.lts } : { k: env.K_FEEDBACK, ts: await faden(env, d.pid, d.name) };
+  const m = await sagen(env, wo.k, `:speech_balloon: *${esc(d.name || "?")}*: ${esc(d.text)}`, { thread_ts: wo.ts, reply_broadcast: true });
   await fsSetzen(env, "dialoge/" + d.id, { slack: m.ts }, true);
   return true;
 }
@@ -147,13 +157,16 @@ async function slackEreignis(env, ev) {
     await sagen(env, ev.channel, `:white_check_mark: In der App veröffentlicht als ${info ? "Nachricht" : "Patchnotes"} „${esc(titel)}“${rest.length > 2000 ? " (auf 2.000 Zeichen gekürzt)" : ""}. Spieler sehen sie beim nächsten Öffnen (bis zu 1 Stunde Zwischenspeicher).`, { thread_ts: ev.ts });
     return;
   }
-  if (ev.channel !== env.K_FEEDBACK) return;
-  if (ev.thread_ts) {  // Antwort im Faden eines Spielers
-    const f = (await fsSuche(env, "slackfaden", "ts", "EQUAL", ev.thread_ts, 1))[0];
+  if (!feedbackKanaele(env).includes(ev.channel)) return;
+  if (ev.thread_ts) {  // Antwort im Faden: unter einem Feedback (Vermerk „slack“ am Feedback) oder im persönlichen Faden eines Spielers
+    const fb = (await fsSuche(env, "feedback", "slack", "EQUAL", ev.thread_ts, 1))[0];
+    const f = fb && fb.pid ? { pid: fb.pid, name: fb.name } : (await fsSuche(env, "slackfaden", "ts", "EQUAL", ev.thread_ts, 1))[0];
     if (!f) return;  // Faden ohne Spieler (z. B. Feedback ohne Profil) – nichts zuzustellen
     await anSpieler(env, f.pid, f.name, text, ev.ts);
+    await fadenMerken(env, f.pid, f.name, ev.thread_ts, ev.channel);
     return haken(env, ev.channel, ev.ts);
   }
+  if (ev.channel !== env.K_FEEDBACK) return;
   const m = text.match(/^(?:an\s+|@)([^:\n]{1,30}):\s*([\s\S]+)$/i);  // „An Maria: Hallo …“ – neuen Dialog beginnen
   if (!m) return;
   const name = m[1].trim(), treffer = (await fsSuche(env, "spieler", "name", "EQUAL", name, 10)).filter(s => !s.zu);
@@ -161,8 +174,8 @@ async function slackEreignis(env, ev) {
   if (treffer.length > 1) return fehler(`${treffer.length} Spieler heißen „${esc(name)}“ – bitte im Faden des richtigen Spielers antworten.`);
   const s = treffer[0], alt = await fsHolen(env, "slackfaden/" + encodeURIComponent(s.id));
   await anSpieler(env, s.id, s.name, m[2].trim(), ev.ts);
-  if (alt && alt.ts) await sagen(env, env.K_FEEDBACK, `:outbox_tray: (an ${esc(s.name)}) ${esc(m[2].trim())}`, { thread_ts: alt.ts });
-  else await fsSetzen(env, "slackfaden/" + encodeURIComponent(s.id), { ts: ev.ts, name: s.name, pid: s.id });  // diese Nachricht wird der Faden des Spielers
+  if (alt && alt.ts) { await sagen(env, env.K_FEEDBACK, `:outbox_tray: (an ${esc(s.name)}) ${esc(m[2].trim())}`, { thread_ts: alt.ts }); await fadenMerken(env, s.id, s.name, alt.ts, env.K_FEEDBACK); }
+  else await fsSetzen(env, "slackfaden/" + encodeURIComponent(s.id), { ts: ev.ts, lts: ev.ts, lk: env.K_FEEDBACK, name: s.name, pid: s.id });  // diese Nachricht wird der Faden des Spielers
   return haken(env, ev.channel, ev.ts);
 }
 
@@ -196,7 +209,7 @@ async function tageszahlen(env) {
 let beigetreten = false;
 async function beitreten(env) {
   if (beigetreten) return; beigetreten = true;
-  for (const c of [env.K_FEEDBACK, env.K_PATCH, env.K_ALARM, env.K_METRIK]) if (c) await slack(env, "conversations.join", { channel: c }, true).catch(e => { beigetreten = false; console.log("beitreten", c, e.message); });
+  for (const c of [...feedbackKanaele(env), env.K_PATCH, env.K_ALARM, env.K_METRIK]) if (c) await slack(env, "conversations.join", { channel: c }, true).catch(e => { beigetreten = false; console.log("beitreten", c, e.message); });
 }
 /* ---------- Eingänge ---------- */
 const CORS = { "access-control-allow-origin": "*" };
