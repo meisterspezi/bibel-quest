@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="de">
 <head>
+<script>/* 9.60 Beta-Kanal: Wer „Beta“ gewählt hat (und freigeschaltet ist), wird sofort dorthin geleitet. „?live=1“ führt immer zurück. */
+try{(function(){var b=location.pathname.indexOf("/beta/")>=0,q=location.search;if(/[?&]live=1/.test(q)){localStorage.setItem("bq-kanal","live")}else if(!b&&location.protocol==="https:"&&localStorage.getItem("bq-kanal")==="beta"&&localStorage.getItem("bq-beta-ok")==="1"){location.replace("beta/"+q+location.hash)}})()}catch(e){}</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Bibelbuch-Quest</title>
@@ -2546,6 +2548,12 @@ section.lv.lvd .lv-fuss .lv-btn.gold{color:#2a1d02;background:linear-gradient(18
 section.lv.lvd .lv-fuss .lv-btn.rund{position:absolute;z-index:2;right:12px;bottom:10px;width:30px;height:30px;padding:0;border-radius:50%;background:#1c1a5acc;border:1.5px solid #f2c14e99;color:#ffe9a8;box-shadow:none}
 section.lv.lvd .lv-fuss .lv-btn.rund svg{width:15px;height:15px}
 section.lv.lvd .lv-fuss .lv-btn.hoert{background:color-mix(in srgb,var(--bad) 35%,#1c1a5a)}
+/* 9.60 Beta-Kanal: kleine Marke oben in der Mitte (nur in der Beta-Kopie) und Tester-Liste des Verwalters */
+#betaMarke{position:fixed;top:calc(env(safe-area-inset-top,0px) + 1px);left:50%;transform:translateX(-50%);z-index:6;border:0;border-radius:0 0 9px 9px;padding:1px 10px 2px;font:800 .58rem/1.3 var(--display,inherit);letter-spacing:.14em;color:#0e1226;background:linear-gradient(180deg,#ffd98a,#f2c14e);box-shadow:0 2px 8px rgba(242,193,78,.35);cursor:pointer}
+.bt-zeile{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;padding:9px 4px;background:none;border:0;border-bottom:1px solid rgba(255,255,255,.07);color:inherit;font:inherit;text-align:left;cursor:pointer}
+.bt-zeile b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bt-zeile small{color:var(--muted)}
+.bt-zeile i{font-style:normal;font-weight:800;font-size:.72rem;padding:3px 10px;border-radius:99px;background:rgba(255,255,255,.08);color:var(--muted)}
+.bt-zeile[aria-pressed="true"] i{background:linear-gradient(180deg,#ffd98a,#f2c14e);color:#0e1226}
 </style>
 </head>
 <body>

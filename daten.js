@@ -1,4 +1,8 @@
-const APP_VERSION = "9.59";
+const APP_VERSION = "9.60";
+/* 9.60 Beta-Kanal: Die App liegt zweimal online – Live (…/bibel-quest/) und Beta (…/bibel-quest/beta/). Beide nutzen denselben Spielstand
+   und dieselbe Datenbank. BETA ist wahr, wenn diese Kopie aus dem Ordner beta/ läuft; VERSION_TEXT steht in Feedback und Meldungen. */
+const BETA = location.pathname.includes("/beta/");
+const VERSION_TEXT = APP_VERSION + (BETA ? "-beta" : "");
 /* 9.58 Slack-Brücke: Adresse des Cloudflare-Workers (z. B. "https://bibel-quest-slack.<name>.workers.dev"). Leer = kein Anstupsen,
    Feedback kommt dann mit bis zu 15 Minuten Verzögerung in Slack an. */
 const BRUECKE_URL = "https://bibel-quest-slack.michael-kauselmann.workers.dev";

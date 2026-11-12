@@ -1465,7 +1465,7 @@ const SONNE_STRAHLEN = [0, 1, 2, 3, 4, 5, 6, 7].map(k => `<path d="M50 8 L55 27 
 ICONS.sun = `<g class="wr" transform="scale(.24)"><defs><radialGradient id="snM" cx=".4" cy=".3" r=".8"><stop offset="0" stop-color="#3a4ca8"/><stop offset=".6" stop-color="#1b2250"/><stop offset="1" stop-color="#0e1226"/></radialGradient><linearGradient id="snG" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#fff7d6"/><stop offset=".45" stop-color="#f2c14e"/><stop offset="1" stop-color="#b9821f"/></linearGradient><radialGradient id="snD" cx=".38" cy=".32" r=".8"><stop offset="0" stop-color="#ffffff"/><stop offset=".35" stop-color="#fff0bf"/><stop offset=".75" stop-color="#f2c14e"/><stop offset="1" stop-color="#b9821f"/></radialGradient></defs><circle cx="50" cy="50" r="47" fill="url(#snM)" stroke="url(#snG)" stroke-width="2.5"/><g fill="url(#snG)" stroke="#0e1226" stroke-width=".6" stroke-linejoin="round">${SONNE_STRAHLEN}</g><circle cx="50" cy="50" r="23" fill="url(#snD)" stroke="#8a5d12" stroke-width="1"/><ellipse cx="43" cy="41" rx="8" ry="4.5" fill="#fff" opacity=".45" transform="rotate(-30 43 41)"/></g>`;
 const TABS = [["home", "Start", "sun"], ["lernen", "Lektionen", "book"], ["spielen", "Solo", "user"], ["bib", "Biblionär", "biblionaer"], ["duelle", "Arena", "arena"], ["rank", "Rangliste", "trophy"]]; /* 9.14: Arena + Biblionär statt „Zusammen“ (VIEWS.zusammen bleibt im Code, ist aber nicht mehr im Menü) */
 const TAB_VON = { advent: "home", beth: "home", kal: "home", duell: "duelle", zusammen: "duelle", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen", biblionaer: "bib",
-  bib: "bib", gemverwaltung: "", gegner: "duelle", duelle: "duelle", rank: "rank", shop: "rank", ich: "", profil: "", stat: "", errung: "", badges: "", wer: "", postfach: "", neuigkeiten: "", nachrichten: "" };
+  bib: "bib", gemverwaltung: "", betatester: "", gegner: "duelle", duelle: "duelle", rank: "rank", shop: "rank", ich: "", profil: "", stat: "", errung: "", badges: "", wer: "", postfach: "", neuigkeiten: "", nachrichten: "" };
 /* rote Zahl am Duell-Reiter: wartende Herausforderungen */
 function tbDuSetzen() { let a = 0, b = 0; try { a = duFuerMich().length; b = duFuerBib().length; } catch (e) {} [["tbDu", a], ["tbBib", b]].forEach(([id, n]) => { const t = $(id); if (!t) return; t.hidden = !n; t.textContent = n; }); }
 function tabbarSetzen(name) {
@@ -2595,12 +2595,16 @@ VIEWS.profil = () => {
     ${zeile("share", "share", "Mit Freunden teilen", "QR-Code")}
     ${deferredInstall && !S.appBonus ? `<button class="pf2-zeile pf2-k pf3-z" id="pfInstall"><span class="pf2-ic">${svg("down")}</span><span class="pf2-tx"><b>App installieren</b></span><small class="pf3-w">+${APP_BONUS} Talente</small>${PF_IC.pfeil}</button>` : ""}
     ${entwickler && (advTestOn() || dayNum(today()) < dayNum(ADV_START)) ? `<button class="pf2-zeile pf2-k pf3-z" id="advTestBtn"><span class="pf2-ic">${svg("kerze")}</span><span class="pf2-tx"><b>Advent-Testmodus</b></span><small class="pf3-w">${advTestOn() ? "an – öffnen" : "starten"}</small>${PF_IC.pfeil}</button>` : ""}
+    ${(BETA || betaDarfLokal()) && online ? `<button class="pf2-zeile pf2-k pf3-z" id="betaSchalter"><span class="pf2-ic">${svg("star")}</span><span class="pf2-tx"><b>Beta-Version</b></span><small class="pf3-w">${BETA ? "an – zurück zu Live" : "aus – Neues testen"}</small>${PF_IC.pfeil}</button>` : ""}
     <button class="pf2-zeile pf2-k pf3-z gs-schalter pf-gross" id="gsSchalterP" aria-pressed="${grossAn()}"><span class="pf2-ic">${svg("eye")}</span><span class="pf2-tx"><b>Große Schrift</b></span><small class="pf3-w">${grossAn() ? "an" : "aus"}</small><i class="gs-knopf"></i></button>
     ${entwickler && online ? kennungHtml("kennProfil") : ""}
     <p class="small muted pf3-fuss">Bibelverse: ${VERS_QUELLE} © Genfer Bibelgesellschaft.</p>
     <button class="fb-karte" id="fbLink2" aria-label="Feedback an den Entwickler"><span class="fb-bild">${FB_BILD}</span><span class="fb-tx"><b>Feedback an den Entwickler</b><small>Idee, Lob oder Fehler? Schreib mir!</small></span></button></div>`;
   wireGo(); pfGemVerdrahten();
   gemLaden().then(ch => { if (ch && current === "profil" && !document.querySelector(".modal")) { const k = $("pfGem"); if (k) { k.outerHTML = gemKarteHtml(); pfGemVerdrahten(); } } });
+  if ($("betaSchalter")) $("betaSchalter").onclick = () => { SFX.tap(); kanalFrage(); };
+  /* 9.60: Freigabe für die Beta-Version nur hier prüfen (höchstens 1× je Stunde) – erscheint/verschwindet der Schalter, Profil neu zeichnen */
+  if (!BETA && online && S.pid) betaPruefen(false).then(neu => { if (neu && current === "profil" && !document.querySelector(".modal")) go("profil"); }).catch(() => {});
   $("gsSchalterP").onclick = () => { SFX.tap(); const b = $("gsSchalterP"); grossSetzen(!grossAn()); b.setAttribute("aria-pressed", grossAn()); b.querySelector("small").textContent = grossAn() ? "an" : "aus"; };
   $("fbLink2").onclick = () => { SFX.tap(); feedbackOeffnen(); };
   if ($("pfInstall")) $("pfInstall").onclick = () => { SFX.tap(); deferredInstall.prompt(); deferredInstall.userChoice.catch(() => {}).then(() => { deferredInstall = null; }); };
@@ -5062,7 +5066,7 @@ function feedbackOeffnen() {
     const text = $("fbText").value.trim();
     if (text.length < 3) { $("fbErr").style.color = "var(--bad)"; $("fbErr").textContent = "Bitte schreib ein paar Worte."; SFX.wrong(); return; }
     /* Seit 6.67 immer mit Namen (Michaels Wunsch) – der Name ist in der App Pflicht */
-    const f = { text, art: (document.querySelector('input[name="fbArt"]:checked') || {}).value || "idee", ver: APP_VERSION, geraet: geraetBeschreibung(), name: S.lbName || "ohne Namen", pid: S.pid || "", wann: new Date().toISOString() };
+    const f = { text, art: (document.querySelector('input[name="fbArt"]:checked') || {}).value || "idee", ver: VERSION_TEXT, geraet: geraetBeschreibung(), name: S.lbName || "ohne Namen", pid: S.pid || "", wann: new Date().toISOString() };
     $("fbSenden").disabled = true; $("fbSenden").textContent = "Sende …";
     const L = window.LB; let gesendet = false;
     if (L && L.ok && L.feedback) { try { await L.feedback(f); gesendet = true; } catch (e) {} }
@@ -5131,6 +5135,7 @@ async function entwicklerPruefen() {
     const pid = await L.entwicklerPid();
     if (pid !== ENTW_PID) { ENTW_PID = pid || null; if (current === "rank" && !document.querySelector(".modal")) go("rank"); }
     if (!S.pid) return;
+    if (BETA) betaPruefen(true).catch(() => {}); /* 9.60: in der Beta bei jedem Start prüfen, ob dieser Spieler (noch) testen darf */
     entwickler = !!pid && pid === S.pid;
     if (!entwickler) { renderHud(); return; }
     await doppelteZusammenfuehren();
@@ -5143,6 +5148,60 @@ async function entwicklerPruefen() {
     if (["home", "profil"].includes(current) && !document.querySelector(".modal")) go(current);
   } catch (e) { entwickler = false; }
 }
+/* ---------- 9.60 Beta-Kanal ----------
+   Die App liegt zweimal online: Live und – im Unterordner beta/ – die Beta mit neuen Funktionen und Designs. Beide teilen sich Spielstand und
+   Datenbank (gleiche Adresse, gleicher Gerätespeicher). Wer testen darf, legt der Verwalter fest (Postkasten → Beta-Tester, einstellungen/beta);
+   der Verwalter selbst darf immer. Freigeschaltete Spieler schalten im Profil um; die Wahl merkt sich das Gerät („bq-kanal“) und index.html leitet
+   beim Start gleich weiter. In Live wird die Liste nur beim Öffnen des Profils geholt (höchstens 1× je Stunde) – kein Lesezugriff beim Start. */
+const BETA_ZS = "bq-beta-liste", BETA_STD = 36e5;
+let betaLaeuft = null;
+const betaDarfLokal = () => { try { return localStorage.getItem("bq-beta-ok") === "1"; } catch (e) { return false; } };
+async function betaListe(frisch) {
+  const L = window.LB; if (!L || !L.ok || !L.betaHolen) return null;
+  if (!frisch) { try { const c = JSON.parse(localStorage.getItem(BETA_ZS) || "null"); if (c && Date.now() - c.t < BETA_STD && Array.isArray(c.p)) return c.p; } catch (e) {} }
+  try { const p = await L.betaHolen(); try { localStorage.setItem(BETA_ZS, JSON.stringify({ t: Date.now(), p })); } catch (e) {} return p; } catch (e) { return null; }
+}
+/* Darf dieser Spieler testen? Ergebnis merken; in der Beta ohne Freigabe zurück zu Live. Liefert true, wenn sich die Freigabe geändert hat. */
+async function betaPruefen(frisch) {
+  if (!S.pid || betaLaeuft) return false; betaLaeuft = true;
+  try {
+    const l = await betaListe(frisch); if (!l) return false; /* kein Netz: nichts ändern */
+    const darf = l.includes(S.pid) || (!!ENTW_PID && ENTW_PID === S.pid), vorher = betaDarfLokal();
+    try { if (darf) localStorage.setItem("bq-beta-ok", "1"); else { localStorage.removeItem("bq-beta-ok"); localStorage.setItem("bq-kanal", "live"); } } catch (e) {}
+    if (BETA && !darf) { location.replace("../"); return false; }
+    return darf !== vorher;
+  } finally { betaLaeuft = null; }
+}
+function kanalWechseln(zuBeta) {
+  try { localStorage.setItem("bq-kanal", zuBeta ? "beta" : "live"); } catch (e) {}
+  try { save(); sofortSenden(); } catch (e) {}
+  setTimeout(() => { location.href = zuBeta ? "beta/" : "../"; }, 250);
+}
+function kanalFrage() {
+  if (BETA) return modal(`<div class="label">Beta-Version</div><h2>Du testest gerade</h2><p class="muted">Hier siehst du Neues, bevor es alle bekommen. Dein Spielstand ist derselbe wie in der Live-Version. Fällt dir etwas auf, schreib es bitte über „Feedback“.</p><button class="btn primary" data-close="bleib">Weiter testen</button><button class="btn ghost" data-close="live">Zurück zur Live-Version</button>`,
+    r => { if (r === "live") kanalWechseln(false); }).dataset.frei = "1";
+  modal(`<div class="label">Beta-Version</div><h2>Neues zuerst ausprobieren?</h2><p class="muted">In der Beta-Version testest du neue Funktionen und Designs, bevor sie für alle erscheinen. Dein Spielstand bleibt derselbe, und du kannst jederzeit zurückwechseln. Es kann dort noch Fehler geben – melde sie bitte über „Feedback“.</p><button class="btn primary" data-close="beta">Zur Beta-Version wechseln</button><button class="btn ghost" data-close>Hier bleiben</button>`,
+    r => { if (r === "beta") kanalWechseln(true); }).dataset.frei = "1";
+}
+if (BETA) addEventListener("DOMContentLoaded", () => { const b = document.createElement("button"); b.id = "betaMarke"; b.textContent = "BETA"; b.setAttribute("aria-label", "Beta-Version – antippen für Infos"); b.onclick = () => { if (!document.querySelector(".modal") && !document.body.classList.contains("spiel-laeuft")) kanalFrage(); }; document.body.appendChild(b); });
+/* Verwalter: Beta-Tester auswählen */
+VIEWS.betatester = () => {
+  const L = window.LB; if (!entwickler || !L || !L.ok || !L.betaSetzen) { go("home"); return; }
+  screen.innerHTML = `${backBtn("postfach", "Postkasten")}<h1>Beta-Tester</h1><p class="small muted" style="margin:0 0 8px">Ausgewählte Spieler sehen im Profil den Schalter „Beta-Version“. Du selbst darfst immer testen.</p>
+    <div class="card"><div class="pk-suchzeile"><input type="search" id="btSuche" placeholder="Spieler suchen" aria-label="Spieler suchen" autocomplete="off"></div><p class="small muted" id="btZahl" style="margin:8px 0 4px">Lade …</p><div id="btListe"></div></div>`;
+  wireGo();
+  Promise.all([L.betaHolen(), L.alleSpieler().catch(() => [])]).then(([pids, spieler]) => {
+    if (current !== "betatester") return;
+    let wahl = new Set(pids), speichert = false;
+    const alle = spieler.filter(r => r.name).sort((a, b) => String(a.name).localeCompare(String(b.name), "de"));
+    const zeichne = () => { const q = nameSchluessel($("btSuche").value), l = alle.filter(r => !q || nameSchluessel(r.name).includes(q)).sort((a, b) => wahl.has(b.id) - wahl.has(a.id));
+      $("btZahl").textContent = `${wahl.size} von ${alle.length} Spielern testen die Beta-Version`;
+      $("btListe").innerHTML = l.slice(0, 120).map(r => `<button class="bt-zeile" data-bt="${esc(r.id)}" aria-pressed="${wahl.has(r.id)}"><span><b>${esc(r.name)}</b> <small>${esc(gemName(gemVon(r.id)))} · Level ${r.level || 1}</small></span><i>${wahl.has(r.id) ? "Beta" : "Live"}</i></button>`).join("") || `<p class="small muted">Kein Spieler gefunden.</p>`;
+      $("btListe").querySelectorAll("[data-bt]").forEach(b => b.onclick = async () => { if (speichert) return; SFX.tap(); const id = b.dataset.bt, neu = new Set(wahl); if (neu.has(id)) neu.delete(id); else neu.add(id);
+        speichert = true; try { await L.betaSetzen([...neu]); wahl = neu; try { localStorage.removeItem(BETA_ZS); } catch (e) {} } catch (e) { toast(`${svg("nein")}<div>Das hat nicht geklappt – sind die Firebase-Regeln von 9.60 veröffentlicht?</div>`); } speichert = false; zeichne(); }); };
+    $("btSuche").oninput = zeichne; zeichne();
+  }).catch(() => { const e = $("btZahl"); if (e) e.textContent = "Die Liste konnte nicht geladen werden."; });
+};
 const ART_NAME = { idee: "Idee", fehler: "Fehler", lob: "Lob", frage: "Frage", info: "Datenbank", datenbank: "Datenbank", status: "Status" };
 /* Postkasten des Verwalters: Feedback der Spieler, Statusberichte und Datenbankmeldungen.
    Status und Datenbank werden als Art „info“ gespeichert; „geraet“ beginnt mit „status“ oder „datenbank“. */
@@ -5154,7 +5213,7 @@ async function postkastenMelden(kat, text, schluessel) {
   const L = window.LB; if (!L || !L.ok || !L.feedback) return;
   const k = "bq-pk-" + (schluessel || kat + text.slice(0, 40)), heute = today();
   try { if (localStorage.getItem(k) === heute) return; } catch (e) {}
-  try { await L.feedback({ text: text.slice(0, 2000), art: "info", ver: APP_VERSION, geraet: (kat + " · " + geraetBeschreibung()).slice(0, 80), ...(S.lbName ? { name: S.lbName, pid: S.pid || "" } : {}) }); try { localStorage.setItem(k, heute); } catch (e) {} } catch (e) {}
+  try { await L.feedback({ text: text.slice(0, 2000), art: "info", ver: VERSION_TEXT, geraet: (kat + " · " + geraetBeschreibung()).slice(0, 80), ...(S.lbName ? { name: S.lbName, pid: S.pid || "" } : {}) }); try { localStorage.setItem(k, heute); } catch (e) {} } catch (e) {}
 }
 /* 9.58: Programmfehler (Abstürze) melden – landen über die Slack-Brücke in #alerts-crashes. Je Gerät derselbe Fehler höchstens einmal
    am Tag (postkastenMelden) und höchstens 3 Meldungen am Tag; Netz-Aussetzer und fremde Skripte (Erweiterungen) werden nicht gemeldet. */
@@ -5208,7 +5267,7 @@ VIEWS.postfach = (kat) => {
   screen.innerHTML = `${backBtn("home", "Start")}<div class="pk-kopf"><h1>Postkasten</h1><span class="pk-ikonen">
     <button class="iconbtn" id="pkLupe" aria-label="Suchen" aria-pressed="${pkSuchOffen}"><span aria-hidden="true">🔍</span></button>
     <button class="iconbtn" id="pkWahl" aria-label="Auswählen" aria-pressed="${pkAuswahl}">☑</button></span></div>
-  <div class="pk-pins" aria-label="Prüfungen">${zeile("pkXp", "medal", "XP-Prüfung", xpTag, 'data-go="xppruefung"')}${zeile("pkDup", "people", "Doppelte Namen", dupTag, 'id2="x"')}<button class="pk-pin" id="pkAnt" data-go="antraege"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("people")} Beitrittsanträge</b><span class="small muted" data-pkinfo>${antragOffen ? antragOffen + " offen" : "Freischaltung für neue Mitglieder"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkDlg" data-go="dialoge"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("chat")} Gespräche mit Spielern</b><span class="small muted" data-pkinfo>${dlgNeuDev() ? dlgNeuDev() + " neue Antwort" + (dlgNeuDev() === 1 ? "" : "en") : "Einzelne Spieler anschreiben"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGemLog" data-go="gemprotokoll"><span class="pk-pt"><b>${svg("scroll")} Gemeinde-Protokoll</b><span class="small muted">Wer wann beigetreten oder ausgetreten ist</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGem" data-go="gemverwaltung"><span class="pk-pt"><b>${svg("people")} Gemeinden</b><span class="small muted">Gemeinden anlegen, Spieler zuordnen</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkNach" data-go="nachrichten"><span class="pk-pt"><b>${svg("chat")} Nachricht an Spieler</b><span class="small muted">Patchnotes und Mitteilungen senden</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button></div>
+  <div class="pk-pins" aria-label="Prüfungen">${zeile("pkXp", "medal", "XP-Prüfung", xpTag, 'data-go="xppruefung"')}${zeile("pkDup", "people", "Doppelte Namen", dupTag, 'id2="x"')}<button class="pk-pin" id="pkBeta" data-go="betatester"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("star")} Beta-Tester</b><span class="small muted" data-pkinfo>Wer neue Funktionen vorab testet</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkAnt" data-go="antraege"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("people")} Beitrittsanträge</b><span class="small muted" data-pkinfo>${antragOffen ? antragOffen + " offen" : "Freischaltung für neue Mitglieder"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkDlg" data-go="dialoge"><span class="pk-ampel" aria-hidden="true"></span><span class="pk-pt"><b>${svg("chat")} Gespräche mit Spielern</b><span class="small muted" data-pkinfo>${dlgNeuDev() ? dlgNeuDev() + " neue Antwort" + (dlgNeuDev() === 1 ? "" : "en") : "Einzelne Spieler anschreiben"}</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGemLog" data-go="gemprotokoll"><span class="pk-pt"><b>${svg("scroll")} Gemeinde-Protokoll</b><span class="small muted">Wer wann beigetreten oder ausgetreten ist</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkGem" data-go="gemverwaltung"><span class="pk-pt"><b>${svg("people")} Gemeinden</b><span class="small muted">Gemeinden anlegen, Spieler zuordnen</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button><button class="pk-pin" id="pkNach" data-go="nachrichten"><span class="pk-pt"><b>${svg("chat")} Nachricht an Spieler</b><span class="small muted">Patchnotes und Mitteilungen senden</span></span><span class="pk-pfeil" aria-hidden="true">›</span></button></div>
   <div class="card rk-liste" style="margin-top:10px">
     <div class="pk-suchzeile" ${pkSuchOffen ? "" : "hidden"}><input type="search" id="pkSuche" placeholder="Suchen (Text, Name, Version)" value="${esc(pkSuche)}" aria-label="Post durchsuchen" autocomplete="off"></div>
     <div class="pk-filter"><div class="rk-var" role="group" aria-label="Filter">${[["neu", "Neu"], ["todo", "ToDo"], ["alle", "Alle"], ["erledigt", "Erledigt"]].map(([k, n]) => `<button data-pf="${k}" aria-pressed="${k === postfachFilter}">${n}<i class="pk-n" data-pfn="${k}"></i></button>`).join("")}</div>

@@ -115,6 +115,9 @@ if (!configured) {
     LB.entwicklerPid = async () => {
       try { const d = await fs.getDoc(ref("einstellungen", "entwickler")); return d.exists() ? d.data().pid || null : null; } catch (e) { return null; }
     };
+    // 9.60 Beta-Kanal: einstellungen/beta = {pids: [Profile, die die Beta-Version nutzen dürfen]} – lesen jeder Angemeldete (einzeln), schreiben nur der Verwalter
+    LB.betaHolen = async () => { const d = await fs.getDoc(ref("einstellungen", "beta")); return d.exists() && Array.isArray(d.data().pids) ? d.data().pids : []; };
+    LB.betaSetzen = async (pids) => { await LB.signIn(); await fs.setDoc(ref("einstellungen", "beta"), { pids: [...new Set(pids)].slice(0, 300), updated: fs.serverTimestamp() }); };
     LB.feedbackListe = async () => {
       const s = await fs.getDocs(fs.query(fs.collection(db, "feedback"), fs.orderBy("zeit", "desc"), fs.limit(200)));
       return s.docs.map(d => { const x = d.data(); return { id: d.id, ...x, zeit: x.zeit && x.zeit.toMillis ? x.zeit.toMillis() : Date.parse(x.geschrieben || "") || 0 }; });
