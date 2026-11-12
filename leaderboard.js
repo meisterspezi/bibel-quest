@@ -131,7 +131,30 @@ if (!configured) {
     };
 
     // Für den Verwalter: alle Einträge (zum Finden doppelter Namen) und Zusammenführen in einem Schritt
-    LB.alleSpieler = async () => aktiv((await fs.getDocs(fs.query(spieler, fs.limit(500)))).docs);
+    // 9.56: Die vollständige Liste (alle Felder, z. B. Geräte und Abzeichen-Listen) braucht nur noch der Verwalter – ohne die frühere Grenze von 500.
+    LB.alleSpielerVoll = async () => aktiv((await fs.getDocs(spieler)).docs);
+    // 9.56 Sammel-Rangliste: Ein Job (job/sammeln.mjs, GitHub Actions) fasst alle Spieler in wenigen Dokumenten rangliste/spieler-<n> zusammen.
+    //      Die App liest nur diese (1–2 Lesezugriffe statt eines je Spieler). Fehlt die Sammlung oder ist sie älter als 3 Stunden
+    //      (Job steht, Regeln noch nicht veröffentlicht), wird wie bisher direkt gelesen. Die Gemeinde (g) steht gleich mit in der Zeile.
+    const SAMMEL_ALT = 3 * 3600e3;
+    const sammelLesen = async () => {
+      const teile = (await fs.getDocs(fs.collection(db, "rangliste"))).docs.filter(d => d.id.startsWith("spieler-")).map(d => d.data());
+      if (!teile.length || teile.length < (teile[0].teile | 0)) return null;
+      if (teile.some(t => Date.now() - zeitMs(t.stand) > SAMMEL_ALT)) return null;
+      const aus = [];
+      for (const t of teile) { const p = JSON.parse(t.daten), f = p.f;
+        p.z.forEach(z => { const r = {}; f.forEach((k, i) => { if (z[i] !== "") r[k] = z[i]; });
+          if (r.u) r.updated = { toMillis: () => r.u };
+          if (r.tb) { r.tl = []; for (let i = 30; i >= 0; i--) if (Math.floor(r.tm / 2 ** i) % 2) r.tl.push(r.tb - i); }
+          aus.push(r); }); }
+      return aus;
+    };
+    LB.sammel = false;
+    LB.alleSpieler = async () => {
+      try { const r = await sammelLesen(); if (r) { LB.sammel = true; return r; } } catch (e) {}
+      LB.sammel = false;
+      return aktiv((await fs.getDocs(fs.query(spieler, fs.limit(1000)))).docs);
+    };
     LB.verwalterZusammenfuehren = async (ziel, dups, werte) => {
       await LB.signIn();
       const b = fs.writeBatch(db);
@@ -250,7 +273,8 @@ if (!configured) {
 
     // 9.0 Gemeinden: Liste legt nur der Verwalter an (Sammlung gemeinden); jeder Spieler ordnet sich über mitglied/{pid} einer Gemeinde zu
     LB.gemListe = async () => (await fs.getDocs(fs.collection(db, "gemeinden"))).docs.map(d => ({ id: d.id, ...d.data() }));
-    LB.mitgliedListe = async () => (await fs.getDocs(fs.query(fs.collection(db, "mitglied"), fs.limit(500)))).docs.map(d => ({ id: d.id, g: d.data().g }));
+    const mitgliedDirekt = async () => (await fs.getDocs(fs.collection(db, "mitglied"))).docs.map(d => ({ id: d.id, g: d.data().g }));
+    LB.mitgliedListe = mitgliedDirekt;
     LB.gemSetzen = async (pid, name, g, durch) => {
       await LB.signIn();
       let vorher = null; try { const d = await fs.getDoc(ref("mitglied", pid)); if (d.exists()) vorher = String(d.data().g || ""); } catch (e) {}
@@ -303,7 +327,7 @@ if (!configured) {
       };
     };
     // Spielerliste 30 Min. (9.53; daraus auch Gegnerliste und alle Ranglisten), Gemeinden/Mitglieder/Nachrichten 60 Min., Advent 15 Min., Verwalter-Listen 30 Min. (nicht zeitkritisch)
-    Object.entries({ alleSpieler: 30, mitgliedListe: 60, gemListe: 60, nachrichtenListe: 60, bethListe: 15,
+    Object.entries({ alleSpieler: 30, alleSpielerVoll: 30, mitgliedListe: 60, gemListe: 60, nachrichtenListe: 60, bethListe: 15,
       feedbackListe: 30, antragListe: 30, dialogAlle: 30, xpListe: 30 }).forEach(([n, m]) => zwischen(n, m * MIN));
     // Nach eigenen Änderungen die betroffene Liste neu holen, damit man sie sofort sieht
     const nachher = (name, ...listen) => { const f = LB[name]; if (!f) return; LB[name] = async (...a) => { const r = await f(...a); zsWeg(...listen); return r; }; };
@@ -313,7 +337,13 @@ if (!configured) {
     nachher("gemSetzen", "mitgliedListe"); nachher("gemAnlegen", "gemListe"); nachher("gemLoeschen", "gemListe", "mitgliedListe");
     nachher("dialogSenden", "dialogAlle"); nachher("dialogLoeschen", "dialogAlle");
     nachher("nachrichtSenden", "nachrichtenListe"); nachher("nachrichtLoeschen", "nachrichtenListe");
-    nachher("bibWocheSetzen", "rl:bibWoche"); nachher("verwalterZusammenfuehren", "alleSpieler", "rl:");
+    nachher("bibWocheSetzen", "rl:bibWoche"); nachher("verwalterZusammenfuehren", "alleSpieler", "rl:"); /* „alleSpieler“ trifft auch alleSpielerVoll (gleicher Anfang) */
+    // 9.56: Gemeinde-Zuordnungen kommen aus der Sammel-Rangliste (kein eigener Abruf); „frisch“ (Verwalter) und ohne Sammel-Rangliste direkt
+    const mitglied0 = LB.mitgliedListe;
+    LB.mitgliedListe = async (frisch) => {
+      if (!frisch) { try { const alle = await LB.alleSpieler(); if (LB.sammel) return alle.filter(r => r.g).map(r => ({ id: r.id, g: r.g })); } catch (e) {} }
+      return mitglied0(frisch);
+    };
     // Gegnerliste = die 150 Spieler mit den meisten XP aus der gemeinsamen Spielerliste (keine eigene Abfrage mehr)
     LB.gegnerListe = async (frisch) => (await LB.alleSpieler(frisch)).slice().sort((a, b) => (b.xp || 0) - (a.xp || 0)).slice(0, 150);
 

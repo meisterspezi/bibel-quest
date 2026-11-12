@@ -1,0 +1,7 @@
+{
+  "name": "bibel-quest-job",
+  "private": true,
+  "type": "module",
+  "description": "Sammel-Rangliste und Aufräumen für Bibelbuch-Quest (läuft über GitHub Actions, nicht in der App)",
+  "dependencies": { "firebase-admin": "^12.7.0" }
+}

@@ -3038,7 +3038,8 @@ async function gemLaden(neu) {
   const L = window.LB; if (!L || !L.ok || !L.gemListe) return false;
   if (gemGeladen && !neu && Date.now() - gemZeit < 3600000) return false; /* 9.52: 60 Minuten (Lesekontingent) */ /* 9.30: nach 10 Minuten neu holen, damit Beitritte/Freischaltungen in langen Sitzungen ankommen */
   try {
-    const [g, m] = await Promise.all([L.gemListe(!!neu), L.mitgliedListe(!!neu)]);
+    /* 9.56: die Zuordnungen aller Spieler frisch (= direkt aus der Datenbank) holt nur der Verwalter; alle anderen nehmen sie aus der Sammel-Rangliste */
+    const [g, m] = await Promise.all([L.gemListe(!!neu), L.mitgliedListe(!!neu && entwickler)]);
     const liste = g.filter(x => x.name).sort((a, b) => (a.ord | 0) - (b.ord | 0) || String(a.name).localeCompare(String(b.name), "de"));
     const f = liste.find(x => x.id === GEM_STANDARD);
     if (f) { f.logo = f.logo || GEM_FBG.logo; f.pw = f.pw || GEM_FBG.pw; } else liste.unshift(Object.assign({}, GEM_FBG));
@@ -3168,7 +3169,7 @@ function logoLesen(file) {
 VIEWS.gemverwaltung = () => {
   const L = window.LB; if (!entwickler || !L || !L.ok) { go("home"); return; }
   screen.innerHTML = `${backBtn("postfach", "Postkasten")}<h1>Gemeinden</h1><div id="gvBox"><p class="muted">Lade …</p></div>`;
-  Promise.all([gemLaden(true), L.alleSpieler().catch(() => [])]).then(([, spieler]) => {
+  Promise.all([gemLaden(true), (L.alleSpielerVoll || L.alleSpieler)().catch(() => [])]).then(([, spieler]) => {
     if (current !== "gemverwaltung") return;
     const zahl = id => spieler.filter(r => gemVon(r.id) === id).length, logos = {};
     const fehler = t => toast(`${svg("nein")}<div>${t}</div>`);
@@ -3520,7 +3521,8 @@ VIEWS.rank = (tab) => {
       body.innerHTML = `${pod}${rest ? `<div class="rlist">${rest}</div>` : ""}`;
       body.querySelectorAll("[data-pid]").forEach(b => b.onclick = () => { SFX.tap(); const r = rows.find(x => x.id === b.dataset.pid);
         /* Wochenrunde: Zeilen kommen aus der eigenen Sammlung – für den Vergleich den vollen Eintrag holen */
-        if ((rankTab === "bibWoche" || rankTab === "bibSpiele") && L.holeSpieler) L.holeSpieler(r.id).then(v => profilVergleich(v || r)).catch(() => profilVergleich(r)); else profilVergleich(r); });
+        /* 9.56: die Sammel-Rangliste enthält keine Abzeichen-Liste – das volle Profil wird beim Antippen einzeln geholt (1 Lesezugriff) */
+        if ((rankTab === "bibWoche" || rankTab === "bibSpiele" || !Array.isArray(r.badgeIds)) && L.holeSpieler) L.holeSpieler(r.id).then(v => profilVergleich(v || r)).catch(() => profilVergleich(r)); else profilVergleich(r); });
     }
     const mv = myIdx > -1 ? rankWert(rows[myIdx]) : 0;
     const vor = myIdx > -1 && meinPlatz > 1 ? rows.filter((_, i) => platz[i] === meinPlatz - 1) : [];
@@ -5078,7 +5080,7 @@ let doppelteGeprueft = 0;
 async function doppelteZusammenfuehren(erzwingen) {
   const L = window.LB; if (!L || !L.alleSpieler || !L.verwalterZusammenfuehren) return [];
   if (!erzwingen && S.dupCheck === today()) return [];
-  const alle = (await L.alleSpieler()).filter(r => r.name);
+  const alle = (await (L.alleSpielerVoll || L.alleSpieler)()).filter(r => r.name); /* 9.56: mit Geräte-/Abzeichen-Listen */
   doppelteGeprueft = alle.length;
   const gruppen = {}; alle.forEach(r => { (gruppen[nameSchluessel(r.name)] = gruppen[nameSchluessel(r.name)] || []).push(r); });
   const verknuepft = r => Array.isArray(r.owners) && r.owners.length > 0;
@@ -5330,7 +5332,7 @@ function xqAnteileLuecke(r, a, ohne) {
 /* opt.seit/opt.limit: Zeitraum und Höchstzahl der gelesenen Protokoll-Einträge (jeder Eintrag zählt als Lesezugriff im Tageskontingent!) */
 async function xpPruefDaten(opt) {
   const L = window.LB, jetzt = Date.now(); opt = opt || {};
-  const [sp, xl, ev] = await Promise.all([L.alleSpieler(), L.xpListe(), L.xpProtokollNeu ? L.xpProtokollNeu(opt.seit || jetzt - 7 * 864e5, opt.limit || 2000).catch(() => null) : Promise.resolve(null)]);
+  const [sp, xl, ev] = await Promise.all([(L.alleSpielerVoll || L.alleSpieler)(), L.xpListe(), L.xpProtokollNeu ? L.xpProtokollNeu(opt.seit || jetzt - 7 * 864e5, opt.limit || 2000).catch(() => null) : Promise.resolve(null)]);
   const xm = new Map(xl.map(r => [r.pid, r])), ab24 = (() => { const d = new Date(jetzt - 864e5); return xqTagKey(d) + "-" + String(d.getHours()).padStart(2, "0"); })();
   const evVon = new Map(); (ev || []).forEach(e => { if (!evVon.has(e.pid)) evVon.set(e.pid, []); evVon.get(e.pid).push(e); });
   const seen = S.xpSeen || {};

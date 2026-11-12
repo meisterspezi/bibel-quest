@@ -1,0 +1,41 @@
+# Sammel-Rangliste und Aufräumen für Bibelbuch-Quest (siehe job/sammeln.mjs).
+# Braucht das Secret FIREBASE_SERVICE_ACCOUNT. Optional die Variable AUFRAEUMEN=ja (sonst wird beim Aufräumen nur gezählt).
+name: Sammel-Rangliste
+on:
+  schedule:
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+    inputs:
+      voll:
+        description: "Alle Spieler neu einlesen"
+        type: boolean
+        default: false
+      aufraeumen_jetzt:
+        description: "Aufräumen jetzt ausführen (statt einmal am Tag)"
+        type: boolean
+        default: false
+concurrency:
+  group: sammeln
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  sammeln:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Abhängigkeiten
+        working-directory: job
+        run: npm install --no-audit --no-fund --omit=dev
+      - name: Sammeln und Aufräumen
+        working-directory: job
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          AUFRAEUMEN: ${{ vars.AUFRAEUMEN }}
+          VOLL: ${{ inputs.voll && 'ja' || '' }}
+          AUFRAEUMEN_JETZT: ${{ inputs.aufraeumen_jetzt && 'ja' || '' }}
+        run: node sammeln.mjs
