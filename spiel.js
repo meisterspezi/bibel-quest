@@ -1450,6 +1450,8 @@ function go(name, arg) {
   tabbarSetzen(name); (VIEWS[name] || VIEWS.home)(arg);
   try { staemmeErstatten(); appBonusPruefen(); appHinweisZeigen(); nachPruefen(); } catch (e) {} /* beim allerersten go() sind die Konstanten unten noch nicht bereit */
   if (typeof duAufloesQ !== "undefined" && duAufloesQ.length) setTimeout(duAufloesVersuch, 400);
+  /* 9.54: Duelle beim Öffnen der Duell-Seiten nachladen – neue Herausforderungen und Ergebnisse kommen auch ohne Neustart an */
+  if (typeof duAuffrischen === "function") { if (["duelle", "bib", "zusammen"].includes(name)) duAuffrischen(DU_FRISCH_REITER); else if (name === "home") duAuffrischen(DU_FRISCH_START); }
 }
 /* Untere Menüleiste: zu welchem Reiter gehört eine Ansicht? */
 /* 8.0 „Allein und Zusammen“: nur noch vier große Reiter – Laden über die Talente oben, Rangliste unter „Zusammen“ */
@@ -2643,7 +2645,8 @@ VIEWS.errung = (tab) => {
 };
 VIEWS.stat = () => {
   const m = lbPayload(), h = dayNum(today());
-  const ch = (t, v, max, kl) => pfBalken(t, v ? v + 1 : 0, max, kl);
+  /* 9.54: Themen-Ketten stehen nicht im Ranglisten-Eintrag (lbPayload) – deshalb direkt aus dem Spielstand lesen */
+  const ch = (t, v, max, kl) => pfBalken(t, v ? Math.min(max, v + 1) : 0, max, kl);
   screen.innerHTML = `${backBtn("profil", "Profil")}${pfKopf("Statistik")}<div class="pf2">
     ${pfTrenner("Überblick")}
     <div class="pf2-g2">${pfKachel("fire", (m.streak || 0) + (m.streak === 1 ? " Tag" : " Tage"), "Serie")}${pfKachel("sun", m.t28 || 0, "Spieltage in 4 Wochen")}</div>
@@ -2651,7 +2654,7 @@ VIEWS.stat = () => {
     ${pfTrenner("Rekorde")}
     <div class="pf2-g2">${pfKachel("bolt", m.blitz || 0, "Blitz-Rekord")}${pfKachel("bolt", m.combo != null ? m.combo : "–", "Blitz in Folge")}${pfKachel("duell", (m.duS || 0) + " / " + (m.duG || 0), "Arena-Siege / Duelle")}${pfKachel("biblionaer", pkt(m.bib || 0), "Biblionär-Rekord")}</div>
     ${pfTrenner("Ketten")}
-    <div class="pf2-karte pf2-zls">${ch("Kette Bibel", m.bestChain, 66)}${ch("Kette AT", m.chainAT, 39, "at")}${ch("Kette NT", m.chainNT, 27, "nt")}${ch("Kette rückwärts", m.chainRueck, 66)}${ch("Zehn Gebote", m.chainGebote, 10)}${ch("Schöpfungstage", m.chainSchoepfung, 7)}</div></div>`;
+    <div class="pf2-karte pf2-zls">${ch("Kette Bibel", m.bestChain, 66)}${ch("Kette AT", m.chainAT, 39, "at")}${ch("Kette NT", m.chainNT, 27, "nt")}${ch("Kette rückwärts", m.chainRueck, 66)}${ch("Zehn Gebote", S.chainGebote, 10)}${ch("Schöpfungstage", S.chainSchoepfung, 7)}</div></div>`;
   wireGo();
 };
 
@@ -2754,7 +2757,7 @@ function zusammenfuehren(r) {
   if ((r.bwVK || "") > (S.bwVK || "") && r.bwVK !== S.bwK) { S.bwVK = r.bwVK; S.bwVP = r.bwVP | 0; }
   S.bwSiege = [...new Set([...(S.bwSiege || []), ...(Array.isArray(r.bwSiege) ? r.bwSiege : [])])].slice(-60);
   S.duArten = [...new Set([...(S.duArten || []), ...(Array.isArray(r.duArten) ? r.duArten : [])])]; S.duKetteVoll = !!(S.duKetteVoll || r.duKetteVoll);
-  S.duGes = [...new Set([...(S.duGes || []), ...(Array.isArray(r.duGes) ? r.duGes : [])])].slice(-60);
+  S.duGes = [...new Set([...(S.duGes || []), ...(Array.isArray(r.duGes) ? r.duGes : [])])].slice(-150);
   ["aufgefrischt", "eingeladen", "fischerDabei", "menschenfischer"].forEach(k => { S[k] = !!(S[k] || r[k]); });
   S.tage = [...new Set([...(S.tage || []), ...(r.tage || [])])].sort((a, b) => a - b).slice(-35);
   S.treueWochen = [...new Set([...(S.treueWochen || []), ...(r.treueWochen || [])])];
@@ -3846,6 +3849,23 @@ function duAblehnenFrage(d, spielen) {
         .catch(() => toast(`${svg("nein", "var(--bad)")}<div>Das hat nicht geklappt – bist du online? Vielleicht hat ${esc(d.vonName)} die Herausforderung schon zurückgezogen.</div>`));
       else if (r === "spielen" && spielen) spielen(); });
 }
+/* 9.54: Die Duell-Liste wurde bisher nur beim App-Start und nach einem eigenen Duell geladen – wer die App offen ließ,
+   sah neue Herausforderungen und Ergebnisse nicht. Jetzt wird sie nachgeladen, wenn sie älter als maxAlt ist
+   (Arena/Biblionär 2 Min., Startseite 10 Min., Rückkehr in die App 5 Min.). Neu gezeichnet wird nur bei einer Änderung. */
+const DU_FRISCH_REITER = 2 * 60000, DU_FRISCH_START = 10 * 60000, DU_FRISCH_ZURUECK = 5 * 60000, DU_GES_MAX = 150, DU_AUFLOES_MAX = 5, DU_LOHN_TAGE = 14;
+let duGeladen = 0, duFrischLaeuft = false;
+const duSig = () => (duListe || []).map(d => d.id + ":" + d.status).join("|");
+function duAuffrischen(maxAlt) {
+  if (!duOk() || duSpiel || duListe === null || duFrischLaeuft || Date.now() - duGeladen < maxAlt) return;
+  duFrischLaeuft = true; const vorher = duSig();
+  duAktualisieren().then(() => {
+    duFrischLaeuft = false;
+    const tippt = /^(INPUT|TEXTAREA)$/.test((document.activeElement || {}).tagName || "");
+    if (duSig() === vorher || duSpiel || tippt || document.querySelector(".modal, .sb-ov")) return;
+    if (["home", "duelle", "bib", "zusammen"].includes(current)) { const y = window.scrollY; go(current); window.scrollTo(0, y); }
+  }).catch(() => { duFrischLaeuft = false; });
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") duAuffrischen(DU_FRISCH_ZURUECK); });
 /* Duelle laden; alte (über 30 Tage) und abgelaufene still aufräumen */
 async function duAktualisieren() {
   if (!duOk()) return duListe;
@@ -3855,9 +3875,11 @@ async function duAktualisieren() {
       /* nur Varianten anzeigen, die diese App-Version kennt (spätere Duell-Arten bleiben unberührt) */
       if (!duTypVon(d) || (d.modus || "1v1") !== "1v1" || !d.vonErg || (d.status === "fertig" && !d.anErg)) return false;
       const alt = jetzt - d.erstellt > DU_TAGE_HALTEN * 864e5;
-      if (alt && (d.status !== "offen" || jetzt > d.ablauf)) { L.duellLoeschen(d.id).catch(() => {}); return false; }
+      /* 9.54: fertige Duelle lassen die Regeln nie löschen – nur ausblenden, kein vergeblicher Löschversuch bei jedem Laden */
+      if (alt && (d.status !== "offen" || jetzt > d.ablauf)) { if (d.status !== "fertig") L.duellLoeschen(d.id).catch(() => {}); return false; }
       return true;
     });
+    duGeladen = Date.now();
     duFehler = ""; duBelohnen(); duZaehlen(); tbDuSetzen();
   } catch (e) { duFehler = "laden"; }
   return duListe;
@@ -3881,12 +3903,15 @@ const duNeueErgebnisse = () => (duListe || []).filter(d => d.von === S.pid && d.
 function duBelohnen() {
   const neu = duNeueErgebnisse(); if (!neu.length) return;
   let tal = 0;
+  /* 9.54: Die Liste enthält jetzt die neuesten 100 Duelle (vorher 60 beliebige). Ergebnisse, die dadurch erstmals sichtbar werden:
+     nur die der letzten 14 Tage belohnen (ältere still als gesehen merken) und höchstens 5 Auflösungen zeigen – der Rest steht unter „Ergebnisse“. */
   neu.forEach(d => {
-    S.duGes = [...(S.duGes || []), d.id].slice(-60);
+    S.duGes = [...(S.duGes || []), d.id].slice(-DU_GES_MAX);
+    if (Date.now() - (d.fertig || d.erstellt || 0) > DU_LOHN_TAGE * 864e5) return;
     const v = duVgl(d.vonErg, d.anErg, d.art);
     const kf = 1;  /* 6.93: Duelle werden nie gekürzt (bis 6.92: gekürzt beim 5.+ Duell am Tag gegen denselben Gegner) */
     if (v > 0) tal += Math.round(DU_SIEG_TAL * kf); else if (v === 0) tal += Math.round(DU_REMIS_TAL * kf); /* der Sieg selbst wird in duZaehlen() aus den Duellen gezählt */
-    duAufloesQ.push(d); /* 6.62: statt Hinweis eine Auflösung im Siegelbruch-Stil */
+    if (duAufloesQ.length < DU_AUFLOES_MAX) duAufloesQ.push(d); /* 6.62: statt Hinweis eine Auflösung im Siegelbruch-Stil */
   });
   setTimeout(duAufloesVersuch, 600);
   if (tal) S.tal += tal; save(); renderHud();

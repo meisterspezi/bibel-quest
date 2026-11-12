@@ -208,9 +208,17 @@ if (!configured) {
     };
     LB.duellAblehnen = async (id, pid) => { await LB.signIn(); await fs.updateDoc(ref("duelle", id), { status: "abgelehnt", am: pid }); };
     LB.duellLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("duelle", id)); };
+    // 9.54: Bisher „limit(60)“ ohne Sortierung – Firestore lieferte dann 60 BELIEBIGE Duelle (nach zufälliger Dokument-ID), nicht die neuesten.
+    //       Wer mehr als 60 Duelle hatte, sah neue Herausforderungen, Annahmen und Ergebnisse nur noch zufällig.
+    //       Jetzt: die neuesten 100 (Index duelle: teil [Arrays] + erstellt [absteigend]). Fehlt der Index noch („failed-precondition“),
+    //       werden alle Duelle des Spielers geladen und hier sortiert – vollständig, kostet aber mehr Lesezugriffe.
+    const DU_MAX = 100; let duIndex = true;
     LB.meineDuelle = async (pid) => {
-      const s = await fs.getDocs(fs.query(duelle, fs.where("teil", "array-contains", pid), fs.limit(60)));
-      return s.docs.map(duDaten).sort((x, y) => y.erstellt - x.erstellt);
+      const meine = fs.where("teil", "array-contains", pid); let s = null;
+      if (duIndex) try { s = await fs.getDocs(fs.query(duelle, meine, fs.orderBy("erstellt", "desc"), fs.limit(DU_MAX))); }
+        catch (e) { if (!e || e.code !== "failed-precondition") throw e; duIndex = false; LB.duIndexFehlt = true; console.warn("Duelle: Index fehlt – lade alle.", e.message); }
+      if (!s) s = await fs.getDocs(fs.query(duelle, meine));
+      return s.docs.map(duDaten).sort((x, y) => y.erstellt - x.erstellt).slice(0, DU_MAX);
     };
     // „Biblionär der Woche“ (6.40): eigene Sammlung biblionaer/{Woche}_{pid} = { pid, wk, p, name, av, fr, lv }
     // (nicht im Ranglisten-Eintrag, weil dessen Regel an der Grenze von 1000 Rechenschritten ist)
