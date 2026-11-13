@@ -83,10 +83,10 @@ export async function sammeln(db, opt = {}) {
 export function aufraeumPlan(jetzt) {
   const vor = t => Timestamp.fromMillis(jetzt - t * TAG);
   return [
-    ["xpprotokoll", "z", jetzt - 60 * TAG, "XP-Protokoll älter als 60 Tage"],
+    ["xpprotokoll", "z", jetzt - 7 * TAG, "XP-Protokoll älter als 7 Tage"],
     ["duelle", "ablauf", vor(1), "Duelle, die nach 3 Tagen unbeantwortet abgelaufen sind (fertige Duelle bleiben)", d => d.status !== "fertig"],
-    ["duelle", "erstellt", vor(45), "Duelle älter als 45 Tage (die App zeigt sie nach 30 Tagen nicht mehr; Siege/Spiele bleiben im Spielstand)"],
-    ["tagestruhe", "gebucht", vor(10), "Schatztruhen-Belege älter als 10 Tage"],
+    ["duelle", "erstellt", vor(30), "Duelle älter als 30 Tage (Siege/Spiele bleiben im Spielstand)"],
+    ["tagestruhe", "gebucht", vor(7), "Schatztruhen-Belege älter als 7 Tage"],
     ["bibversuch", "gebucht", vor(30), "Biblionär-Wochenbelege älter als 30 Tage"],
     ["kopplung", "exp", vor(1), "abgelaufene Kopplungscodes"]
   ];
