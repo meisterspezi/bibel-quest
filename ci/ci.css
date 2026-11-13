@@ -43,9 +43,9 @@
    Kontrastwerte stehen nachgerechnet in ci/README.md.
    ========================================================================== */
 
-/* ---------- 0. Schriften laden ----------
-   Schneller ist die <link>-Variante im <head> (siehe README); dann diese Zeile löschen. */
-@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Lexend:wght@400;500;700&family=Source+Serif+4:ital,opsz,wght@1,8..60,500;1,8..60,600&display=swap");
+/* ---------- 0. Schriften ----------
+   Die Schriften lädt die Seite selbst per <link> im <head> (siehe README),
+   damit sie nicht doppelt geladen werden. Ohne Netz greifen die Ersatzschriften. */
 
 /* ==========================================================================
    1. Grundpalette – feste Werte
@@ -311,11 +311,9 @@
   --display:    var(--ci-schrift-titel);
   --body:       var(--ci-schrift-text);
   --serif:      var(--ci-schrift-vers);
-  --ar:         var(--ci-farbe-primaer);
-  --ar-lernen:  var(--ci-farbe-lernen);
-  --ar-spielen: var(--ci-farbe-spielen);
-  --ar-gemeinde:var(--ci-farbe-gemeinde);
-  --ar-lohn:    var(--ci-farbe-lohn);
+  /* --ar und --ar-lernen/-spielen/-gemeinde/-lohn bleiben bewusst bei der App:
+     dort ist z. B. --ar-gemeinde die Arena-Koralle. Die CI-Bereichsfarben stehen
+     in --ci-farbe-… und werden über [data-bereich] gesetzt. */
   --fs-s:       var(--ci-gr-mini);
   --fs-m:       var(--ci-gr-klein);
   --fs-l:       var(--ci-gr-text);
