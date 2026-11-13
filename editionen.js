@@ -52,6 +52,8 @@ const EDITIONEN = {
   pfingsten: { name: "Pfingsten", adj: "Pfingst", ges: "p", farbe: "#ff8a3d", sym: ED_PFINGST_SYM, fragen: PFINGST_FRAGEN, thema: "Pfingsten und den Heiligen Geist", zeit: "1 Woche vor bis 1 Woche nach Pfingsten", runden: 2 },
   reformation: { name: "Reformation", adj: "Reformations", ges: "r", farbe: "#ff6f7d", sym: ED_REFO_SYM, fragen: REFORMATIONS_FRAGEN, thema: "die Reformation", zeit: "1 Woche vor bis 1 Woche nach dem Reformationstag", runden: 2, ab: 2027 }
 };
+/* Leuchtfarbe der Ausgabe (Countdown, Spielbildschirme) */
+const edFarbe = id => ({ weihnachten: "#bfe3ff", ostern: "#ffd166", pfingsten: "#ff7a2e", reformation: "#ff5f6a" })[id] || "#f2c14e";
 const edAdj = id => EDITIONEN[id] ? EDITIONEN[id].adj : "";
 
 /* ---------- Kalender ---------- */
@@ -289,7 +291,7 @@ function edWocheLos(id) {
   go("biblionaer");
   const pool = edPool(id, datumVon(R.start).getTime());
   const G = { modus: "edwoche", ed: id, weih: id === "weihnachten", edKey: R.key, edR: R.r, vorschau: R.vorschau, fragen: bibFragen(hash("ed|" + R.key), "", pool, null, id) };
-  countdown(() => bibStart(G), { weih: G.weih });
+  countdown(() => bibStart(G), { weih: G.weih, ed: id });
 }
 
 /* ---------- Zusammenführen mit einem anderen Gerät: je Runde der höhere Wert ---------- */

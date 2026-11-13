@@ -2685,6 +2685,19 @@ body.ed-an .weih-kopf .bk-med.bild img{position:relative;filter:drop-shadow(0 0 
 .weih-marke.ed-marke{background:linear-gradient(180deg,#2a3166,#1c2250);color:#fff;box-shadow:inset 0 0 0 1px var(--edc,#ffffff55),0 0 8px #0006}
 .weih-marke.ed-ostern{--edc:#ffd166}.weih-marke.ed-pfingsten{--edc:#ff7a2e}.weih-marke.ed-reformation{--edc:#ff5f6a}.weih-marke.ed-weihnachten{--edc:#bfe3ff}
 .du-chip>.weih-fl,.bq2-e .bq2-tx b>.weih-fl,.du-chip .ed-fl,.bq2-e .bq2-tx b>.ed-fl{filter:none}
+
+/* 9.64 Spielbildschirme der Sondereditionen (Weihnachten behält seine Regeln von 9.61) */
+body.ed-ostern{--ed1:#2e2266;--ed2:#161646}body.ed-pfingsten{--ed1:#4a1a30;--ed2:#1b1238}body.ed-reformation{--ed1:#46202a;--ed2:#1c1630}
+body.ed-an:not(.weih-an) .bib-titel{color:var(--edc)}.bib-titel .ed-fl{width:18px;height:18px}
+body.ed-an:not(.weih-an) .bib-frage-box{margin-top:6px;position:relative;background:radial-gradient(120% 90% at 50% 0%,color-mix(in srgb,var(--edc) 16%,transparent),transparent 60%),linear-gradient(180deg,var(--ed1),var(--ed2));border-color:color-mix(in srgb,var(--edc) 55%,transparent);box-shadow:0 0 24px -6px color-mix(in srgb,var(--edc) 55%,transparent),inset 0 1px 0 #ffffff1f}
+body.ed-an:not(.weih-an) .bib-frage-box.st3{border-color:#f2c14e88;box-shadow:0 0 24px -6px #f2c14e77,inset 0 1px 0 #ffffff1f}
+body.ed-an:not(.weih-an) .bib-frage-box .bib-thema{color:var(--edc)}
+body.ed-an:not(.weih-an) .bib-opt{border-color:color-mix(in srgb,var(--edc) 30%,transparent)}
+body.ed-an:not(.weih-an) .bib-opt i{background:radial-gradient(circle at 40% 30%,#fff,color-mix(in srgb,var(--edc) 35%,#fff) 55%,var(--edc));color:#2a1d02}
+body.ed-an:not(.weih-an) .bib-opt.eingeloggt i,body.ed-an:not(.weih-an) .bib-opt.richtig i{background:radial-gradient(circle at 40% 30%,#fff6c8,#f2c14e 60%,#a8781a);color:#2a1d02}
+body.ed-an:not(.weih-an) .bib-zeit i{background:linear-gradient(90deg,var(--bad),#ffcf5a 40%,var(--edc))}
+body.ed-an:not(.weih-an) .bib-ende .bib-ic{filter:drop-shadow(0 0 14px var(--edc))}
+body.ed-an:not(.weih-an) .bib-ende .bib-gross b{text-shadow:0 0 18px var(--edc)}
 </style>
 </head>
 <body>
