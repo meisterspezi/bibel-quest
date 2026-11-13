@@ -19,7 +19,8 @@ try{(function(){var b=location.pathname.indexOf("/beta/")>=0,q=location.search;i
 <meta property="og:description" content="Alle 66 Bücher der Bibel spielend lernen.">
 <meta property="og:image" content="icons/icon-512.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Nunito:wght@400;700;800;900&family=EB+Garamond:ital,wght@0,500;1,500&display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Lexend:wght@400;500;600;700;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,500;0,8..60,700;1,8..60,500;1,8..60,600&display=swap">
 <style>
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{margin:0}
@@ -31,7 +32,7 @@ img{max-width:100%}
   --fg:#eef0ff; --muted:#a3abd8; --accent:#f2c14e; --accent-ink:#2a1d00;
   --good:#46d39a; --bad:#ff6b6b; --at:#7cc4ff; --nt:#ffa3c4;
   --display:"Cinzel", "Trajan Pro", Georgia, serif;
-  --body:"Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --body:"Lexend", system-ui, -apple-system, "Segoe UI", sans-serif;
   color-scheme:dark;
 }
 body[data-acc="smaragd"]{--accent:#3fd6a6;--accent-ink:#00281b}
@@ -216,7 +217,7 @@ h2{font-family:var(--display);font-weight:800;font-size:1.3rem;margin:0 0 4px;te
 @media (max-width:380px){.q{font-size:1.65rem}.pill{padding:4px 7px;font-size:.82rem}.badges{grid-template-columns:repeat(2,1fr)}}
 
 /* ===== Version 6: Ergänzungen ===== */
-:root{--g-geschichte:#5fd38a;--g-lehre:#ffd95c;--g-prophetie:#ff7b7b;--serif:"EB Garamond",Georgia,"Times New Roman",serif}
+:root{--g-geschichte:#5fd38a;--g-lehre:#ffd95c;--g-prophetie:#ff7b7b;--serif:"Source Serif 4",Georgia,"Times New Roman",serif}
 code{font-family:ui-monospace,Consolas,monospace;font-size:.85em;background:var(--bg2);padding:1px 5px;border-radius:5px}
 .vers{margin:0;padding:12px 14px;border-left:3px solid var(--accent);background:color-mix(in srgb,var(--accent) 7%,var(--surface));border-radius:0 14px 14px 0;text-align:left}
 .vers blockquote{margin:0;font-family:var(--serif);font-style:italic;font-weight:500;font-size:1.1rem;line-height:1.45}
@@ -449,7 +450,7 @@ textarea.field{resize:vertical;min-height:110px;font:inherit}.fb-name{display:fl
 .titel-wappen .halo{position:absolute;left:50%;top:-8px;width:260px;height:160px;transform:translateX(-50%);background:radial-gradient(closest-side,#fff3b055,#7fc8ff22 60%,transparent);pointer-events:none}
 .titel-wappen img{width:56px;height:56px;border-radius:50%;box-shadow:0 0 0 3px #f6ebc4,0 0 0 5px #a07020,0 0 22px #fff3b088;position:relative}
 .titel-wappen h1{margin:8px 0 0;font-size:2.25rem;line-height:1.05;background:linear-gradient(180deg,#ffffff,#f6ebc4 50%,#c99c3e);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 2px 0 #1b2a55) drop-shadow(0 0 16px #fff3b066);position:relative}
-.titel-wappen .linie{display:flex;align-items:center;gap:10px;justify-content:center;margin-top:6px;color:#cfd6f2;font:italic 500 1.08rem 'EB Garamond',Georgia,serif;position:relative}
+.titel-wappen .linie{display:flex;align-items:center;gap:10px;justify-content:center;margin-top:6px;color:#cfd6f2;font:italic 500 1.08rem var(--serif);position:relative}
 .titel-wappen .linie b{color:#f2c14e;font-style:normal}
 .titel-wappen .linie i{flex:0 1 40px;height:1px;background:linear-gradient(90deg,transparent,#f2c14e)}.titel-wappen .linie i:last-child{background:linear-gradient(90deg,#f2c14e,transparent)}
 /* Rangliste: Level-Münze am Avatar, edle Sockel, Krone und Lichtkranz für Platz 1 */
@@ -1055,9 +1056,9 @@ body[data-acc="perle"]::after{-webkit-mask:none;mask:none;background:url("data:i
 /* Fußleiste: Duell-Reiter (rotes Medaillon bleibt auch inaktiv rot, nur leicht gedämpft) */
 .tabbar [data-tab="duelle"] .tb-ic{filter:saturate(.75) brightness(.85)}
 .tabbar [data-tab="duelle"].an .tb-ic{filter:none}
-.tabbar .tb-du{position:absolute;top:2px;left:calc(50% + 6px);min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:9px;background:var(--bad);color:#fff;font:900 .65rem/18px var(--body);text-align:center;box-shadow:0 0 0 2px #151a3d,0 0 8px color-mix(in srgb,var(--bad) 70%,transparent)}
+.tabbar .tb-du{position:absolute;top:2px;left:calc(50% + 6px);min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:9px;background:var(--ci-farbe-signal);color:var(--ci-farbe-auf-signal);font:900 .65rem/18px var(--body);text-align:center;box-shadow:0 0 0 2px #151a3d,0 0 8px color-mix(in srgb,var(--bad) 70%,transparent)}
 .tabbar .tb-du[hidden]{display:none}
-.du-punkt{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 6px;border-radius:12px;background:var(--bad);color:#fff;font:900 .8rem var(--body);box-shadow:0 0 10px color-mix(in srgb,var(--bad) 60%,transparent)}
+.du-punkt{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 6px;border-radius:12px;background:var(--ci-farbe-signal);color:var(--ci-farbe-auf-signal);font:900 .8rem var(--body);box-shadow:0 0 10px color-mix(in srgb,var(--bad) 60%,transparent)}
 .du-intro{margin:-4px 2px 10px}
 .du-neu{margin-top:0}
 .du-label{margin:18px 2px 8px}
@@ -1188,7 +1189,7 @@ body[data-acc="perle"]::after{-webkit-mask:none;mask:none;background:url("data:i
 .ar-start b{font:800 1.02rem var(--display);letter-spacing:.1em;white-space:nowrap;text-shadow:0 1px 2px #0005;text-align:left}
 .ar-label{display:flex;align-items:center;gap:8px;margin:14px 2px 6px;font:800 .74rem var(--display);letter-spacing:.14em;text-transform:uppercase;color:#e9d6a8}
 .ar-label svg{width:16px;height:16px}.ar-label::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,#f2c14e66,transparent)}
-.ar-label i{font:900 .66rem/18px var(--body);font-style:normal;letter-spacing:0;min-width:18px;height:18px;padding:0 5px;border-radius:9px;text-align:center;color:#fff;background:var(--bad);box-shadow:0 0 8px #ff6b6b88}
+.ar-label i{font:900 .66rem/18px var(--body);font-style:normal;letter-spacing:0;min-width:18px;height:18px;padding:0 5px;border-radius:9px;text-align:center;color:#fff;background:var(--ci-farbe-signal);box-shadow:0 0 8px #e8141b88}
 .ar-liste{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 .ar-zeile,.ar-karte{display:grid;grid-template-columns:32px minmax(0,1fr) auto 30px;gap:9px;align-items:center;padding:7px 9px;border-radius:14px;border:1px solid #ffffff1a;background:linear-gradient(160deg,#ffffff0d,#ffffff03 60%),var(--surface)}
 .ar-tx{display:flex;flex-direction:column;min-width:0}.ar-tx>b{font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1277,7 +1278,7 @@ body[data-acc="perle"]::after{-webkit-mask:none;mask:none;background:url("data:i
 .bkopf{min-width:0}.bk-start b{min-width:0;font:800 1.02rem var(--display);letter-spacing:.1em;text-transform:uppercase;text-shadow:0 1px 2px #000a,0 0 6px #0005;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bk-label{display:flex;align-items:center;gap:8px;margin:9px 2px 6px;font:800 .74rem var(--display);letter-spacing:.14em;text-transform:uppercase;color:#e9d6a8}
 .bk-label svg{width:16px;height:16px;flex:none}.bk-label::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,#f2c14e66,transparent)}
-.bk-label i{font:900 .66rem/18px var(--body);font-style:normal;letter-spacing:0;min-width:18px;height:18px;padding:0 5px;border-radius:9px;text-align:center;color:#fff;background:var(--bad);box-shadow:0 0 8px #ff6b6b88}
+.bk-label i{font:900 .66rem/18px var(--body);font-style:normal;letter-spacing:0;min-width:18px;height:18px;padding:0 5px;border-radius:9px;text-align:center;color:#fff;background:var(--ci-farbe-signal);box-shadow:0 0 8px #e8141b88}
 .erklaer summary .bk-label{flex:1;margin:0}
 .start2>.bk-label{margin:4px 2px 0}
 @media (prefers-reduced-motion:no-preference){.bk-med{animation:bkSchweb 3.4s ease-in-out infinite}@keyframes bkSchweb{50%{transform:translateY(-2px)}}}
@@ -1498,7 +1499,7 @@ body[data-acc="saphir"]::after{-webkit-mask:linear-gradient(transparent 38%,#000
 .bq2-woche.aus{opacity:.6;cursor:default}.bq2-woche.aus>svg{filter:grayscale(1)}.bq2-woche.aus small{padding-right:6px}
 .bq2-duell{margin-top:8px;padding:10px 12px;border-radius:18px;border:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;gap:6px}
 .bq2-dk{display:flex;align-items:center;gap:6px;font:800 .74rem var(--body);letter-spacing:.08em;text-transform:uppercase;color:#bfeee7}
-.bq2-dk>svg{width:20px;height:20px}.bq2-dk i{font-style:normal;background:var(--bad);color:#fff;border-radius:99px;padding:0 6px;font-size:.7rem;letter-spacing:0}
+.bq2-dk>svg{width:20px;height:20px}.bq2-dk i{font-style:normal;background:var(--ci-farbe-signal);color:var(--ci-farbe-auf-signal);border-radius:99px;padding:0 6px;font-size:.7rem;letter-spacing:0}
 .bq2-neu{margin-left:auto;display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:99px;border:0;font:800 .78rem var(--body);letter-spacing:0;text-transform:none;color:#0d2a06;background:linear-gradient(135deg,#d6f7a6,#55b832 55%,#2f8f26);box-shadow:0 3px 0 #1d5a14;cursor:pointer}
 .bq2-neu svg{width:15px;height:15px}.bq2-neu:active{box-shadow:0 1px 0 #1d5a14;transform:translateY(2px)}
 .bq2-liste{list-style:none;margin:0;padding:0}
@@ -2138,7 +2139,7 @@ body[data-tab="rank"]{--ar-gemeinde:#5fe0b0;--ar:#5fe0b0}
 .kt-tx{width:100%;display:block}
 .kt-tx b{display:block;font:800 1.2rem var(--display);letter-spacing:.04em;color:#fff3dc;text-shadow:0 2px 0 #0006}
 .kt-tx small{display:inline-block;max-width:100%;box-sizing:border-box;margin-top:7px;padding:3px 9px;border-radius:999px;background:color-mix(in srgb,var(--c) 22%,transparent);border:1px solid color-mix(in srgb,var(--c) 55%,transparent);font:700 .66rem var(--body);color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kt-n{position:absolute;top:-52px;right:-4px;min-width:24px;height:24px;padding:0 6px;box-sizing:border-box;border-radius:12px;background:var(--bad);color:#fff;font:900 .8rem/24px var(--body);text-align:center;font-style:normal;box-shadow:0 2px 6px #0008;z-index:3}
+.kt-n{position:absolute;top:-52px;right:-4px;min-width:24px;height:24px;padding:0 6px;box-sizing:border-box;border-radius:12px;background:var(--ci-farbe-signal);color:var(--ci-farbe-auf-signal);font:900 .8rem/24px var(--body);text-align:center;font-style:normal;box-shadow:0 2px 6px #0008;z-index:3}
 /* 9.16: Start-Kacheln – Symbole passen sich der Bildschirmhöhe an, damit Start ohne Scrollen passt (auch kleine Handys) */
 .kt-grid{--kl:clamp(40px,calc(35dvh - 212px),96px);gap:calc(var(--kl)*.5 + 8px) 12px;padding:calc(var(--kl)*.5) 0 4px}
 .kt{min-height:0;padding:calc(var(--kl)*.62) 6px clamp(7px,1.3dvh,14px);border-radius:20px}
@@ -2700,6 +2701,27 @@ body.ed-an:not(.weih-an) .bib-opt.eingeloggt i,body.ed-an:not(.weih-an) .bib-opt
 body.ed-an:not(.weih-an) .bib-zeit i{background:linear-gradient(90deg,var(--bad),#ffcf5a 40%,var(--edc))}
 body.ed-an:not(.weih-an) .bib-ende .bib-ic{filter:drop-shadow(0 0 14px var(--edc))}
 body.ed-an:not(.weih-an) .bib-ende .bib-gross b{text-shadow:0 0 18px var(--edc)}
+</style>
+<!-- CI-Stylesheet (Farben, Schriften, Bausteine) – nach dem App-Stil, damit seine Werte gelten -->
+<link rel="stylesheet" href="ci/ci.css">
+<style>
+/* CI-Dunkelmodus „Tiefnacht“ (9.67) auch für die Farbwelten: gleiche Mischung wie oben, nur auf dunklerem Grund.
+   Greift, wenn das Gerät auf dunkel steht (außer data-theme="light") oder bei data-theme="dark". */
+@media (prefers-color-scheme: dark){
+:root:not([data-theme="light"]) body[data-acc]{
+ --bg:color-mix(in srgb,var(--th) 6%,#080a17);--bg2:color-mix(in srgb,var(--th) 8%,#0c0f22);
+ --surface:color-mix(in srgb,var(--th) 9%,#10142c);--surface2:color-mix(in srgb,var(--th) 12%,#181d3c);
+ --line:color-mix(in srgb,var(--th) 22%,#24294f);--muted:color-mix(in srgb,var(--th) 16%,#949cc6);
+ background:radial-gradient(130% 55% at 50% -12%,color-mix(in srgb,var(--th) 26%,#121637) 0%,color-mix(in srgb,var(--th) 10%,#0b0f24) 32%,transparent 64%) fixed,var(--bg)}
+}
+:root[data-theme="dark"] body[data-acc][data-acc]{
+ --bg:color-mix(in srgb,var(--th) 6%,#080a17);--bg2:color-mix(in srgb,var(--th) 8%,#0c0f22);
+ --surface:color-mix(in srgb,var(--th) 9%,#10142c);--surface2:color-mix(in srgb,var(--th) 12%,#181d3c);
+ --line:color-mix(in srgb,var(--th) 22%,#24294f);--muted:color-mix(in srgb,var(--th) 16%,#949cc6);
+ background:radial-gradient(130% 55% at 50% -12%,color-mix(in srgb,var(--th) 26%,#121637) 0%,color-mix(in srgb,var(--th) 10%,#0b0f24) 32%,transparent 64%) fixed,var(--bg)}
+/* Lexend läuft etwas breiter als Nunito: enge Zeilen auf der Startseite minimal enger setzen (9.67) */
+.start-aufg .bk-aufg .bk-t span,.kt-tx small{letter-spacing:-.02em}
+.kt-tx small{padding-left:7px;padding-right:7px}
 </style>
 </head>
 <body>
