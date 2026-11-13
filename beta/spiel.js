@@ -1904,7 +1904,7 @@ const soloAttr = s => { if (s.id === "blitz") return 'data-go="blitz"'; if (s.id
 /* 9.70: Solo als Kachel-Raster (2 Spalten) – Medaillon, Name, Stand, Fortschrittsbalken, goldener Haken bei „geschafft“; Reihenfolge der Ketten: AT, NT, Ganze Bibel, Rückwärts */
 const soloKachel = s => spKachel2(s, soloAttr(s));
 /* 9.70: dieselbe Kachel für „Zusammen“ (an = gewähltes Spiel) */
-const spKachel2 = (s, attr, an) => `<button class="sok-k${an ? " an" : ""}" ${attr} style="--c:${ZV_FARBE[s.grp]};--p:${zvPr(s.pct)}"><span class="sok-kopf"><span class="zv2-ring"><span class="zv2-in">${svg(s.ic)}</span></span><span class="sok-re">${s.pct >= 100 ? `<span class="sok-ok" aria-label="geschafft">${svg("check")}</span>` : ""}<small>${esc(s.sub)}</small></span></span><b>${esc(s.kurz)}</b></button>`; /* 9.72: kein Balken mehr – Fortschritt nur im Ring und als Zahl */
+const spKachel2 = (s, attr, an) => `<button class="sok-k${an ? " an" : ""}" ${attr} style="--c:${ZV_FARBE[s.grp]};--p:${zvPr(s.pct)}"><span class="zv2-ring"><span class="zv2-in">${svg(s.ic)}</span></span><small class="sok-pl">${esc(s.sub)}</small><b>${esc(s.kurz)}</b></button>`; /* 9.73: Variante „Medaille“ – Symbol zentriert und groß, Stand als Plakette am Ring, kein Balken, kein Haken */
 VIEWS.spielen = () => {
   const g = zvSpiele();
   screen.innerHTML = `${bereichKopf("spielen", { ic: "user", t: "Solo", sub: "Wie weit kommst du heute?" })}
