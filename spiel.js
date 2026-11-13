@@ -2173,6 +2173,7 @@ function playBlitz(scope) {
   function mult() { return Math.min(1 + Math.floor(combo / 10), 3); }
   function next() {
     let i; do { i = idx[Math.floor(Math.random() * idx.length)]; } while (idx.length > 1 && i === cur); cur = i; lock = false;
+    if (!$("bq")) return; /* 9.62: Runde schon beendet (Absturz-Meldung „null is not an object“) */
     $("bq").textContent = ALL[i].b; $("bm").textContent = GROUPS[ALL[i].gi].name;
     const o = $("bo"); o.innerHTML = ""; makeOpts(i).forEach(b => { const btn = document.createElement("button"); btn.className = "opt"; btn.textContent = b; btn.onclick = () => ans(btn, b); o.appendChild(btn); });
   }
@@ -2183,10 +2184,10 @@ function playBlitz(scope) {
       btn.classList.add("right"); SFX.right(combo); vibrate(10); const [x, y] = centerOf(btn); burst(x, y, 10 + mult() * 6, { speed: 3 + mult() }); floatText("+" + g, x, y);
       $("br").textContent = right; $("bx").textContent = xp + " XP";
       if (combo % 5 === 0) { tone(1568, 0, .15, "sine", .12); shakeScreen(); }
-      setTimeout(next, 320);
+      timers.push(setTimeout(next, 320)); /* 9.62: wird mit dem Rundenende abgebrochen */
     } else {
       fehlerBuecher.push(cur + 1); combo = 0; wrong++; time -= 3; btn.classList.add("wrong"); SFX.wrong(); vibrate([40, 30, 40]); shakeScreen();
-      [...$("bo").children].forEach(x => { if (x.textContent === correct) x.classList.add("right"); }); lock = true; setTimeout(next, 700);
+      [...$("bo").children].forEach(x => { if (x.textContent === correct) x.classList.add("right"); }); lock = true; timers.push(setTimeout(next, 700));
     }
     const c = $("bc"); c.textContent = combo >= 2 ? `Combo ${combo} · x${mult()}` : ""; c.className = "combo" + (mult() >= 3 ? " hot" : "");
   }
