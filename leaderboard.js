@@ -251,6 +251,8 @@ if (!configured) {
       try { await fs.setDoc(ref("bibversuch", id), { pid, name, w, wk: String(wk || "").slice(0, 10), z: Date.now(), ver: String(ver || "").slice(0, 12), gebucht: fs.serverTimestamp() }); return "ok"; }
       catch (e) { return e && e.code === "permission-denied" ? "tag" : "netz"; }
     };
+    /* 9.71: Duell-Sticker – eigenen Eintrag st.<pid> setzen (nur fertige Duelle, nur einmal; prüfen die Regeln) */
+    LB.duellSticker = async (id, pid, k) => { await LB.signIn(); await fs.updateDoc(ref("duelle", id), new fs.FieldPath("st", pid), k); };
     LB.duellAblehnen = async (id, pid) => { await LB.signIn(); await fs.updateDoc(ref("duelle", id), { status: "abgelehnt", am: pid }); };
     LB.duellLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("duelle", id)); };
     // 9.54: Bisher „limit(60)“ ohne Sortierung – Firestore lieferte dann 60 BELIEBIGE Duelle (nach zufälliger Dokument-ID), nicht die neuesten.
