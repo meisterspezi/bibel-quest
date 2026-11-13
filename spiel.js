@@ -3703,7 +3703,7 @@ function profilVergleich(r) {
 const DU_FRAGEN = 8, DU_SEK = 12, DU_KETTE_SEK = 10, DU_BLITZ_SEK = 60, DU_BLITZ_FRAGEN = 160, DU_MAX_OFFEN = 10, DU_MAX_AUSWAHL = 10, DU_TAGE_HALTEN = 30, DU_TAGE = 3; /* 9.65: Duelle laufen nur noch 3 Tage (leaderboard.js legt ablauf an), danach werden sie gelöscht */
 /* 6.77/6.79: XP-Angleichung – Ziel ≈ 150 XP/Min im Einzelspiel (≈ Esthers Tagestempo von ~9.000 XP bei rund 1 Std. Spielzeit), Duelle (soziales Spiel mit Warten/Herausfordern) ≈ 225 XP/Min (+50 %) */
 const DU_XP = 30, DU_PRO = { vers: 33, blitz: 9, kette: 9, quiz: 66 }, DU_MAXR = { vers: 8, blitz: 25, kette: 66, quiz: 15 };
-const DU_SIEG_TAL = 10, DU_REMIS_TAL = 8, DU_FAIR_TAL = 5; /* 9.65: Remis = 80 % der Sieg-Belohnung (vorher 5) */
+const DU_SIEG_TAL = 10, DU_REMIS_TAL = 10, DU_FAIR_TAL = 5; /* 9.65: Remis = 100 % der Sieg-Belohnung (vorher 5) */
 const DU_TYPEN = {
   vers: { art: "vers", name: "Lernvers", ic: "scroll", info: "8 Fragen zum Lernvers des Monats · 12 s je Frage" },
   blitz: { art: "blitz", k: "all", name: "Blitz", ic: "bolt", info: "60 Sekunden: Was kommt danach? Ein Fehler kostet 3 s" },
