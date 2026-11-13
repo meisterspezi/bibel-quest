@@ -1,0 +1,228 @@
+/* ==========================================================================
+   CI-Stylesheet Bibelbuch-Quest · Freie Baptisten Eichstätt
+   Farbe 1 „Nacht, Gold und Kreuzrot“ · Schrift A4b (Cinzel / Lexend / Source Serif 4)
+   Stand 13.11.2026 – noch nicht in die App eingebunden.
+
+   Einbinden:  <link rel="stylesheet" href="ci/ci.css">
+   Die Variablen --display, --body, --serif, --bg, --surface, --line, --muted
+   heißen wie in index.html, damit die App sie später direkt übernehmen kann.
+   ========================================================================== */
+
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Lexend:wght@400;500;700&family=Source+Serif+4:ital,opsz,wght@1,8..60,500;1,8..60,600&display=swap");
+
+:root {
+  /* ---------- 1. Logo (unverändert, nur für Logo und Druck) ---------- */
+  --ci-logo-schwarz: #000000;
+  --ci-logo-rot:     #ee0002;
+  --ci-logo-weiss:   #ffffff;
+
+  /* ---------- 2. Grundfarben ---------- */
+  --ci-nacht:      #0e1226;   /* Hintergrund */
+  --ci-flaeche:    #1b2146;   /* Karten, Kacheln */
+  --ci-umriss:     #1b2a55;   /* Umriss der Symbole, dunkle Schrift auf Gold-Verläufen */
+  --ci-linie:      #323b74;   /* Trennlinien, Ränder */
+  --ci-text:       #f6f8ff;   /* Fließtext */
+  --ci-text-leise: #a3abd8;   /* Untertitel, Hinweise */
+
+  /* ---------- 3. Akzente ---------- */
+  --ci-gold:       #f2c14e;   /* Hauptfarbe: Titel, Hauptknopf, Ringe, Punkte */
+  --ci-gold-hell:  #ffe39a;   /* Glanz in Verläufen */
+  --ci-gold-ink:   #2a1d02;   /* Schrift auf Gold */
+  --ci-kreuzrot:   #e8141b;   /* Signalfarbe aus dem Logo: Zähler, „neu“, Duell-Hinweise, Fehler */
+  --ci-kreuzrot-ink: #ffffff; /* Schrift auf Kreuzrot (Kontrast 4,6:1) */
+
+  /* ---------- 4. Bereichsfarben (wie in der App) ---------- */
+  --ci-lernen:     #7fc8ff;   /* Saphir */
+  --ci-spielen:    #ffb54a;   /* Bernstein */
+  --ci-gemeinde:   #5fe0b0;   /* Grün */
+  --ci-lohn:       #b38cff;   /* Violett: Laden, Abzeichen, Joker */
+  --ci-biblionaer: #66e0d0;   /* Türkis */
+  --ci-duell:      #ff8a5c;   /* Koralle */
+  --ci-spende:     #f4a6c8;   /* Rosé */
+  --ci-bedienung:  #e3e9f6;   /* Silber */
+
+  /* ---------- 5. Zustände ---------- */
+  --ci-ok:      #5fe0b0;
+  --ci-warnung: #ffb54a;
+  --ci-fehler:  #e8141b;
+
+  /* ---------- 6. Schriften ---------- */
+  --ci-titel: "Cinzel", "Trajan Pro", Georgia, serif;                       /* nur Großbuchstaben */
+  --ci-text-schrift: "Lexend", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ci-vers:  "Source Serif 4", Georgia, "Times New Roman", serif;          /* immer kursiv */
+
+  /* Schriftgrößen (Handy 390 px als Maß) */
+  --ci-gr-1: 1.75rem;   /* Seitentitel */
+  --ci-gr-2: 1.35rem;   /* Bereichstitel */
+  --ci-gr-3: 1.1rem;    /* Abschnitt, Kartentitel */
+  --ci-gr-vers: 1.08rem;
+  --ci-gr-text: 1rem;
+  --ci-gr-klein: .82rem;
+  --ci-gr-mini: .68rem; /* Marken, Fußleiste */
+
+  /* ---------- 7. Formen und Abstände ---------- */
+  --ci-radius-s: 8px;
+  --ci-radius-m: 12px;
+  --ci-radius-l: 18px;
+  --ci-radius-rund: 999px;
+  --ci-abstand-1: 4px;
+  --ci-abstand-2: 8px;
+  --ci-abstand-3: 12px;
+  --ci-abstand-4: 16px;
+  --ci-abstand-5: 24px;
+  --ci-abstand-6: 40px;
+  --ci-schein: 0 0 18px color-mix(in srgb, var(--ci-gold) 35%, transparent);
+  --ci-schatten: 0 6px 18px rgba(0, 0, 0, .35);
+  --ci-goldbogen: linear-gradient(90deg, transparent, var(--ci-gold), transparent);
+  --ci-goldverlauf: linear-gradient(180deg, var(--ci-gold-hell), var(--ci-gold) 55%, #c8952a);
+
+  /* ---------- 8. Namen wie in index.html (für die spätere Übernahme) ---------- */
+  --bg: var(--ci-nacht);
+  --surface: var(--ci-flaeche);
+  --line: var(--ci-linie);
+  --muted: var(--ci-text-leise);
+  --display: var(--ci-titel);
+  --body: var(--ci-text-schrift);
+  --serif: var(--ci-vers);
+
+  color-scheme: dark;
+}
+
+/* ==========================================================================
+   Grundelemente
+   ========================================================================== */
+.ci, .ci body, body.ci {
+  background: var(--ci-nacht);
+  color: var(--ci-text);
+  font-family: var(--ci-text-schrift);
+  font-size: var(--ci-gr-text);
+  line-height: 1.55;
+}
+
+.ci-h1, .ci-h2, .ci-h3 {
+  font-family: var(--ci-titel);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--ci-gold);
+  line-height: 1.15;
+  text-wrap: balance;
+  margin: 0;
+}
+.ci-h1 { font-size: var(--ci-gr-1); }
+.ci-h2 { font-size: var(--ci-gr-2); }
+.ci-h3 { font-size: var(--ci-gr-3); font-weight: 600; }
+
+.ci-unter {               /* Untertitel unter einem Titel, in Bereichsfarbe */
+  font-size: var(--ci-gr-klein);
+  font-weight: 500;
+  color: var(--ar, var(--ci-text-leise));
+}
+
+.ci-label {               /* Abschnittstitel mit auslaufender Goldlinie */
+  display: flex; align-items: center; gap: var(--ci-abstand-2);
+  font-family: var(--ci-text-schrift);
+  font-size: var(--ci-gr-mini); font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ci-gold);
+}
+.ci-label::after {
+  content: ""; flex: 1; height: 1px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--ci-gold) 60%, transparent), transparent);
+}
+
+.ci-bogen { height: 2px; border: 0; background: var(--ci-goldbogen); margin: var(--ci-abstand-3) 0; }
+
+/* Bibelvers: immer kursiv, Stelle darunter in der Textschrift */
+.ci-vers {
+  font-family: var(--ci-vers);
+  font-style: italic; font-weight: 500;
+  font-size: var(--ci-gr-vers); line-height: 1.5;
+  color: var(--ci-text);
+  border-left: 3px solid var(--ci-gold);
+  padding-left: var(--ci-abstand-3);
+  margin: 0;
+}
+.ci-stelle {
+  display: block; margin-top: var(--ci-abstand-1);
+  font-family: var(--ci-text-schrift); font-style: normal;
+  font-size: var(--ci-gr-klein); color: var(--ci-text-leise);
+}
+
+.ci-zahl { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--ci-gold); }
+
+/* ==========================================================================
+   Bausteine
+   ========================================================================== */
+.ci-karte {
+  background: var(--ci-flaeche);
+  border: 1px solid var(--ci-linie);
+  border-radius: var(--ci-radius-m);
+  padding: var(--ci-abstand-4);
+}
+
+.ci-knopf {               /* Hauptknopf: Gold */
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--ci-abstand-2);
+  min-height: 44px; padding: 10px 18px;
+  font-family: var(--ci-text-schrift); font-weight: 700; letter-spacing: .04em;
+  text-transform: uppercase; font-size: .9rem;
+  color: var(--ci-gold-ink); background: var(--ci-goldverlauf);
+  border: 0; border-radius: var(--ci-radius-m);
+  box-shadow: var(--ci-schein);
+  cursor: pointer;
+}
+.ci-knopf--leise {        /* Nebenknopf: ruhig, ohne Schein */
+  color: var(--ci-text); background: transparent;
+  border: 1px solid var(--ci-linie); box-shadow: none;
+}
+.ci-knopf:focus-visible { outline: 3px solid var(--ci-gold-hell); outline-offset: 2px; }
+.ci-knopf:disabled { filter: grayscale(1); opacity: .55; box-shadow: none; cursor: default; }
+
+.ci-marke {               /* kleine Marke, z. B. „neu“, „+20 Talente“ */
+  display: inline-block; padding: 2px 9px;
+  font-size: var(--ci-gr-mini); font-weight: 700; letter-spacing: .03em;
+  border-radius: var(--ci-radius-rund);
+  background: var(--ci-gold); color: var(--ci-gold-ink);
+}
+.ci-marke--signal { background: var(--ci-kreuzrot); color: var(--ci-kreuzrot-ink); }
+
+.ci-zaehler {             /* rote Zahl an Symbolen/Reitern */
+  display: inline-grid; place-items: center;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  font-size: .66rem; font-weight: 700; font-variant-numeric: tabular-nums;
+  border-radius: var(--ci-radius-rund);
+  background: var(--ci-kreuzrot); color: var(--ci-kreuzrot-ink);
+}
+
+.ci-ring {                /* goldener Zahl-Ring rechts im Bereichskopf */
+  display: grid; place-items: center;
+  width: 52px; height: 52px; border-radius: 50%;
+  border: 3px solid var(--ci-gold);
+  font-weight: 700; color: var(--ci-gold); font-variant-numeric: tabular-nums;
+}
+
+.ci-logo {                /* Gemeindelogo immer auf weißem Grund */
+  background: var(--ci-logo-weiss); border-radius: 50%; padding: 3px;
+}
+
+/* Bereichsfarbe setzen: <section class="ci-bereich" data-bereich="lernen"> */
+[data-bereich="lernen"]    { --ar: var(--ci-lernen); }
+[data-bereich="spielen"]   { --ar: var(--ci-spielen); }
+[data-bereich="gemeinde"]  { --ar: var(--ci-gemeinde); }
+[data-bereich="lohn"]      { --ar: var(--ci-lohn); }
+[data-bereich="biblionaer"]{ --ar: var(--ci-biblionaer); }
+[data-bereich="duell"]     { --ar: var(--ci-duell); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ci * { animation: none !important; transition: none !important; }
+}
+
+/* ==========================================================================
+   Regeln (Kurzfassung, ausführlich in ci/README.md)
+   - Gold ist die Hauptfarbe. Kreuzrot nur als Signal (Zähler, „neu“, Fehler,
+     Duell-Hinweis) – nie als große Fläche, nie für Titel.
+   - Titel in Cinzel immer in Großbuchstaben. Fließtext in Lexend.
+     Bibelverse in Source Serif 4 kursiv, Stelle in Lexend darunter (Schlachter 2000).
+   - Das Logo wird nicht umgefärbt; auf dunklem Grund steht es auf einer weißen Scheibe.
+   - Bedienknöpfe ruhig ohne Schein, Gesperrtes grau ohne Schein.
+   ========================================================================== */
