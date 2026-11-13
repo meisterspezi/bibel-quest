@@ -4402,7 +4402,7 @@ const bibWocheTage = () => { const d = new Date(), wt = (d.getDay() + 6) % 7; re
    Je Spieler merkt sich der Spielstand die zuletzt gezeigten Biblionär-Fragen als Kennungen (4 Zeichen aus dem Fragetext),
    getrennt nach Klassisch (k) und Weihnachten (w), als ein Text (älteste zuerst). Er reist mit dem Spielstand mit, der ohnehin
    gespeichert wird – keine zusätzlichen Lese- oder Schreibzugriffe. Solo meidet gesehene Fragen, Duelle suchen einen passenden Startwert. */
-const BIB_GES_MAX = { k: 450, w: 300, o: 300, p: 240, r: 300 }; /* je 4 Zeichen; Verläufe von Editionen außerhalb ihres Zeitraums werden gelöscht */
+const BIB_GES_MAX = { k: 450, w: 650, o: 300, p: 240, r: 300 }; /* 9.66: Weihnachten 604 Fragen */ /* je 4 Zeichen; Verläufe von Editionen außerhalb ihres Zeitraums werden gelöscht */
 const bibFid = q => hash(q.f).toString(36).padStart(4, "0").slice(-4);
 const bibGesListe = k => { const s = (S.bibGes && typeof S.bibGes[k] === "string") ? S.bibGes[k] : ""; const l = []; for (let i = 0; i + 4 <= s.length; i += 4) l.push(s.slice(i, i + 4)); return l; };
 const bibGesSetzen = (k, l) => { if (!S.bibGes || typeof S.bibGes !== "object") S.bibGes = {}; S.bibGes[k] = l.slice(-BIB_GES_MAX[k]).join(""); };
