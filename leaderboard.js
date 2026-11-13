@@ -186,7 +186,7 @@ if (!configured) {
       const r = await fs.addDoc(duelle, { v: 1, art: d.art || "vers", modus: d.modus || "1v1", von: d.von, teil: [d.von, d.an],
         namen: { [d.von]: d.vonName, [d.an]: d.anName }, k: d.k, seed: d.seed, ergebnisse: { [d.von]: d.vonErg },
         ...(d.ed ? { opt: d.ed === "weihnachten" ? { w: 1 } : { e: d.ed } } : {}), /* 9.63: Sonderedition (Weihnachten weiter als w: 1) */
-        status: "offen", erstellt: fs.serverTimestamp(), ablauf: fs.Timestamp.fromMillis(Date.now() + 7 * 864e5) });
+        status: "offen", erstellt: fs.serverTimestamp(), ablauf: fs.Timestamp.fromMillis(Date.now() + 3 * 864e5) });
       return r.id;
     };
     /* eigenes Ergebnis eintragen; fertig = alle Teilnehmer haben gespielt (beim Eins-gegen-eins immer) */

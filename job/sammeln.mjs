@@ -84,6 +84,7 @@ export function aufraeumPlan(jetzt) {
   const vor = t => Timestamp.fromMillis(jetzt - t * TAG);
   return [
     ["xpprotokoll", "z", jetzt - 60 * TAG, "XP-Protokoll älter als 60 Tage"],
+    ["duelle", "ablauf", vor(1), "Duelle, die nach 3 Tagen unbeantwortet abgelaufen sind (fertige Duelle bleiben)", d => d.status !== "fertig"],
     ["duelle", "erstellt", vor(45), "Duelle älter als 45 Tage (die App zeigt sie nach 30 Tagen nicht mehr; Siege/Spiele bleiben im Spielstand)"],
     ["tagestruhe", "gebucht", vor(10), "Schatztruhen-Belege älter als 10 Tage"],
     ["bibversuch", "gebucht", vor(30), "Biblionär-Wochenbelege älter als 30 Tage"],
@@ -94,8 +95,14 @@ export async function aufraeumen(db, opt = {}) {
   const jetzt = Date.now(), jobRef = db.collection("jobstand").doc("sammeln"), job = (await jobRef.get()).data() || {};
   if (!opt.erzwingen && jetzt - (+job.aufgeraeumt || 0) < 23 * 36e5) return null;
   const max = opt.max || 3000, aus = [];
-  for (const [sammlung, feld, grenze, text] of aufraeumPlan(jetzt)) {
+  for (const [sammlung, feld, grenze, text, filter] of aufraeumPlan(jetzt)) {
     const q = db.collection(sammlung).where(feld, "<", grenze);
+    if (filter) { /* 9.65: nur bestimmte Dokumente (z. B. nicht fertige Duelle) */
+      const s = await q.limit(max).get(), ziel = s.docs.filter(d => filter(d.data()));
+      if (!opt.loeschen) { aus.push({ sammlung, text, gefunden: ziel.length, geloescht: 0 }); continue; }
+      for (let i = 0; i < ziel.length; i += 400) { const b = db.batch(); ziel.slice(i, i + 400).forEach(d => b.delete(d.ref)); await b.commit(); }
+      aus.push({ sammlung, text, geloescht: ziel.length, mehr: s.size >= max }); continue;
+    }
     if (!opt.loeschen) { aus.push({ sammlung, text, gefunden: (await q.count().get()).data().count, geloescht: 0 }); continue; }
     let n = 0;
     while (n < max) { const s = await q.limit(Math.min(400, max - n)).get(); if (s.empty) break; const b = db.batch(); s.docs.forEach(d => b.delete(d.ref)); await b.commit(); n += s.size; if (s.size < 400) break; }

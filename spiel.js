@@ -3695,15 +3695,15 @@ function profilVergleich(r) {
 
 /* ---------- Duelle (asynchron) ----------
    Drei Arten mit gleichem Ablauf: Der Herausforderer spielt zuerst und sendet sein Ergebnis; der Gegner bekommt genau dieselben
-   Fragen (gleicher Startwert) und hat 7 Tage Zeit.
+   Fragen (gleicher Startwert) und hat 3 Tage Zeit.
    – Lernvers: 8 Fragen zum Lernvers, 12 s je Frage. Punkte: 100 je richtige Antwort + bis zu 50 für Schnelligkeit.
    – Kette (Ganze Bibel / AT / NT / Rückwärts): Buch für Buch, 10 s je Buch, ein Fehler beendet sie. Punkte wie beim Lernvers.
    – Blitz: 60 Sekunden „Was kommt danach?“, ein Fehler kostet 3 s. Punkte: 100 je Richtige + 20 je Combo-Stufe.
    Datenmodell (firestore-regeln.txt): art = vers | kette | blitz, k = Lernvers-Monat bzw. Kette (bibel/at/nt/rueck) bzw. Bereich (all). */
-const DU_FRAGEN = 8, DU_SEK = 12, DU_KETTE_SEK = 10, DU_BLITZ_SEK = 60, DU_BLITZ_FRAGEN = 160, DU_MAX_OFFEN = 10, DU_MAX_AUSWAHL = 10, DU_TAGE_HALTEN = 30;
+const DU_FRAGEN = 8, DU_SEK = 12, DU_KETTE_SEK = 10, DU_BLITZ_SEK = 60, DU_BLITZ_FRAGEN = 160, DU_MAX_OFFEN = 10, DU_MAX_AUSWAHL = 10, DU_TAGE_HALTEN = 30, DU_TAGE = 3; /* 9.65: Duelle laufen nur noch 3 Tage (leaderboard.js legt ablauf an), danach werden sie gelöscht */
 /* 6.77/6.79: XP-Angleichung – Ziel ≈ 150 XP/Min im Einzelspiel (≈ Esthers Tagestempo von ~9.000 XP bei rund 1 Std. Spielzeit), Duelle (soziales Spiel mit Warten/Herausfordern) ≈ 225 XP/Min (+50 %) */
 const DU_XP = 30, DU_PRO = { vers: 33, blitz: 9, kette: 9, quiz: 66 }, DU_MAXR = { vers: 8, blitz: 25, kette: 66, quiz: 15 };
-const DU_SIEG_TAL = 10, DU_REMIS_TAL = 5, DU_FAIR_TAL = 5;
+const DU_SIEG_TAL = 10, DU_REMIS_TAL = 8, DU_FAIR_TAL = 5; /* 9.65: Remis = 80 % der Sieg-Belohnung (vorher 5) */
 const DU_TYPEN = {
   vers: { art: "vers", name: "Lernvers", ic: "scroll", info: "8 Fragen zum Lernvers des Monats · 12 s je Frage" },
   blitz: { art: "blitz", k: "all", name: "Blitz", ic: "bolt", info: "60 Sekunden: Was kommt danach? Ein Fehler kostet 3 s" },
@@ -3918,6 +3918,8 @@ async function duAktualisieren() {
       const alt = jetzt - d.erstellt > DU_TAGE_HALTEN * 864e5;
       /* 9.54: fertige Duelle lassen die Regeln nie löschen – nur ausblenden, kein vergeblicher Löschversuch bei jedem Laden */
       if (alt && (d.status !== "offen" || jetzt > d.ablauf)) { if (d.status !== "fertig") L.duellLoeschen(d.id).catch(() => {}); return false; }
+      /* 9.65: nie gespielte Duelle sind nach Ablauf weg – der Herausforderer löscht sie, für den Gegner werden sie ausgeblendet */
+      if (d.status === "offen" && d.ablauf && jetzt > d.ablauf) { if (d.von === S.pid) L.duellLoeschen(d.id).catch(() => {}); return false; }
       return true;
     });
     /* gemerkte Ergebnisse (fertige Duelle ändern sich nie mehr) ergänzen und die neuesten wieder merken */
@@ -4040,7 +4042,7 @@ VIEWS.duelle = () => {
       <span class="ar-tx"><b>${esc(d.vonName)}</b><span>${duMarke(d)}</span></span>
       <span class="ar-vor"><b class="du-verdeckt" aria-label="Punkte verdeckt">?</b><small class="ar-zeit">noch ${tageText(n)}</small></span>
       <span class="ar-knoepfe"><button class="ar-antreten" data-an="${d.id}">${svg("bolt")}Antreten</button><button class="ar-rev" data-ab="${d.id}" aria-label="Ablehnen">${svg("nein")}</button></span></li>`; };
-  const warteZeile = d => { const n = tage(d.ablauf), weg = Math.min(100, Math.max(4, Math.round((1 - (d.ablauf - jetzt) / (7 * 864e5)) * 100)));
+  const warteZeile = d => { const n = tage(d.ablauf), weg = Math.min(100, Math.max(4, Math.round((1 - (d.ablauf - jetzt) / (DU_TAGE * 864e5)) * 100)));
     return `<li class="ar-zeile warte"><span class="du-medaille t-${art(d)}">${esc(duInitialen(d.anName))}</span><span class="ar-tx"><b>${esc(d.anName)}</b><span>${duMarke(d)} deine <b class="du-gold">${duP(d.vonErg.p)}</b></span><i class="du-uhr" aria-label="noch ${tageText(n)}"><i style="width:${weg}%"></i></i></span><span class="du-tage">${n}<small>${n === 1 ? "Tag" : "Tage"}</small></span><button class="ar-rev ar-stop${duStopGesperrt(d) ? " gesperrt" : ""}" data-stop="${d.id}" aria-label="${esc(duStopLabel(d))}">${duStopKnopfIc(d)}</button></li>`; };
   const titel = (ic, t, n) => `<div class="ar-label">${svg(ic)}<span>${t}</span>${n ? `<i>${n}</i>` : ""}</div>`;
   screen.innerHTML = `
@@ -4051,8 +4053,7 @@ VIEWS.duelle = () => {
     ${fuerMich.length ? titel("bolt", "Du bist dran", fuerMich.length) + `<ul class="ar-liste">${fuerMich.map(dranKarte).join("")}</ul>` : ""}
     ${warte.length ? titel("sun", "Wartet auf Gegner", warte.length) + `<ul class="ar-liste">${warte.map(warteZeile).join("")}</ul>` : ""}
     ${fertig.length ? titel("crown", "Ergebnisse", "") + `<ul class="ar-liste">${fertig.map(zeile).join("")}</ul>${fertigAlle.length > DU_ERG_KURZ ? `<button class="ar-mehr" id="duAlle">${duAlle ? "Weniger zeigen" : `Alle ${fertigAlle.length} Ergebnisse`}</button>` : ""}` : ""}
-    ${duListe && !liste.length ? `<div class="du-leer"><span class="du-leer-ic">${DUELL_LOGO}</span><b>Die Arena ist bereit</b><p class="small muted">Fordere jemanden aus der Gemeinde heraus – schon das Absenden bringt „Mutig wie David“.</p></div>` : ""}
-    <p class="ar-regel">Annehmen +${DU_FAIR_TAL} · Sieg +${DU_SIEG_TAL} · Remis +${DU_REMIS_TAL} Talente · beide bekommen dieselben Fragen · 7 Tage Zeit</p>`;
+    ${duListe && !liste.length ? `<div class="du-leer"><span class="du-leer-ic">${DUELL_LOGO}</span><b>Die Arena ist bereit</b><p class="small muted">Fordere jemanden aus der Gemeinde heraus – schon das Absenden bringt „Mutig wie David“.</p></div>` : ""}`;
   if ($("duAlle")) $("duAlle").onclick = () => { SFX.tap(); duAlle = !duAlle; VIEWS.duelle(); };
   wireGo();
   $("duNeu").onclick = () => { SFX.tap(); go("zusammen"); };
@@ -4323,8 +4324,8 @@ async function duEnde() {
       D.gesendet = true;
       angekommen();
       titel = viele ? `${ziele.length} Herausforderungen gesendet!` : "Herausforderung gesendet!";
-      zeile = viele ? `${esc(duNamenText(ziele))} bekommen dieselben Fragen und haben 7 Tage Zeit. Jedes Duell wird einzeln gewertet.`
-        : `${esc(D.gegner)} bekommt dieselben Fragen und hat 7 Tage Zeit. Du siehst das Ergebnis hier und auf der Startseite.`;
+      zeile = viele ? `${esc(duNamenText(ziele))} bekommen dieselben Fragen und haben ${DU_TAGE} Tage Zeit. Jedes Duell wird einzeln gewertet.`
+        : `${esc(D.gegner)} bekommt dieselben Fragen und hat ${DU_TAGE} Tage Zeit. Du siehst das Ergebnis hier und auf der Startseite.`;
     } else {
       if (!D.gesendet) { await L.duellErgebnis(D.id, erg, S.pid); D.gesendet = true; duListe = null; }
       angekommen();
