@@ -2108,7 +2108,7 @@ function cdDuell() {
   const D = duSpiel; if (!D) return {};
   const id = D.art === "kette" ? "kette-" + D.k : D.art === "quiz" ? "quiz" : D.art;
   const ziele = D.ziele && D.ziele.length ? D.ziele : [{ id: D.vonPid || D.an, name: D.gegner }];
-  return Object.assign(cdSolo(id), { modus: D.ed ? `${edAdj(D.ed)}-Duell` : "Duell", weih: D.ed === "weihnachten", sub: "Gleiche Fragen für beide",
+  return Object.assign(cdSolo(id), { modus: D.ed ? `${edAdj(D.ed)}-Duell` : "Duell", weih: D.ed === "weihnachten", ed: D.ed || null, sub: "Gleiche Fragen für beide",
     gegner: ziele.map(g => ({ id: g.id, name: g.name || "?", p: cdGegnerFinden(g) })) });
 }
 /* 9.22: echte Avatare der Gegner – aus der geladenen Gegnerliste (nach id, sonst nach Name) */
@@ -2116,8 +2116,8 @@ const cdGegnerFinden = g => (duGegner || []).find(x => x.id === g.id) || (duGegn
 const cdAvatar = (g, gr) => avatarHtml({ avatar: g.p && g.p.avatar, frame: g.p && g.p.frame, name: g.name }, gr);
 function countdown(cb, info) {
   info = info || {};
-  document.body.classList.add("spiel-laeuft"); weihDeko(!!info.weih);
-  const farbe = info.weih ? "#bfe3ff" : info.farbe || "#f2c14e", gg = info.gegner || [];
+  document.body.classList.add("spiel-laeuft"); edDeko(info.ed || (info.weih ? "weihnachten" : null)); /* 9.64: Stimmung der Ausgabe auch im Spiel */
+  const farbe = info.ed ? edFarbe(info.ed) : info.weih ? "#bfe3ff" : info.farbe || "#f2c14e", gg = info.gegner || [];
   const ich = { avatar: S.avatar, frame: S.frame, name: S.lbName || "Du" };
   const seite = (p, name, extra) => `<span class="cd-sp ${extra}">${avatarHtml(p, 62)}<b>${esc(name)}</b></span>`;
   const rechtsHtml = () => !gg.length ? "" : gg.length === 1 ? seite({ avatar: gg[0].p && gg[0].p.avatar, frame: gg[0].p && gg[0].p.frame, name: gg[0].name }, gg[0].name, "cd-r")
@@ -4200,10 +4200,29 @@ function duBlitzUhr() {
 }
 function duAbschluss() { const D = duSpiel; if (!D || D.abgeschlossen) return; D.abgeschlossen = true; duEnde(); }
 VIEWS.duell = () => { screen.innerHTML = ""; };
+/* 9.65: Frage-Block eines Duells (Buch-Fragen oder Lernvers/Quiz-Fragen) */
+const duFrageHtml = f => f.start ? `<div class="du-frage-buch"><span class="qsub">${esc(f.start)}</span></div>`
+  : f.buch ? `<div class="du-frage-buch"><span class="qsub">${esc(f.label || "Was kommt nach")}</span><b class="du-buch">${esc(f.buch)}</b>${f.gruppe ? `<span class="qsub">${esc(f.gruppe)}</span>` : ""}</div>`
+  : `<h2 class="vl-frage">${f.frage}</h2><div class="vl-vers">${f.vers}</div>`;
+function duMass(D) {
+  const m = { top: 0, opt: 0 };
+  try {
+    const t = document.createElement("div"); t.className = `vl du-spiel du-${D.art}`; t.setAttribute("aria-hidden", "true"); t.style.cssText = "height:0;overflow:hidden;visibility:hidden;pointer-events:none";
+    screen.appendChild(t);
+    D.fragen.forEach(f => {
+      t.innerHTML = `<div class="du-fr">${duFrageHtml(f)}</div><div class="vl-wahl ${f.lang ? "" : "du-kurz"} ${f.buch || f.start ? "du-buecher" : ""}">${f.opts.map(o => `<button class="vl-opt">${esc(o)}</button>`).join("")}</div>`;
+      m.top = Math.max(m.top, t.children[0].offsetHeight);
+      t.children[1].querySelectorAll(".vl-opt").forEach(b => { m.opt = Math.max(m.opt, b.offsetHeight); });
+    });
+    t.remove();
+  } catch (e) {}
+  D.mass = m;
+}
 function duZeige() {
   const D = duSpiel; if (!D || current !== "duell" || D.abgeschlossen) return;
   if (D.i >= D.fragen.length || D.aus) return duAbschluss();
   const f = D.fragen[D.i], blitz = D.art === "blitz", kette = D.art === "kette", sek = kette ? DU_KETTE_SEK : DU_SEK;
+  if (!D.mass && !blitz && !kette && D.fragen.length <= 40) duMass(D); /* 9.65: Frage-Block und Antworten in der ganzen Runde gleich hoch */
   const fortschritt = blitz ? (DU_BLITZ_SEK - D.rest) / DU_BLITZ_SEK : D.i / D.fragen.length;
   const mult = () => Math.min(1 + Math.floor(D.combo / 5), 5);
   const titel = blitz ? `Blitz · <span id="duSek">${Math.ceil(D.rest)} s</span>${D.combo >= 2 ? ` · Combo ${D.combo} · x${mult()}` : ""}`
@@ -4213,10 +4232,8 @@ function duZeige() {
       <div class="vl-bar du-bar"><i style="width:${fortschritt * 100}%"></i></div><span class="du-punkte">${D.p}</span></div>
     <span class="vl-titel du-titel">${svg(blitz ? "bolt" : kette ? "link" : "bolt")} ${esc(D.gegner)} · ${titel}</span>
     <div class="du-zeit">${blitz ? `<i id="duZeit" class="global" style="width:${D.rest / DU_BLITZ_SEK * 100}%"></i>` : `<i id="duZeit" style="animation-duration:${sek}s"></i>`}</div>
-    ${f.start ? `<div class="du-frage-buch"><span class="qsub">${esc(f.start)}</span></div>`
-      : f.buch ? `<div class="du-frage-buch"><span class="qsub">${esc(f.label || "Was kommt nach")}</span><b class="du-buch">${esc(f.buch)}</b>${f.gruppe ? `<span class="qsub">${esc(f.gruppe)}</span>` : ""}</div>`
-      : `<h2 class="vl-frage">${f.frage}</h2><div class="vl-vers">${f.vers}</div>`}
-    <div class="vl-wahl ${f.lang ? "" : "du-kurz"} ${f.buch || f.start ? "du-buecher" : ""}">${f.opts.map((o, j) => `<button class="vl-opt" data-o="${j}">${esc(o)}</button>`).join("")}</div>
+    ${D.mass ? `<div class="du-fr" style="min-height:${D.mass.top}px">${duFrageHtml(f)}</div>` : duFrageHtml(f)}
+    <div class="vl-wahl ${f.lang ? "" : "du-kurz"} ${f.buch || f.start ? "du-buecher" : ""}"${D.mass ? ` style="--oh:${D.mass.opt}px"` : ""}>${f.opts.map((o, j) => `<button class="vl-opt" data-o="${j}">${esc(o)}</button>`).join("")}</div>
   </div>`;
   const start = performance.now(); let fertig = false;
   const antworten = (j, el) => {
@@ -4453,14 +4470,30 @@ function bibLeiterZeigen(G, dauer) {
   if (dauer) setTimeout(() => m.remove(), dauer);
   return m;
 }
+/* 9.65: Misst vorab alle 15 Fragen der Runde (unsichtbar) und liefert eine einheitliche Anordnung (lang = eine Spalte) sowie die größte Höhe von Frage-Box und Antwort-Knopf */
+function bibMass(G) {
+  const m = { lang: G.fragen.some(f => f.opts.some(o => o.length > 22)), box: 0, opt: 52 };
+  try {
+    const t = document.createElement("div"); t.className = "vl bib"; t.setAttribute("aria-hidden", "true"); t.style.cssText = "height:0;overflow:hidden;visibility:hidden;pointer-events:none";
+    screen.appendChild(t);
+    G.fragen.forEach(f => {
+      t.innerHTML = `<div class="bib-frage-box st${f.st}"><span class="bib-thema">${esc(f.thema)}</span><h2 class="bib-frage">${esc(f.f)}</h2></div><div class="bib-antw ${m.lang ? "lang" : ""}">${f.opts.map((o, j) => `<button class="bib-opt"><i>${"ABCD"[j]}</i><span>${esc(o)}</span></button>`).join("")}</div>`;
+      m.box = Math.max(m.box, t.children[0].offsetHeight);
+      t.children[1].querySelectorAll(".bib-opt").forEach(b => { m.opt = Math.max(m.opt, b.offsetHeight); });
+    });
+    t.remove();
+  } catch (e) {}
+  G.mass = m;
+}
 function bibZeige(G) {
   if (G.abgeschlossen || G.fertigGrund) return;
   if (G.modus === "duell" && (current !== "duell" || duSpiel !== G)) return;
   if (G.modus !== "duell" && current !== "biblionaer") return;
   const f = G.fragen[G.i], halb = G.halbBei === G.i;
-  const lang = f.opts.some(o => o.length > 22);
+  if (!G.mass) bibMass(G); /* 9.65: Rahmen und Antworten gleich hoch in der ganzen Runde – die vier Antworten bleiben an derselben Stelle */
+  const lang = G.mass.lang;
   if (G.gemerkt !== G.i) { G.gemerkt = G.i; bibGesMerken(f); } /* 9.63: Fragenverlauf */
-  weihDeko(!!G.weih); /* 9.61: Weihnachts-Runden spielen im Schnee */
+  edDeko(G.ed || null); /* 9.61/9.64: Runden einer Sonderedition spielen in deren Stimmung */
   const titel = G.modus === "duell" ? `${G.ed ? edAdj(G.ed) + "-Duell" : "Duell"} gegen ${esc(G.gegner)}` : G.modus === "woche" ? `Biblionär der Woche · ${weekKey().split("-W")[1]}. KW` : G.modus === "edwoche" ? `${edAdj(G.ed)}-Biblionär · ${edRundeName(G.ed, G.edR)}` : G.ed ? `${edAdj(G.ed)}-Biblionär` : "Biblionär";
   screen.innerHTML = `<div class="vl bib">
     <div class="vl-kopf"><button class="vl-x" id="bibX" aria-label="Spiel abbrechen">${svg("back")}</button>
@@ -4468,8 +4501,8 @@ function bibZeige(G) {
     <span class="vl-titel bib-titel">${G.ed ? edSym(G.ed) : svg("biblionaer")} ${titel}</span>
     <div class="bib-stand"><span>${G.gewonnen ? `Erreicht <b>${pkt(G.gewonnen)}</b>` : "Noch keine Punkte"}</span><span>Sicher <b>${pkt(bibGesichert(G.i))}</b></span></div>
     <div class="du-zeit bib-zeit"><i id="bibZeit" style="animation-duration:${BIB_SEK}s"></i></div>
-    <div class="bib-frage-box st${f.st}">${G.weih ? WEIH_HAUBE : ""}<span class="bib-thema">${esc(f.thema)}</span><h2 class="bib-frage">${esc(f.f)}</h2></div>
-    <div class="bib-antw ${lang ? "lang" : ""}">${f.opts.map((o, j) => `<button class="bib-opt" data-o="${j}" ${halb && f.weg.includes(o) ? 'disabled data-weg="1"' : ""}><i>${"ABCD"[j]}</i><span>${halb && f.weg.includes(o) ? "" : esc(o)}</span></button>`).join("")}</div>
+    <div class="bib-frage-box st${f.st}" style="min-height:${G.mass.box}px">${G.weih ? WEIH_HAUBE : G.ed ? edHaube(G.ed) : ""}<span class="bib-thema">${esc(f.thema)}</span><h2 class="bib-frage">${esc(f.f)}</h2></div>
+    <div class="bib-antw ${lang ? "lang" : ""}" style="--oh:${G.mass.opt}px">${f.opts.map((o, j) => `<button class="bib-opt" data-o="${j}" ${halb && f.weg.includes(o) ? 'disabled data-weg="1"' : ""}><i>${"ABCD"[j]}</i><span>${halb && f.weg.includes(o) ? "" : esc(o)}</span></button>`).join("")}</div>
     <div class="bib-hilfe" id="bibHilfe" aria-live="polite">${G.hilfe || ""}</div>
     <div class="bib-joker" role="group" aria-label="Joker">
       <button data-j="halb" ${G.joker.halb ? "disabled" : ""}><b>50:50</b><span>2 falsche weg</span></button>
@@ -4588,7 +4621,7 @@ function bibEnde(G, punkte) {
   const titel = million ? "Biblionär!" : grund === "raus" ? "Klug ausgestiegen!" : grund === "zeit" ? "Die Zeit ist um" : "Leider falsch";
   const zeile = million ? "Alle 15 Fragen richtig – du hast die Million!" : grund === "raus" ? `Du nimmst ${pkt(punkte)} Punkte mit.` : `Du fällst auf die Sicherheitsstufe zurück: ${pkt(punkte)} Punkte.`;
   const f = G.letzte;
-  weihDeko(!!G.weih);
+  edDeko(G.ed || null);
   screen.innerHTML = `<div class="vl vl-ende bib-ende">
     <div class="vle-ic bib-ic">${svg(million ? "crown" : "biblionaer")}</div>
     <h1>${titel}</h1><p class="muted">${zeile}</p>
@@ -4612,7 +4645,7 @@ function bibSolo(ed) {
   go("biblionaer");
   const e = ed && edAktiv(ed) ? ed : null, w = e === "weihnachten";
   const G = { modus: "solo", ed: e, weih: w, vorschau: !!e && edNurVorschau(e), fragen: bibFragen(crypto.getRandomValues(new Uint32Array(1))[0] % 2147483647, "", e ? edPool(e, Date.now()) : null, bibGesRang(e ? EDITIONEN[e].ges : "k"), e) };
-  countdown(() => bibStart(G), cdSolo("quiz", { modus: e ? `${edAdj(e)}-Solo` : "Solo", weih: w }));
+  countdown(() => bibStart(G), cdSolo("quiz", { modus: e ? `${edAdj(e)}-Solo` : "Solo", weih: w, ed: e }));
 }
 /* ---------- 6.80: Wochen-Sicherung (Biblionär der Woche) ----------
    Wie bei der Schatztruhe: je Spieler und Serverwoche entsteht genau ein Dokument „bibversuch/<pid>_<Wochennummer>“ (nur anlegen).
@@ -4981,6 +5014,8 @@ function bibGegnerHtml() {
   </section>`;
 }
 /* 9.27: Solo/Duell als Medaillons im Stil von „Zusammen“ */
+/* 9.64: Solo und Duell haben in jeder Ausgabe (auch Klassisch) dieselben Farben */
+const BQ_SOLO_FARBE = "#66e0d0", BQ_DUELL_FARBE = "#ff8a5c";
 const bqMedaille = (id, ic, kurz, sub, pct, farbe, an, extra = "") => `<button class="zv2-m${an ? " an" : ""}" id="${id}" ${extra} style="--c:${farbe};--p:${zvPr(pct)}"><span class="zv2-ring"><span class="zv2-in">${svg(ic)}</span></span><b>${kurz}</b><small>${sub}</small></button>`;
 function bibGegnerVerdrahten() {
   const neu = () => { const box = $("bqGegner"); if (box) { box.outerHTML = bibGegnerHtml(); bibGegnerVerdrahten(); } };
@@ -5029,15 +5064,15 @@ VIEWS.bib = () => {
       ${fertig.length ? `<div class="bq2-erg">${fertig.map(ergKachel).join("")}</div>` : ""}
       ${!dran.length && !warte.length && !fertig.length && duListe !== null ? `<p class="small muted bq2-leer">Noch keine Duelle – fordere oben jemanden heraus. Ihr bekommt beide dieselben 15 Fragen.</p>` : ""}
       ${andere > 0 ? `<button class="ar-mehr bq2-mehr" data-go="duelle">${andere} ${andere === 1 ? "weiteres Duell wartet" : "weitere Duelle warten"} in der Arena</button>` : ""}`;
-  const wA = eA === "weihnachten"; weihDeko(wA); /* 9.61: Weihnachts-Ausgabe „Stille Nacht“ – Stern, Schneehaube, Solo/Duell als Christbaumkugeln; 9.63: andere Editionen nur mit Farbe und Symbol */
+  const wA = eA === "weihnachten"; edDeko(eA); /* 9.64: Stimmung je Ausgabe (Schnee, Lichtfunken, Glut, Flugblätter) */ /* 9.61: Weihnachts-Ausgabe „Stille Nacht“ – Stern, Schneehaube, Solo/Duell als Christbaumkugeln; 9.63: andere Editionen nur mit Farbe und Symbol */
   screen.innerHTML = `
-    <div class="weih-kopf">${bereichKopf("bib", { bild: "icons/biblionaer-logo.webp", t: "Biblionär", sub: eA ? `Die ${eN.adj}-Ausgabe` : "15 Bibelfragen bis zur Million" })}${wA ? WEIH_STERN : ""}</div>
+    <div class="weih-kopf">${bereichKopf("bib", { bild: "icons/biblionaer-logo.webp", t: "Biblionär", sub: eA ? edKopfZeile(eA) : "15 Bibelfragen bis zur Million" })}${eA ? edEmblem(eA) : ""}</div>
     ${edSchalterHtml()}
-    <div class="zv"><div class="zv2-buehne bq5-buehne${wA ? " weih" : ""}">${wA ? WEIH_HAUBE : ""}
+    <div class="zv"><div class="zv2-buehne bq5-buehne${wA ? " weih" : ""}${eA ? ` ed ed-${eA}` : ""}">${wA ? WEIH_HAUBE : eA ? edHaube(eA) : ""}
       <div class="zv2-reihe"><span class="zv2-tit">${svg("biblionaer")}Spielen</span></div>
       <div class="zv2-gitter bq5-gitter">
-        ${bqMedaille("bqSolo", "user", "Solo", eA ? `${eN.adj}fragen` : rek ? `Rekord ${pkt(rek)}` : "Allein üben", stufe / 15 * 100, eA ? eN.farbe : "#66e0d0", false, 'aria-label="Solo spielen – 1 Spieler"')}
-        ${online ? bqMedaille("bqNeu", "people", "Duell", bibDuWahl ? "Gegner antippen" : "Gegen die Gemeinde", 100, wA ? "#3fd08a" : "#ff8a5c", bibDuWahl, `aria-pressed="${bibDuWahl}" aria-label="${bibDuWahl ? "Gegnerwahl schließen" : "Neues Duell – 2 Spieler"}"`)
+        ${bqMedaille("bqSolo", "user", "Solo", eA ? `${eN.adj}fragen` : rek ? `Rekord ${pkt(rek)}` : "Allein üben", stufe / 15 * 100, BQ_SOLO_FARBE, false, 'aria-label="Solo spielen – 1 Spieler"')}
+        ${online ? bqMedaille("bqNeu", "people", "Duell", bibDuWahl ? "Gegner antippen" : "Gegen die Gemeinde", 100, BQ_DUELL_FARBE, bibDuWahl, `aria-pressed="${bibDuWahl}" aria-label="${bibDuWahl ? "Gegnerwahl schließen" : "Neues Duell – 2 Spieler"}"`)
           : `<div class="zv2-m aus" style="--c:#ff8a5c;--p:0"><span class="zv2-ring"><span class="zv2-in">${svg("people")}</span></span><b>Duell</b><small>${window.LB && window.LB.ok ? "Nur mit Rangliste" : "Nur mit Internet"}</small></div>`}
       </div>
       <p class="zv2-hinw"><span>1</span>Spiel antippen<i></i><span>2</span>Gegner<i></i><span>3</span>Los!</p>
