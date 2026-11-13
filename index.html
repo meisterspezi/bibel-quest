@@ -2509,6 +2509,16 @@ body.mit-app-hinweis .app{padding-bottom:calc(176px + env(safe-area-inset-bottom
 @keyframes lvEndeR{0%,100%{transform:none}40%{transform:translateX(-10px)}}
 .lv.lv-ein-r{animation:lvEinR .22s ease-out}.lv.lv-ein-l{animation:lvEinL .22s ease-out}
 .lv.lv-ende-l{animation:lvEndeL .3s ease-out}.lv.lv-ende-r{animation:lvEndeR .3s ease-out}
+/* 9.68: Wisch-Bühne – reicht bis an den Bildschirmrand und schneidet dort ab (Seite wird nie breiter),
+   Polster oben/unten lassen den Lichtschein der Karte stehen; Höhe gleitet weich zur nächsten Karte. */
+.lv-buehne{position:relative;margin:-14px -16px;padding:14px 16px;overflow:hidden;pointer-events:none;contain:paint}
+.lv-buehne>.lv{pointer-events:auto;will-change:transform;backface-visibility:hidden}
+.lv-buehne>.lv.lv-nachbar{position:absolute!important;top:14px;left:16px;right:16px;width:auto;margin:0!important}
+.lv-buehne.lv-zieht>.lv{transition:none}
+.lv-buehne.lv-faehrt{transition:height .38s cubic-bezier(.22,.9,.24,1)}
+.lv-buehne.lv-faehrt>.lv{transition:transform .38s cubic-bezier(.22,.9,.24,1),opacity .38s ease}
+.lv-buehne>.lv-nachbar,.lv-buehne.lv-zieht>.lv{box-shadow:inset 0 1px 0 #ffffff38,0 0 0 1px #0004,0 10px 22px #0005}
+@media (prefers-reduced-motion:reduce){.lv-buehne.lv-faehrt,.lv-buehne.lv-faehrt>.lv{transition:none}}
 
 /* 9.48: Lernvers-Fortschritt als Ring + Text, für alle Monate gleich */
 .lv-fort{display:flex;align-items:center;gap:8px;margin-left:auto;flex:0 0 auto;text-align:right}
