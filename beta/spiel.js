@@ -1808,7 +1808,6 @@ VIEWS.home = () => {
         <section class="heute3 ${S.dq.bonus ? "fertig" : ""}" aria-label="Tagesaufgaben, ${erledigt} von 3 erledigt"><ul>${aufg}</ul>${truhe}</section></details></div>`;
   screen.innerHTML = `<div class="stack start start2 start8">
     ${kopf}
-    <div id="stKarte" class="st-huelle">${stKarteHtml()}</div>
     ${siegel}
     <div class="start-vers">${MONATSVERSE[monatKey()] ? lvStartHtml(lvMonate().includes(lvAnsicht) ? lvAnsicht : (lvAnsicht = monatKey()), lvMonate()) : `<button class="vers-zeile" id="versZeile" aria-expanded="false">${versHtml(vKey, "tag klein")}<span class="vz-mehr">mehr</span></button>`}</div>
     <div class="kt-grid">
@@ -1823,7 +1822,6 @@ VIEWS.home = () => {
   </div>`;
   wireGo();
   $("fbLinkStart").onclick = () => { SFX.tap(); feedbackOeffnen(); };
-  stKarteVerdrahten();
   const tb = $("truheBtn"); if (tb) tb.onclick = () => truheOeffnen(tb);
   const tk = $("truheKopf"); if (tk) tk.onclick = () => truheOeffnen(tk);
   const td = $("torDuell"); if (td) td.onclick = () => { SFX.tap(); go("duelle"); };
@@ -1906,7 +1904,7 @@ const soloAttr = s => { if (s.id === "blitz") return 'data-go="blitz"'; if (s.id
 /* 9.70: Solo als Kachel-Raster (2 Spalten) – Medaillon, Name, Stand, Fortschrittsbalken, goldener Haken bei „geschafft“; Reihenfolge der Ketten: AT, NT, Ganze Bibel, Rückwärts */
 const soloKachel = s => spKachel2(s, soloAttr(s));
 /* 9.70: dieselbe Kachel für „Zusammen“ (an = gewähltes Spiel) */
-const spKachel2 = (s, attr, an) => `<button class="sok-k${an ? " an" : ""}" ${attr} style="--c:${ZV_FARBE[s.grp]};--p:${zvPr(s.pct)}"><span class="sok-kopf"><span class="zv2-ring"><span class="zv2-in">${svg(s.ic)}</span></span><span class="sok-re">${s.pct >= 100 ? `<span class="sok-ok" aria-label="geschafft">${svg("check")}</span>` : ""}<small>${esc(s.sub)}</small></span></span><b>${esc(s.kurz)}</b><span class="sok-bal"><i></i></span></button>`;
+const spKachel2 = (s, attr, an) => `<button class="sok-k${an ? " an" : ""}" ${attr} style="--c:${ZV_FARBE[s.grp]};--p:${zvPr(s.pct)}"><span class="sok-kopf"><span class="zv2-ring"><span class="zv2-in">${svg(s.ic)}</span></span><span class="sok-re">${s.pct >= 100 ? `<span class="sok-ok" aria-label="geschafft">${svg("check")}</span>` : ""}<small>${esc(s.sub)}</small></span></span><b>${esc(s.kurz)}</b></button>`; /* 9.72: kein Balken mehr – Fortschritt nur im Ring und als Zahl */
 VIEWS.spielen = () => {
   const g = zvSpiele();
   screen.innerHTML = `${bereichKopf("spielen", { ic: "user", t: "Solo", sub: "Wie weit kommst du heute?" })}
@@ -2694,7 +2692,6 @@ VIEWS.profil = () => {
     ${entwickler ? `<button class="pf2-zeile pf2-k pf3-z" id="edVorschauBtn"><span class="pf2-ic">${svg("biblionaer")}</span><span class="pf2-tx"><b>Sondereditionen</b></span><small class="pf3-w">${ED_REIHE.filter(edVorschau).length ? `${ED_REIHE.filter(edVorschau).length} Vorschau` : "vorab testen"}</small>${PF_IC.pfeil}</button>` : ""}
     ${(BETA || betaDarfLokal()) && online ? `<button class="pf2-zeile pf2-k pf3-z" id="betaSchalter"><span class="pf2-ic">${svg("star")}</span><span class="pf2-tx"><b>Beta-Version</b></span><small class="pf3-w">${BETA ? "an – zurück zu Live" : "aus – Neues testen"}</small>${PF_IC.pfeil}</button>` : ""}
     <button class="pf2-zeile pf2-k pf3-z gs-schalter" id="dmSchalterP" aria-pressed="${dunkelAn()}"><span class="pf2-ic">${svg("star")}</span><span class="pf2-tx"><b>Dunkelmodus</b></span><small class="pf3-w">${dunkelAn() ? "an" : "aus"}</small><i class="gs-knopf"></i></button>
-    <button class="pf2-zeile pf2-k pf3-z gs-schalter" id="stSchalterP" aria-pressed="${!stAus()}"><span class="pf2-ic">${svg("chat")}</span><span class="pf2-tx"><b>Duell-Sticker</b></span><small class="pf3-w">${stAus() ? "aus" : S.stFairN ? `an · ${S.stFairN}× Handschlag` : "an"}</small><i class="gs-knopf"></i></button>
     <button class="pf2-zeile pf2-k pf3-z gs-schalter pf-gross" id="gsSchalterP" aria-pressed="${grossAn()}"><span class="pf2-ic">${svg("eye")}</span><span class="pf2-tx"><b>Große Schrift</b></span><small class="pf3-w">${grossAn() ? "an" : "aus"}</small><i class="gs-knopf"></i></button>
     ${entwickler && online ? kennungHtml("kennProfil") : ""}
     <p class="small muted pf3-fuss">Bibelverse: ${VERS_QUELLE} © Genfer Bibelgesellschaft.</p>
@@ -2704,7 +2701,6 @@ VIEWS.profil = () => {
   if ($("betaSchalter")) $("betaSchalter").onclick = () => { SFX.tap(); kanalFrage(); };
   /* 9.60: Freigabe für die Beta-Version nur hier prüfen (höchstens 1× je Stunde) – erscheint/verschwindet der Schalter, Profil neu zeichnen */
   if (!BETA && online && S.pid) betaPruefen(false).then(neu => { if (neu && current === "profil" && !document.querySelector(".modal")) go("profil"); }).catch(() => {});
-  $("stSchalterP").onclick = () => { SFX.tap(); const b = $("stSchalterP"); S.stAus = !S.stAus; save(); b.setAttribute("aria-pressed", !stAus()); b.querySelector("small").textContent = stAus() ? "aus" : "an"; };
   $("dmSchalterP").onclick = () => { SFX.tap(); const b = $("dmSchalterP"); dunkelSetzen(!dunkelAn()); b.setAttribute("aria-pressed", dunkelAn()); b.querySelector("small").textContent = dunkelAn() ? "an" : "aus"; };
   $("gsSchalterP").onclick = () => { SFX.tap(); const b = $("gsSchalterP"); grossSetzen(!grossAn()); b.setAttribute("aria-pressed", grossAn()); b.querySelector("small").textContent = grossAn() ? "an" : "aus"; };
   $("fbLink2").onclick = () => { SFX.tap(); feedbackOeffnen(); };
@@ -2892,10 +2888,6 @@ function zusammenfuehren(r) {
   S.bwSiege = [...new Set([...(S.bwSiege || []), ...(Array.isArray(r.bwSiege) ? r.bwSiege : [])])].slice(-60);
   S.duArten = [...new Set([...(S.duArten || []), ...(Array.isArray(r.duArten) ? r.duArten : [])])]; S.duKetteVoll = !!(S.duKetteVoll || r.duKetteVoll);
   S.duGes = [...new Set([...(S.duGes || []), ...(Array.isArray(r.duGes) ? r.duGes : [])])].slice(-150);
-  /* 9.71: Duell-Sticker – gesehene und Handschlag-Duelle vereinigen, Zähler als Maximum (nie doppelt Talente) */
-  S.stGes = [...new Set([...(S.stGes || []), ...(Array.isArray(r.stGes) ? r.stGes : [])])].slice(-150);
-  S.stFair = [...new Set([...(S.stFair || []), ...(Array.isArray(r.stFair) ? r.stFair : [])])].slice(-150);
-  S.stFairN = Math.max(S.stFairN | 0, r.stFairN | 0);
   ["aufgefrischt", "eingeladen", "fischerDabei", "menschenfischer"].forEach(k => { S[k] = !!(S[k] || r[k]); });
   S.tage = [...new Set([...(S.tage || []), ...(r.tage || [])])].sort((a, b) => a - b).slice(-35);
   S.treueWochen = [...new Set([...(S.treueWochen || []), ...(r.treueWochen || [])])];
@@ -3810,97 +3802,6 @@ const DU_FRAGEN = 8, DU_SEK = 12, DU_KETTE_SEK = 10, DU_BLITZ_SEK = 60, DU_BLITZ
 /* 6.77/6.79: XP-Angleichung – Ziel ≈ 150 XP/Min im Einzelspiel (≈ Esthers Tagestempo von ~9.000 XP bei rund 1 Std. Spielzeit), Duelle (soziales Spiel mit Warten/Herausfordern) ≈ 225 XP/Min (+50 %) */
 const DU_XP = 30, DU_PRO = { vers: 33, blitz: 9, kette: 9, quiz: 66 }, DU_MAXR = { vers: 8, blitz: 25, kette: 66, quiz: 15 };
 const DU_SIEG_TAL = 10, DU_REMIS_TAL = 10, DU_FAIR_TAL = 5; /* 9.65: Remis = 100 % der Sieg-Belohnung (vorher 5) */
-/* 9.71: Duell-Sticker – nach einem FERTIGEN Duell schickt jeder Spieler höchstens EINEN festen Sticker (Emoji + Minitext + Bibelvers, Schlachter 2000).
-   Bewusst kein freier Text (kein Messenger). Gespeichert im Duell-Dokument als st: {pid: Kennung}; die Regel erlaubt nur den eigenen Eintrag, nur einmal, nur aus dieser Liste.
-   Kennungen nie umbenennen (stehen so in der Datenbank und in den Firebase-Regeln). */
-const STICKER = {
-  hand: { e: "🤝", t: "Danke fürs Spiel!", r: "Römer 12,10", v: "In der Bruderliebe seid herzlich gegeneinander; in der Ehrerbietung komme einer dem anderen zuvor!" },
-  gut: { e: "👏", t: "Gut gespielt!", r: "Kolosser 3,23", v: "Und alles, was ihr tut, das tut von Herzen, als für den Herrn und nicht für Menschen" },
-  stark: { e: "🔥", t: "Starkes Duell!", r: "Sprüche 27,17", v: "Eisen schärft Eisen; ebenso schärft ein Mann den anderen." },
-  glueck: { e: "🎉", t: "Glückwunsch!", r: "Römer 12,15", v: "Freut euch mit den Fröhlichen und weint mit den Weinenden!" },
-  auf: { e: "💪", t: "Ich steh wieder auf!", r: "Sprüche 24,16", v: "Denn der Gerechte fällt siebenmal und steht wieder auf …" },
-  revanche: { e: "🏃", t: "Revanche?", r: "1. Korinther 9,24", v: "Lauft so, dass ihr ihn erlangt!" },
-  spass: { e: "😊", t: "Hat Spaß gemacht!", r: "Psalm 133,1", v: "Siehe, wie fein und wie lieblich ist’s, wenn Brüder in Eintracht beisammen sind!" },
-  segen: { e: "🙏", t: "Gottes Segen!", r: "4. Mose 6,24", v: "Der HERR segne dich und behüte dich!" } };
-/* Reihenfolge je Ergebnis – passende Sticker zuerst, alle acht bleiben wählbar */
-const ST_REIHE = { sieg: ["hand", "gut", "stark", "segen", "spass", "revanche", "glueck", "auf"],
-  remis: ["hand", "stark", "spass", "revanche", "gut", "segen", "glueck", "auf"],
-  nieder: ["glueck", "hand", "auf", "revanche", "gut", "stark", "spass", "segen"] };
-const ST_FAIR_TAL = 5; /* beide schicken 🤝 → je 5 Talente */
-const stAus = () => !!S.stAus;
-const stGegnerPid = d => d.von === S.pid ? d.an : d.von;
-const stGegnerName = d => (d.von === S.pid ? d.anName : d.vonName) || "dein Gegner";
-const stMein = d => { const k = (d.st || {})[S.pid]; return STICKER[k] ? k : ""; };
-const stSein = d => { const k = (d.st || {})[stGegnerPid(d)]; return STICKER[k] ? k : ""; };
-const stErg = d => { const v = duMeinVgl(d); return v > 0 ? "sieg" : v === 0 ? "remis" : "nieder"; };
-const stGesehen = id => { S.stGes = [...new Set([...(S.stGes || []), id])].slice(-150); save(); };
-const stVersHtml = k => `<div class="st-vers"><q>${esc(STICKER[k].v)}</q><small>${esc(STICKER[k].r)} · ${VERS_QUELLE}</small></div>`;
-function stRasterHtml(d, erg, gew) {
-  const r = ST_REIHE[erg] || ST_REIHE.remis; gew = STICKER[gew] ? gew : r[0];
-  return `<div class="st-wahl"><div class="st-raster" role="radiogroup" aria-label="Sticker wählen">${r.map(k => `<button class="st-k" role="radio" aria-checked="${k === gew}" data-stk="${k}"><span aria-hidden="true">${STICKER[k].e}</span><small>${esc(STICKER[k].t)}</small></button>`).join("")}</div>
-    <div class="st-unten"><div class="st-versbox">${stVersHtml(gew)}</div><button class="st-senden" data-stsend aria-label="Sticker an ${esc(stGegnerName(d))} senden"><span aria-hidden="true">➤</span><small>Senden</small></button></div></div>`;
-}
-const stGesendetHtml = (d, k) => `<p class="st-ok"><span aria-hidden="true">${STICKER[k].e}</span> <b>${esc(STICKER[k].t)}</b> an ${esc(stGegnerName(d))} geschickt${k === "hand" && stSein(d) === "hand" ? " – Handschlag!" : ""}</p>`;
-function stVerdrahten(box, d, danach) {
-  if (!box) return; let gew = (box.querySelector('[aria-checked="true"]') || {}).dataset.stk;
-  box.querySelectorAll("[data-stk]").forEach(b => b.onclick = () => { SFX.tap(); gew = b.dataset.stk;
-    box.querySelectorAll("[data-stk]").forEach(x => x.setAttribute("aria-checked", x === b)); box.querySelector(".st-versbox").innerHTML = stVersHtml(gew); });
-  const s = box.querySelector("[data-stsend]");
-  s.onclick = async () => { if (s.disabled) return; s.disabled = true; SFX.tap();
-    if (await stSenden(d, gew)) { box.outerHTML = stGesendetHtml(d, gew); danach && danach(); } else s.disabled = false; };
-}
-async function stSenden(d, k) {
-  if (!STICKER[k] || stMein(d)) return false;
-  try { await window.LB.duellSticker(d.id, S.pid, k); }
-  catch (e) { toast(`${svg("chat", "var(--muted)")}<div>Der Sticker konnte nicht gesendet werden. ${e && e.code === "permission-denied" ? "Die Datenbank kennt Sticker noch nicht – bitte später nochmal." : "Prüfe dein Internet und versuche es nochmal."}</div>`); return false; }
-  d.st = { ...(d.st || {}), [S.pid]: k };
-  const e = (duListe || []).find(x => x.id === d.id); if (e && e !== d) e.st = { ...(e.st || {}), [S.pid]: k };
-  toast(`<span class="st-toast" aria-hidden="true">${STICKER[k].e}</span><div>An ${esc(stGegnerName(d))} geschickt</div>`);
-  stFairPruefen(); return true;
-}
-/* Handschlag: beide haben 🤝 geschickt → je Duell einmal Fairplay-Talente (jedes Gerät bucht für seinen Spieler selbst) */
-function stFairPruefen() {
-  let n = 0; (duListe || []).forEach(d => { if (stMein(d) === "hand" && stSein(d) === "hand" && !(S.stFair || []).includes(d.id)) { S.stFair = [...(S.stFair || []), d.id].slice(-150); S.stFairN = (S.stFairN || 0) + 1; n++; } });
-  if (n) { addTal(ST_FAIR_TAL * n); setTimeout(() => toast(`<span class="st-toast" aria-hidden="true">🤝</span><div><b>Handschlag!</b> +${ST_FAIR_TAL * n}${TAL_MUENZE} Fairplay</div>`), 2800); }
-}
-/* Empfangene, noch nicht gesehene Sticker (neueste zuerst) – Startseite */
-const stNeu = () => stAus() ? [] : (duListe || []).filter(d => d.status === "fertig" && stSein(d) && !(S.stGes || []).includes(d.id)).sort((a, b) => (b.fertig || b.erstellt) - (a.fertig || a.erstellt));
-function stKarteHtml() {
-  const l = stNeu(); if (!l.length) return "";
-  const d = l[0], k = stSein(d), T = STICKER[k], mein = stMein(d), name = esc(stGegnerName(d));
-  return `<section class="st-karte" aria-label="Sticker von ${name}">
-    <button class="st-zu" data-stzu="${esc(d.id)}" aria-label="Sticker schließen">${svg("nein")}</button>
-    <div class="st-kk"><span class="st-gross" aria-hidden="true">${T.e}</span><span class="st-kt"><small>Neu von ${name}${l.length > 1 ? ` · ${l.length - 1} weitere` : ""}</small><b>${esc(T.t)}</b></span></div>
-    ${stVersHtml(k)}
-    ${k === "hand" && !mein ? `<p class="st-fair">Gib den Handschlag zurück – dann gibt es +${ST_FAIR_TAL} Talente für euch beide!</p>` : ""}
-    <div class="st-knoepfe">${mein ? `<button class="btn primary" data-stzu="${esc(d.id)}">Schön!</button>`
-      : `<button class="btn primary" data-stzurueck="${esc(d.id)}"><span aria-hidden="true">${T.e}</span> Zurückgeben</button><button class="btn ghost" data-standers="${esc(d.id)}">Anderer Sticker</button>`}</div></section>`;
-}
-function stKarteVerdrahten() {
-  const w = $("stKarte"); if (!w) return;
-  const finde = id => (duListe || []).find(x => x.id === id), neu = () => { w.innerHTML = stKarteHtml(); stKarteVerdrahten(); };
-  w.querySelectorAll("[data-stzu]").forEach(b => b.onclick = () => { SFX.tap(); stGesehen(b.dataset.stzu); neu(); });
-  w.querySelectorAll("[data-stzurueck]").forEach(b => b.onclick = async () => { const d = finde(b.dataset.stzurueck); if (!d || b.disabled) return; b.disabled = true; SFX.tap();
-    if (await stSenden(d, stSein(d))) { stGesehen(d.id); neu(); } else b.disabled = false; });
-  w.querySelectorAll("[data-standers]").forEach(b => b.onclick = () => { SFX.tap(); const d = finde(b.dataset.standers); if (d) stModal(d, neu); });
-}
-function stKarteNeu() { const w = $("stKarte"); if (w && current === "home") { w.innerHTML = stKarteHtml(); stKarteVerdrahten(); } }
-/* Sticker-Fenster (Arena-Ergebnisliste und „Anderer Sticker“): empfangenen zeigen, eigenen wählen */
-function stModal(d, danach) {
-  const k = stSein(d), mein = stMein(d), name = esc(stGegnerName(d));
-  if (k) stGesehen(d.id);
-  const m = modal(`<h3 class="st-mt">Sticker · ${name}</h3>
-    ${k ? `<div class="st-empf"><span aria-hidden="true">${STICKER[k].e}</span><b>${esc(STICKER[k].t)}</b></div>${stVersHtml(k)}` : ""}
-    ${mein ? `<p class="st-ok">Du hast <span aria-hidden="true">${STICKER[mein].e}</span> <b>${esc(STICKER[mein].t)}</b> geschickt.</p>`
-      : `<p class="small muted st-mh">${k ? "Antworte mit einem Sticker:" : `Sag ${name} was:`}</p>${stRasterHtml(d, stErg(d), k === "hand" ? "hand" : "")}`}
-    <button class="btn ghost breit" data-close="">Schließen</button>`, () => danach && danach());
-  m.dataset.frei = "1"; m.classList.add("st-modal");
-  stVerdrahten(m.querySelector(".st-wahl"), d, null);
-}
-/* kleines Feld in der Arena-Ergebnisliste: empfangener Sticker (roter Punkt = neu), eigener mit Haken, sonst „+“ */
-const stPille = d => { if (stAus()) return ""; const k = stSein(d), m = stMein(d), neu = k && !(S.stGes || []).includes(d.id);
-  return `<button class="st-pille${k ? " hat" : ""}" data-stp="${esc(d.id)}" aria-label="${k ? `Sticker von ${esc(stGegnerName(d))}: ${esc(STICKER[k].t)}` : m ? "Sticker gesendet" : "Sticker schicken"}">${k ? STICKER[k].e : m ? `${STICKER[m].e}<i>✓</i>` : `<i>+</i>😊`}${neu ? `<b class="st-punkt"></b>` : ""}</button>`; };
-
 const DU_TYPEN = {
   vers: { art: "vers", name: "Lernvers", ic: "scroll", info: "8 Fragen zum Lernvers des Monats · 12 s je Frage" },
   blitz: { art: "blitz", k: "all", name: "Blitz", ic: "bolt", info: "60 Sekunden: Was kommt danach? Ein Fehler kostet 3 s" },
@@ -3986,13 +3887,9 @@ function duAufloesVersuch() {
     ${sbHtml({ gegner: d.anName, du, er, art })}
     <h1 class="sb-spaet sb-titel"></h1><p class="muted sb-spaet sb-zeile"></p>
     ${tal ? `<div class="vle-werte sb-spaet"><div><b>+${tal}${TAL_MUENZE}</b><span>Talente</span></div></div>` : ""}
-    ${stAus() ? "" : `<div class="sb-spaet st-bereich">${stSein(d) ? `<div class="st-empf"><span aria-hidden="true">${STICKER[stSein(d)].e}</span><span><small>${esc(d.anName)} schickt dir</small><b>${esc(STICKER[stSein(d)].t)}</b></span></div>${stVersHtml(stSein(d))}` : ""}
-      ${stMein(d) ? stGesendetHtml(d, stMein(d)) : `<div class="st-titel">${stSein(d) ? "Antworte" : `Sag ${esc(d.anName)} was`}</div>${stRasterHtml(d, sieg0 ? "sieg" : remis0 ? "remis" : "nieder", stSein(d) === "hand" ? "hand" : "")}`}</div>`}
     <div class="sb-spaet sb-knoepfe"><button class="btn primary breit" id="sbWeiter">${duAufloesQ.length ? `Nächstes Ergebnis (${duAufloesQ.length})` : "Weiter"}</button>
     <button class="btn ghost breit" id="sbRev">${svg("bolt")} ${sieg0 ? "Nochmal duellieren" : "Revanche"}</button></div></div>`;
   document.body.appendChild(ov);
-  if (stSein(d) && !stAus()) stGesehen(d.id);
-  stVerdrahten(ov.querySelector(".st-wahl"), d, null);
   sbStarten(ov, { gegner: d.anName, du, er, art }, (sieg, remis) => {
     ov.querySelector(".sb-titel").textContent = sieg ? "Gewonnen!" : remis ? "Unentschieden!" : "Knapp vorbei!";
     if (!sieg && !remis) ov.querySelector(".sb-titel").classList.add("leise");
@@ -4130,7 +4027,7 @@ async function duAktualisieren() {
     duMerkSchreiben(duListe.filter(d => d.status === "fertig" && d.vonErg && d.anErg).slice(0, DU_MERK_MAX));
     try { localStorage.setItem(standKey, String(jetzt)); } catch (e) {}
     duGeladen = Date.now();
-    duFehler = ""; duBelohnen(); duZaehlen(); tbDuSetzen(); stFairPruefen(); stKarteNeu();
+    duFehler = ""; duBelohnen(); duZaehlen(); tbDuSetzen();
   } catch (e) { duFehler = "laden"; }
   return duListe;
 }
@@ -4232,7 +4129,7 @@ VIEWS.duelle = () => {
       const p = ich ? d.vonErg.p : d.anErg.p, q = ich ? d.anErg.p : d.vonErg.p, erg = duMeinVgl(d) > 0 ? "sieg" : duMeinVgl(d) === 0 ? "remis" : "nieder";
       const knapp = erg === "nieder" && q > 0 && (q - p) / q < 0.15, anteil = p + q ? Math.round(p / (p + q) * 100) : 50;
       const text = erg === "sieg" ? "Gewonnen" : erg === "remis" ? "Remis" : knapp ? "Knapp verloren" : "Verloren";
-      return `<li class="ar-zeile ${erg}"><span class="du-medaille t-${art(d)}">${erg === "sieg" ? svg("crown") : esc(duInitialen(gegner))}</span><span class="ar-tx"><b>${esc(gegner)}</b><span><em>${text}</em> ${duMarke(d)}${stPille(d)}</span><i class="du-balken" role="img" aria-label="${duP(p)} zu ${duP(q)} Punkte"><i style="width:${anteil}%"></i></i></span><span class="du-stand"><b>${duP(p)}</b><small>${duP(q)}</small></span><button class="ar-rev" data-rev="${d.id}" aria-label="${erg === "sieg" ? "Nochmal" : "Revanche"} gegen ${esc(gegner)}">${svg("bolt")}</button></li>`;
+      return `<li class="ar-zeile ${erg}"><span class="du-medaille t-${art(d)}">${erg === "sieg" ? svg("crown") : esc(duInitialen(gegner))}</span><span class="ar-tx"><b>${esc(gegner)}</b><span><em>${text}</em> ${duMarke(d)}</span><i class="du-balken" role="img" aria-label="${duP(p)} zu ${duP(q)} Punkte"><i style="width:${anteil}%"></i></i></span><span class="du-stand"><b>${duP(p)}</b><small>${duP(q)}</small></span><button class="ar-rev" data-rev="${d.id}" aria-label="${erg === "sieg" ? "Nochmal" : "Revanche"} gegen ${esc(gegner)}">${svg("bolt")}</button></li>`;
     }
     return `<li class="ar-zeile grau"><span class="du-medaille">${svg("lock")}</span><span class="ar-tx"><b>${esc(gegner)}</b><span>${st === "abgelehnt" ? "abgelehnt" : "abgelaufen"} ${duMarke(d)}</span></span><span></span><button class="ar-rev" data-weg="${d.id}" aria-label="Entfernen">${svg("nein")}</button></li>`;
   };
@@ -4267,7 +4164,6 @@ VIEWS.duelle = () => {
   /* Eigene, noch offene Herausforderung zurückziehen (das Duell wird gelöscht, der Gegner sieht es nicht mehr) */
   screen.querySelectorAll("[data-stop]").forEach(b => b.onclick = () => { SFX.tap(); const d = liste.find(x => x.id === b.dataset.stop); if (d) duAbbrechenFrage(d); });
   screen.querySelectorAll("[data-weg]").forEach(b => b.onclick = () => { SFX.tap(); const id = b.dataset.weg; L.duellLoeschen(id).catch(() => {}); duListe = (duListe || []).filter(d => d.id !== id); VIEWS.duelle(); });
-  screen.querySelectorAll("[data-stp]").forEach(b => b.onclick = e => { e.stopPropagation(); SFX.tap(); const d = liste.find(x => x.id === b.dataset.stp); if (d) stModal(d, () => { if (current === "duelle" && !duSpiel) VIEWS.duelle(); }); });
   if (duListe === null) duAktualisieren().then(() => { if (current === "duelle" && !duSpiel) VIEWS.duelle(); });
 };
 /* Auswahl der Duell-Art als Kacheln (eine Ebene, direkt über der Gegnerliste) */
@@ -4552,18 +4448,15 @@ async function duEnde() {
   function xpGeben(ms) { if (D.xpGegeben) return; D.xpGegeben = true; duXpTagZaehlen(); setTimeout(() => { addXp(xp, null, ziele.some(z => eigenePid(z.id)) ? "duelleigen" : "duell", { t0: D.t0, f: D.r, fm: (D.fragen || []).length, d: `${(DU_TYPEN[typ] && DU_TYPEN[typ].name) || D.art} · ${D.neu ? "Herausforderung" : "angenommen"}${D.gleichF < 1 ? " · gleicher Gegner ×" + (Math.round(D.gleichF * 100) / 100) : ""}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, ms); }
   /* 6.62: Gegenspieler – Auflösung im Siegelbruch-Stil; Titel, Belohnung und Knöpfe erst danach */
   const aufl = !D.neu && !fehler && !weg;
-  const stD = { id: D.id, von: D.vonPid, an: S.pid, vonName: D.gegner, anName: S.lbName, st: {} };
   if (aufl) {
     screen.innerHTML = `<div class="vl vl-ende du-ende sb-ende">
     <div class="sb-kopf"><small>${duMarke({ art: D.art, k: D.k, opt: edOpt(D.ed) })}</small><b>Du gegen ${esc(D.gegner)}</b></div>
     ${sbHtml({ gegner: D.gegner, du: { p: D.p, r: D.r, n }, er: D.gegnerErg, art: D.art })}
     <h1 class="sb-spaet${sieg || remis ? "" : " leise"}">${titel}</h1><p class="muted sb-spaet">${zeile}${extra ? `<br><span class="small">${extra.replace(/^ · /, "")}</span>` : ""}</p>
     <div class="vle-werte sb-spaet"><div><b>+${xp}</b><span>XP</span></div>${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>${tal > DU_FAIR_TAL ? "Talente" : "Fairplay"}</span></div>` : ""}</div>
-    ${stAus() ? "" : `<div class="sb-spaet st-bereich"><div class="st-titel">Sag ${esc(D.gegner)} was</div>${stRasterHtml(stD, sieg ? "sieg" : remis ? "remis" : "nieder")}</div>`}
     <div class="sb-spaet sb-knoepfe"><button class="btn ghost breit${sieg ? "" : " puls"}" id="duRevanche">${svg("bolt")} ${sieg ? "Nochmal duellieren" : "Revanche"}</button>
     <button class="btn primary breit" id="duFertig">${D.heim === "bib" ? "Zurück zu Biblionär" : "Zurück zu " + heimName("duelle")}</button></div></div>`;
     const wurzel = screen.querySelector(".sb-ende");
-    stVerdrahten(wurzel.querySelector(".st-wahl"), stD, null);
     /* XP/Level-Aufstieg erst nach der Auflösung, damit nichts das Ergebnis vorwegnimmt */
     sbStarten(wurzel, { gegner: D.gegner, du: { p: D.p, r: D.r, n }, er: D.gegnerErg, art: D.art }, (s, r) => { sbSchluss(wurzel, s || r); xpGeben(900); });
   } else
