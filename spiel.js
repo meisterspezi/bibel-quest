@@ -4986,11 +4986,25 @@ function jokerSperren() {
   jokerGeladen = false; jokerVersuch = null;
   ["willi", "aaron"].forEach(k => { delete PASTOREN[k]; delete WEIH_PASTOREN[k]; });
 }
+/* 9.79: Korrekturen an den verschlüsselten Texten (joker.enc lässt sich hier nicht neu erzeugen) – ganze Sätze werden nach dem Entschlüsseln ersetzt.
+   Strings direkt, Satz-Funktionen über ihr Ergebnis; verbraucht keine Zufallswerte (fair in Duell und Wochenrunde). */
+const JK_ERSATZ = [[/wie meine[nm]? Adventskranz/, "Das ist so gewiss wie die Geburt Jesu in Bethlehem."]];
+const jkSatz = t => JK_ERSATZ.reduce((t, [re, neu]) => t.replace(new RegExp("(^|[.!?…]\\s+)[^.!?…]*" + re.source + "[^.!?…]*[.!?…]?", "g"), (m, vor) => vor + neu), t);
+function jkKorrektur(o, tiefe = 0) {
+  if (!o || tiefe > 6 || typeof o !== "object") return o;
+  for (const k of Object.keys(o)) {
+    const v = o[k];
+    if (typeof v === "string") o[k] = jkSatz(v);
+    else if (typeof v === "function" && JK_ERSATZ.some(([re]) => re.test(v.toString()))) o[k] = function () { const r = v.apply(this, arguments); return typeof r === "string" ? jkSatz(r) : r; };
+    else if (v && typeof v === "object") jkKorrektur(v, tiefe + 1);
+  }
+  return o;
+}
 async function jokerEntschluesseln(k) {
   const buf = new Uint8Array(await (await fetch("joker.enc")).arrayBuffer());
   const key = await crypto.subtle.importKey("raw", jkBytes(k), "AES-GCM", false, ["decrypt"]);
   const klar = await crypto.subtle.decrypt({ name: "AES-GCM", iv: buf.slice(0, 12) }, key, buf.slice(12));
-  const M = new Function(new TextDecoder().decode(klar))();
+  const M = jkKorrektur(new Function(new TextDecoder().decode(klar))());
   Object.assign(PASTOREN, M.PASTOREN); Object.assign(WEIH_PASTOREN, M.ADV_PASTOREN); jokerGeladen = true;
 }
 function jokerLaden(neu) {
