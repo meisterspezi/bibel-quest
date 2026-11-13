@@ -616,38 +616,125 @@ function lvVerdrahten() {
   });
 }
 /* ----- 9.47: Lernvers auf der Startseite – nach rechts wischen = Vormonat, nach links = wieder vor.
-   Punkte unter der Karte zeigen den Monat und lassen sich auch antippen (Alternative zum Wischen). ----- */
+   9.68: Die Karte folgt dem Finger, der Nachbarmonat gleitet daneben mit herein, am Ende federt sie zurück.
+   Alles läuft in der „Bühne“ (.lv-buehne), die seitlich am Bildschirmrand abschneidet und ihre Höhe weich
+   anpasst – so wird die Seite nie breiter und nichts darunter (Kacheln, Fußleiste) springt.
+   Punkte unter der Karte zeigen den Monat und lassen sich antippen; Pfeiltasten gehen auch. ----- */
 var lvAnsicht = null;
 const lvMonate = () => Object.keys(MONATSVERSE).filter(k => k <= monatKey()).sort().slice(-12);
 function lvStartHtml(k, keys) {
   const punkte = keys.length > 1 ? `<div class="lv-punkte" role="tablist" aria-label="Lernvers-Monat – nach links oder rechts wischen">${keys.map(x => `<button role="tab" data-lvm="${x}" aria-selected="${x === k}" aria-label="Lernvers ${esc(monatName(x))}"><i></i></button>`).join("")}</div>` : "";
-  return lvKarte(k) + punkte;
+  return `<div class="lv-buehne">${lvKarte(k)}</div>` + punkte;
 }
 function lvStartVerdrahten(box) {
   const keys = lvMonate(); if (keys.length < 2) return;
-  const zeigen = (k, richtung) => {
-    lvAnsicht = k; box.innerHTML = lvStartHtml(k, keys); lvVerdrahten(); punkteVerdrahten();
-    const karte = box.querySelector(".lv"); if (karte && richtung) { karte.classList.add(richtung > 0 ? "lv-ein-r" : "lv-ein-l"); }
+  const LUECKE = 14, DAUER = 380, POLSTER = 28; /* POLSTER = Innenabstand der Bühne oben + unten */
+  const ruhig = () => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } };
+  const idx = () => Math.max(0, keys.indexOf(lvAnsicht || monatKey()));
+  const buehne = () => box.querySelector(".lv-buehne");
+  const aktuell = () => buehne() && buehne().querySelector(".lv:not(.lv-nachbar)");
+  let laeuft = false;
+  const punkteSetzen = k => box.querySelectorAll("[data-lvm]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.lvm === k)));
+  const nachbar = k => {
+    const t = document.createElement("div"); t.innerHTML = lvKarte(k);
+    const el = t.firstElementChild; el.classList.add("lv-nachbar"); el.setAttribute("aria-hidden", "true"); el.inert = true;
+    buehne().appendChild(el); return el;
   };
+  const setze = (el, x, p) => { /* x = Verschiebung in px, p = Anteil 0…1 der Bewegung (für Tiefe und Licht) */
+    if (!el) return; const q = Math.min(1, Math.abs(p));
+    el.style.transform = `translate3d(${x}px,0,0) scale(${1 - q * 0.05})`;
+    el.style.opacity = String(1 - q * 0.35);
+  };
+  /* sauber neu zeichnen, wenn eine Bewegung fertig ist */
+  const fertig = k => {
+    lvAnsicht = k; box.innerHTML = lvStartHtml(k, keys); lvVerdrahten(); punkteVerdrahten(); laeuft = false;
+  };
+  /* Fahrt zur Zielkarte: dir = +1 (nächster Monat, kommt von rechts) oder -1 (früherer, kommt von links) */
+  function fahren(zielK, dir, vonX, ziel) {
+    const bu = buehne(), cur = aktuell(); if (!bu || !cur) return fertig(zielK);
+    laeuft = true; const w = cur.offsetWidth, h0 = cur.offsetHeight;
+    ziel = ziel || nachbar(zielK);
+    const h1 = ziel.offsetHeight;
+    bu.style.height = (h0 + POLSTER) + "px"; void bu.offsetHeight;          /* Höhe festhalten, dann weich zur neuen Höhe */
+    const start = vonX || 0, weg = -dir * (w + LUECKE);
+    setze(cur, start, start / w); setze(ziel, start - weg, 1 - Math.abs(start / w));
+    punkteSetzen(zielK); SFX.tap();
+    if (ruhig()) { fertig(zielK); return; }
+    requestAnimationFrame(() => {
+      bu.classList.add("lv-faehrt");
+      bu.style.height = (h1 + POLSTER) + "px";
+      setze(cur, weg, 1); setze(ziel, 0, 0);
+      let ende = false; const schluss = () => { if (ende) return; ende = true; fertig(zielK); };
+      ziel.addEventListener("transitionend", e => { if (e.propertyName === "transform") schluss(); });
+      setTimeout(schluss, DAUER + 120);
+    });
+  }
+  function zurueck(cur, nb) { /* nicht weit genug: alles federt an seinen Platz */
+    const bu = buehne(); if (!bu) return;
+    bu.classList.add("lv-faehrt"); laeuft = true;
+    const w = cur.offsetWidth;
+    setze(cur, 0, 0);
+    if (nb.vor) setze(nb.vor, -(w + LUECKE), 1); if (nb.nach) setze(nb.nach, w + LUECKE, 1);
+    setTimeout(() => { bu.classList.remove("lv-faehrt"); [nb.vor, nb.nach].forEach(e => e && e.remove()); cur.style.transform = cur.style.opacity = ""; bu.style.height = ""; laeuft = false; }, DAUER);
+  }
   const wechsel = dir => {
-    const i = keys.indexOf(lvAnsicht || monatKey()) + dir;
-    if (i < 0 || i >= keys.length) { const karte = box.querySelector(".lv"); if (karte) { karte.classList.remove("lv-ende-l", "lv-ende-r"); void karte.offsetWidth; karte.classList.add(dir < 0 ? "lv-ende-l" : "lv-ende-r"); } return; }
-    SFX.tap(); zeigen(keys[i], dir);
+    if (laeuft) return; const i = idx() + dir;
+    if (i < 0 || i >= keys.length) { const c = aktuell(); if (c && !ruhig()) { c.classList.remove("lv-ende-l", "lv-ende-r"); void c.offsetWidth; c.classList.add(dir < 0 ? "lv-ende-l" : "lv-ende-r"); } return; }
+    fahren(keys[i], dir);
   };
   function punkteVerdrahten() {
-    box.querySelectorAll("[data-lvm]").forEach(b => b.onclick = () => { const von = keys.indexOf(lvAnsicht || monatKey()), nach = keys.indexOf(b.dataset.lvm); if (nach === von) return; SFX.tap(); zeigen(b.dataset.lvm, nach > von ? 1 : -1); });
+    box.querySelectorAll("[data-lvm]").forEach(b => b.onclick = () => { if (laeuft) return; const von = idx(), nach = keys.indexOf(b.dataset.lvm); if (nach === von || nach < 0) return; fahren(b.dataset.lvm, nach > von ? 1 : -1); });
   }
   punkteVerdrahten();
   if (box.dataset.wisch) return; box.dataset.wisch = "1";
-  let x0 = 0, y0 = 0, aktiv = false;
-  box.addEventListener("touchstart", e => { if (e.touches.length !== 1) { aktiv = false; return; } x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; aktiv = true; }, { passive: true });
-  box.addEventListener("touchcancel", () => { aktiv = false; }, { passive: true });
-  box.addEventListener("touchend", e => {
-    if (!aktiv) return; aktiv = false;
-    const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
-    if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.4) return; /* nur deutlich waagerechte Wischer – Senkrechtes scrollt weiter */
-    wechsel(dx > 0 ? -1 : 1); /* nach rechts wischen = früherer Monat */
-  }, { passive: true });
+  box.addEventListener("keydown", e => {
+    if (!e.target.closest || !e.target.closest(".lv-punkte")) return;
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") { e.preventDefault(); wechsel(e.key === "ArrowLeft" ? -1 : 1); const b = box.querySelector(`[data-lvm="${lvAnsicht}"]`); if (b) setTimeout(() => { const n = box.querySelector(`[data-lvm="${lvAnsicht}"]`); if (n) n.focus(); }, DAUER + 150); }
+  });
+  /* Ziehen mit Finger (oder Maus). touch-action: pan-y lässt senkrechtes Scrollen beim Browser. */
+  let z = null, geschoben = false;
+  box.addEventListener("pointerdown", e => {
+    if (laeuft || (e.pointerType === "mouse" && e.button !== 0) || !e.target.closest(".lv-buehne")) return;
+    const cur = aktuell(); if (!cur) return;
+    z = { id: e.pointerId, x0: e.clientX, y0: e.clientY, achse: "", w: cur.offsetWidth, cur, nb: {}, spur: [[e.timeStamp, e.clientX]], dx: 0 };
+  });
+  box.addEventListener("pointermove", e => {
+    if (!z || e.pointerId !== z.id) return;
+    const dx = e.clientX - z.x0, dy = e.clientY - z.y0;
+    if (!z.achse) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (Math.abs(dy) >= Math.abs(dx)) { z = null; return; }       /* senkrecht: Seite scrollt normal */
+      z.achse = "x"; try { box.setPointerCapture(e.pointerId); } catch (er) {}
+      const i = idx(), bu = buehne();
+      bu.style.height = (z.cur.offsetHeight + POLSTER) + "px"; bu.classList.add("lv-zieht");
+      if (i > 0) z.nb.vor = nachbar(keys[i - 1]);
+      if (i < keys.length - 1) z.nb.nach = nachbar(keys[i + 1]);
+    }
+    const ziel = dx > 0 ? z.nb.vor : z.nb.nach;
+    const x = ziel ? dx : dx / (1 + Math.abs(dx) / 90) * 0.55;    /* am Ende: Gummiband */
+    z.dx = x; const p = x / z.w;
+    setze(z.cur, x, p);
+    setze(z.nb.vor, x - (z.w + LUECKE), 1 - Math.max(0, p));
+    setze(z.nb.nach, x + z.w + LUECKE, 1 + Math.min(0, p));
+    z.spur.push([e.timeStamp, e.clientX]); if (z.spur.length > 6) z.spur.shift();
+  });
+  const loslassen = e => {
+    if (!z || e.pointerId !== z.id) return; const zz = z; z = null;
+    if (zz.achse !== "x") return;
+    geschoben = true; setTimeout(() => { geschoben = false; }, 60);
+    buehne().classList.remove("lv-zieht");
+    const [t0, x0] = zz.spur[0], [t1, x1] = zz.spur[zz.spur.length - 1], v = (x1 - x0) / Math.max(1, t1 - t0); /* px/ms */
+    const dir = zz.dx < 0 ? 1 : -1, ziel = dir > 0 ? zz.nb.nach : zz.nb.vor;
+    const weitGenug = Math.abs(zz.dx) > zz.w * 0.25 || (Math.abs(v) > 0.45 && Math.sign(v) === -dir && Math.abs(zz.dx) > 24);
+    if (e.type !== "pointercancel" && ziel && weitGenug) {
+      const anderer = dir > 0 ? zz.nb.vor : zz.nb.nach; if (anderer) anderer.remove();
+      fahren(keys[idx() + dir], dir, zz.dx, ziel);
+    } else zurueck(zz.cur, zz.nb);
+  };
+  box.addEventListener("pointerup", loslassen);
+  box.addEventListener("pointercancel", loslassen);
+  /* nach einem Wischer keinen Knopf in der Karte auslösen */
+  box.addEventListener("click", e => { if (geschoben) { e.preventDefault(); e.stopPropagation(); } }, true);
 }
 const pick = a => a[Math.floor(Math.random() * a.length)];
 
@@ -1619,7 +1706,7 @@ function naechsteLektion() {
   return i;
 }
 const ringSvg = (anteil, farbe, text = "", gr = 36) => { const r = gr / 2 - 4, C = 2 * Math.PI * r;
-  return `<svg class="mring" viewBox="0 0 ${gr} ${gr}" style="width:${gr}px;height:${gr}px" aria-hidden="true"><circle cx="${gr / 2}" cy="${gr / 2}" r="${r}" fill="none" stroke="#ffffff17" stroke-width="5"/><circle cx="${gr / 2}" cy="${gr / 2}" r="${r}" fill="none" stroke="${farbe}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - Math.min(1, anteil))}" transform="rotate(-90 ${gr / 2} ${gr / 2})"/>${text ? `<text x="${gr / 2}" y="${gr / 2 + 4.2}" text-anchor="middle" font-size="${gr > 40 ? 13 : 11.5}" font-weight="900" fill="currentColor" font-family="Nunito, sans-serif">${text}</text>` : ""}</svg>`; };
+  return `<svg class="mring" viewBox="0 0 ${gr} ${gr}" style="width:${gr}px;height:${gr}px" aria-hidden="true"><circle cx="${gr / 2}" cy="${gr / 2}" r="${r}" fill="none" stroke="#ffffff17" stroke-width="5"/><circle cx="${gr / 2}" cy="${gr / 2}" r="${r}" fill="none" stroke="${farbe}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - Math.min(1, anteil))}" transform="rotate(-90 ${gr / 2} ${gr / 2})"/>${text ? `<text x="${gr / 2}" y="${gr / 2 + 4.2}" text-anchor="middle" font-size="${gr > 40 ? 13 : 11.5}" font-weight="900" fill="currentColor" font-family="Lexend, sans-serif">${text}</text>` : ""}</svg>`; };
 const TAL_MUENZE = svg("tal"); /* das eine Talente-Symbol (Licht-Münze, definiert in index.html) */
 
 /* Schatztruhe öffnen: Truhe fliegt in die Mitte, wackelt, springt auf – Licht, Münzen, Belohnung */

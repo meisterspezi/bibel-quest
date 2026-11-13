@@ -1,0 +1,963 @@
+@charset "UTF-8";
+/* ==========================================================================
+   CI-Stylesheet Bibelbuch-Quest · Freie Baptisten Eichstätt
+   Farbe „Nacht, Gold und Kreuzrot“ · Schriften Cinzel / Lexend / Source Serif 4
+   Stand 13.11.2026, Fassung 4 – Standard „Nacht“ und dunklerer Modus „Tiefnacht“.
+   Noch nicht in die App eingebunden.
+
+   Einbinden:  <link rel="stylesheet" href="ci/ci.css">
+               <html class="ci">   (Seitengrund und Grundschrift)
+
+   Standard und Dunkel
+     Standard ist der nachtblaue Look der App („Nacht“). Ist das Gerät auf
+     dunkel gestellt (prefers-color-scheme: dark), wird es automatisch noch
+     dunkler („Tiefnacht“). Fest einstellen mit
+       <html data-theme="light">  immer Standard (Nacht)
+       <html data-theme="dark">   immer Tiefnacht
+     Einen Modus mit weißem Hintergrund gibt es bewusst nicht.
+
+   Aufbau
+     0  Schriften laden
+     1  Grundpalette – feste Farbwerte, ändern sich nie
+     2  Maße – Schrift, Abstände, Radien, Ebenen, Bewegung
+     3  Bedeutungs-Variablen STANDARD (Nacht)
+     4  Bedeutungs-Variablen DUNKEL (Tiefnacht: automatisch und data-theme="dark")
+     5  Namen wie in index.html (Aliasse für die spätere Übernahme)
+     6  Bereichsfarbe setzen ([data-bereich])
+     7  Typografie (Seite, H1–H3, Fließtext, Vers …)
+     8  Knöpfe (primär, sekundär, weitere Arten, Zustände)
+     9  Eingabefelder
+    10  Karten
+    11  Weitere Bausteine (Marke, Zähler, Ring, Bereichskopf, Liste …)
+    12  Navigation (Reiterleiste, Fußleiste)
+    13  Überlagerungen (Modal, Toast)
+    14  Zustände und Helfer
+    15  Bewegung, Kontrastmodus, Druck
+
+   Benennung
+     --ci-pal-…        feste Palette (nur in Abschnitt 3/4 verwenden)
+     --ci-farbe-…      Farbe nach Bedeutung (in Bausteinen verwenden)
+     --ci-…            Maße, Schatten, Schriften
+     .ci-baustein      Baustein   .ci-baustein--art  Variante   .ist-…  Zustand
+
+   Kontrastwerte stehen nachgerechnet in ci/README.md.
+   ========================================================================== */
+
+/* ---------- 0. Schriften ----------
+   Die Schriften lädt die Seite selbst per <link> im <head> (siehe README),
+   damit sie nicht doppelt geladen werden. Ohne Netz greifen die Ersatzschriften. */
+
+/* ==========================================================================
+   1. Grundpalette – feste Werte
+   ========================================================================== */
+:root {
+  /* Logo – nur für Logo und Druck, nie umfärben */
+  --ci-pal-logo-schwarz: #000000;
+  --ci-pal-logo-rot:     #ee0002;
+  --ci-pal-weiss:        #ffffff;
+
+  /* Tiefnacht – nur für den Dunkelmodus */
+  --ci-pal-tief-950: #080a17;    /* Hintergrund */
+  --ci-pal-tief-900: #0c0f22;    /* vertieft */
+  --ci-pal-tief-850: #10142c;    /* Fläche */
+  --ci-pal-tief-800: #181d3c;    /* erhöhte Fläche */
+  --ci-pal-tief-700: #1c2040;    /* gesperrt */
+  --ci-pal-tief-600: #24294f;    /* Linie */
+  --ci-pal-tief-400: #5f6bab;    /* Linie stark */
+  --ci-pal-tief-300: #949cc6;    /* Text leise */
+  --ci-pal-tief-250: #9499b3;    /* Text gesperrt */
+  --ci-pal-tief-50:  #e9ecf8;    /* Text (etwas gedämpft gegen Blendung) */
+
+  /* Nacht – Standard (Werte fest gewählt bzw. aus der App) */
+  --ci-pal-nacht-950: #0e1226;   /* Hintergrund (fest gewählt) */
+  --ci-pal-nacht-900: #151a36;   /* vertieft */
+  --ci-pal-nacht-850: #1b2146;   /* Fläche (fest gewählt) */
+  --ci-pal-nacht-800: #1b2a55;   /* Umriss (fest gewählt) */
+  --ci-pal-nacht-750: #262e5e;   /* erhöhte Fläche */
+  --ci-pal-nacht-700: #2b3050;   /* gesperrt */
+  --ci-pal-nacht-600: #323b74;   /* Linie */
+  --ci-pal-nacht-400: #7480c4;   /* Linie stark */
+  --ci-pal-nacht-300: #a3abd8;   /* Text leise */
+  --ci-pal-nacht-250: #a4a9c0;   /* Text gesperrt */
+  --ci-pal-nacht-25:  #f6f8ff;   /* Text (fest gewählt) */
+
+  /* Gold */
+  --ci-pal-gold-200: #ffe39a;    /* Glanz, Fokus */
+  --ci-pal-gold-400: #f2c14e;    /* Hauptfarbe (fest gewählt) */
+  --ci-pal-gold-600: #c8952a;
+  --ci-pal-gold-950: #2a1d02;    /* Schrift auf Gold */
+
+  /* Kreuzrot */
+  --ci-pal-rot-300: #ff8087;     /* rote Schrift */
+  --ci-pal-rot-500: #e8141b;     /* Signalfarbe (fest gewählt) */
+
+  /* Bereichsfarben (fest gewählt, in beiden Modi gleich) */
+  --ci-pal-lernen:     #7fc8ff;  /* Saphir    */
+  --ci-pal-spielen:    #ffb54a;  /* Bernstein */
+  --ci-pal-gemeinde:   #5fe0b0;  /* Grün      */
+  --ci-pal-lohn:       #b38cff;  /* Violett   */
+  --ci-pal-biblionaer: #66e0d0;  /* Türkis    */
+  --ci-pal-duell:      #ff8a5c;  /* Koralle   */
+  --ci-pal-spende:     #f4a6c8;  /* Rosé      */
+  --ci-pal-bedienung:  #e3e9f6;  /* Silber    */
+
+/* ==========================================================================
+   2. Maße (gleich in Standard und Dunkel)
+   ========================================================================== */
+  /* Schriften */
+  --ci-schrift-titel: "Cinzel", "Trajan Pro", "Cormorant SC", Georgia, "Times New Roman", serif;          /* nur Großbuchstaben */
+  --ci-schrift-text:  "Lexend", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --ci-schrift-vers:  "Source Serif 4", "Source Serif Pro", "EB Garamond", Georgia, "Times New Roman", serif; /* immer kursiv */
+
+  /* Schriftgrößen (1rem = 16 px, Maß ist das Handy mit 390 px) */
+  --ci-gr-h1:     1.75rem;     /* 28 px */
+  --ci-gr-h2:     1.375rem;    /* 22 px */
+  --ci-gr-h3:     1.125rem;    /* 18 px */
+  --ci-gr-gross:  1.125rem;    /* 18 px  Einleitung, Vers */
+  --ci-gr-text:   1rem;        /* 16 px  Fließtext, Felder (nie kleiner: sonst zoomt iOS) */
+  --ci-gr-klein:  .875rem;     /* 14 px */
+  --ci-gr-mini:   .75rem;      /* 12 px  Marken, Abschnittstitel */
+  --ci-gr-winzig: .6875rem;    /* 11 px  nur Zähler und Fußleiste */
+
+  --ci-zh-titel: 1.15;
+  --ci-zh-eng:   1.25;
+  --ci-zh-text:  1.55;
+  --ci-zh-vers:  1.5;
+
+  --ci-lw-titel: .05em;
+  --ci-lw-label: .14em;
+  --ci-lw-knopf: .04em;
+
+  /* Abstände (4-px-Raster) */
+  --ci-abstand-0: 0;
+  --ci-abstand-1: .25rem;      /*  4 px */
+  --ci-abstand-2: .5rem;       /*  8 px */
+  --ci-abstand-3: .75rem;      /* 12 px */
+  --ci-abstand-4: 1rem;        /* 16 px */
+  --ci-abstand-5: 1.5rem;      /* 24 px */
+  --ci-abstand-6: 2rem;        /* 32 px */
+  --ci-abstand-7: 2.5rem;      /* 40 px */
+  --ci-abstand-8: 3.5rem;      /* 56 px */
+
+  /* Radien */
+  --ci-radius-s:    8px;
+  --ci-radius-m:    12px;
+  --ci-radius-l:    18px;
+  --ci-radius-rund: 999px;
+
+  /* Rahmenmaße */
+  --ci-spalte:      520px;     /* größte Breite der Spiel-Spalte */
+  --ci-rand:        16px;      /* Seitenrand links und rechts */
+  --ci-tippflaeche: 44px;      /* kleinste Tippfläche */
+  --ci-fussleiste-hoehe: 68px;
+  --ci-rahmen:      1px;
+  --ci-fokus-breite: 3px;
+
+  /* Ebenen */
+  --ci-ebene-fussleiste: 20;
+  --ci-ebene-toast:      45;
+  --ci-ebene-modal:      50;
+
+  /* Bewegung */
+  --ci-dauer-kurz: .08s;
+  --ci-dauer:      .15s;
+  --ci-dauer-lang: .5s;
+  --ci-kurve:      cubic-bezier(.2, .9, .3, 1);
+
+  /* Verläufe, die in beiden Modi gleich sind */
+  --ci-goldverlauf:  linear-gradient(180deg, var(--ci-pal-gold-200), var(--ci-pal-gold-400) 55%, var(--ci-pal-gold-600));
+  --ci-lichtverlauf: linear-gradient(180deg, #ffffff, #fff1c2 40%, var(--ci-pal-gold-400) 75%, var(--ci-pal-gold-600));
+  --ci-duellverlauf: linear-gradient(90deg, var(--ci-pal-gold-400), var(--ci-pal-duell) 55%, var(--ci-pal-spende));
+}
+
+/* ==========================================================================
+   3. Bedeutungs-Variablen – STANDARD „Nacht“
+   ========================================================================== */
+:root {
+  color-scheme: dark;
+
+  /* Flächen */
+  --ci-farbe-hintergrund:        var(--ci-pal-nacht-950);
+  --ci-farbe-hintergrund-tief:   var(--ci-pal-nacht-900);   /* Eingabefeld, Schiene */
+  --ci-farbe-oberflaeche:        var(--ci-pal-nacht-850);   /* Karte, Kachel */
+  --ci-farbe-oberflaeche-hoch:   var(--ci-pal-nacht-750);   /* Toast, Modal */
+  --ci-farbe-hover:              rgb(246 248 255 / .08);
+  --ci-farbe-gedrueckt:          rgb(246 248 255 / .14);
+
+  /* Schrift */
+  --ci-farbe-text:        var(--ci-pal-nacht-25);           /* 14,6:1 auf Fläche */
+  --ci-farbe-text-leise:  var(--ci-pal-nacht-300);          /*  6,9:1 */
+  --ci-farbe-titel:       var(--ci-pal-gold-400);           /*  9,3:1 */
+  --ci-farbe-akzent-text: var(--ci-pal-gold-400);
+  --ci-farbe-umriss:      var(--ci-pal-nacht-800);
+
+  /* Linien */
+  --ci-farbe-linie:        var(--ci-pal-nacht-600);         /* nur Schmuck */
+  --ci-farbe-linie-stark:  var(--ci-pal-nacht-400);         /* Bedien-Rand: mind. 3:1 */
+  --ci-farbe-linie-akzent: rgb(242 193 78 / .35);
+
+  /* Primär (Gold) */
+  --ci-farbe-primaer:          var(--ci-pal-gold-400);
+  --ci-farbe-primaer-verlauf:  var(--ci-goldverlauf);
+  --ci-farbe-auf-primaer:      var(--ci-pal-gold-950);      /* 9,8:1 */
+  --ci-farbe-primaer-hauch:    rgb(242 193 78 / .14);
+
+  /* Signal (Kreuzrot) */
+  --ci-farbe-signal:      var(--ci-pal-rot-500);
+  --ci-farbe-auf-signal:  var(--ci-pal-weiss);              /* 4,6:1 */
+  --ci-farbe-fehler-text: var(--ci-pal-rot-300);            /* 6,4:1 */
+
+  /* Zustände */
+  --ci-farbe-ok:               var(--ci-pal-gemeinde);
+  --ci-farbe-warnung:          var(--ci-pal-spielen);
+  --ci-farbe-gesperrt-flaeche: var(--ci-pal-nacht-700);
+  --ci-farbe-gesperrt-text:    var(--ci-pal-nacht-250);     /* 5,5:1 */
+  --ci-farbe-fokus:            var(--ci-pal-gold-200);
+
+  /* Bereichsfarben */
+  --ci-farbe-lernen:     var(--ci-pal-lernen);
+  --ci-farbe-spielen:    var(--ci-pal-spielen);
+  --ci-farbe-gemeinde:   var(--ci-pal-gemeinde);
+  --ci-farbe-lohn:       var(--ci-pal-lohn);
+  --ci-farbe-biblionaer: var(--ci-pal-biblionaer);
+  --ci-farbe-duell:      var(--ci-pal-duell);
+  --ci-farbe-spende:     var(--ci-pal-spende);
+  --ci-farbe-bedienung:  var(--ci-pal-bedienung);
+  --ci-farbe-auf-bereich: var(--ci-pal-nacht-950);
+
+  /* Schatten */
+  --ci-schatten-1:    0 1px 2px rgb(0 0 0 / .3);
+  --ci-schatten-2:    0 6px 18px rgb(0 0 0 / .35);
+  --ci-schatten-3:    0 10px 30px rgb(0 0 0 / .6);
+  --ci-schein:        0 0 18px rgb(242 193 78 / .35);
+  --ci-schein-hover:  0 0 24px rgb(242 193 78 / .5);
+  --ci-innenlicht:    inset 0 1px 0 rgb(255 255 255 / .7);
+  --ci-schleier:      rgb(5 7 26 / .8);
+}
+
+/* ==========================================================================
+   4. Bedeutungs-Variablen – DUNKEL „Tiefnacht“
+   Automatisch, wenn das Gerät auf dunkel steht (außer data-theme="light");
+   immer mit data-theme="dark". Beide Blöcke enthalten dieselben Werte.
+   Nur was sich ändert, steht hier – Gold, Kreuzrot, Bereichsfarben bleiben.
+   ========================================================================== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ci-farbe-hintergrund:        var(--ci-pal-tief-950);
+    --ci-farbe-hintergrund-tief:   var(--ci-pal-tief-900);
+    --ci-farbe-oberflaeche:        var(--ci-pal-tief-850);
+    --ci-farbe-oberflaeche-hoch:   var(--ci-pal-tief-800);
+    --ci-farbe-hover:              rgb(233 236 248 / .06);
+    --ci-farbe-gedrueckt:          rgb(233 236 248 / .11);
+    --ci-farbe-text:        var(--ci-pal-tief-50);            /* 15,4:1 auf Fläche */
+    --ci-farbe-text-leise:  var(--ci-pal-tief-300);           /*  6,8:1 */
+    --ci-farbe-linie:        var(--ci-pal-tief-600);
+    --ci-farbe-linie-stark:  var(--ci-pal-tief-400);          /*  3,6:1 */
+    --ci-farbe-linie-akzent: rgb(242 193 78 / .28);
+    --ci-farbe-primaer-hauch:    rgb(242 193 78 / .11);
+    --ci-farbe-gesperrt-flaeche: var(--ci-pal-tief-700);
+    --ci-farbe-gesperrt-text:    var(--ci-pal-tief-250);      /*  5,6:1 */
+    --ci-farbe-auf-bereich: var(--ci-pal-tief-950);
+    --ci-schatten-1:    0 1px 2px rgb(0 0 0 / .45);
+    --ci-schatten-2:    0 6px 18px rgb(0 0 0 / .5);
+    --ci-schatten-3:    0 12px 34px rgb(0 0 0 / .75);
+    --ci-schein:        0 0 14px rgb(242 193 78 / .28);       /* etwas ruhiger im Dunkeln */
+    --ci-schein-hover:  0 0 20px rgb(242 193 78 / .4);
+    --ci-innenlicht:    inset 0 1px 0 rgb(255 255 255 / .55);
+    --ci-schleier:      rgb(2 3 10 / .85);
+}
+}
+:root[data-theme="dark"] {
+  --ci-farbe-hintergrund:        var(--ci-pal-tief-950);
+  --ci-farbe-hintergrund-tief:   var(--ci-pal-tief-900);
+  --ci-farbe-oberflaeche:        var(--ci-pal-tief-850);
+  --ci-farbe-oberflaeche-hoch:   var(--ci-pal-tief-800);
+  --ci-farbe-hover:              rgb(233 236 248 / .06);
+  --ci-farbe-gedrueckt:          rgb(233 236 248 / .11);
+  --ci-farbe-text:        var(--ci-pal-tief-50);            /* 15,4:1 auf Fläche */
+  --ci-farbe-text-leise:  var(--ci-pal-tief-300);           /*  6,8:1 */
+  --ci-farbe-linie:        var(--ci-pal-tief-600);
+  --ci-farbe-linie-stark:  var(--ci-pal-tief-400);          /*  3,6:1 */
+  --ci-farbe-linie-akzent: rgb(242 193 78 / .28);
+  --ci-farbe-primaer-hauch:    rgb(242 193 78 / .11);
+  --ci-farbe-gesperrt-flaeche: var(--ci-pal-tief-700);
+  --ci-farbe-gesperrt-text:    var(--ci-pal-tief-250);      /*  5,6:1 */
+  --ci-farbe-auf-bereich: var(--ci-pal-tief-950);
+  --ci-schatten-1:    0 1px 2px rgb(0 0 0 / .45);
+  --ci-schatten-2:    0 6px 18px rgb(0 0 0 / .5);
+  --ci-schatten-3:    0 12px 34px rgb(0 0 0 / .75);
+  --ci-schein:        0 0 14px rgb(242 193 78 / .28);       /* etwas ruhiger im Dunkeln */
+  --ci-schein-hover:  0 0 20px rgb(242 193 78 / .4);
+  --ci-innenlicht:    inset 0 1px 0 rgb(255 255 255 / .55);
+  --ci-schleier:      rgb(2 3 10 / .85);
+}
+
+/* ==========================================================================
+   5. Namen wie in index.html (für die spätere Übernahme)
+   Steht dieses Stylesheet NACH dem <style> der App, gelten diese Werte.
+   ========================================================================== */
+:root {
+  --bg:         var(--ci-farbe-hintergrund);
+  --bg2:        var(--ci-farbe-hintergrund-tief);
+  --surface:    var(--ci-farbe-oberflaeche);
+  --surface2:   var(--ci-farbe-oberflaeche-hoch);
+  --line:       var(--ci-farbe-linie);
+  --fg:         var(--ci-farbe-text);
+  --muted:      var(--ci-farbe-text-leise);
+  --accent:     var(--ci-farbe-primaer);
+  --accent-ink: var(--ci-farbe-auf-primaer);
+  --good:       var(--ci-farbe-ok);
+  --bad:        var(--ci-farbe-fehler-text);
+  --display:    var(--ci-schrift-titel);
+  --body:       var(--ci-schrift-text);
+  --serif:      var(--ci-schrift-vers);
+  /* --ar und --ar-lernen/-spielen/-gemeinde/-lohn bleiben bewusst bei der App:
+     dort ist z. B. --ar-gemeinde die Arena-Koralle. Die CI-Bereichsfarben stehen
+     in --ci-farbe-… und werden über [data-bereich] gesetzt. */
+  --fs-s:       var(--ci-gr-mini);
+  --fs-m:       var(--ci-gr-klein);
+  --fs-l:       var(--ci-gr-text);
+  --tap:        var(--ci-tippflaeche);
+}
+
+/* ==========================================================================
+   6. Bereichsfarbe setzen: <section data-bereich="lernen"> … </section>
+   ========================================================================== */
+[data-bereich="start"]      { --ar: var(--ci-farbe-akzent-text); }
+[data-bereich="lernen"]     { --ar: var(--ci-farbe-lernen); }
+[data-bereich="spielen"]    { --ar: var(--ci-farbe-spielen); }
+[data-bereich="gemeinde"]   { --ar: var(--ci-farbe-gemeinde); }
+[data-bereich="lohn"]       { --ar: var(--ci-farbe-lohn); }
+[data-bereich="biblionaer"] { --ar: var(--ci-farbe-biblionaer); }
+[data-bereich="duell"]      { --ar: var(--ci-farbe-duell); }
+[data-bereich="spende"]     { --ar: var(--ci-farbe-spende); }
+[data-bereich="bedienung"]  { --ar: var(--ci-farbe-bedienung); }
+[data-bereich]              { --bk: var(--ar); }
+
+/* ==========================================================================
+   7. Typografie
+   ========================================================================== */
+/* Seitengrund: Klasse .ci auf <html> oder <body> */
+.ci,
+.ci body {
+  margin: 0;
+  background: var(--ci-farbe-hintergrund);
+  color: var(--ci-farbe-text);
+  font-family: var(--ci-schrift-text);
+  font-size: var(--ci-gr-text);
+  font-weight: 400;
+  line-height: var(--ci-zh-text);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+.ci *, .ci *::before, .ci *::after { box-sizing: border-box; }
+[class*="ci-"], [class*="ci-"]::before, [class*="ci-"]::after { box-sizing: border-box; }
+.ci img, .ci svg { max-width: 100%; }
+
+/* Überschriften: Cinzel, immer Großbuchstaben, Gold.
+   Als Klasse (.ci-h1 …) oder automatisch für h1–h3 innerhalb von .ci */
+.ci-h1, .ci-h2, .ci-h3,
+:where(.ci) :where(h1, h2, h3) {
+  margin: 0;
+  min-width: 0;
+  font-family: var(--ci-schrift-titel);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: var(--ci-lw-titel);
+  line-height: var(--ci-zh-titel);
+  color: var(--ci-farbe-titel);
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+.ci-h1, :where(.ci) :where(h1) { font-size: var(--ci-gr-h1); }
+.ci-h2, :where(.ci) :where(h2) { font-size: var(--ci-gr-h2); }
+.ci-h3, :where(.ci) :where(h3) { font-size: var(--ci-gr-h3); font-weight: 600; }
+
+/* Fließtext */
+.ci-text,
+:where(.ci) :where(p) {
+  margin: 0;
+  font-family: var(--ci-schrift-text);
+  font-size: var(--ci-gr-text);
+  font-weight: 400;
+  line-height: var(--ci-zh-text);
+  color: var(--ci-farbe-text);
+  max-width: 68ch;
+  overflow-wrap: break-word;
+}
+.ci-text--gross { font-size: var(--ci-gr-gross); }
+.ci-text--klein { font-size: var(--ci-gr-klein); }
+.ci-text strong, .ci-text b { font-weight: 700; }
+.ci-leise { color: var(--ci-farbe-text-leise); font-size: var(--ci-gr-klein); }
+
+/* Weißgold-Titel „Himmlisches Licht“ – zusätzlich zu .ci-h1/.ci-h2 */
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .ci-titel--licht {
+    background: var(--ci-lichtverlauf); -webkit-background-clip: text; background-clip: text;
+    color: transparent; filter: drop-shadow(0 1px 0 var(--ci-farbe-umriss));
+  }
+}
+
+/* Untertitel: in [data-bereich] in Bereichsfarbe, sonst leise */
+.ci-unter {
+  margin: 0;
+  font-size: var(--ci-gr-klein); font-weight: 500; line-height: var(--ci-zh-eng);
+  color: var(--ci-farbe-text-leise);
+}
+[data-bereich] .ci-unter, .ci-unter[data-bereich] { color: var(--ar); }
+
+/* Abschnittstitel mit auslaufender Goldlinie */
+.ci-label {
+  display: flex; align-items: center; gap: var(--ci-abstand-2);
+  margin: 0; min-width: 0;
+  font-family: var(--ci-schrift-text);
+  font-size: var(--ci-gr-mini); font-weight: 700;
+  letter-spacing: var(--ci-lw-label); text-transform: uppercase;
+  line-height: var(--ci-zh-eng);
+  color: var(--ci-farbe-akzent-text);
+}
+.ci-label::after {
+  content: ""; flex: 1; min-width: var(--ci-abstand-4); height: 1px;
+  background: linear-gradient(90deg, var(--ci-farbe-linie-akzent), transparent);
+}
+
+.ci-bogen {
+  display: block; height: 2px; border: 0; margin: var(--ci-abstand-3) 0;
+  background: linear-gradient(90deg, transparent, var(--ci-farbe-primaer), transparent);
+}
+.ci-bogen--duell { background: var(--ci-duellverlauf); border-radius: 1px; }
+
+.ci-link {
+  color: var(--ci-farbe-akzent-text);
+  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .18em;
+}
+@media (hover: hover) { .ci-link:hover { text-decoration-thickness: 2px; } }
+
+/* Bibelvers: immer kursiv, Stelle darunter in der Textschrift */
+.ci-vers {
+  margin: 0; padding-left: var(--ci-abstand-3);
+  border-left: 3px solid var(--ci-farbe-primaer);
+  font-family: var(--ci-schrift-vers); font-style: italic; font-weight: 500;
+  font-size: var(--ci-gr-gross); line-height: var(--ci-zh-vers);
+  color: var(--ci-farbe-text);
+  overflow-wrap: break-word;
+}
+.ci-vers em, .ci-vers i, .ci-vers strong, .ci-vers b { font-style: italic; font-weight: 600; }
+.ci-stelle {
+  display: block; margin-top: var(--ci-abstand-1);
+  font-family: var(--ci-schrift-text); font-style: normal; font-weight: 400;
+  font-size: var(--ci-gr-klein); line-height: var(--ci-zh-eng);
+  color: var(--ci-farbe-text-leise);
+}
+
+.ci-zahl { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--ci-farbe-akzent-text); }
+
+/* Seitenspalte und Stapel */
+.ci-seite {
+  width: 100%; max-width: var(--ci-spalte); min-width: 0; margin-inline: auto;
+  padding-left: max(var(--ci-rand), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--ci-rand), env(safe-area-inset-right, 0px));
+}
+.ci-seite--mit-fussleiste { padding-bottom: calc(var(--ci-fussleiste-hoehe) + 36px + env(safe-area-inset-bottom, 0px)); }
+.ci-stapel { display: flex; flex-direction: column; gap: var(--ci-abstand-4); min-width: 0; }
+.ci-stapel--eng { gap: var(--ci-abstand-2); }
+.ci-stapel--weit { gap: var(--ci-abstand-6); }
+.ci-stapel > * { min-width: 0; }
+
+/* ==========================================================================
+   8. Knöpfe
+   .ci-knopf                  primär: Gold mit Schein (höchstens einer je Ansicht)
+   .ci-knopf--sekundaer       sekundär: Rahmen, ruhig, ohne Schein
+   .ci-knopf--leise           wie sekundär, ohne Rahmen (z. B. „Später“)
+   .ci-knopf--bereich         Startknopf in Bereichsfarbe
+   .ci-knopf--duell           Verlauf Gold → Koralle → Rosé
+   .ci-knopf--gefahr          Löschen/Abbrechen: roter Rand, keine rote Fläche
+   .ci-knopf--breit / --klein Größe
+   Zustände: :hover, :active, :focus-visible, aria-pressed="true",
+             :disabled / aria-disabled="true" / .ist-gesperrt
+   ========================================================================== */
+.ci-knopf {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--ci-abstand-2);
+  min-width: 0; max-width: 100%; min-height: var(--ci-tippflaeche);
+  margin: 0; padding: var(--ci-abstand-2) 1.125rem;
+  font-family: var(--ci-schrift-text); font-size: .9375rem; font-weight: 700;
+  letter-spacing: var(--ci-lw-knopf); text-transform: uppercase;
+  line-height: var(--ci-zh-eng); text-align: center; text-decoration: none;
+  overflow-wrap: anywhere;
+  color: var(--ci-farbe-auf-primaer);
+  background: var(--ci-farbe-primaer-verlauf);
+  border: var(--ci-rahmen) solid var(--ci-pal-gold-600);
+  border-radius: var(--ci-radius-m);
+  box-shadow: var(--ci-innenlicht), var(--ci-schein);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none; -webkit-user-select: none;
+}
+.ci-knopf svg { flex: none; width: 1.25em; height: 1.25em; }
+@media (hover: hover) {
+  .ci-knopf:hover { filter: brightness(1.06); box-shadow: var(--ci-innenlicht), var(--ci-schein-hover); }
+}
+.ci-knopf:active { transform: translateY(1px); filter: brightness(.95); box-shadow: var(--ci-innenlicht); }
+
+/* Sekundär */
+.ci-knopf--sekundaer,
+.ci-knopf--leise {
+  color: var(--ci-farbe-text);
+  background: var(--ci-farbe-oberflaeche);
+  border-color: var(--ci-farbe-linie-stark);
+  box-shadow: none;
+}
+.ci-knopf--leise { background: transparent; border-color: transparent; }
+@media (hover: hover) {
+  .ci-knopf--sekundaer:hover { filter: none; box-shadow: none; border-color: var(--ci-farbe-akzent-text); background: var(--ci-farbe-primaer-hauch); }
+  .ci-knopf--leise:hover     { filter: none; box-shadow: none; background: var(--ci-farbe-hover); }
+}
+.ci-knopf--sekundaer:active,
+.ci-knopf--leise:active { filter: none; box-shadow: none; background: var(--ci-farbe-gedrueckt); }
+
+/* Weitere Arten */
+.ci-knopf--bereich {
+  color: var(--ci-farbe-auf-bereich);
+  background: var(--ar, var(--ci-farbe-primaer));
+  box-shadow: var(--ci-schatten-1);
+}
+.ci-knopf--duell {
+  color: var(--ci-pal-gold-950);
+  background: var(--ci-duellverlauf);
+  box-shadow: var(--ci-innenlicht), var(--ci-schatten-1);
+}
+.ci-knopf--gefahr {
+  color: var(--ci-farbe-fehler-text);
+  background: transparent;
+  border-color: var(--ci-farbe-signal);
+  box-shadow: none;
+}
+@media (hover: hover) {
+  .ci-knopf--bereich:hover, .ci-knopf--duell:hover { box-shadow: var(--ci-schatten-2); }
+  .ci-knopf--gefahr:hover { filter: none; box-shadow: none; background: rgb(232 20 27 / .16); }
+}
+.ci-knopf--gefahr:active { filter: none; background: rgb(232 20 27 / .24); }
+.ci-knopf--breit { display: flex; width: 100%; }
+.ci-knopf--klein { padding: var(--ci-abstand-1) var(--ci-abstand-3); font-size: var(--ci-gr-mini); border-radius: var(--ci-radius-s); }
+
+/* Eingeschalteter Umschalter */
+.ci-knopf[aria-pressed="true"] {
+  color: var(--ci-farbe-akzent-text);
+  background: var(--ci-farbe-primaer-hauch);
+  border-color: var(--ci-farbe-primaer);
+  box-shadow: none; filter: none;
+}
+
+/* Gesperrt: grau, ohne Schein, ohne Bewegung (gilt für alle Arten) */
+.ci-knopf:disabled,
+.ci-knopf[aria-disabled="true"],
+.ci-knopf.ist-gesperrt {
+  color: var(--ci-farbe-gesperrt-text);
+  background: var(--ci-farbe-gesperrt-flaeche);
+  border-color: transparent;
+  box-shadow: none; filter: none; transform: none;
+  cursor: not-allowed;
+}
+
+/* Fokus (Tastatur) */
+.ci-knopf:focus-visible,
+.ci-link:focus-visible,
+.ci-feld:focus-visible,
+.ci-karte--klickbar:focus-visible,
+.ci-reiter > :focus-visible,
+.ci-fussleiste > :focus-visible,
+.ci-zeile:focus-visible {
+  outline: var(--ci-fokus-breite) solid var(--ci-farbe-fokus);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   9. Eingabefelder
+   <label class="ci-feld-label" for="n">Name</label>
+   <input class="ci-feld" id="n" aria-describedby="n-h">
+   <p class="ci-feld-hinweis" id="n-h">…</p>
+   Fehler: aria-invalid="true" am Feld + .ci-feld-hinweis--fehler.
+   Gilt für input, textarea und select.
+   ========================================================================== */
+.ci-feld-gruppe { display: flex; flex-direction: column; gap: var(--ci-abstand-1); min-width: 0; }
+.ci-feld-label {
+  display: block; margin: 0;
+  font-size: var(--ci-gr-klein); font-weight: 500; line-height: var(--ci-zh-eng);
+  color: var(--ci-farbe-text);
+}
+.ci-feld {
+  display: block; width: 100%; min-width: 0; min-height: var(--ci-tippflaeche);
+  margin: 0; padding: var(--ci-abstand-2) var(--ci-abstand-3);
+  font-family: var(--ci-schrift-text); font-size: var(--ci-gr-text); line-height: var(--ci-zh-eng);
+  color: var(--ci-farbe-text);
+  background: var(--ci-farbe-hintergrund-tief);
+  border: var(--ci-rahmen) solid var(--ci-farbe-linie-stark);
+  border-radius: var(--ci-radius-m);
+  -webkit-appearance: none; appearance: none;
+}
+textarea.ci-feld { min-height: 6rem; line-height: var(--ci-zh-text); resize: vertical; }
+select.ci-feld {
+  padding-right: 2.25rem;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ci-farbe-text-leise) 50%), linear-gradient(135deg, var(--ci-farbe-text-leise) 50%, transparent 50%);
+  background-position: calc(100% - 1.125rem) 50%, calc(100% - .75rem) 50%;
+  background-size: .375rem .375rem;
+  background-repeat: no-repeat;
+}
+.ci-feld::placeholder { color: var(--ci-farbe-text-leise); opacity: 1; }
+@media (hover: hover) { .ci-feld:hover { border-color: var(--ci-farbe-text-leise); } }
+.ci-feld:focus { border-color: var(--ci-farbe-primaer); box-shadow: 0 0 0 3px var(--ci-farbe-primaer-hauch); }
+.ci-feld[aria-invalid="true"] { border-color: var(--ci-farbe-signal); box-shadow: 0 0 0 1px var(--ci-farbe-signal); }
+.ci-feld:disabled {
+  color: var(--ci-farbe-gesperrt-text); background: var(--ci-farbe-gesperrt-flaeche);
+  border-color: transparent; cursor: not-allowed;
+}
+.ci-feld-hinweis {
+  margin: 0;
+  font-size: var(--ci-gr-klein); line-height: var(--ci-zh-eng);
+  color: var(--ci-farbe-text-leise);
+}
+.ci-feld-hinweis--fehler { color: var(--ci-farbe-fehler-text); }
+
+/* ==========================================================================
+   10. Karten
+   .ci-karte              Grundkarte
+   .ci-karte--erhoeht     mit Schatten (z. B. Hauptinhalt einer Ansicht)
+   .ci-karte--bereich     zarter Schimmer der Bereichsfarbe
+   .ci-karte--akzent      goldener Rand (Belohnung, Biblionär der Woche)
+   .ci-karte--klickbar    ganze Karte antippbar (<a>/<button>)
+   Teile: .ci-karte-kopf, .ci-karte-inhalt, .ci-karte-fuss
+   ========================================================================== */
+.ci-karte {
+  display: flex; flex-direction: column; gap: var(--ci-abstand-3);
+  min-width: 0;
+  padding: var(--ci-abstand-4);
+  color: var(--ci-farbe-text);
+  background: var(--ci-farbe-oberflaeche);
+  border: var(--ci-rahmen) solid var(--ci-farbe-linie);
+  border-radius: var(--ci-radius-m);
+  box-shadow: var(--ci-schatten-1);
+}
+.ci-karte-kopf { display: flex; align-items: center; gap: var(--ci-abstand-3); min-width: 0; }
+.ci-karte-inhalt { min-width: 0; }
+.ci-karte-fuss { display: flex; flex-wrap: wrap; gap: var(--ci-abstand-2); justify-content: flex-end; }
+.ci-karte--erhoeht { box-shadow: var(--ci-schatten-2); border-color: transparent; }
+.ci-karte--bereich {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--ar, var(--ci-farbe-primaer)) 12%, var(--ci-farbe-oberflaeche)), var(--ci-farbe-oberflaeche) 70%);
+  border-color: color-mix(in srgb, var(--ar, var(--ci-farbe-primaer)) 30%, var(--ci-farbe-linie));
+}
+.ci-karte--akzent { border-color: var(--ci-farbe-primaer); box-shadow: var(--ci-schein); }
+.ci-karte--klickbar {
+  font: inherit; text-align: left; text-decoration: none; width: 100%;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+@media (hover: hover) {
+  .ci-karte--klickbar:hover { box-shadow: var(--ci-schatten-2); border-color: var(--ci-farbe-linie-stark); }
+}
+.ci-karte--klickbar:active { transform: translateY(1px); box-shadow: var(--ci-schatten-1); }
+
+/* ==========================================================================
+   11. Weitere Bausteine
+   ========================================================================== */
+/* Marke: „neu“, „+20 Talente“ */
+.ci-marke {
+  display: inline-block; max-width: 100%;
+  padding: .125rem .5625rem;
+  font-size: var(--ci-gr-mini); font-weight: 700; letter-spacing: .03em;
+  line-height: var(--ci-zh-eng); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; vertical-align: middle;
+  color: var(--ci-farbe-auf-primaer); background: var(--ci-farbe-primaer);
+  border: var(--ci-rahmen) solid transparent;
+  border-radius: var(--ci-radius-rund);
+}
+.ci-marke--signal   { color: var(--ci-farbe-auf-signal); background: var(--ci-farbe-signal); }
+.ci-marke--bereich  { color: var(--ar, var(--ci-farbe-akzent-text)); background: transparent; border-color: currentColor; }
+.ci-marke--leise    { color: var(--ci-farbe-text-leise); background: transparent; border-color: var(--ci-farbe-linie-stark); }
+.ci-marke--ok       { color: var(--ci-farbe-ok); background: transparent; border-color: currentColor; }
+.ci-marke--gesperrt { color: var(--ci-farbe-gesperrt-text); background: var(--ci-farbe-gesperrt-flaeche); }
+
+/* Zähler: rote Zahl an Symbolen und Reitern */
+.ci-zaehler {
+  display: inline-grid; place-items: center;
+  min-width: 1.125rem; height: 1.125rem; padding: 0 .3125rem;
+  font-size: var(--ci-gr-winzig); font-weight: 700; line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ci-farbe-auf-signal); background: var(--ci-farbe-signal);
+  border-radius: var(--ci-radius-rund);
+}
+.ci-zaehler--ecke { position: absolute; top: -4px; right: -6px; box-shadow: 0 0 0 2px var(--ci-farbe-oberflaeche); }
+
+/* Ring: goldener Zahl-Ring  <div class="ci-ring"><b>12</b><small>Stufe</small></div> */
+.ci-ring {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; flex: none;
+  width: 3.5rem; height: 3.5rem;
+  border: 3px solid var(--ci-farbe-primaer); border-radius: 50%;
+  font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums;
+  color: var(--ci-farbe-akzent-text);
+}
+.ci-ring b { font-family: var(--ci-schrift-titel); font-size: var(--ci-gr-h3); font-weight: 800; }
+.ci-ring small {
+  margin-top: 2px; font-size: .5625rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ci-farbe-text-leise);
+}
+
+/* Medaillon: Symbol-Scheibe in Bereichsfarbe */
+.ci-medaillon {
+  display: grid; place-items: center; flex: none;
+  width: 3.5rem; height: 3.5rem; border-radius: 50%;
+  font-family: var(--ci-schrift-titel); font-weight: 800; font-size: 1.25rem;
+  color: var(--ar, var(--ci-farbe-akzent-text));
+  background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--ar, var(--ci-farbe-primaer)) 24%, var(--ci-farbe-oberflaeche)), var(--ci-farbe-hintergrund-tief) 80%);
+  border: 2px solid var(--ar, var(--ci-farbe-primaer));
+}
+.ci-medaillon svg, .ci-medaillon img { width: 2.25rem; height: 2.25rem; }
+
+/* Bereichskopf im Arena-Stil */
+.ci-bereichskopf {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center; gap: var(--ci-abstand-3); min-width: 0;
+}
+.ci-bereichskopf-text { min-width: 0; }
+.ci-bereichskopf-text .ci-unter { margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Zahlentafel: drei Werte nebeneinander */
+.ci-tafel {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: 0; overflow: hidden;
+  background: var(--ci-farbe-oberflaeche);
+  border: var(--ci-rahmen) solid var(--ci-farbe-linie-akzent);
+  border-radius: var(--ci-radius-m);
+}
+.ci-tafel > * {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 0 var(--ci-abstand-1);
+  min-width: 0; padding: var(--ci-abstand-2) var(--ci-abstand-1);
+  font-size: var(--ci-gr-mini); font-weight: 500; line-height: var(--ci-zh-eng); text-align: center;
+  color: var(--ci-farbe-text-leise);
+}
+.ci-tafel > * + * { border-left: var(--ci-rahmen) solid var(--ci-farbe-linie-akzent); }
+.ci-tafel b { font-family: var(--ci-schrift-titel); font-size: var(--ci-gr-text); font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ci-farbe-akzent-text); }
+
+/* Fortschrittsbalken  <div class="ci-balken" role="progressbar" style="--wert:60%"><i></i></div> */
+.ci-balken { display: block; min-width: 0; height: .5rem; overflow: hidden; background: var(--ci-farbe-hintergrund-tief); border-radius: var(--ci-radius-rund); }
+.ci-balken > i { display: block; height: 100%; width: var(--wert, 0%); max-width: 100%; background: var(--ci-goldverlauf); border-radius: inherit; }
+.ci-balken--bereich > i { background: var(--ar, var(--ci-farbe-primaer)); }
+.ci-balken--duell > i   { background: var(--ci-duellverlauf); }
+.ci-balken--schmal      { height: .375rem; }
+
+/* Liste und Listenzeile (auch Rangliste) */
+.ci-liste { margin: 0; padding: 0; list-style: none; min-width: 0; }
+.ci-zeile {
+  display: flex; align-items: center; gap: var(--ci-abstand-3);
+  width: 100%; min-width: 0; min-height: var(--ci-tippflaeche);
+  margin: 0; padding: var(--ci-abstand-2);
+  font: inherit; line-height: var(--ci-zh-eng); text-align: left; text-decoration: none;
+  color: inherit; background: none;
+  border: 0; border-top: var(--ci-rahmen) solid var(--ci-farbe-linie); border-radius: 0;
+}
+.ci-liste > :first-child > .ci-zeile, .ci-liste > .ci-zeile:first-child { border-top-color: transparent; }
+button.ci-zeile, a.ci-zeile { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+@media (hover: hover) { button.ci-zeile:hover, a.ci-zeile:hover { background: var(--ci-farbe-hover); } }
+button.ci-zeile:active, a.ci-zeile:active { background: var(--ci-farbe-gedrueckt); }
+.ci-zeile-rang { flex: none; min-width: 1.75rem; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ci-farbe-text-leise); }
+.ci-zeile-rang--podest { color: var(--ci-farbe-akzent-text); font-family: var(--ci-schrift-titel); font-weight: 800; }
+.ci-zeile-haupt { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.ci-zeile-haupt > b { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ci-zeile-haupt > small { font-size: var(--ci-gr-mini); color: var(--ci-farbe-text-leise); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ci-zeile-wert { flex: none; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ci-farbe-akzent-text); }
+.ci-zeile--ich { background: var(--ci-farbe-primaer-hauch); border-top-color: transparent; border-radius: var(--ci-radius-m); }
+.ci-zeile--ich .ci-zeile-rang { color: var(--ci-farbe-akzent-text); }
+.ci-zeile--ich + .ci-zeile, li:has(> .ci-zeile--ich) + li > .ci-zeile { border-top-color: transparent; }
+
+/* Meldung im Seitenfluss  <p class="ci-meldung ci-meldung--fehler" role="alert"> */
+.ci-meldung {
+  margin: 0; min-width: 0;
+  padding: var(--ci-abstand-3) var(--ci-abstand-4);
+  font-size: var(--ci-gr-klein); line-height: var(--ci-zh-text);
+  color: var(--ci-farbe-text); background: var(--ci-farbe-oberflaeche);
+  border: var(--ci-rahmen) solid var(--ci-farbe-linie); border-left: 4px solid var(--ci-farbe-primaer);
+  border-radius: var(--ci-radius-s);
+  overflow-wrap: break-word;
+}
+.ci-meldung--fehler  { border-left-color: var(--ci-farbe-signal); }
+.ci-meldung--ok      { border-left-color: var(--ci-farbe-ok); }
+.ci-meldung--warnung { border-left-color: var(--ci-farbe-warnung); }
+.ci-meldung--fehler  > :is(b, strong):first-child { color: var(--ci-farbe-fehler-text); }
+.ci-meldung--ok      > :is(b, strong):first-child { color: var(--ci-farbe-ok); }
+.ci-meldung--warnung > :is(b, strong):first-child { color: var(--ci-farbe-warnung); }
+
+/* Gemeindelogo: immer auf weißer Scheibe, nie umfärben */
+.ci-logo {
+  display: block; flex: none;
+  width: 3rem; height: 3rem; padding: 3px; object-fit: contain;
+  background: var(--ci-pal-weiss); border-radius: 50%;
+  box-shadow: 0 0 0 var(--ci-rahmen) var(--ci-farbe-linie);
+}
+.ci-logo--klein { width: 2rem; height: 2rem; padding: 2px; }
+.ci-logo--gross { width: 5rem; height: 5rem; padding: 5px; }
+
+/* ==========================================================================
+   12. Navigation
+   ========================================================================== */
+/* Reiterleiste  <div class="ci-reiter" role="tablist"><button role="tab" aria-selected="true">…</button></div> */
+.ci-reiter {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+  gap: 2px; min-width: 0; padding: 3px;
+  background: var(--ci-farbe-hintergrund-tief);
+  border: var(--ci-rahmen) solid var(--ci-farbe-linie);
+  border-radius: var(--ci-radius-rund);
+}
+.ci-reiter > * {
+  display: block; min-width: 0; height: 2.375rem;
+  margin: 0; padding: 0 var(--ci-abstand-2);
+  font-family: var(--ci-schrift-text); font-size: var(--ci-gr-klein); font-weight: 700;
+  line-height: 2.375rem; text-align: center; text-decoration: none;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: var(--ci-farbe-text-leise); background: none;
+  border: 0; border-radius: var(--ci-radius-rund);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+@media (hover: hover) { .ci-reiter > :hover { color: var(--ci-farbe-text); } }
+.ci-reiter > :is([aria-selected="true"], [aria-pressed="true"], [aria-current], .ist-aktiv) {
+  color: var(--ci-farbe-auf-primaer); background: var(--ci-farbe-primaer); box-shadow: var(--ci-schatten-1);
+}
+.ci-reiter .ci-zaehler { vertical-align: middle; margin-left: 2px; }
+.ci-reiter > :disabled { color: var(--ci-farbe-gesperrt-text); cursor: not-allowed; }
+
+/* Fußleiste: Hauptnavigation unten (bis 6 Einträge bei 390 px) */
+.ci-fussleiste {
+  position: fixed; z-index: var(--ci-ebene-fussleiste);
+  left: 0; right: 0; bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+  width: min(500px, calc(100% - 20px)); height: var(--ci-fussleiste-hoehe);
+  margin-inline: auto; padding: 0 var(--ci-abstand-1);
+  background: var(--ci-farbe-oberflaeche);
+  border: var(--ci-rahmen) solid var(--ci-farbe-linie);
+  border-radius: var(--ci-radius-l);
+  box-shadow: var(--ci-schatten-3);
+}
+.ci-fussleiste > * {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  min-width: 0; height: 100%; margin: 0; padding: var(--ci-abstand-1) 0;
+  font-family: var(--ci-schrift-text); font-size: var(--ci-gr-winzig); font-weight: 700;
+  line-height: var(--ci-zh-eng); text-decoration: none;
+  color: var(--ci-farbe-text-leise); background: none;
+  border: 0; border-radius: var(--ci-radius-m);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.ci-fussleiste > * > span:not(.ci-zaehler) { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ci-fussleiste svg, .ci-fussleiste img { flex: none; width: 1.75rem; height: 1.75rem; }
+.ci-fussleiste > :is([aria-current], .ist-aktiv) { color: var(--ci-farbe-text); }
+.ci-fussleiste > :is([aria-current], .ist-aktiv)::before {
+  content: ""; position: absolute; top: -1px; left: 50%;
+  width: 2.125rem; height: 4px; margin-left: -1.0625rem;
+  background: var(--ar, var(--ci-farbe-primaer)); border-radius: 0 0 4px 4px;
+}
+.ci-fussleiste .ci-zaehler--ecke { top: 4px; right: auto; left: calc(50% + 6px); }
+
+/* ==========================================================================
+   13. Überlagerungen
+   ========================================================================== */
+/* Modal  <div class="ci-modal" role="dialog" aria-modal="true"><div class="ci-modal-karte">…</div></div> */
+.ci-modal {
+  position: fixed; inset: 0; z-index: var(--ci-ebene-modal);
+  display: grid; place-items: center;
+  padding: var(--ci-abstand-5) var(--ci-rand);
+  background: var(--ci-schleier);
+  overflow-y: auto; overscroll-behavior: contain;
+}
+.ci-modal[hidden] { display: none; }
+.ci-modal-karte {
+  width: 100%; max-width: 360px; min-width: 0;
+  padding: var(--ci-abstand-5) var(--ci-abstand-4);
+  text-align: center; color: var(--ci-farbe-text);
+  background: var(--ci-farbe-oberflaeche-hoch);
+  border: var(--ci-rahmen) solid var(--ci-farbe-linie-akzent);
+  border-radius: var(--ci-radius-l);
+  box-shadow: var(--ci-schatten-3);
+  overflow-wrap: break-word;
+}
+.ci-modal-karte--weit { max-width: var(--ci-spalte); text-align: left; }
+.ci-modal-knoepfe { display: flex; flex-wrap: wrap; gap: var(--ci-abstand-2); margin-top: var(--ci-abstand-4); }
+.ci-modal-knoepfe > * { flex: 1 1 8rem; }
+
+/* Toast  <div class="ci-toast" role="status">…</div> */
+.ci-toast {
+  position: fixed; z-index: var(--ci-ebene-toast);
+  left: var(--ci-rand); right: var(--ci-rand);
+  bottom: calc(var(--ci-fussleiste-hoehe) + 24px + env(safe-area-inset-bottom, 0px));
+  display: flex; align-items: center; gap: var(--ci-abstand-3);
+  max-width: 440px; min-width: 0; margin-inline: auto;
+  padding: var(--ci-abstand-3) var(--ci-abstand-4);
+  font-size: var(--ci-gr-klein); font-weight: 500; line-height: var(--ci-zh-eng);
+  color: var(--ci-farbe-text); background: var(--ci-farbe-oberflaeche-hoch);
+  border: var(--ci-rahmen) solid var(--ci-farbe-primaer);
+  border-radius: var(--ci-radius-l);
+  box-shadow: var(--ci-schatten-3);
+  overflow-wrap: anywhere;
+}
+.ci-toast[hidden] { display: none; }
+.ci-toast > svg, .ci-toast > img { flex: none; width: 1.875rem; height: 1.875rem; }
+.ci-toast > span { min-width: 0; }
+.ci-toast--ok     { border-color: var(--ci-farbe-ok); }
+.ci-toast--fehler { border-color: var(--ci-farbe-signal); border-width: 2px; }
+
+/* ==========================================================================
+   14. Zustände und Helfer
+   ========================================================================== */
+/* Gesperrt: grau, ohne Schein. Zusätzlich aria-disabled="true" und Schloss-Symbol. */
+.ist-gesperrt { --ar: var(--ci-farbe-gesperrt-text); color: var(--ci-farbe-gesperrt-text); box-shadow: none; animation: none; }
+.ist-gesperrt svg, .ist-gesperrt img { filter: grayscale(1) opacity(.7); }
+.ci-karte.ist-gesperrt { background: var(--ci-farbe-gesperrt-flaeche); border-color: transparent; box-shadow: none; }
+.ci-medaillon.ist-gesperrt { background: var(--ci-farbe-gesperrt-flaeche); border-color: var(--ci-farbe-gesperrt-text); }
+.ci-ring.ist-gesperrt { border-color: var(--ci-farbe-gesperrt-text); color: var(--ci-farbe-gesperrt-text); }
+.ist-gesperrt :is(.ci-h1, .ci-h2, .ci-h3, h1, h2, h3, .ci-zahl, .ci-unter) { color: var(--ci-farbe-gesperrt-text); }
+
+.ci-schein { box-shadow: var(--ci-schein); }
+.ci-schatten-1 { box-shadow: var(--ci-schatten-1); }
+.ci-schatten-2 { box-shadow: var(--ci-schatten-2); }
+.ci-schatten-3 { box-shadow: var(--ci-schatten-3); }
+
+.ci-nur-vorlesen {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+
+/* ==========================================================================
+   15. Bewegung, Kontrastmodus, Druck
+   ========================================================================== */
+@media (prefers-reduced-motion: no-preference) {
+  .ci-knopf { transition: transform var(--ci-dauer-kurz), filter var(--ci-dauer), box-shadow var(--ci-dauer), background-color var(--ci-dauer), border-color var(--ci-dauer); }
+  .ci-feld { transition: border-color var(--ci-dauer), box-shadow var(--ci-dauer); }
+  .ci-karte--klickbar { transition: box-shadow var(--ci-dauer), border-color var(--ci-dauer), transform var(--ci-dauer-kurz); }
+  .ci-reiter > *, .ci-fussleiste > * { transition: color var(--ci-dauer), background-color var(--ci-dauer); }
+  .ci-balken > i { transition: width var(--ci-dauer-lang) var(--ci-kurve); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [class*="ci-"], [class*="ci-"]::before, [class*="ci-"]::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important;
+  }
+  .ci-knopf:active, .ci-karte--klickbar:active { transform: none; }
+}
+@media (forced-colors: active) {
+  .ci-titel--licht { background: none !important; color: CanvasText !important; filter: none !important; }
+  .ci-knopf, .ci-marke, .ci-zaehler, .ci-balken, .ci-reiter > *, .ci-karte { border: 1px solid currentColor; }
+  .ci-balken > i { background: Highlight; }
+}
+@media print {
+  .ci-fussleiste, .ci-toast, .ci-modal { display: none !important; }
+  .ci-karte, .ci-knopf { box-shadow: none !important; }
+}
+
+/* ==========================================================================
+   Regeln (Kurzfassung, ausführlich in ci/README.md)
+   - Gold führt (Hauptknopf, Titel, Ringe), Kreuzrot meldet (Zähler, „neu“,
+     Fehler) – nie als große Fläche, nie für Titel. Schrift auf Kreuzrot reinweiß.
+   - In Bausteinen nur --ci-farbe-… verwenden, nie --ci-pal-… oder feste Werte,
+     sonst stimmt der Dunkelmodus nicht.
+   - Titel in Cinzel immer in Großbuchstaben, Text in Lexend, Verse in
+     Source Serif 4 kursiv (Schlachter 2000), Stelle in Lexend darunter.
+   - Logo nicht umfärben, immer auf weißer Scheibe.
+   - Sekundäre und Bedienknöpfe ohne Schein, Gesperrtes grau ohne Schein.
+   - Alles passt bei 390 px: Flex-/Grid-Kinder min-width: 0, Spalten minmax(0, 1fr).
+   ========================================================================== */
