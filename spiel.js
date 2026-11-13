@@ -8,7 +8,7 @@ const DEF = {
   xp: 0, tal: 0, stars: {}, right: 0,
   streak: 0, bestStreak: 0, lastDay: "", todayXp: 0, todayDay: "", todayRight: 0, bestDayRight: 0,
   goalStreak: 0, bestGoalStreak: 0, lastGoalDay: "",
-  bestChain: 0, chainAT: 0, chainNT: 0, chainRueck: 0, chainGebote: 0, chainSchoepfung: 0, bestBlitz: 0, bestCombo: 0,
+  bestChain: 0, chainAT: 0, chainNT: 0, chainRueck: 0, chainGebote: 0, chainSchoepfung: 0, bestBlitz: 0, bestCombo: 0, bestFolge: 0,
   badges: [], owned: ["gold"], theme: "gold", avatar: "initial", frame: "none", title: "none",
   tage: [], treueWochen: [], treueBonus: { week: "", stufen: [] }, meister: { bibel: [], at: [], nt: [], rueck: [] },
   siegelGesehen: { bibel: 0, at: 0, nt: 0, rueck: 0 }, aufgefrischt: false, eingeladenVon: "", eingeladen: false, fischerDabei: false, menschenfischer: false,
@@ -2172,12 +2172,12 @@ VIEWS.gap = (arg) => {
 VIEWS.blitz = () => {
   screen.innerHTML = `${backBtn(heimAnsicht("spielen"), heimName("spielen"))}<h1>Blitz-Runde</h1>
   <div class="card stack" style="text-align:center">
-    <p class="muted" style="margin:0">60 Sekunden: Was kommt nach dem Buch? Jede 10er-Combo erhöht den Multiplikator (bis x3). Ein Fehler kostet 3 Sekunden.</p>
+    <p class="muted" style="margin:0">60 Sekunden: Was kommt nach dem Buch? Jede richtige Antwort zählt. Ein Fehler kostet 3 Sekunden.</p>
     <div class="label">Bereich</div>
     <div class="modes" style="grid-template-columns:repeat(3,1fr)">
       <button class="btn primary" data-s="all">Ganze Bibel</button><button class="btn" data-s="AT">AT</button><button class="btn" data-s="NT">NT</button>
     </div>
-    <div class="small muted">Rekord: ${S.bestBlitz} Richtige · Beste Combo: ${S.bestCombo}</div>
+    <div class="small muted">Rekord: ${S.bestBlitz} Richtige · In Folge: ${S.bestFolge | 0}</div>
   </div>`;
   wireGo();
   screen.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playBlitz(b.dataset.s), cdBlitz(b.dataset.s)); });
@@ -2253,12 +2253,12 @@ function playBlitz(scope) {
   screen.innerHTML = `<div class="stack">
     <div class="topline"><span id="bt">60 s</span><span>${svg("check", "var(--good)").replace('<svg', '<svg style="width:18px;height:18px;vertical-align:-3px"')} <span id="br">0</span></span><span id="bx">0 XP</span></div>
     <div class="timer"><i id="tb"></i></div>
-    <div class="card stack"><div class="qsub">Was kommt nach</div><div class="q" id="bq"></div><div class="qsub" id="bm"></div><div class="combo" id="bc"></div><div class="opts" id="bo"></div></div>
+    <div class="card stack"><div class="qsub">Was kommt nach</div><div class="q" id="bq"></div><div class="qsub" id="bm"></div><div class="opts" id="bo"></div></div>
     <button class="btn ghost" id="bstop">Runde beenden</button></div>`;
   $("bstop").onclick = end;
   const t = setInterval(() => { time -= 0.1; $("tb").style.width = Math.max(time, 0) / 60 * 100 + "%"; $("bt").textContent = Math.ceil(Math.max(time, 0)) + " s"; if (time <= 10 && Math.abs(time - Math.round(time)) < 0.05) SFX.tick(); if (time <= 0) end(); }, 100); timers.push(t);
   next();
-  function mult() { return Math.min(1 + Math.floor(combo / 10), 3); }
+  const BLITZ_XP = 10; /* 9.75: feste XP je richtige Antwort – keine Combos/Multiplikatoren mehr */
   function next() {
     if (!$("bq")) return; /* 9.62: Runde schon beendet (Zeit lief kurz nach einer Antwort ab) */
     let i; do { i = idx[Math.floor(Math.random() * idx.length)]; } while (idx.length > 1 && i === cur); cur = i; lock = false;
@@ -2268,16 +2268,14 @@ function playBlitz(scope) {
   function ans(btn, b) {
     if (lock) return; const correct = ALL[cur + 1].b;
     if (b === correct) {
-      lock = true; combo++; right++; maxCombo = Math.max(maxCombo, combo); const g = 6 * mult(); xp += g; richtig(1);
-      btn.classList.add("right"); SFX.right(combo); vibrate(10); const [x, y] = centerOf(btn); burst(x, y, 10 + mult() * 6, { speed: 3 + mult() }); floatText("+" + g, x, y);
+      lock = true; combo++; right++; maxCombo = Math.max(maxCombo, combo); const g = BLITZ_XP; xp += g; richtig(1);
+      btn.classList.add("right"); SFX.right(right); vibrate(10); const [x, y] = centerOf(btn); burst(x, y, 12, { speed: 4 }); floatText("+" + g, x, y);
       $("br").textContent = right; $("bx").textContent = xp + " XP";
-      if (combo % 5 === 0) { tone(1568, 0, .15, "sine", .12); shakeScreen(); }
       timers.push(setTimeout(next, 320));
     } else {
       fehlerBuecher.push(cur + 1); combo = 0; wrong++; time -= 3; btn.classList.add("wrong"); SFX.wrong(); vibrate([40, 30, 40]); shakeScreen();
       [...$("bo").children].forEach(x => { if (x.textContent === correct) x.classList.add("right"); }); lock = true; timers.push(setTimeout(next, 700));
     }
-    const c = $("bc"); c.textContent = combo >= 2 ? `Combo ${combo} · x${mult()}` : ""; c.className = "combo" + (mult() >= 3 ? " hot" : "");
   }
   /* Freiwillig: die Liedzeilen zu den verpassten Büchern (höchstens 3) */
   function blitzLiedHilfe() {
@@ -2287,17 +2285,17 @@ function playBlitz(scope) {
   }
   function end() {
     clearTimers(); const rec = right > S.bestBlitz;
-    if (rec) S.bestBlitz = right; if (maxCombo > S.bestCombo) S.bestCombo = maxCombo;
+    if (rec) S.bestBlitz = right; if (maxCombo > S.bestCombo) S.bestCombo = maxCombo; if (maxCombo > (S.bestFolge | 0)) S.bestFolge = maxCombo; /* 9.75: bestFolge = Rangliste „In Folge“ (neu ab 9.75), bestCombo nur noch für Abzeichen */
     quest("blitz", 1); quest("runde", 1);
     const W = spielWdh("blitz"); xp = wdhMal(xp, W);
     const tal = wdhMal(Math.floor(right / 5) + (rec ? 3 : 0), W);
-    screen.innerHTML = `<div class="card result stack"><div class="label">Zeit abgelaufen</div><div class="big">${right}</div><div class="muted">Richtige · ${wrong} Fehler · beste Combo ${maxCombo}</div>${rec && right > 0 ? '<h2>Neuer Rekord!</h2>' : ''}
+    screen.innerHTML = `<div class="card result stack"><div class="label">Zeit abgelaufen</div><div class="big">${right}</div><div class="muted">Richtige · ${wrong} Fehler · ${maxCombo} in Folge</div>${rec && right > 0 ? '<h2>Neuer Rekord!</h2>' : ''}
       <div class="rewards"><span class="pill">+${xp} XP</span><span class="pill">+${tal} Talente</span></div>${W.hinweis}
       ${blitzLiedHilfe()}
       <button class="btn primary" id="again">Nochmal</button><button class="btn ghost" data-go="${heimAnsicht("spielen")}">Zurück</button><button class="btn fertig" data-go="home">Fertig</button></div>`; wireGo(); wireSing();
     $("again").onclick = () => { SFX.tap(); vorlesenStop(); VIEWS.blitz(); };
     if (right > 0) { SFX.win(); if (rec) rain(90); }
-    if (xp) addXp(xp, null, "blitz", { t0, f: right, fm: right + wrong, d: `${scope === "all" ? "Ganze Bibel" : scope} · ${wrong} Fehler · Combo ${maxCombo}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
+    if (xp) addXp(xp, null, "blitz", { t0, f: right, fm: right + wrong, d: `${scope === "all" ? "Ganze Bibel" : scope} · ${wrong} Fehler · ${maxCombo} in Folge${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
   }
 }
 
@@ -2649,7 +2647,7 @@ function statsZeilen(p) {
     ["Level", p.level || 1], ["XP gesamt", p.xp || 0], ["XP diese Woche", p.week === weekKey() ? p.weekXp || 0 : 0],
     ["Titel im AT", AT_TITEL[titelIndex(AT_TITEL, p.atP || 0)][1]], ["Titel im NT", NT_TITEL[titelIndex(NT_TITEL, p.ntP || 0)][1]],
     ["Kette Bibel", (p.bestChain ? p.bestChain + 1 : 0) + "/66"], ["Kette AT", (p.chainAT ? p.chainAT + 1 : 0) + "/39"], ["Kette NT", (p.chainNT ? p.chainNT + 1 : 0) + "/27"],
-    ["Kette rückwärts", (p.chainRueck ? p.chainRueck + 1 : 0) + "/66"], ["Blitz-Rekord", p.blitz || 0], ["Blitz in Folge", p.combo != null ? p.combo : "–"], ["Spieltage (4 Wochen)", Array.isArray(p.tl) ? tage28(p.tl) : "–"], ["Frische Siegel", bewaehrtWert(p)], ["Serie (Tage)", p.streak || 0], ["Abzeichen", p.badges || 0], ["Arena-Siege", p.duS != null ? p.duS : "–"], ["Arena-Duelle", p.duG != null ? p.duG : "–"], ["Waffenrüstung", (p.armor || 0) + "/6"]
+    ["Kette rückwärts", (p.chainRueck ? p.chainRueck + 1 : 0) + "/66"], ["Blitz-Rekord", p.blitz || 0], ["Blitz in Folge", p.combo != null ? (folgeNeu(p) ? p.combo : 0) : "–"], ["Spieltage (4 Wochen)", Array.isArray(p.tl) ? tage28(p.tl) : "–"], ["Frische Siegel", bewaehrtWert(p)], ["Serie (Tage)", p.streak || 0], ["Abzeichen", p.badges || 0], ["Arena-Siege", p.duS != null ? p.duS : "–"], ["Arena-Duelle", p.duG != null ? p.duG : "–"], ["Waffenrüstung", (p.armor || 0) + "/6"]
   ];
 }
 function titelKarte(liste, p, tag) {
@@ -2757,7 +2755,7 @@ VIEWS.stat = () => {
     <div class="pf2-g2">${pfKachel("fire", (m.streak || 0) + (m.streak === 1 ? " Tag" : " Tage"), "Serie")}${pfKachel("sun", m.t28 || 0, "Spieltage in 4 Wochen")}</div>
     <div class="pf2-karte"><div class="pf2-vz"><span>Die letzten 4 Wochen</span><b>${m.t28 || 0} Tage</b></div><div class="pf2-tage" role="img" aria-label="${m.t28 || 0} Spieltage in den letzten 4 Wochen">${Array.from({ length: 28 }, (_, i) => `<i class="${S.tage.includes(h - 27 + i) ? "an" : ""}"></i>`).join("")}</div></div>
     ${pfTrenner("Rekorde")}
-    <div class="pf2-g2">${pfKachel("bolt", m.blitz || 0, "Blitz-Rekord")}${pfKachel("bolt", m.combo != null ? m.combo : "–", "Blitz in Folge")}${pfKachel("duell", (m.duS || 0) + " / " + (m.duG || 0), "Arena-Siege / Duelle")}${pfKachel("biblionaer", pkt(m.bib || 0), "Biblionär-Rekord")}</div>
+    <div class="pf2-g2">${pfKachel("bolt", m.blitz || 0, "Blitz-Rekord")}${pfKachel("bolt", m.combo != null ? (folgeNeu(m) ? m.combo : 0) : "–", "Blitz in Folge")}${pfKachel("duell", (m.duS || 0) + " / " + (m.duG || 0), "Arena-Siege / Duelle")}${pfKachel("biblionaer", pkt(m.bib || 0), "Biblionär-Rekord")}</div>
     ${pfTrenner("Ketten")}
     <div class="pf2-karte pf2-zls">${ch("Kette Bibel", m.bestChain, 66)}${ch("Kette AT", m.chainAT, 39, "at")}${ch("Kette NT", m.chainNT, 27, "nt")}${ch("Kette rückwärts", m.chainRueck, 66)}${ch("Zehn Gebote", S.chainGebote, 10)}${ch("Schöpfungstage", S.chainSchoepfung, 7)}</div></div>`;
   wireGo();
@@ -2770,7 +2768,7 @@ function lbPayload() {
     name: S.lbName, xp: Math.round(S.xp), level: levelOf(S.xp),
     bestChain: Math.min(S.bestChain | 0, 65), chainAT: Math.min(S.chainAT | 0, 38), chainNT: Math.min(S.chainNT | 0, 26), chainRueck: Math.min(S.chainRueck | 0, 65),
     stars: Math.min(Object.values(S.stars).reduce((a, b) => a + b, 0), 24), badges: S.badges.length, badgeIds: S.badges.slice(0, 80),
-    streak: streakNow() | 0, bestStreak: S.bestStreak | 0, blitz: S.bestBlitz | 0, combo: Math.min(S.bestCombo | 0, 1000),
+    streak: streakNow() | 0, bestStreak: S.bestStreak | 0, blitz: S.bestBlitz | 0, combo: Math.min(S.bestFolge | 0, 1000), /* 9.75: Rangliste „In Folge“ neu gestartet */
     week: wk, weekXp: S.weekKey === wk ? Math.round(S.weekXp) : 0,
     avatar: S.avatar, frame: S.frame, title: S.title, armor: armorCount(),
     atP: fortschritt().atP, ntP: fortschritt().ntP,
@@ -2880,7 +2878,7 @@ function zusammenfuehren(r) {
   if (!r || typeof r !== "object") return;
   const max = k => { S[k] = Math.max(+S[k] || 0, +r[k] || 0); };
   const xpVorher = +S.xp || 0;
-  ["xp", "tal", "right", "bestStreak", "bestChain", "chainAT", "chainNT", "chainRueck", "chainGebote", "chainSchoepfung", "bestBlitz", "bestCombo", "questBonusCount", "bestGoalStreak", "bestDayRight", "duSiege", "duSpiele", "duGesendet", "duAngenommen", "lvLohn", "bibRekord", "bibSpiele", "bibMillion"].forEach(max);
+  ["xp", "tal", "right", "bestStreak", "bestChain", "chainAT", "chainNT", "chainRueck", "chainGebote", "chainSchoepfung", "bestBlitz", "bestCombo", "bestFolge", "questBonusCount", "bestGoalStreak", "bestDayRight", "duSiege", "duSpiele", "duGesendet", "duAngenommen", "lvLohn", "bibRekord", "bibSpiele", "bibMillion"].forEach(max);
   /* Wochenrunde: die neuere Woche gewinnt; in derselben Woche zählt der höhere Wert (ein Versuch wird nie zurückgesetzt) */
   if ((r.bwK || "") > (S.bwK || "")) { if (S.bwK && S.bwK !== r.bwK) { S.bwVK = S.bwK; S.bwVP = S.bwP | 0; } S.bwK = r.bwK; S.bwP = r.bwP | 0; S.bwFertig = !!r.bwFertig; }
   else if (r.bwK && r.bwK === S.bwK) { S.bwP = Math.max(S.bwP | 0, r.bwP | 0); S.bwFertig = !!(S.bwFertig || r.bwFertig); }
@@ -3538,9 +3536,12 @@ let blitzSub = "richtige";
 const KETTE_SUB = { bibel: ["Bibel", "bestChain", 66], at: ["AT", "chainAT", 39], nt: ["NT", "chainNT", 27], rueck: ["Rückwärts", "chainRueck", 66] };
 let rankTab = "woche", ketteSub = "bibel";
 function aktuell(r) { const t = r.updated && (r.updated.toMillis ? r.updated.toMillis() : Date.parse(r.updated)); return !t || Date.now() - t < 2 * 864e5; }
+/* 9.75: Rangliste „Blitz in Folge“ neu gestartet – ältere Einträge (vor der Umstellung gespeichert) zählen nicht mehr */
+const FOLGE_AB = Date.UTC(2026, 10, 13, 20, 45);
+function folgeNeu(r) { if (r.id === (S.pid || (window.LB && LB.uid))) return true; const t = r.updated && (r.updated.toMillis ? r.updated.toMillis() : Date.parse(r.updated)); return t >= FOLGE_AB; }
 function rankWert(r) {
   if (rankTab === "kette") { const k = r[KETTE_SUB[ketteSub][1]] || 0; return k ? k + 1 : 0; }
-  if (rankTab === "blitz") return r[BLITZ_SUB[blitzSub][1]] || 0;
+  if (rankTab === "blitz") return blitzSub === "folge" && !folgeNeu(r) ? 0 : r[BLITZ_SUB[blitzSub][1]] || 0;
   return RANK_TABS[rankTab].val(r);
 }
 const BIB_GESAMT = "gesamt"; /* Woche-Schlüssel für die Gesamtzahl der Biblionär-Spiele in der Sammlung biblionaer */
