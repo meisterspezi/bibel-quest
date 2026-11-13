@@ -1,228 +1,886 @@
+@charset "UTF-8";
 /* ==========================================================================
    CI-Stylesheet Bibelbuch-Quest · Freie Baptisten Eichstätt
    Farbe 1 „Nacht, Gold und Kreuzrot“ · Schrift A4b (Cinzel / Lexend / Source Serif 4)
-   Stand 13.11.2026 – noch nicht in die App eingebunden.
+   Stand 13.11.2026, Fassung 2 – noch nicht in die App eingebunden.
 
    Einbinden:  <link rel="stylesheet" href="ci/ci.css">
-   Die Variablen --display, --body, --serif, --bg, --surface, --line, --muted
-   heißen wie in index.html, damit die App sie später direkt übernehmen kann.
+
+   Aufbau
+     0  Schriften laden
+     1  Variablen (Farben, Schrift, Maße, Wirkung, Ebenen)
+     2  Namen wie in index.html (Aliasse für die spätere Übernahme)
+     3  Bereichsfarben setzen ([data-bereich])
+     4  Grundelemente (Seite, Titel, Text, Bibelvers)
+     5  Bausteine (Karte, Knopf, Feld, Marke, Zähler, Ring, Bereichskopf …)
+     6  Navigation (Reiterleiste, Fußleiste)
+     7  Überlagerungen (Modal, Toast)
+     8  Zustände und Helfer (gesperrt, nur vorlesen)
+     9  Bewegung, Kontrastmodus
+
+   Benennung
+     --ci-…            Variable
+     .ci-baustein      Baustein
+     .ci-baustein-teil Teil eines Bausteins
+     .ci-baustein--art Variante
+     .ist-…            Zustand, wenn es kein passendes Attribut gibt
+                       (sonst: disabled, aria-pressed, aria-selected,
+                       aria-current, aria-invalid, aria-disabled)
+
+   Alle Kontrastwerte stehen nachgerechnet in ci/README.md.
    ========================================================================== */
 
+/* ---------- 0. Schriften laden ----------
+   Lädt die drei Schriften von Google Fonts. Schneller ist die <link>-Variante
+   im <head> (siehe README); dann diese eine Zeile löschen. Ohne Netz greifen
+   die Ersatzschriften aus Abschnitt 1.6. */
 @import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Lexend:wght@400;500;700&family=Source+Serif+4:ital,opsz,wght@1,8..60,500;1,8..60,600&display=swap");
 
 :root {
-  /* ---------- 1. Logo (unverändert, nur für Logo und Druck) ---------- */
+  /* ---------- 1.1 Logo (unverändert, nur für Logo und Druck) ---------- */
   --ci-logo-schwarz: #000000;
   --ci-logo-rot:     #ee0002;
   --ci-logo-weiss:   #ffffff;
 
-  /* ---------- 2. Grundfarben ---------- */
-  --ci-nacht:      #0e1226;   /* Hintergrund */
-  --ci-flaeche:    #1b2146;   /* Karten, Kacheln */
-  --ci-umriss:     #1b2a55;   /* Umriss der Symbole, dunkle Schrift auf Gold-Verläufen */
-  --ci-linie:      #323b74;   /* Trennlinien, Ränder */
-  --ci-text:       #f6f8ff;   /* Fließtext */
-  --ci-text-leise: #a3abd8;   /* Untertitel, Hinweise */
+  /* ---------- 1.2 Grundfarben ---------- */
+  --ci-nacht:        #0e1226;   /* Hintergrund (fest gewählt) */
+  --ci-nacht-2:      #151a36;   /* vertiefte Fläche: Eingabefeld, Schiene der Reiterleiste */
+  --ci-flaeche:      #1b2146;   /* Karten, Kacheln (fest gewählt) */
+  --ci-flaeche-2:    #262e5e;   /* erhöhte Fläche: Toast, Balken-Schiene, gedrückte Zeile */
+  --ci-umriss:       #1b2a55;   /* Umriss der Symbole, dunkle Kante an Gold (fest gewählt) */
+  --ci-linie:        #323b74;   /* nur Schmuck: Trennlinien, Kartenrand (1,5:1 – trägt keine Bedeutung) */
+  --ci-linie-stark:  #7480c4;   /* Rand von Bedienelementen: Feld, leiser Knopf (mind. 3:1 auf allen Flächen) */
+  --ci-text:         #f6f8ff;   /* Fließtext (fest gewählt) */
+  --ci-text-leise:   #a3abd8;   /* Untertitel, Hinweise, Platzhalter (mind. 5,2:1) */
 
-  /* ---------- 3. Akzente ---------- */
-  --ci-gold:       #f2c14e;   /* Hauptfarbe: Titel, Hauptknopf, Ringe, Punkte */
-  --ci-gold-hell:  #ffe39a;   /* Glanz in Verläufen */
-  --ci-gold-ink:   #2a1d02;   /* Schrift auf Gold */
-  --ci-kreuzrot:   #e8141b;   /* Signalfarbe aus dem Logo: Zähler, „neu“, Duell-Hinweise, Fehler */
-  --ci-kreuzrot-ink: #ffffff; /* Schrift auf Kreuzrot (Kontrast 4,6:1) */
+  /* ---------- 1.3 Akzente ---------- */
+  --ci-gold:         #f2c14e;   /* Hauptfarbe (fest gewählt): Titel, Hauptknopf, Ringe, Punkte */
+  --ci-gold-hell:    #ffe39a;   /* Glanz in Verläufen, Fokusrahmen */
+  --ci-gold-tief:    #c8952a;   /* unteres Ende des Goldverlaufs */
+  --ci-gold-ink:     #2a1d02;   /* Schrift auf Gold (9,8:1; auf Gold tief 6,1:1) */
+  --ci-kreuzrot:     #e8141b;   /* Signalfarbe (fest gewählt): Zähler, „neu“, Fehler, Duell-Hinweis */
+  --ci-kreuzrot-ink: #ffffff;   /* Schrift auf Kreuzrot: reines Weiß (4,6:1). Nicht --ci-text nehmen (4,35:1). */
+  --ci-kreuzrot-hell:#ff8087;   /* rote SCHRIFT auf dunklem Grund (6,4:1 auf Fläche); Kreuzrot selbst hat dort nur 3,4:1 */
 
-  /* ---------- 4. Bereichsfarben (wie in der App) ---------- */
-  --ci-lernen:     #7fc8ff;   /* Saphir */
-  --ci-spielen:    #ffb54a;   /* Bernstein */
-  --ci-gemeinde:   #5fe0b0;   /* Grün */
-  --ci-lohn:       #b38cff;   /* Violett: Laden, Abzeichen, Joker */
-  --ci-biblionaer: #66e0d0;   /* Türkis */
-  --ci-duell:      #ff8a5c;   /* Koralle */
-  --ci-spende:     #f4a6c8;   /* Rosé */
-  --ci-bedienung:  #e3e9f6;   /* Silber */
+  /* ---------- 1.4 Bereichsfarben (fest gewählt, wie in der App) ---------- */
+  --ci-lernen:       #7fc8ff;   /* Saphir */
+  --ci-spielen:      #ffb54a;   /* Bernstein */
+  --ci-gemeinde:     #5fe0b0;   /* Grün */
+  --ci-lohn:         #b38cff;   /* Violett: Laden, Abzeichen, Joker */
+  --ci-biblionaer:   #66e0d0;   /* Türkis */
+  --ci-duell:        #ff8a5c;   /* Koralle */
+  --ci-spende:       #f4a6c8;   /* Rosé */
+  --ci-bedienung:    #e3e9f6;   /* Silber */
 
-  /* ---------- 5. Zustände ---------- */
-  --ci-ok:      #5fe0b0;
-  --ci-warnung: #ffb54a;
-  --ci-fehler:  #e8141b;
+  /* ---------- 1.5 Zustände ---------- */
+  --ci-ok:           #5fe0b0;   /* richtig, erledigt (Schrift und Fläche) */
+  --ci-warnung:      #ffb54a;   /* Achtung (Schrift und Fläche) */
+  --ci-fehler:       var(--ci-kreuzrot);        /* Fehler als Fläche, Rand, Punkt */
+  --ci-fehler-text:  var(--ci-kreuzrot-hell);   /* Fehler als Schrift */
+  --ci-gesperrt-flaeche: #2b3050;               /* Gesperrtes: grau, ohne Schein */
+  --ci-gesperrt-text:    #a4a9c0;               /* 5,5:1 auf gesperrter Fläche, 6,7:1 auf Fläche */
 
-  /* ---------- 6. Schriften ---------- */
-  --ci-titel: "Cinzel", "Trajan Pro", Georgia, serif;                       /* nur Großbuchstaben */
-  --ci-text-schrift: "Lexend", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --ci-vers:  "Source Serif 4", Georgia, "Times New Roman", serif;          /* immer kursiv */
+  /* ---------- 1.6 Schriften ---------- */
+  --ci-schrift-titel: "Cinzel", "Trajan Pro", "Cormorant SC", Georgia, "Times New Roman", serif;                   /* nur Großbuchstaben */
+  --ci-schrift-text:  "Lexend", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --ci-schrift-vers:  "Source Serif 4", "Source Serif Pro", "EB Garamond", Georgia, "Times New Roman", serif;      /* immer kursiv */
 
-  /* Schriftgrößen (Handy 390 px als Maß) */
-  --ci-gr-1: 1.75rem;   /* Seitentitel */
-  --ci-gr-2: 1.35rem;   /* Bereichstitel */
-  --ci-gr-3: 1.1rem;    /* Abschnitt, Kartentitel */
-  --ci-gr-vers: 1.08rem;
-  --ci-gr-text: 1rem;
-  --ci-gr-klein: .82rem;
-  --ci-gr-mini: .68rem; /* Marken, Fußleiste */
+  /* Schriftgrößen in rem (1rem = 16 px; Maß ist das Handy mit 390 px) */
+  --ci-gr-1:      1.75rem;     /* 28 px  Seitentitel */
+  --ci-gr-2:      1.375rem;    /* 22 px  Bereichstitel */
+  --ci-gr-3:      1.125rem;    /* 18 px  Abschnitt, Kartentitel */
+  --ci-gr-vers:   1.125rem;    /* 18 px  Bibelvers */
+  --ci-gr-text:   1rem;        /* 16 px  Fließtext, Eingabefelder (nie kleiner: sonst zoomt iOS) */
+  --ci-gr-klein:  .875rem;     /* 14 px  Untertitel, Hinweise */
+  --ci-gr-mini:   .75rem;      /* 12 px  Marken, Abschnittstitel */
+  --ci-gr-winzig: .6875rem;    /* 11 px  nur Zähler und Fußleiste */
 
-  /* ---------- 7. Formen und Abstände ---------- */
-  --ci-radius-s: 8px;
-  --ci-radius-m: 12px;
-  --ci-radius-l: 18px;
+  /* Zeilenhöhen (ohne Einheit) */
+  --ci-zh-titel:  1.15;
+  --ci-zh-eng:    1.25;        /* Knöpfe, Marken, Listenzeilen */
+  --ci-zh-text:   1.55;
+  --ci-zh-vers:   1.5;
+
+  /* Laufweite */
+  --ci-lw-titel:  .05em;
+  --ci-lw-label:  .14em;
+  --ci-lw-knopf:  .04em;
+
+  /* ---------- 1.7 Maße ---------- */
+  --ci-abstand-1: .25rem;      /*  4 px */
+  --ci-abstand-2: .5rem;       /*  8 px */
+  --ci-abstand-3: .75rem;      /* 12 px */
+  --ci-abstand-4: 1rem;        /* 16 px */
+  --ci-abstand-5: 1.5rem;      /* 24 px */
+  --ci-abstand-6: 2.5rem;      /* 40 px */
+  --ci-radius-s:  8px;         /* Marken-Ecken, Balken, kleine Flächen */
+  --ci-radius-m:  12px;        /* Karten, Knöpfe, Felder */
+  --ci-radius-l:  18px;        /* Modal, Toast, Fußleiste */
   --ci-radius-rund: 999px;
-  --ci-abstand-1: 4px;
-  --ci-abstand-2: 8px;
-  --ci-abstand-3: 12px;
-  --ci-abstand-4: 16px;
-  --ci-abstand-5: 24px;
-  --ci-abstand-6: 40px;
-  --ci-schein: 0 0 18px color-mix(in srgb, var(--ci-gold) 35%, transparent);
-  --ci-schatten: 0 6px 18px rgba(0, 0, 0, .35);
-  --ci-goldbogen: linear-gradient(90deg, transparent, var(--ci-gold), transparent);
-  --ci-goldverlauf: linear-gradient(180deg, var(--ci-gold-hell), var(--ci-gold) 55%, #c8952a);
+  --ci-spalte:    520px;       /* größte Breite der Spiel-Spalte (wie .app) */
+  --ci-rand:      16px;        /* Seitenrand links und rechts */
+  --ci-tippflaeche: 44px;      /* kleinste Tippfläche */
+  --ci-fussleiste-hoehe: 68px;
 
-  /* ---------- 8. Namen wie in index.html (für die spätere Übernahme) ---------- */
-  --bg: var(--ci-nacht);
-  --surface: var(--ci-flaeche);
-  --line: var(--ci-linie);
-  --muted: var(--ci-text-leise);
-  --display: var(--ci-titel);
-  --body: var(--ci-text-schrift);
-  --serif: var(--ci-vers);
+  /* ---------- 1.8 Wirkung ---------- */
+  --ci-schein:        0 0 18px rgb(242 193 78 / .35);   /* sanfter Goldschein – nur für Hauptknopf und Belohnung */
+  --ci-schatten:      0 6px 18px rgb(0 0 0 / .35);
+  --ci-schatten-hoch: 0 10px 30px rgb(0 0 0 / .6);
+  --ci-schleier:      rgb(5 7 26 / .8);                 /* dunkler Schleier hinter dem Modal */
+  --ci-goldbogen:     linear-gradient(90deg, transparent, var(--ci-gold), transparent);
+  --ci-goldverlauf:   linear-gradient(180deg, var(--ci-gold-hell), var(--ci-gold) 55%, var(--ci-gold-tief));
+  --ci-lichtverlauf:  linear-gradient(180deg, #ffffff, #fff1c2 40%, var(--ci-gold) 75%, var(--ci-gold-tief));   /* Weißgold „Himmlisches Licht“ */
+  --ci-duellverlauf:  linear-gradient(90deg, var(--ci-gold), var(--ci-duell) 55%, var(--ci-spende));            /* Gold → Koralle → Rosé */
+  --ci-dauer:         .15s;
+
+  /* ---------- 1.9 Ebenen (wie in der App) ---------- */
+  --ci-ebene-fussleiste: 20;
+  --ci-ebene-toast:      45;
+  --ci-ebene-modal:      50;
+
+  /* ---------- 2. Namen wie in index.html (für die spätere Übernahme) ----------
+     Gleiche Namen wie in der App. Steht dieses Stylesheet NACH dem <style>
+     der App, gelten diese Werte; steht es davor, gewinnt die App. */
+  --bg:         var(--ci-nacht);
+  --bg2:        var(--ci-nacht-2);
+  --surface:    var(--ci-flaeche);
+  --surface2:   var(--ci-flaeche-2);
+  --line:       var(--ci-linie);
+  --fg:         var(--ci-text);
+  --muted:      var(--ci-text-leise);
+  --accent:     var(--ci-gold);
+  --accent-ink: var(--ci-gold-ink);
+  --good:       var(--ci-ok);
+  --bad:        var(--ci-fehler-text);   /* in der App meist rote Schrift; rote Flächen dort auf --ci-kreuzrot umstellen */
+  --display:    var(--ci-schrift-titel);
+  --body:       var(--ci-schrift-text);
+  --serif:      var(--ci-schrift-vers);
+  --ar:         var(--ci-gold);          /* Bereichsfarbe; ohne Bereich Gold */
+  --ar-lernen:  var(--ci-lernen);
+  --ar-spielen: var(--ci-spielen);
+  --ar-gemeinde:var(--ci-gemeinde);
+  --ar-lohn:    var(--ci-lohn);
+  --fs-s:       var(--ci-gr-mini);
+  --fs-m:       var(--ci-gr-klein);
+  --fs-l:       var(--ci-gr-text);
+  --tap:        var(--ci-tippflaeche);
+
+  /* Frühere Namen aus Fassung 1 – nicht mehr neu verwenden */
+  --ci-titel:        var(--ci-schrift-titel);
+  --ci-text-schrift: var(--ci-schrift-text);
+  --ci-vers:         var(--ci-schrift-vers);
 
   color-scheme: dark;
 }
 
 /* ==========================================================================
-   Grundelemente
+   3. Bereichsfarbe setzen
+   <section data-bereich="lernen"> … </section>
+   Setzt --ar (und --bk, so heißt die Farbe im Bereichskopf der App).
    ========================================================================== */
-.ci, .ci body, body.ci {
+[data-bereich="start"]      { --ar: var(--ci-gold); }
+[data-bereich="lernen"]     { --ar: var(--ci-lernen); }
+[data-bereich="spielen"]    { --ar: var(--ci-spielen); }
+[data-bereich="gemeinde"]   { --ar: var(--ci-gemeinde); }
+[data-bereich="lohn"]       { --ar: var(--ci-lohn); }
+[data-bereich="biblionaer"] { --ar: var(--ci-biblionaer); }
+[data-bereich="duell"]      { --ar: var(--ci-duell); }
+[data-bereich="spende"]     { --ar: var(--ci-spende); }
+[data-bereich="bedienung"]  { --ar: var(--ci-bedienung); }
+[data-bereich]              { --bk: var(--ar); }
+
+/* ==========================================================================
+   4. Grundelemente
+   ========================================================================== */
+/* Seitengrund: Klasse .ci auf <html> oder <body> */
+.ci,
+.ci body {
+  margin: 0;
   background: var(--ci-nacht);
   color: var(--ci-text);
-  font-family: var(--ci-text-schrift);
+  font-family: var(--ci-schrift-text);
   font-size: var(--ci-gr-text);
-  line-height: 1.55;
+  line-height: var(--ci-zh-text);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+.ci *,
+.ci *::before,
+.ci *::after { box-sizing: border-box; }
+.ci img,
+.ci svg { max-width: 100%; }
+
+/* Spiel-Spalte: höchstens 520 px, 16 px Seitenrand */
+.ci-seite {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--ci-spalte);
+  min-width: 0;
+  margin-inline: auto;
+  padding-inline: max(var(--ci-rand), env(safe-area-inset-left, 0px)) max(var(--ci-rand), env(safe-area-inset-right, 0px));
+}
+/* Platz lassen, wenn unten die Fußleiste steht */
+.ci-seite--mit-fussleiste {
+  padding-bottom: calc(var(--ci-fussleiste-hoehe) + 36px + env(safe-area-inset-bottom, 0px));
 }
 
+/* Senkrechter Abstand zwischen Geschwistern: <div class="ci-stapel"> */
+.ci-stapel { display: flex; flex-direction: column; gap: var(--ci-abstand-4); min-width: 0; }
+.ci-stapel--eng { gap: var(--ci-abstand-2); }
+.ci-stapel > * { min-width: 0; }
+
+/* ---------- Titel: Cinzel, immer Großbuchstaben, Gold ---------- */
 .ci-h1, .ci-h2, .ci-h3 {
-  font-family: var(--ci-titel);
+  margin: 0;
+  min-width: 0;
+  font-family: var(--ci-schrift-titel);
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: .05em;
+  letter-spacing: var(--ci-lw-titel);
+  line-height: var(--ci-zh-titel);
   color: var(--ci-gold);
-  line-height: 1.15;
   text-wrap: balance;
-  margin: 0;
+  overflow-wrap: anywhere;      /* lange Wörter umbrechen statt die Seite zu verbreitern */
 }
 .ci-h1 { font-size: var(--ci-gr-1); }
 .ci-h2 { font-size: var(--ci-gr-2); }
 .ci-h3 { font-size: var(--ci-gr-3); font-weight: 600; }
 
-.ci-unter {               /* Untertitel unter einem Titel, in Bereichsfarbe */
-  font-size: var(--ci-gr-klein);
-  font-weight: 500;
-  color: var(--ar, var(--ci-text-leise));
+/* Weißgold-Titel „Himmlisches Licht“ – zusätzlich zu .ci-h1/.ci-h2 */
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .ci-titel--licht {
+    background: var(--ci-lichtverlauf);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 1px 0 var(--ci-umriss));
+  }
 }
 
-.ci-label {               /* Abschnittstitel mit auslaufender Goldlinie */
+/* Untertitel unter einem Titel: innerhalb von [data-bereich] in Bereichsfarbe, sonst leise */
+.ci-unter {
+  margin: 0;
+  font-size: var(--ci-gr-klein);
+  font-weight: 500;
+  line-height: var(--ci-zh-eng);
+  color: var(--ci-text-leise);
+}
+[data-bereich] .ci-unter,
+.ci-unter[data-bereich] { color: var(--ar); }
+
+/* Leiser Hinweistext */
+.ci-leise { color: var(--ci-text-leise); font-size: var(--ci-gr-klein); }
+
+/* Abschnittstitel mit auslaufender Goldlinie */
+.ci-label {
   display: flex; align-items: center; gap: var(--ci-abstand-2);
-  font-family: var(--ci-text-schrift);
+  margin: 0; min-width: 0;
+  font-family: var(--ci-schrift-text);
   font-size: var(--ci-gr-mini); font-weight: 700;
-  letter-spacing: .14em; text-transform: uppercase;
+  letter-spacing: var(--ci-lw-label); text-transform: uppercase;
+  line-height: var(--ci-zh-eng);
   color: var(--ci-gold);
 }
 .ci-label::after {
-  content: ""; flex: 1; height: 1px;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--ci-gold) 60%, transparent), transparent);
+  content: ""; flex: 1; min-width: var(--ci-abstand-4); height: 1px;
+  background: linear-gradient(90deg, rgb(242 193 78 / .6), transparent);
 }
 
-.ci-bogen { height: 2px; border: 0; background: var(--ci-goldbogen); margin: var(--ci-abstand-3) 0; }
+/* Goldener Bogen-Trenner */
+.ci-bogen {
+  display: block; height: 2px; border: 0;
+  margin: var(--ci-abstand-3) 0;
+  background: var(--ci-goldbogen);
+}
+.ci-bogen--duell { background: var(--ci-duellverlauf); border-radius: 1px; }
 
-/* Bibelvers: immer kursiv, Stelle darunter in der Textschrift */
+/* Textverweis */
+.ci-link {
+  color: var(--ci-gold);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: .18em;
+}
+
+/* ---------- Bibelvers: immer kursiv, Stelle darunter in der Textschrift ---------- */
 .ci-vers {
-  font-family: var(--ci-vers);
-  font-style: italic; font-weight: 500;
-  font-size: var(--ci-gr-vers); line-height: 1.5;
-  color: var(--ci-text);
-  border-left: 3px solid var(--ci-gold);
-  padding-left: var(--ci-abstand-3);
   margin: 0;
+  padding-left: var(--ci-abstand-3);
+  border-left: 3px solid var(--ci-gold);
+  font-family: var(--ci-schrift-vers);
+  font-style: italic; font-weight: 500;
+  font-size: var(--ci-gr-vers); line-height: var(--ci-zh-vers);
+  color: var(--ci-text);
+  overflow-wrap: break-word;
 }
+/* Betonung im Vers bleibt kursiv und wird nur kräftiger */
+.ci-vers em, .ci-vers i, .ci-vers strong, .ci-vers b { font-style: italic; font-weight: 600; }
 .ci-stelle {
   display: block; margin-top: var(--ci-abstand-1);
-  font-family: var(--ci-text-schrift); font-style: normal;
-  font-size: var(--ci-gr-klein); color: var(--ci-text-leise);
+  font-family: var(--ci-schrift-text); font-style: normal; font-weight: 400;
+  font-size: var(--ci-gr-klein); line-height: var(--ci-zh-eng);
+  color: var(--ci-text-leise);
 }
 
+/* Goldene Zahl mit festen Ziffernbreiten */
 .ci-zahl { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--ci-gold); }
 
 /* ==========================================================================
-   Bausteine
+   5. Bausteine
    ========================================================================== */
+
+/* ---------- Karte ---------- */
 .ci-karte {
+  min-width: 0;
+  padding: var(--ci-abstand-4);
   background: var(--ci-flaeche);
   border: 1px solid var(--ci-linie);
   border-radius: var(--ci-radius-m);
-  padding: var(--ci-abstand-4);
+}
+/* Karte mit zartem Schimmer der Bereichsfarbe */
+.ci-karte--bereich {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--ar, var(--ci-gold)) 14%, var(--ci-flaeche)), var(--ci-flaeche) 70%);
+  border-color: color-mix(in srgb, var(--ar, var(--ci-gold)) 28%, var(--ci-linie));
 }
 
-.ci-knopf {               /* Hauptknopf: Gold */
+/* ---------- Knopf ----------
+   .ci-knopf            Hauptknopf: Gold, mit Schein (höchstens einer je Ansicht)
+   .ci-knopf--leise     Bedienknopf: ruhig, ohne Schein
+   .ci-knopf--bereich   Startknopf im Bereichskopf, in Bereichsfarbe
+   .ci-knopf--duell     Duell-Knopf: Verlauf Gold → Koralle → Rosé
+   .ci-knopf--gefahr    Löschen/Abbrechen: roter Rand, keine rote Fläche
+   .ci-knopf--breit     volle Breite      .ci-knopf--klein  kleiner (Tippfläche bleibt 44 px) */
+.ci-knopf {
   display: inline-flex; align-items: center; justify-content: center; gap: var(--ci-abstand-2);
-  min-height: 44px; padding: 10px 18px;
-  font-family: var(--ci-text-schrift); font-weight: 700; letter-spacing: .04em;
-  text-transform: uppercase; font-size: .9rem;
-  color: var(--ci-gold-ink); background: var(--ci-goldverlauf);
-  border: 0; border-radius: var(--ci-radius-m);
-  box-shadow: var(--ci-schein);
+  box-sizing: border-box;
+  min-width: 0; max-width: 100%; min-height: var(--ci-tippflaeche);
+  margin: 0; padding: .5rem 1.125rem;
+  font-family: var(--ci-schrift-text); font-size: .9375rem; font-weight: 700;
+  letter-spacing: var(--ci-lw-knopf); text-transform: uppercase;
+  line-height: var(--ci-zh-eng); text-align: center; text-decoration: none;
+  overflow-wrap: anywhere;
+  color: var(--ci-gold-ink);
+  background: var(--ci-goldverlauf);
+  border: 1px solid transparent;
+  border-radius: var(--ci-radius-m);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .7), var(--ci-schein);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none; -webkit-user-select: none;
 }
-.ci-knopf--leise {        /* Nebenknopf: ruhig, ohne Schein */
-  color: var(--ci-text); background: transparent;
-  border: 1px solid var(--ci-linie); box-shadow: none;
-}
-.ci-knopf:focus-visible { outline: 3px solid var(--ci-gold-hell); outline-offset: 2px; }
-.ci-knopf:disabled { filter: grayscale(1); opacity: .55; box-shadow: none; cursor: default; }
+.ci-knopf svg { flex: none; width: 1.25em; height: 1.25em; }
 
-.ci-marke {               /* kleine Marke, z. B. „neu“, „+20 Talente“ */
-  display: inline-block; padding: 2px 9px;
+.ci-knopf--leise {
+  color: var(--ci-text);
+  background: transparent;
+  border-color: var(--ci-linie-stark);
+  box-shadow: none;
+}
+.ci-knopf--bereich {
+  color: var(--ci-nacht);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ar, var(--ci-gold)) 70%, #ffffff), var(--ar, var(--ci-gold)));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .6);
+}
+.ci-knopf--duell {
+  color: var(--ci-gold-ink);
+  background: var(--ci-duellverlauf);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .5);
+}
+.ci-knopf--gefahr {
+  color: var(--ci-fehler-text);
+  background: transparent;
+  border-color: var(--ci-fehler);
+  box-shadow: none;
+}
+.ci-knopf--breit { display: flex; width: 100%; }
+.ci-knopf--klein { padding: .25rem .75rem; font-size: var(--ci-gr-mini); border-radius: var(--ci-radius-s); }
+
+/* Zustände */
+@media (hover: hover) {
+  .ci-knopf:hover { filter: brightness(1.07); }
+  .ci-knopf--leise:hover  { filter: none; background: rgb(246 248 255 / .08); }
+  .ci-knopf--gefahr:hover { filter: none; background: rgb(232 20 27 / .16); }
+}
+.ci-knopf:active { transform: translateY(1px); filter: brightness(.95); }
+.ci-knopf--leise:active  { filter: none; background: rgb(246 248 255 / .14); }
+.ci-knopf--gefahr:active { filter: none; background: rgb(232 20 27 / .24); }
+.ci-knopf[aria-pressed="true"] {          /* eingeschalteter Umschalter */
+  color: var(--ci-gold);
+  background: rgb(242 193 78 / .16);
+  border-color: var(--ci-gold);
+  box-shadow: none;
+}
+
+/* Gesperrt: grau, ohne Schein, ohne Bewegung */
+.ci-knopf:disabled,
+.ci-knopf[aria-disabled="true"],
+.ci-knopf.ist-gesperrt {
+  color: var(--ci-gesperrt-text);
+  background: var(--ci-gesperrt-flaeche);
+  border-color: transparent;
+  box-shadow: none; filter: none; transform: none;
+  cursor: not-allowed;
+}
+
+/* ---------- Fokus (Tastatur): heller Goldrahmen mit Abstand ---------- */
+.ci-knopf:focus-visible,
+.ci-link:focus-visible,
+.ci-feld:focus-visible,
+.ci-reiter > :focus-visible,
+.ci-fussleiste > :focus-visible,
+.ci-zeile:focus-visible {
+  outline: 3px solid var(--ci-gold-hell);
+  outline-offset: 2px;
+}
+
+/* ---------- Eingabefeld ----------
+   <label class="ci-feld-label" for="n">Name</label>
+   <input class="ci-feld" id="n" aria-describedby="n-h">
+   <p class="ci-feld-hinweis" id="n-h">…</p>
+   Fehler: aria-invalid="true" am Feld, .ci-feld-hinweis--fehler am Hinweis. */
+.ci-feld-label {
+  display: block; margin: 0 0 var(--ci-abstand-1);
+  font-size: var(--ci-gr-klein); font-weight: 500; line-height: var(--ci-zh-eng);
+  color: var(--ci-text);
+}
+.ci-feld {
+  display: block; box-sizing: border-box;
+  width: 100%; min-width: 0; min-height: var(--ci-tippflaeche);
+  margin: 0; padding: .5rem .75rem;
+  font-family: var(--ci-schrift-text); font-size: var(--ci-gr-text); line-height: var(--ci-zh-eng);
+  color: var(--ci-text);
+  background: var(--ci-nacht-2);
+  border: 1px solid var(--ci-linie-stark);
+  border-radius: var(--ci-radius-m);
+  -webkit-appearance: none; appearance: none;
+}
+textarea.ci-feld { min-height: 6rem; line-height: var(--ci-zh-text); resize: vertical; }
+select.ci-feld {
+  padding-right: 2.25rem;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ci-text-leise) 50%), linear-gradient(135deg, var(--ci-text-leise) 50%, transparent 50%);
+  background-position: calc(100% - 1.125rem) 50%, calc(100% - .75rem) 50%;
+  background-size: .375rem .375rem;
+  background-repeat: no-repeat;
+}
+.ci-feld::placeholder { color: var(--ci-text-leise); opacity: 1; }
+@media (hover: hover) { .ci-feld:hover { border-color: var(--ci-text-leise); } }
+.ci-feld:focus { border-color: var(--ci-gold); }
+.ci-feld[aria-invalid="true"] { border-color: var(--ci-fehler); box-shadow: 0 0 0 1px var(--ci-fehler); }
+.ci-feld:disabled {
+  color: var(--ci-gesperrt-text); background: var(--ci-gesperrt-flaeche);
+  border-color: transparent; cursor: not-allowed;
+}
+.ci-feld-hinweis {
+  margin: var(--ci-abstand-1) 0 0;
+  font-size: var(--ci-gr-klein); line-height: var(--ci-zh-eng);
+  color: var(--ci-text-leise);
+}
+.ci-feld-hinweis--fehler { color: var(--ci-fehler-text); }
+
+/* ---------- Marke: kleines Schild, z. B. „neu“, „+20 Talente“ ---------- */
+.ci-marke {
+  display: inline-block; max-width: 100%;
+  padding: .125rem .5625rem;
   font-size: var(--ci-gr-mini); font-weight: 700; letter-spacing: .03em;
+  line-height: var(--ci-zh-eng); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; vertical-align: middle;
+  color: var(--ci-gold-ink); background: var(--ci-gold);
+  border: 1px solid transparent;
   border-radius: var(--ci-radius-rund);
-  background: var(--ci-gold); color: var(--ci-gold-ink);
 }
-.ci-marke--signal { background: var(--ci-kreuzrot); color: var(--ci-kreuzrot-ink); }
+.ci-marke--signal  { color: var(--ci-kreuzrot-ink); background: var(--ci-kreuzrot); }   /* „neu“, Duell-Hinweis */
+.ci-marke--bereich { color: var(--ar, var(--ci-gold)); background: transparent; border-color: currentColor; }
+.ci-marke--leise   { color: var(--ci-text-leise); background: transparent; border-color: var(--ci-linie-stark); }
+.ci-marke--ok      { color: var(--ci-nacht); background: var(--ci-ok); }
+.ci-marke--gesperrt{ color: var(--ci-gesperrt-text); background: var(--ci-gesperrt-flaeche); }
 
-.ci-zaehler {             /* rote Zahl an Symbolen/Reitern */
-  display: inline-grid; place-items: center;
-  min-width: 18px; height: 18px; padding: 0 5px;
-  font-size: .66rem; font-weight: 700; font-variant-numeric: tabular-nums;
+/* ---------- Zähler: rote Zahl an Symbolen und Reitern ---------- */
+.ci-zaehler {
+  display: inline-grid; place-items: center; box-sizing: border-box;
+  min-width: 1.125rem; height: 1.125rem; padding: 0 .3125rem;
+  font-size: var(--ci-gr-winzig); font-weight: 700; line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ci-kreuzrot-ink); background: var(--ci-kreuzrot);
   border-radius: var(--ci-radius-rund);
-  background: var(--ci-kreuzrot); color: var(--ci-kreuzrot-ink);
+}
+/* Als Ecke an einem Symbol: Elternelement braucht position: relative */
+.ci-zaehler--ecke { position: absolute; top: -4px; right: -6px; box-shadow: 0 0 0 2px var(--ci-nacht); }
+
+/* ---------- Ring: goldener Zahl-Ring rechts im Bereichskopf ----------
+   <div class="ci-ring"><b>12</b><small>Stufe</small></div> */
+.ci-ring {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  flex: none; box-sizing: border-box;
+  width: 3.5rem; height: 3.5rem;
+  border: 3px solid var(--ci-gold); border-radius: 50%;
+  font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums;
+  color: var(--ci-gold);
+}
+.ci-ring b { font-family: var(--ci-schrift-titel); font-size: var(--ci-gr-3); font-weight: 800; }
+.ci-ring small {
+  margin-top: 2px;
+  font-size: .5625rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ci-text-leise);
 }
 
-.ci-ring {                /* goldener Zahl-Ring rechts im Bereichskopf */
+/* ---------- Medaillon: Symbol-Scheibe in Bereichsfarbe ---------- */
+.ci-medaillon {
+  display: grid; place-items: center; flex: none; box-sizing: border-box;
+  width: 3.5rem; height: 3.5rem; border-radius: 50%;
+  color: var(--ar, var(--ci-gold));
+  background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--ar, var(--ci-gold)) 34%, var(--ci-flaeche-2)), var(--ci-nacht-2) 78%);
+  border: 2px solid var(--ar, var(--ci-gold));
+}
+.ci-medaillon svg, .ci-medaillon img { width: 2.25rem; height: 2.25rem; }
+
+/* ---------- Bereichskopf im Arena-Stil ----------
+   <header class="ci-bereichskopf" data-bereich="lernen">
+     <span class="ci-medaillon">…</span>
+     <div class="ci-bereichskopf-text"><h1 class="ci-h2">Lernen</h1><p class="ci-unter">66 Bücher</p></div>
+     <div class="ci-ring"><b>12</b><small>Stufe</small></div>
+   </header>
+   <hr class="ci-bogen">  <div class="ci-tafel">…</div>  <button class="ci-knopf ci-knopf--bereich ci-knopf--breit">…</button> */
+.ci-bereichskopf {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center; gap: var(--ci-abstand-3);
+  min-width: 0;
+}
+.ci-bereichskopf-text { min-width: 0; }
+.ci-bereichskopf-text .ci-unter {
+  margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ---------- Zahlentafel: drei Werte nebeneinander ----------
+   <div class="ci-tafel"><span><b>12</b> Stufe</span><span>…</span><span>…</span></div> */
+.ci-tafel {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: 0; overflow: hidden;
+  background: var(--ci-flaeche);
+  border: 1px solid rgb(242 193 78 / .3);
+  border-radius: var(--ci-radius-m);
+}
+.ci-tafel > * {
+  display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 0 var(--ci-abstand-1);
+  min-width: 0; padding: var(--ci-abstand-2) var(--ci-abstand-1);
+  font-size: var(--ci-gr-mini); font-weight: 500; line-height: var(--ci-zh-eng); text-align: center;
+  color: var(--ci-text-leise);
+}
+.ci-tafel > * + * { border-left: 1px solid rgb(242 193 78 / .18); }
+.ci-tafel b {
+  font-family: var(--ci-schrift-titel); font-size: var(--ci-gr-text); font-weight: 800;
+  font-variant-numeric: tabular-nums; color: var(--ci-gold);
+}
+
+/* ---------- Fortschrittsbalken ----------
+   <div class="ci-balken" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"
+        aria-label="Fortschritt" style="--wert:60%"><i></i></div> */
+.ci-balken {
+  display: block; min-width: 0; height: .5rem; overflow: hidden;
+  background: var(--ci-flaeche-2);
+  border-radius: var(--ci-radius-rund);
+}
+.ci-balken > i {
+  display: block; height: 100%; width: var(--wert, 0%); max-width: 100%;
+  background: linear-gradient(90deg, var(--ci-gold), var(--ci-gold-hell));
+  border-radius: inherit;
+}
+.ci-balken--bereich > i { background: var(--ar, var(--ci-gold)); }
+.ci-balken--duell > i   { background: var(--ci-duellverlauf); }
+.ci-balken--schmal      { height: .375rem; }
+
+/* ---------- Liste und Listenzeile (auch Rangliste) ----------
+   <ul class="ci-liste">
+     <li class="ci-zeile ci-zeile--ich">
+       <span class="ci-zeile-rang">1</span>
+       <span class="ci-zeile-haupt"><b>Name</b><small>Gemeinde</small></span>
+       <span class="ci-zeile-wert">1 240</span>
+     </li>
+   </ul>
+   Als antippbare Zeile: <button class="ci-zeile"> oder <a class="ci-zeile">. */
+.ci-liste { margin: 0; padding: 0; list-style: none; min-width: 0; }
+.ci-zeile {
+  display: flex; align-items: center; gap: var(--ci-abstand-3);
+  box-sizing: border-box; width: 100%; min-width: 0; min-height: var(--ci-tippflaeche);
+  margin: 0; padding: var(--ci-abstand-2);
+  font: inherit; line-height: var(--ci-zh-eng); text-align: left; text-decoration: none;
+  color: inherit; background: none;
+  border: 0; border-top: 1px solid var(--ci-linie);
+  border-radius: 0;
+}
+.ci-liste > :first-child > .ci-zeile,
+.ci-liste > .ci-zeile:first-child { border-top-color: transparent; }
+button.ci-zeile, a.ci-zeile { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+@media (hover: hover) { button.ci-zeile:hover, a.ci-zeile:hover { background: rgb(246 248 255 / .06); } }
+button.ci-zeile:active, a.ci-zeile:active { background: rgb(246 248 255 / .1); }
+
+.ci-zeile-rang {
+  flex: none; min-width: 1.75rem; text-align: center;
+  font-weight: 700; font-variant-numeric: tabular-nums;
+  color: var(--ci-text-leise);
+}
+.ci-zeile-haupt { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.ci-zeile-haupt > b { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ci-zeile-haupt > small {
+  font-size: var(--ci-gr-mini); color: var(--ci-text-leise);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ci-zeile-wert { flex: none; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ci-gold); }
+
+/* Eigene Zeile in der Rangliste: zart golden hinterlegt */
+.ci-zeile--ich {
+  background: color-mix(in srgb, var(--ci-gold) 14%, var(--ci-flaeche));
+  border-top-color: transparent;
+  border-radius: var(--ci-radius-m);
+}
+.ci-zeile--ich .ci-zeile-rang { color: var(--ci-gold); }
+.ci-zeile--ich + .ci-zeile,
+li:has(> .ci-zeile--ich) + li > .ci-zeile { border-top-color: transparent; }
+/* Plätze 1–3 */
+.ci-zeile-rang--podest { color: var(--ci-gold); font-family: var(--ci-schrift-titel); font-weight: 800; }
+
+/* ---------- Meldung im Seitenfluss ----------
+   <p class="ci-meldung ci-meldung--fehler" role="alert">…</p> */
+.ci-meldung {
+  margin: 0; min-width: 0;
+  padding: var(--ci-abstand-3) var(--ci-abstand-4);
+  font-size: var(--ci-gr-klein); line-height: var(--ci-zh-text);
+  color: var(--ci-text);
+  background: var(--ci-flaeche);
+  border: 1px solid var(--ci-linie); border-left: 4px solid var(--ci-gold);
+  border-radius: var(--ci-radius-s);
+  overflow-wrap: break-word;
+}
+.ci-meldung--fehler  { border-left-color: var(--ci-fehler); }
+.ci-meldung--ok      { border-left-color: var(--ci-ok); }
+.ci-meldung--warnung { border-left-color: var(--ci-warnung); }
+.ci-meldung--fehler  > b:first-child, .ci-meldung--fehler  > strong:first-child { color: var(--ci-fehler-text); }
+.ci-meldung--ok      > b:first-child, .ci-meldung--ok      > strong:first-child { color: var(--ci-ok); }
+.ci-meldung--warnung > b:first-child, .ci-meldung--warnung > strong:first-child { color: var(--ci-warnung); }
+
+/* ---------- Gemeindelogo: immer auf weißer Scheibe, nie umfärben ---------- */
+.ci-logo {
+  display: block; flex: none; box-sizing: border-box;
+  width: 3rem; height: 3rem; padding: 3px;
+  object-fit: contain;
+  background: var(--ci-logo-weiss);
+  border-radius: 50%;
+}
+.ci-logo--klein { width: 2rem; height: 2rem; padding: 2px; }
+.ci-logo--gross { width: 5rem; height: 5rem; padding: 5px; }
+
+/* ==========================================================================
+   6. Navigation
+   ========================================================================== */
+
+/* ---------- Reiterleiste: Umschalter innerhalb einer Ansicht ----------
+   <div class="ci-reiter" role="tablist">
+     <button role="tab" aria-selected="true">Woche</button>
+     <button role="tab" aria-selected="false">Gesamt <span class="ci-zaehler">3</span></button>
+   </div>
+   Alternativ mit aria-pressed (Umschalter). Bei 390 px drei Reiter, vier nur mit kurzen
+   Wörtern (bis etwa 7 Zeichen); längere werden mit „…“ gekürzt. */
+.ci-reiter {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+  gap: 2px; min-width: 0; padding: 3px;
+  background: var(--ci-nacht-2);
+  border: 1px solid var(--ci-linie);
+  border-radius: var(--ci-radius-rund);
+}
+.ci-reiter > * {
+  display: block;               /* kein Flex: nur so kürzt „…“ zu lange Reiter sauber am Ende */
+  box-sizing: border-box; min-width: 0; height: 2.375rem;   /* 38 px + 2 × 3 px Schiene = 44 px Tippfläche */
+  margin: 0; padding: 0 .5rem;
+  font-family: var(--ci-schrift-text); font-size: var(--ci-gr-klein); font-weight: 700;
+  line-height: 2.375rem; text-align: center; text-decoration: none;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: var(--ci-text-leise); background: none;
+  border: 0; border-radius: var(--ci-radius-rund);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+@media (hover: hover) { .ci-reiter > :hover { color: var(--ci-text); } }
+.ci-reiter > [aria-selected="true"],
+.ci-reiter > [aria-pressed="true"],
+.ci-reiter > [aria-current],
+.ci-reiter > .ist-aktiv { color: var(--ci-gold-ink); background: var(--ci-gold); }
+.ci-reiter .ci-zaehler { vertical-align: middle; margin-left: 2px; }
+.ci-reiter > :disabled { color: var(--ci-gesperrt-text); cursor: not-allowed; }
+
+/* ---------- Fußleiste: Hauptnavigation unten ----------
+   <nav class="ci-fussleiste" aria-label="Hauptmenü">
+     <button data-bereich="start" aria-current="page"><svg>…</svg><span>Start</span></button>
+     <button data-bereich="duell"><svg>…</svg><span>Duelle</span><span class="ci-zaehler ci-zaehler--ecke">2</span></button>
+   </nav>
+   Bis zu sechs Einträge bei 390 px. Die Seite braucht .ci-seite--mit-fussleiste. */
+.ci-fussleiste {
+  position: fixed; z-index: var(--ci-ebene-fussleiste);
+  left: 0; right: 0; bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+  box-sizing: border-box;
+  width: min(500px, calc(100% - 20px)); height: var(--ci-fussleiste-hoehe);
+  margin-inline: auto; padding: 0 var(--ci-abstand-1);
+  background: var(--ci-flaeche);
+  border: 1px solid var(--ci-linie);
+  border-radius: var(--ci-radius-l);
+  box-shadow: var(--ci-schatten-hoch);
+}
+.ci-fussleiste > * {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  box-sizing: border-box; min-width: 0; height: 100%;
+  margin: 0; padding: var(--ci-abstand-1) 0;
+  font-family: var(--ci-schrift-text); font-size: var(--ci-gr-winzig); font-weight: 700;
+  line-height: var(--ci-zh-eng); text-decoration: none;
+  color: var(--ci-text-leise); background: none;
+  border: 0; border-radius: var(--ci-radius-m);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.ci-fussleiste > * > span:not(.ci-zaehler) {
+  max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ci-fussleiste svg, .ci-fussleiste img { flex: none; width: 1.75rem; height: 1.75rem; }
+.ci-fussleiste > [aria-current],
+.ci-fussleiste > .ist-aktiv { color: var(--ci-text); }
+/* Lichtstrich oben in Bereichsfarbe */
+.ci-fussleiste > [aria-current]::before,
+.ci-fussleiste > .ist-aktiv::before {
+  content: ""; position: absolute; top: -1px; left: 50%;
+  width: 2.125rem; height: 4px; margin-left: -1.0625rem;
+  background: var(--ar, var(--ci-gold));
+  border-radius: 0 0 4px 4px;
+}
+.ci-fussleiste .ci-zaehler--ecke { top: 4px; right: auto; left: calc(50% + 6px); box-shadow: 0 0 0 2px var(--ci-flaeche); }
+
+/* ==========================================================================
+   7. Überlagerungen
+   ========================================================================== */
+
+/* ---------- Modal ----------
+   <div class="ci-modal" role="dialog" aria-modal="true" aria-labelledby="t">
+     <div class="ci-modal-karte">
+       <h2 class="ci-h2" id="t">…</h2> <p>…</p>
+       <div class="ci-modal-knoepfe"><button class="ci-knopf ci-knopf--leise">Zurück</button><button class="ci-knopf">Weiter</button></div>
+     </div>
+   </div>
+   Ausblenden mit dem Attribut hidden. */
+.ci-modal {
+  position: fixed; inset: 0; z-index: var(--ci-ebene-modal);
   display: grid; place-items: center;
-  width: 52px; height: 52px; border-radius: 50%;
-  border: 3px solid var(--ci-gold);
-  font-weight: 700; color: var(--ci-gold); font-variant-numeric: tabular-nums;
+  box-sizing: border-box;
+  padding: var(--ci-abstand-5) var(--ci-rand);
+  background: var(--ci-schleier);
+  overflow-y: auto; overscroll-behavior: contain;
+}
+.ci-modal[hidden] { display: none; }
+.ci-modal-karte {
+  box-sizing: border-box;
+  width: 100%; max-width: 360px; min-width: 0;
+  padding: var(--ci-abstand-5) var(--ci-abstand-4);
+  text-align: center;
+  color: var(--ci-text);
+  background: var(--ci-flaeche);
+  border: 1px solid rgb(242 193 78 / .45);
+  border-radius: var(--ci-radius-l);
+  box-shadow: var(--ci-schatten-hoch);
+  overflow-wrap: break-word;
+}
+.ci-modal-karte--weit { max-width: var(--ci-spalte); text-align: left; }
+.ci-modal-knoepfe {
+  display: flex; flex-wrap: wrap; gap: var(--ci-abstand-2);
+  margin-top: var(--ci-abstand-4);
+}
+.ci-modal-knoepfe > * { flex: 1 1 8rem; }
+
+/* ---------- Toast: kurze Rückmeldung über der Fußleiste ----------
+   <div class="ci-toast" role="status"><svg>…</svg><span>+20 Talente</span></div>
+   Fehler: .ci-toast--fehler und role="alert". */
+.ci-toast {
+  position: fixed; z-index: var(--ci-ebene-toast);
+  left: var(--ci-rand); right: var(--ci-rand);
+  bottom: calc(var(--ci-fussleiste-hoehe) + 24px + env(safe-area-inset-bottom, 0px));
+  display: flex; align-items: center; gap: var(--ci-abstand-3);
+  box-sizing: border-box;
+  max-width: 440px; min-width: 0;
+  margin-inline: auto; padding: var(--ci-abstand-3) var(--ci-abstand-4);
+  font-size: var(--ci-gr-klein); font-weight: 500; line-height: var(--ci-zh-eng);
+  color: var(--ci-text);
+  background: var(--ci-flaeche-2);
+  border: 1px solid var(--ci-gold);
+  border-radius: var(--ci-radius-l);
+  box-shadow: var(--ci-schatten-hoch);
+  overflow-wrap: anywhere;
+}
+.ci-toast[hidden] { display: none; }
+.ci-toast > svg, .ci-toast > img { flex: none; width: 1.875rem; height: 1.875rem; }
+.ci-toast > span { min-width: 0; }
+.ci-toast--ok     { border-color: var(--ci-ok); }
+.ci-toast--fehler { border-color: var(--ci-fehler); border-width: 2px; }
+
+/* ==========================================================================
+   8. Zustände und Helfer
+   ========================================================================== */
+
+/* Gesperrt (Karte, Kachel, Medaillon, Ring, Symbol): grau, ohne Schein, ohne Bewegung.
+   Zusätzlich aria-disabled="true" setzen und ein Schloss-Symbol zeigen –
+   Grau allein reicht als Hinweis nicht. */
+.ist-gesperrt {
+  --ar: var(--ci-gesperrt-text);
+  color: var(--ci-gesperrt-text);
+  box-shadow: none;
+  animation: none;
+}
+.ist-gesperrt svg, .ist-gesperrt img { filter: grayscale(1) brightness(.75); }
+.ci-karte.ist-gesperrt { background: var(--ci-gesperrt-flaeche); border-color: transparent; }
+.ci-medaillon.ist-gesperrt { background: var(--ci-gesperrt-flaeche); border-color: var(--ci-gesperrt-text); }
+.ci-ring.ist-gesperrt { border-color: var(--ci-gesperrt-text); color: var(--ci-gesperrt-text); }
+.ist-gesperrt .ci-h1, .ist-gesperrt .ci-h2, .ist-gesperrt .ci-h3,
+.ist-gesperrt .ci-zahl, .ist-gesperrt .ci-unter { color: var(--ci-gesperrt-text); }
+
+/* Schein nur für Belohnung und den einen Hauptknopf – nie für Bedienknöpfe */
+.ci-schein { box-shadow: var(--ci-schein); }
+
+/* Nur für Vorleseprogramme sichtbar */
+.ci-nur-vorlesen {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
 }
 
-.ci-logo {                /* Gemeindelogo immer auf weißem Grund */
-  background: var(--ci-logo-weiss); border-radius: 50%; padding: 3px;
+/* ==========================================================================
+   9. Bewegung und Kontrastmodus
+   ========================================================================== */
+/* Übergänge nur, wenn der Nutzer Bewegung nicht abgestellt hat */
+@media (prefers-reduced-motion: no-preference) {
+  .ci-knopf { transition: transform .08s, filter var(--ci-dauer), background-color var(--ci-dauer); }
+  .ci-feld { transition: border-color var(--ci-dauer); }
+  .ci-reiter > *, .ci-fussleiste > * { transition: color var(--ci-dauer), background-color var(--ci-dauer); }
+  .ci-balken > i { transition: width .5s cubic-bezier(.2, .9, .3, 1); }
 }
-
-/* Bereichsfarbe setzen: <section class="ci-bereich" data-bereich="lernen"> */
-[data-bereich="lernen"]    { --ar: var(--ci-lernen); }
-[data-bereich="spielen"]   { --ar: var(--ci-spielen); }
-[data-bereich="gemeinde"]  { --ar: var(--ci-gemeinde); }
-[data-bereich="lohn"]      { --ar: var(--ci-lohn); }
-[data-bereich="biblionaer"]{ --ar: var(--ci-biblionaer); }
-[data-bereich="duell"]     { --ar: var(--ci-duell); }
-
 @media (prefers-reduced-motion: reduce) {
-  .ci * { animation: none !important; transition: none !important; }
+  .ci *, .ci *::before, .ci *::after,
+  [class*="ci-"], [class*="ci-"]::before, [class*="ci-"]::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  .ci-knopf:active { transform: none; }
+}
+/* Windows-Kontrastmodus: Verlaufstext sichtbar halten, Ränder zeigen */
+@media (forced-colors: active) {
+  .ci-titel--licht { background: none; color: CanvasText; filter: none; }
+  .ci-knopf, .ci-marke, .ci-zaehler, .ci-balken, .ci-reiter > * { border: 1px solid currentColor; }
+  .ci-balken > i { background: Highlight; }
 }
 
 /* ==========================================================================
    Regeln (Kurzfassung, ausführlich in ci/README.md)
    - Gold ist die Hauptfarbe. Kreuzrot nur als Signal (Zähler, „neu“, Fehler,
-     Duell-Hinweis) – nie als große Fläche, nie für Titel.
+     Duell-Hinweis) – nie als große Fläche, nie für Titel. Rote Schrift auf
+     dunklem Grund immer in --ci-kreuzrot-hell, Schrift auf Kreuzrot reinweiß.
    - Titel in Cinzel immer in Großbuchstaben. Fließtext in Lexend.
      Bibelverse in Source Serif 4 kursiv, Stelle in Lexend darunter (Schlachter 2000).
    - Das Logo wird nicht umgefärbt; auf dunklem Grund steht es auf einer weißen Scheibe.
    - Bedienknöpfe ruhig ohne Schein, Gesperrtes grau ohne Schein.
+   - Alles passt bei 390 px ohne seitliches Wischen: Kinder in Flex/Grid
+     bekommen min-width: 0, Spalten minmax(0, 1fr).
    ========================================================================== */
