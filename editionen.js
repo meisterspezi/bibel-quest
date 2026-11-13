@@ -23,10 +23,11 @@ function edFlocke(voll, klasse) {
 }
 const WEIH_FLOCKE = edFlocke(false);
 const ED_WEIH_SYM = edFlocke(true, "ed-fl ed-fl-weihnachten");
-/* Ostern: einfaches goldenes Kreuz vor dem Morgenrot, violettes Tuch der Passion, grüner Hügel */
-const ED_OSTER_SYM = `<svg class="weih-fl ed-fl ed-fl-ostern" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="15" r="7.8" fill="url(#edgSun)" stroke="#ff9a2e" stroke-width=".6"/><path d="M1.8 22.4c2.6-4 6-5.6 10.2-5.6s7.600 1.600 10.2 5.6z" fill="url(#edgGreen)" stroke="${ED_UM}" stroke-width="1.1" stroke-linejoin="round"/>
-  <path d="M13.7 6.600h5.1v3.2h-5.1z" fill="none"/><path d="M14.1 7.8c2 -.3 3.600 -.1 4.9 .6v6.3c-.8 -1 -1.8 -.9 -2.4 .1 -.4 -1.2 -1.5 -1.4 -2.3 -.3-.4 -2.1 -.4 -4.4-.2 -6.7z" fill="url(#edgPurple)" stroke="${ED_UM}" stroke-width="1" stroke-linejoin="round"/>
-  <path d="M10.3 2.2h3.4v4.4h5.1v3.2h-5.1v9.7h-3.4V9.8H5.2V6.600h5.1z" fill="url(#edgGold)" stroke="${ED_UM}" stroke-width="1.3" stroke-linejoin="round"/><path d="M11.2 3.4v14.600M6.2 7.5h4" stroke="#fff" stroke-width=".9" stroke-linecap="round" opacity=".75"/></svg>`;
+/* Ostern: Golgatha – drei Kreuze auf dem Hügel vor dem Abendhimmel, das mittlere Kreuz (Jesus) größer und golden, kein Tuch */
+const ED_OSTER_SYM = `<svg class="weih-fl ed-fl ed-fl-ostern" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="9" fill="url(#edgSun)" opacity=".9"/>
+  <path d="M3.9 8.6h1.5v1.9h1.8v1.4H5.4v7.600H3.9v-7.600H2.1v-1.400h1.8z" fill="#d7b46b" stroke="${ED_UM}" stroke-width=".8" stroke-linejoin="round"/><path d="M18.6 8.600h1.500v1.900h1.8v1.400h-1.8v7.600h-1.500v-7.600h-1.8v-1.400h1.8z" fill="#d7b46b" stroke="${ED_UM}" stroke-width=".8" stroke-linejoin="round"/>
+  <path d="M10.700 2.400h2.600v3.300h3.300v2.500h-3.300v10.400h-2.600V8.200H7.400V5.700h3.300z" fill="url(#edgGold)" stroke="${ED_UM}" stroke-width="1.1" stroke-linejoin="round"/><path d="M11.600 3.600v13M8.400 6.600h2.300" stroke="#fff" stroke-width=".8" stroke-linecap="round" opacity=".7"/>
+  <path d="M0.8 23c3-4.600 7.2-6.2 11.2-6.2S20.2 18.400 23.2 23z" fill="url(#edgHill)" stroke="${ED_UM}" stroke-width="1.1" stroke-linejoin="round"/></svg>`;
 /* Pfingsten: dreifarbige Feuerflamme (Apg 2,3) */
 const ED_PFINGST_SYM = `<svg class="weih-fl ed-fl ed-fl-pfingsten" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.600 1.5c.9 3.8 6.3 6.5 6.3 12.4a6.9 6.9 0 0 1-13.8 0c0-3 1.600-5.2 3.4-7.2.3 2.2 1.2 3.4 2.5 4.1-.8-3.5-.3-6.9 1.600-9.3z" fill="url(#edgFlameA)" stroke="${ED_UM}" stroke-width="1.3" stroke-linejoin="round"/>
   <path d="M12.2 8.2c.6 2.7 4.2 4.4 4.2 8a4.4 4.4 0 0 1-8.8 0c0-1.9 1-3.2 2.2-4.5.2 1.4.8 2.2 1.600 2.7-.5-2.3-.2-4.5.8-6.2z" fill="url(#edgFlameB)"/>
@@ -160,7 +161,7 @@ function edSchalterWire(neu) {
 /* ---------- Verläufe für die Symbole (einmal im Dokument, damit url(#…) überall greift) ---------- */
 const ED_DEFS = (function () {
   const lg = (id, st, x2 = 0, y2 = 1) => `<linearGradient id="${id}" x1="0" y1="0" x2="${x2}" y2="${y2}">${st.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join("")}</linearGradient>`;
-  const defs = lg("edgGold", [[0, "#fff6d2"], [.5, "#f2c14e"], [1, "#b8862a"]]) + lg("edgSun", [[0, "#fff3b0"], [1, "#ff9a2e"]]) + lg("edgGreen", [[0, "#b9f27c"], [1, "#2f8f26"]])
+  const defs = lg("edgGold", [[0, "#fff6d2"], [.5, "#f2c14e"], [1, "#b8862a"]]) + lg("edgSun", [[0, "#fff3b0"], [1, "#ff9a2e"]]) + lg("edgGreen", [[0, "#b9f27c"], [1, "#2f8f26"]]) + lg("edgHill", [[0, "#9a7a4a"], [1, "#4a3420"]])
     + lg("edgPurple", [[0, "#d2b4ff"], [1, "#6a3dbd"]]) + lg("edgFlameA", [[0, "#ffb02e"], [1, "#e8321c"]]) + lg("edgFlameB", [[0, "#fff07a"], [1, "#ff8a1f"]])
     + lg("edgFlameC", [[0, "#ffffff"], [1, "#ffe066"]]) + lg("edgParch", [[0, "#fff8e0"], [1, "#e2c27d"]]) + lg("edgRed", [[0, "#ff8f8f"], [1, "#b01f28"]]);
   return defs;
