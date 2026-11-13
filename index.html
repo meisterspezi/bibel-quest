@@ -2725,6 +2725,28 @@ body.ed-an:not(.weih-an) .bib-ende .bib-gross b{text-shadow:0 0 18px var(--edc)}
 .sok-pl{position:relative;z-index:1;margin:-12px 0 3px;padding:2px 9px;border-radius:10px;background:#141a44;border:1.5px solid var(--c);font:800 .7rem/1.2 var(--body);color:#fff;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .sok-k b{font:800 1rem/1.15 var(--body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 @media (max-height:760px){.sok-k{padding:8px 6px 7px}.sok-k .zv2-ring{width:74px;height:74px}.sok-k .zv2-in{width:65px;height:65px}.sok-k .zv2-in svg{width:55px;height:55px}}
+/* 9.74: Bereichs-Kopf überall flacher (kleineres Medaillon, kleinerer Titel, weniger Abstand) */
+.bk-kopf{grid-template-columns:46px minmax(0,1fr);gap:10px;padding-bottom:12px;margin-bottom:6px}
+.bk-med{width:46px;height:46px}.bk-med.bild img{width:50px}
+.bk-t h1{font-size:1.4rem}.bk-t span{font-size:.8rem}
+.sok-k b .kurz{display:none}
+/* 9.74: Solo, wenn die großen Kacheln nicht passen (Höhe < 920 px; die großen brauchen ca. 905 px Inhalt) – Ketten als etwas kleinere Kacheln, Themen · Blitz · Vers als Reihe von vier Medaillen → kein Scrollen */
+@media (max-height:919px){
+  .sok-solo .zv2-reihe{margin-bottom:5px}.sok-solo.zv2-buehne{padding-top:10px}
+  .sok-solo .sok-themen{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+  .sok-solo .sok-themen .sok-k{background:none;border:0;box-shadow:none;padding:2px 0 4px}
+  .sok-solo .sok-themen .zv2-ring{width:70px;height:70px}.sok-solo .sok-themen .zv2-in{width:62px;height:62px}.sok-solo .sok-themen .zv2-in svg{width:50px;height:50px}
+  .sok-solo .sok-themen .sok-pl{font-size:.6rem;padding:1px 6px;margin:-10px 0 3px}
+  .sok-solo .sok-themen .sok-k b{font-size:.76rem}
+  .sok-solo .sok-themen .lang{display:none}.sok-solo .sok-themen .kurz{display:inline}
+}
+/* … und auf noch niedrigeren Bildschirmen (unter 800 px) auch die Ketten-Kacheln etwas kleiner */
+@media (max-height:799px){
+  .sok-solo .sok-ketten{gap:6px;margin-bottom:8px}
+  .sok-solo .sok-ketten .sok-k{padding:6px 6px 5px}
+  .sok-solo .sok-ketten .zv2-ring{width:62px;height:62px}.sok-solo .sok-ketten .zv2-in{width:55px;height:55px}.sok-solo .sok-ketten .zv2-in svg{width:46px;height:46px}
+  .sok-solo .sok-ketten .sok-k b{font-size:.92rem}
+}
 </style>
 <!-- CI-Stylesheet (Farben, Schriften, Bausteine) – nach dem App-Stil, damit seine Werte gelten -->
 <link rel="stylesheet" href="ci/ci.css">
