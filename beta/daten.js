@@ -1,4 +1,4 @@
-const APP_VERSION = "9.74";
+const APP_VERSION = "9.75";
 /* 9.60 Beta-Kanal: Die App liegt zweimal online – Live (…/bibel-quest/) und Beta (…/bibel-quest/beta/). Beide nutzen denselben Spielstand
    und dieselbe Datenbank. BETA ist wahr, wenn diese Kopie aus dem Ordner beta/ läuft; VERSION_TEXT steht in Feedback und Meldungen. */
 const BETA = location.pathname.includes("/beta/");
@@ -316,8 +316,8 @@ const BADGES = [
   { id: "chainAT", kat: "koennen", name: "Altes Testament am Stück", d: "AT-Kette von 1. Mose bis Maleachi", ic: "link", tal: 10, ok: s => s.chainAT >= 38 },
   { id: "chainNT", kat: "koennen", name: "Neues Testament am Stück", d: "NT-Kette von Matthäus bis Offenbarung", ic: "link", tal: 10, ok: s => s.chainNT >= 26 },
   { id: "chainRueck", kat: "koennen", name: "Rückwärts gelesen", d: "Rückwärts-Kette von Offenbarung bis 1. Mose", ic: "back", tal: 30, ok: s => s.chainRueck >= 65 },
-  { id: "combo10", kat: "koennen", name: "Im Fluss", d: "Combo von 10 im Blitz", ic: "bolt", ok: s => s.bestCombo >= 10 },
-  { id: "combo25", kat: "koennen", name: "Unaufhaltsam", d: "Combo von 25 im Blitz", ic: "fire", tal: 10, ok: s => s.bestCombo >= 25 },
+  { id: "combo10", kat: "koennen", name: "Im Fluss", d: "10 Richtige in Folge im Blitz", ic: "bolt", ok: s => s.bestCombo >= 10 },
+  { id: "combo25", kat: "koennen", name: "Unaufhaltsam", d: "25 Richtige in Folge im Blitz", ic: "fire", tal: 10, ok: s => s.bestCombo >= 25 },
   { id: "blitz20", kat: "koennen", name: "Blitzmerker", d: "20 Richtige in einer Blitz-Runde", ic: "bolt", ok: s => s.bestBlitz >= 20 },
   { id: "blitz30", kat: "koennen", name: "Wie der Blitz", d: "30 Richtige in einer Blitz-Runde", ic: "bolt", tal: 10, ok: s => s.bestBlitz >= 30 },
   { id: "blitz40", kat: "koennen", name: "Unschlagbar", d: "40 Richtige in einer Blitz-Runde", ic: "bolt", tal: 20, ok: s => s.bestBlitz >= 40 },
