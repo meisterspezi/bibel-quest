@@ -2,24 +2,26 @@
 /* ==========================================================================
    CI-Stylesheet Bibelbuch-Quest · Freie Baptisten Eichstätt
    Farbe „Nacht, Gold und Kreuzrot“ · Schriften Cinzel / Lexend / Source Serif 4
-   Stand 13.11.2026, Fassung 3 – mit hellem Modus und automatischem Dunkelmodus.
+   Stand 13.11.2026, Fassung 4 – Standard „Nacht“ und dunklerer Modus „Tiefnacht“.
    Noch nicht in die App eingebunden.
 
    Einbinden:  <link rel="stylesheet" href="ci/ci.css">
                <html class="ci">   (Seitengrund und Grundschrift)
 
-   Hell / Dunkel
-     Ohne Angabe folgt die Seite der Einstellung des Geräts
-     (prefers-color-scheme). Fest einstellen mit
-       <html data-theme="dark">   immer dunkel (so läuft die App heute)
-       <html data-theme="light">  immer hell  (z. B. für Druck, Website)
+   Standard und Dunkel
+     Standard ist der nachtblaue Look der App („Nacht“). Ist das Gerät auf
+     dunkel gestellt (prefers-color-scheme: dark), wird es automatisch noch
+     dunkler („Tiefnacht“). Fest einstellen mit
+       <html data-theme="light">  immer Standard (Nacht)
+       <html data-theme="dark">   immer Tiefnacht
+     Einen Modus mit weißem Hintergrund gibt es bewusst nicht.
 
    Aufbau
      0  Schriften laden
      1  Grundpalette – feste Farbwerte, ändern sich nie
      2  Maße – Schrift, Abstände, Radien, Ebenen, Bewegung
-     3  Bedeutungs-Variablen HELL (Standard)
-     4  Bedeutungs-Variablen DUNKEL (automatisch und data-theme="dark")
+     3  Bedeutungs-Variablen STANDARD (Nacht)
+     4  Bedeutungs-Variablen DUNKEL (Tiefnacht: automatisch und data-theme="dark")
      5  Namen wie in index.html (Aliasse für die spätere Übernahme)
      6  Bereichsfarbe setzen ([data-bereich])
      7  Typografie (Seite, H1–H3, Fließtext, Vers …)
@@ -54,52 +56,53 @@
   --ci-pal-logo-rot:     #ee0002;
   --ci-pal-weiss:        #ffffff;
 
-  /* Nacht (Blau) – von dunkel nach hell */
-  --ci-pal-nacht-950: #0e1226;   /* Hintergrund dunkel (fest gewählt) */
-  --ci-pal-nacht-900: #151a36;
-  --ci-pal-nacht-850: #1b2146;   /* Fläche dunkel (fest gewählt) */
+  /* Tiefnacht – nur für den Dunkelmodus */
+  --ci-pal-tief-950: #080a17;    /* Hintergrund */
+  --ci-pal-tief-900: #0c0f22;    /* vertieft */
+  --ci-pal-tief-850: #10142c;    /* Fläche */
+  --ci-pal-tief-800: #181d3c;    /* erhöhte Fläche */
+  --ci-pal-tief-700: #1c2040;    /* gesperrt */
+  --ci-pal-tief-600: #24294f;    /* Linie */
+  --ci-pal-tief-400: #5f6bab;    /* Linie stark */
+  --ci-pal-tief-300: #949cc6;    /* Text leise */
+  --ci-pal-tief-250: #9499b3;    /* Text gesperrt */
+  --ci-pal-tief-50:  #e9ecf8;    /* Text (etwas gedämpft gegen Blendung) */
+
+  /* Nacht – Standard (Werte fest gewählt bzw. aus der App) */
+  --ci-pal-nacht-950: #0e1226;   /* Hintergrund (fest gewählt) */
+  --ci-pal-nacht-900: #151a36;   /* vertieft */
+  --ci-pal-nacht-850: #1b2146;   /* Fläche (fest gewählt) */
   --ci-pal-nacht-800: #1b2a55;   /* Umriss (fest gewählt) */
-  --ci-pal-nacht-750: #262e5e;
-  --ci-pal-nacht-700: #2b3050;
-  --ci-pal-nacht-600: #323b74;
-  --ci-pal-nacht-500: #4b5470;
-  --ci-pal-nacht-450: #5c6276;
-  --ci-pal-nacht-400: #7480c4;
-  --ci-pal-nacht-350: #7a83a6;
-  --ci-pal-nacht-300: #a3abd8;
-  --ci-pal-nacht-250: #a4a9c0;
-  --ci-pal-nacht-150: #dde1ee;
-  --ci-pal-nacht-100: #e7e9f0;
-  --ci-pal-nacht-75:  #eceef5;
-  --ci-pal-nacht-50:  #f5f6fa;
-  --ci-pal-nacht-25:  #f6f8ff;   /* Text dunkel (fest gewählt) */
+  --ci-pal-nacht-750: #262e5e;   /* erhöhte Fläche */
+  --ci-pal-nacht-700: #2b3050;   /* gesperrt */
+  --ci-pal-nacht-600: #323b74;   /* Linie */
+  --ci-pal-nacht-400: #7480c4;   /* Linie stark */
+  --ci-pal-nacht-300: #a3abd8;   /* Text leise */
+  --ci-pal-nacht-250: #a4a9c0;   /* Text gesperrt */
+  --ci-pal-nacht-25:  #f6f8ff;   /* Text (fest gewählt) */
 
   /* Gold */
-  --ci-pal-gold-50:  #fbf3dc;
-  --ci-pal-gold-200: #ffe39a;    /* Glanz */
+  --ci-pal-gold-200: #ffe39a;    /* Glanz, Fokus */
   --ci-pal-gold-400: #f2c14e;    /* Hauptfarbe (fest gewählt) */
   --ci-pal-gold-600: #c8952a;
-  --ci-pal-gold-800: #7a4e0c;    /* Gold als Schrift auf Hell */
   --ci-pal-gold-950: #2a1d02;    /* Schrift auf Gold */
 
   /* Kreuzrot */
-  --ci-pal-rot-300: #ff8087;     /* rote Schrift auf Dunkel */
+  --ci-pal-rot-300: #ff8087;     /* rote Schrift */
   --ci-pal-rot-500: #e8141b;     /* Signalfarbe (fest gewählt) */
-  --ci-pal-rot-700: #c00a14;     /* rote Schrift auf Hell */
 
-  /* Bereichsfarben: -hell = leuchtend (für dunklen Grund, fest gewählt),
-                     -tief = abgedunkelt (für hellen Grund, mind. 5,3:1 auf Weiß) */
-  --ci-pal-lernen-hell:     #7fc8ff;  --ci-pal-lernen-tief:     #0b6aa8;  /* Saphir    */
-  --ci-pal-spielen-hell:    #ffb54a;  --ci-pal-spielen-tief:    #9a5400;  /* Bernstein */
-  --ci-pal-gemeinde-hell:   #5fe0b0;  --ci-pal-gemeinde-tief:   #0a7a55;  /* Grün      */
-  --ci-pal-lohn-hell:       #b38cff;  --ci-pal-lohn-tief:       #6a3fc4;  /* Violett   */
-  --ci-pal-biblionaer-hell: #66e0d0;  --ci-pal-biblionaer-tief: #08776c;  /* Türkis    */
-  --ci-pal-duell-hell:      #ff8a5c;  --ci-pal-duell-tief:      #b8441a;  /* Koralle   */
-  --ci-pal-spende-hell:     #f4a6c8;  --ci-pal-spende-tief:     #a8336c;  /* Rosé      */
-  --ci-pal-bedienung-hell:  #e3e9f6;  --ci-pal-bedienung-tief:  #4b5470;  /* Silber    */
+  /* Bereichsfarben (fest gewählt, in beiden Modi gleich) */
+  --ci-pal-lernen:     #7fc8ff;  /* Saphir    */
+  --ci-pal-spielen:    #ffb54a;  /* Bernstein */
+  --ci-pal-gemeinde:   #5fe0b0;  /* Grün      */
+  --ci-pal-lohn:       #b38cff;  /* Violett   */
+  --ci-pal-biblionaer: #66e0d0;  /* Türkis    */
+  --ci-pal-duell:      #ff8a5c;  /* Koralle   */
+  --ci-pal-spende:     #f4a6c8;  /* Rosé      */
+  --ci-pal-bedienung:  #e3e9f6;  /* Silber    */
 
 /* ==========================================================================
-   2. Maße (gleich in Hell und Dunkel)
+   2. Maße (gleich in Standard und Dunkel)
    ========================================================================== */
   /* Schriften */
   --ci-schrift-titel: "Cinzel", "Trajan Pro", "Cormorant SC", Georgia, "Times New Roman", serif;          /* nur Großbuchstaben */
@@ -164,163 +167,65 @@
   /* Verläufe, die in beiden Modi gleich sind */
   --ci-goldverlauf:  linear-gradient(180deg, var(--ci-pal-gold-200), var(--ci-pal-gold-400) 55%, var(--ci-pal-gold-600));
   --ci-lichtverlauf: linear-gradient(180deg, #ffffff, #fff1c2 40%, var(--ci-pal-gold-400) 75%, var(--ci-pal-gold-600));
-  --ci-duellverlauf: linear-gradient(90deg, var(--ci-pal-gold-400), var(--ci-pal-duell-hell) 55%, var(--ci-pal-spende-hell));
+  --ci-duellverlauf: linear-gradient(90deg, var(--ci-pal-gold-400), var(--ci-pal-duell) 55%, var(--ci-pal-spende));
 }
 
 /* ==========================================================================
-   3. Bedeutungs-Variablen – HELL (Standard)
+   3. Bedeutungs-Variablen – STANDARD „Nacht“
    ========================================================================== */
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 
   /* Flächen */
-  --ci-farbe-hintergrund:        var(--ci-pal-nacht-50);    /* Seitengrund */
-  --ci-farbe-hintergrund-tief:   var(--ci-pal-nacht-75);    /* Eingabefeld, Schiene */
-  --ci-farbe-oberflaeche:        var(--ci-pal-weiss);       /* Karte, Kachel */
-  --ci-farbe-oberflaeche-hoch:   var(--ci-pal-weiss);       /* Toast, Modal */
-  --ci-farbe-hover:              rgb(14 18 38 / .05);       /* Überlagerung beim Darüberfahren */
-  --ci-farbe-gedrueckt:          rgb(14 18 38 / .09);
+  --ci-farbe-hintergrund:        var(--ci-pal-nacht-950);
+  --ci-farbe-hintergrund-tief:   var(--ci-pal-nacht-900);   /* Eingabefeld, Schiene */
+  --ci-farbe-oberflaeche:        var(--ci-pal-nacht-850);   /* Karte, Kachel */
+  --ci-farbe-oberflaeche-hoch:   var(--ci-pal-nacht-750);   /* Toast, Modal */
+  --ci-farbe-hover:              rgb(246 248 255 / .08);
+  --ci-farbe-gedrueckt:          rgb(246 248 255 / .14);
 
   /* Schrift */
-  --ci-farbe-text:        var(--ci-pal-nacht-950);          /* 17,2:1 */
-  --ci-farbe-text-leise:  var(--ci-pal-nacht-500);          /* 6,9:1  */
-  --ci-farbe-titel:       var(--ci-pal-gold-800);           /* Gold als Schrift: 6,7:1 */
-  --ci-farbe-akzent-text: var(--ci-pal-gold-800);           /* Links, Zahlen */
+  --ci-farbe-text:        var(--ci-pal-nacht-25);           /* 14,6:1 auf Fläche */
+  --ci-farbe-text-leise:  var(--ci-pal-nacht-300);          /*  6,9:1 */
+  --ci-farbe-titel:       var(--ci-pal-gold-400);           /*  9,3:1 */
+  --ci-farbe-akzent-text: var(--ci-pal-gold-400);
   --ci-farbe-umriss:      var(--ci-pal-nacht-800);
 
   /* Linien */
-  --ci-farbe-linie:        var(--ci-pal-nacht-150);         /* nur Schmuck */
-  --ci-farbe-linie-stark:  var(--ci-pal-nacht-350);         /* Rand von Feld und sekundärem Knopf: mind. 3,2:1 */
-  --ci-farbe-linie-akzent: rgb(200 149 42 / .45);
+  --ci-farbe-linie:        var(--ci-pal-nacht-600);         /* nur Schmuck */
+  --ci-farbe-linie-stark:  var(--ci-pal-nacht-400);         /* Bedien-Rand: mind. 3:1 */
+  --ci-farbe-linie-akzent: rgb(242 193 78 / .35);
 
   /* Primär (Gold) */
   --ci-farbe-primaer:          var(--ci-pal-gold-400);
   --ci-farbe-primaer-verlauf:  var(--ci-goldverlauf);
   --ci-farbe-auf-primaer:      var(--ci-pal-gold-950);      /* 9,8:1 */
-  --ci-farbe-primaer-hauch:    var(--ci-pal-gold-50);       /* zart golden hinterlegt */
+  --ci-farbe-primaer-hauch:    rgb(242 193 78 / .14);
 
   /* Signal (Kreuzrot) */
-  --ci-farbe-signal:      var(--ci-pal-rot-500);            /* Fläche, Rand, Punkt */
+  --ci-farbe-signal:      var(--ci-pal-rot-500);
   --ci-farbe-auf-signal:  var(--ci-pal-weiss);              /* 4,6:1 */
-  --ci-farbe-fehler-text: var(--ci-pal-rot-700);            /* 5,9:1 */
+  --ci-farbe-fehler-text: var(--ci-pal-rot-300);            /* 6,4:1 */
 
   /* Zustände */
-  --ci-farbe-ok:               var(--ci-pal-gemeinde-tief);
-  --ci-farbe-warnung:          var(--ci-pal-spielen-tief);
-  --ci-farbe-gesperrt-flaeche: var(--ci-pal-nacht-100);
-  --ci-farbe-gesperrt-text:    var(--ci-pal-nacht-450);     /* 5,0:1 */
-  --ci-farbe-fokus:            var(--ci-pal-nacht-800);
+  --ci-farbe-ok:               var(--ci-pal-gemeinde);
+  --ci-farbe-warnung:          var(--ci-pal-spielen);
+  --ci-farbe-gesperrt-flaeche: var(--ci-pal-nacht-700);
+  --ci-farbe-gesperrt-text:    var(--ci-pal-nacht-250);     /* 5,5:1 */
+  --ci-farbe-fokus:            var(--ci-pal-gold-200);
 
-  /* Bereichsfarben (als Schrift und Fläche nutzbar) */
-  --ci-farbe-lernen:     var(--ci-pal-lernen-tief);
-  --ci-farbe-spielen:    var(--ci-pal-spielen-tief);
-  --ci-farbe-gemeinde:   var(--ci-pal-gemeinde-tief);
-  --ci-farbe-lohn:       var(--ci-pal-lohn-tief);
-  --ci-farbe-biblionaer: var(--ci-pal-biblionaer-tief);
-  --ci-farbe-duell:      var(--ci-pal-duell-tief);
-  --ci-farbe-spende:     var(--ci-pal-spende-tief);
-  --ci-farbe-bedienung:  var(--ci-pal-bedienung-tief);
-  --ci-farbe-auf-bereich: var(--ci-pal-weiss);              /* Schrift auf Bereichsfarbe: mind. 5,3:1 */
+  /* Bereichsfarben */
+  --ci-farbe-lernen:     var(--ci-pal-lernen);
+  --ci-farbe-spielen:    var(--ci-pal-spielen);
+  --ci-farbe-gemeinde:   var(--ci-pal-gemeinde);
+  --ci-farbe-lohn:       var(--ci-pal-lohn);
+  --ci-farbe-biblionaer: var(--ci-pal-biblionaer);
+  --ci-farbe-duell:      var(--ci-pal-duell);
+  --ci-farbe-spende:     var(--ci-pal-spende);
+  --ci-farbe-bedienung:  var(--ci-pal-bedienung);
+  --ci-farbe-auf-bereich: var(--ci-pal-nacht-950);
 
   /* Schatten */
-  --ci-schatten-1:    0 1px 2px rgb(14 18 38 / .06), 0 1px 3px rgb(14 18 38 / .08);
-  --ci-schatten-2:    0 4px 12px rgb(14 18 38 / .10);
-  --ci-schatten-3:    0 12px 32px rgb(14 18 38 / .18);
-  --ci-schein:        0 2px 10px rgb(200 149 42 / .35);     /* Goldschein: nur Hauptknopf und Belohnung */
-  --ci-schein-hover:  0 4px 16px rgb(200 149 42 / .45);
-  --ci-innenlicht:    inset 0 1px 0 rgb(255 255 255 / .7);
-  --ci-schleier:      rgb(14 18 38 / .45);                  /* hinter dem Modal */
-}
-
-/* ==========================================================================
-   4. Bedeutungs-Variablen – DUNKEL
-   Automatisch nach Geräte-Einstellung, außer data-theme="light" ist gesetzt;
-   immer mit data-theme="dark". Beide Blöcke enthalten dieselben Werte.
-   ========================================================================== */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --ci-farbe-hintergrund:        var(--ci-pal-nacht-950);
-    --ci-farbe-hintergrund-tief:   var(--ci-pal-nacht-900);
-    --ci-farbe-oberflaeche:        var(--ci-pal-nacht-850);
-    --ci-farbe-oberflaeche-hoch:   var(--ci-pal-nacht-750);
-    --ci-farbe-hover:              rgb(246 248 255 / .08);
-    --ci-farbe-gedrueckt:          rgb(246 248 255 / .14);
-    --ci-farbe-text:        var(--ci-pal-nacht-25);
-    --ci-farbe-text-leise:  var(--ci-pal-nacht-300);
-    --ci-farbe-titel:       var(--ci-pal-gold-400);
-    --ci-farbe-akzent-text: var(--ci-pal-gold-400);
-    --ci-farbe-umriss:      var(--ci-pal-nacht-800);
-    --ci-farbe-linie:        var(--ci-pal-nacht-600);
-    --ci-farbe-linie-stark:  var(--ci-pal-nacht-400);
-    --ci-farbe-linie-akzent: rgb(242 193 78 / .35);
-    --ci-farbe-primaer:          var(--ci-pal-gold-400);
-    --ci-farbe-primaer-verlauf:  var(--ci-goldverlauf);
-    --ci-farbe-auf-primaer:      var(--ci-pal-gold-950);
-    --ci-farbe-primaer-hauch:    rgb(242 193 78 / .14);
-    --ci-farbe-signal:      var(--ci-pal-rot-500);
-    --ci-farbe-auf-signal:  var(--ci-pal-weiss);
-    --ci-farbe-fehler-text: var(--ci-pal-rot-300);
-    --ci-farbe-ok:               var(--ci-pal-gemeinde-hell);
-    --ci-farbe-warnung:          var(--ci-pal-spielen-hell);
-    --ci-farbe-gesperrt-flaeche: var(--ci-pal-nacht-700);
-    --ci-farbe-gesperrt-text:    var(--ci-pal-nacht-250);
-    --ci-farbe-fokus:            var(--ci-pal-gold-200);
-    --ci-farbe-lernen:     var(--ci-pal-lernen-hell);
-    --ci-farbe-spielen:    var(--ci-pal-spielen-hell);
-    --ci-farbe-gemeinde:   var(--ci-pal-gemeinde-hell);
-    --ci-farbe-lohn:       var(--ci-pal-lohn-hell);
-    --ci-farbe-biblionaer: var(--ci-pal-biblionaer-hell);
-    --ci-farbe-duell:      var(--ci-pal-duell-hell);
-    --ci-farbe-spende:     var(--ci-pal-spende-hell);
-    --ci-farbe-bedienung:  var(--ci-pal-bedienung-hell);
-    --ci-farbe-auf-bereich: var(--ci-pal-nacht-950);
-    --ci-schatten-1:    0 1px 2px rgb(0 0 0 / .3);
-    --ci-schatten-2:    0 6px 18px rgb(0 0 0 / .35);
-    --ci-schatten-3:    0 10px 30px rgb(0 0 0 / .6);
-    --ci-schein:        0 0 18px rgb(242 193 78 / .35);
-    --ci-schein-hover:  0 0 24px rgb(242 193 78 / .5);
-    --ci-innenlicht:    inset 0 1px 0 rgb(255 255 255 / .7);
-    --ci-schleier:      rgb(5 7 26 / .8);
-  }
-}
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --ci-farbe-hintergrund:        var(--ci-pal-nacht-950);
-  --ci-farbe-hintergrund-tief:   var(--ci-pal-nacht-900);
-  --ci-farbe-oberflaeche:        var(--ci-pal-nacht-850);
-  --ci-farbe-oberflaeche-hoch:   var(--ci-pal-nacht-750);
-  --ci-farbe-hover:              rgb(246 248 255 / .08);
-  --ci-farbe-gedrueckt:          rgb(246 248 255 / .14);
-  --ci-farbe-text:        var(--ci-pal-nacht-25);
-  --ci-farbe-text-leise:  var(--ci-pal-nacht-300);
-  --ci-farbe-titel:       var(--ci-pal-gold-400);
-  --ci-farbe-akzent-text: var(--ci-pal-gold-400);
-  --ci-farbe-umriss:      var(--ci-pal-nacht-800);
-  --ci-farbe-linie:        var(--ci-pal-nacht-600);
-  --ci-farbe-linie-stark:  var(--ci-pal-nacht-400);
-  --ci-farbe-linie-akzent: rgb(242 193 78 / .35);
-  --ci-farbe-primaer:          var(--ci-pal-gold-400);
-  --ci-farbe-primaer-verlauf:  var(--ci-goldverlauf);
-  --ci-farbe-auf-primaer:      var(--ci-pal-gold-950);
-  --ci-farbe-primaer-hauch:    rgb(242 193 78 / .14);
-  --ci-farbe-signal:      var(--ci-pal-rot-500);
-  --ci-farbe-auf-signal:  var(--ci-pal-weiss);
-  --ci-farbe-fehler-text: var(--ci-pal-rot-300);
-  --ci-farbe-ok:               var(--ci-pal-gemeinde-hell);
-  --ci-farbe-warnung:          var(--ci-pal-spielen-hell);
-  --ci-farbe-gesperrt-flaeche: var(--ci-pal-nacht-700);
-  --ci-farbe-gesperrt-text:    var(--ci-pal-nacht-250);
-  --ci-farbe-fokus:            var(--ci-pal-gold-200);
-  --ci-farbe-lernen:     var(--ci-pal-lernen-hell);
-  --ci-farbe-spielen:    var(--ci-pal-spielen-hell);
-  --ci-farbe-gemeinde:   var(--ci-pal-gemeinde-hell);
-  --ci-farbe-lohn:       var(--ci-pal-lohn-hell);
-  --ci-farbe-biblionaer: var(--ci-pal-biblionaer-hell);
-  --ci-farbe-duell:      var(--ci-pal-duell-hell);
-  --ci-farbe-spende:     var(--ci-pal-spende-hell);
-  --ci-farbe-bedienung:  var(--ci-pal-bedienung-hell);
-  --ci-farbe-auf-bereich: var(--ci-pal-nacht-950);
   --ci-schatten-1:    0 1px 2px rgb(0 0 0 / .3);
   --ci-schatten-2:    0 6px 18px rgb(0 0 0 / .35);
   --ci-schatten-3:    0 10px 30px rgb(0 0 0 / .6);
@@ -328,6 +233,63 @@
   --ci-schein-hover:  0 0 24px rgb(242 193 78 / .5);
   --ci-innenlicht:    inset 0 1px 0 rgb(255 255 255 / .7);
   --ci-schleier:      rgb(5 7 26 / .8);
+}
+
+/* ==========================================================================
+   4. Bedeutungs-Variablen – DUNKEL „Tiefnacht“
+   Automatisch, wenn das Gerät auf dunkel steht (außer data-theme="light");
+   immer mit data-theme="dark". Beide Blöcke enthalten dieselben Werte.
+   Nur was sich ändert, steht hier – Gold, Kreuzrot, Bereichsfarben bleiben.
+   ========================================================================== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ci-farbe-hintergrund:        var(--ci-pal-tief-950);
+    --ci-farbe-hintergrund-tief:   var(--ci-pal-tief-900);
+    --ci-farbe-oberflaeche:        var(--ci-pal-tief-850);
+    --ci-farbe-oberflaeche-hoch:   var(--ci-pal-tief-800);
+    --ci-farbe-hover:              rgb(233 236 248 / .06);
+    --ci-farbe-gedrueckt:          rgb(233 236 248 / .11);
+    --ci-farbe-text:        var(--ci-pal-tief-50);            /* 15,4:1 auf Fläche */
+    --ci-farbe-text-leise:  var(--ci-pal-tief-300);           /*  6,8:1 */
+    --ci-farbe-linie:        var(--ci-pal-tief-600);
+    --ci-farbe-linie-stark:  var(--ci-pal-tief-400);          /*  3,6:1 */
+    --ci-farbe-linie-akzent: rgb(242 193 78 / .28);
+    --ci-farbe-primaer-hauch:    rgb(242 193 78 / .11);
+    --ci-farbe-gesperrt-flaeche: var(--ci-pal-tief-700);
+    --ci-farbe-gesperrt-text:    var(--ci-pal-tief-250);      /*  5,6:1 */
+    --ci-farbe-auf-bereich: var(--ci-pal-tief-950);
+    --ci-schatten-1:    0 1px 2px rgb(0 0 0 / .45);
+    --ci-schatten-2:    0 6px 18px rgb(0 0 0 / .5);
+    --ci-schatten-3:    0 12px 34px rgb(0 0 0 / .75);
+    --ci-schein:        0 0 14px rgb(242 193 78 / .28);       /* etwas ruhiger im Dunkeln */
+    --ci-schein-hover:  0 0 20px rgb(242 193 78 / .4);
+    --ci-innenlicht:    inset 0 1px 0 rgb(255 255 255 / .55);
+    --ci-schleier:      rgb(2 3 10 / .85);
+}
+}
+:root[data-theme="dark"] {
+  --ci-farbe-hintergrund:        var(--ci-pal-tief-950);
+  --ci-farbe-hintergrund-tief:   var(--ci-pal-tief-900);
+  --ci-farbe-oberflaeche:        var(--ci-pal-tief-850);
+  --ci-farbe-oberflaeche-hoch:   var(--ci-pal-tief-800);
+  --ci-farbe-hover:              rgb(233 236 248 / .06);
+  --ci-farbe-gedrueckt:          rgb(233 236 248 / .11);
+  --ci-farbe-text:        var(--ci-pal-tief-50);            /* 15,4:1 auf Fläche */
+  --ci-farbe-text-leise:  var(--ci-pal-tief-300);           /*  6,8:1 */
+  --ci-farbe-linie:        var(--ci-pal-tief-600);
+  --ci-farbe-linie-stark:  var(--ci-pal-tief-400);          /*  3,6:1 */
+  --ci-farbe-linie-akzent: rgb(242 193 78 / .28);
+  --ci-farbe-primaer-hauch:    rgb(242 193 78 / .11);
+  --ci-farbe-gesperrt-flaeche: var(--ci-pal-tief-700);
+  --ci-farbe-gesperrt-text:    var(--ci-pal-tief-250);      /*  5,6:1 */
+  --ci-farbe-auf-bereich: var(--ci-pal-tief-950);
+  --ci-schatten-1:    0 1px 2px rgb(0 0 0 / .45);
+  --ci-schatten-2:    0 6px 18px rgb(0 0 0 / .5);
+  --ci-schatten-3:    0 12px 34px rgb(0 0 0 / .75);
+  --ci-schein:        0 0 14px rgb(242 193 78 / .28);       /* etwas ruhiger im Dunkeln */
+  --ci-schein-hover:  0 0 20px rgb(242 193 78 / .4);
+  --ci-innenlicht:    inset 0 1px 0 rgb(255 255 255 / .55);
+  --ci-schleier:      rgb(2 3 10 / .85);
 }
 
 /* ==========================================================================
@@ -430,17 +392,11 @@
 .ci-text strong, .ci-text b { font-weight: 700; }
 .ci-leise { color: var(--ci-farbe-text-leise); font-size: var(--ci-gr-klein); }
 
-/* Weißgold-Titel „Himmlisches Licht“ (nur Dunkel; im hellen Modus normale Titelfarbe) */
+/* Weißgold-Titel „Himmlisches Licht“ – zusätzlich zu .ci-h1/.ci-h2 */
 @supports ((-webkit-background-clip: text) or (background-clip: text)) {
-  :root[data-theme="dark"] .ci-titel--licht {
+  .ci-titel--licht {
     background: var(--ci-lichtverlauf); -webkit-background-clip: text; background-clip: text;
     color: transparent; filter: drop-shadow(0 1px 0 var(--ci-farbe-umriss));
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .ci-titel--licht {
-      background: var(--ci-lichtverlauf); -webkit-background-clip: text; background-clip: text;
-      color: transparent; filter: drop-shadow(0 1px 0 var(--ci-farbe-umriss));
-    }
   }
 }
 
@@ -581,9 +537,9 @@
 }
 @media (hover: hover) {
   .ci-knopf--bereich:hover, .ci-knopf--duell:hover { box-shadow: var(--ci-schatten-2); }
-  .ci-knopf--gefahr:hover { filter: none; box-shadow: none; background: rgb(232 20 27 / .12); }
+  .ci-knopf--gefahr:hover { filter: none; box-shadow: none; background: rgb(232 20 27 / .16); }
 }
-.ci-knopf--gefahr:active { filter: none; background: rgb(232 20 27 / .2); }
+.ci-knopf--gefahr:active { filter: none; background: rgb(232 20 27 / .24); }
 .ci-knopf--breit { display: flex; width: 100%; }
 .ci-knopf--klein { padding: var(--ci-abstand-1) var(--ci-abstand-3); font-size: var(--ci-gr-mini); border-radius: var(--ci-radius-s); }
 
@@ -1000,7 +956,7 @@ button.ci-zeile:active, a.ci-zeile:active { background: var(--ci-farbe-gedrueckt
    - Gold führt (Hauptknopf, Titel, Ringe), Kreuzrot meldet (Zähler, „neu“,
      Fehler) – nie als große Fläche, nie für Titel. Schrift auf Kreuzrot reinweiß.
    - In Bausteinen nur --ci-farbe-… verwenden, nie --ci-pal-… oder feste Werte,
-     sonst stimmt der Hell-/Dunkelmodus nicht.
+     sonst stimmt der Dunkelmodus nicht.
    - Titel in Cinzel immer in Großbuchstaben, Text in Lexend, Verse in
      Source Serif 4 kursiv (Schlachter 2000), Stelle in Lexend darunter.
    - Logo nicht umfärben, immer auf weißer Scheibe.

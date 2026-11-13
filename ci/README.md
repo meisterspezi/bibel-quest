@@ -1,7 +1,7 @@
 # CI Bibelbuch-Quest
 
 Gewählt am 13.11.2026: Farbe **„Nacht, Gold und Kreuzrot“** mit den Schriften **Cinzel / Lexend / Source Serif 4**.
-`ci.css` ist in **Fassung 3**: heller Modus als Standard, Dunkelmodus automatisch nach Geräte-Einstellung.
+`ci.css` ist in **Fassung 4**: Standard ist der nachtblaue Look der App („Nacht“), der Dunkelmodus („Tiefnacht“) ist noch dunkler und schaltet sich automatisch nach der Geräte-Einstellung ein. Einen weißen Modus gibt es nicht.
 Das Stylesheet ist noch **nicht** in die App eingebunden.
 
 ## Einbinden
@@ -16,63 +16,61 @@ Das Stylesheet ist noch **nicht** in die App eingebunden.
 Mit der `<link>`-Zeile für die Schriften die `@import`-Zeile oben in `ci.css` löschen.
 `<html class="ci">` setzt Seitengrund, Grundschrift und färbt `h1`–`h3` und `p` automatisch.
 
-## Hell und Dunkel
+## Standard und Dunkel
 
 | Einstellung | Wirkung |
 |---|---|
-| nichts gesetzt | folgt dem Gerät (`prefers-color-scheme`) |
-| `<html data-theme="dark">` | immer dunkel – so sieht die App heute aus |
-| `<html data-theme="light">` | immer hell – z. B. für Website und Druck |
+| nichts gesetzt | Standard „Nacht“; steht das Gerät auf dunkel (`prefers-color-scheme: dark`), automatisch „Tiefnacht“ |
+| `<html data-theme="light">` | immer Standard „Nacht“ |
+| `<html data-theme="dark">` | immer „Tiefnacht“ |
 
 Die Variablen haben drei Ebenen:
 
 1. **`--ci-pal-…`** – feste Palette (Abschnitt 1). Wird nur in den Bedeutungs-Variablen benutzt.
-2. **`--ci-farbe-…`** – Farbe nach Bedeutung, je Modus anders belegt (Abschnitte 3 und 4).
-   **Bausteine verwenden nur diese**, sonst stimmt der Modus nicht.
-3. **Maße** – Schrift, Abstände, Radien, Schatten, Ebenen (gleich in beiden Modi, Schatten je Modus).
+2. **`--ci-farbe-…`** – Farbe nach Bedeutung, je Modus belegt (Abschnitte 3 und 4).
+   **Bausteine verwenden nur diese**, sonst stimmt der Dunkelmodus nicht.
+3. **Maße** – Schrift, Abstände, Radien, Schatten, Ebenen (Schatten je Modus).
 
 ## Farben nach Bedeutung
 
-| Variable | Hell | Dunkel | Einsatz |
+| Variable | Standard „Nacht“ | Dunkel „Tiefnacht“ | Einsatz |
 |---|---|---|---|
-| `--ci-farbe-hintergrund` | `#F5F6FA` | `#0E1226` | Seitengrund |
-| `--ci-farbe-hintergrund-tief` | `#ECEEF5` | `#151A36` | Eingabefeld, Schiene, Balken |
-| `--ci-farbe-oberflaeche` | `#FFFFFF` | `#1B2146` | Karte, Kachel, Fußleiste |
-| `--ci-farbe-oberflaeche-hoch` | `#FFFFFF` | `#262E5E` | Modal, Toast |
-| `--ci-farbe-text` | `#0E1226` | `#F6F8FF` | Fließtext |
-| `--ci-farbe-text-leise` | `#4B5470` | `#A3ABD8` | Untertitel, Hinweise, Platzhalter |
-| `--ci-farbe-titel` | `#7A4E0C` | `#F2C14E` | Überschriften (Gold) |
-| `--ci-farbe-akzent-text` | `#7A4E0C` | `#F2C14E` | Links, Zahlen, Ring |
-| `--ci-farbe-linie` | `#DDE1EE` | `#323B74` | nur Schmuck |
-| `--ci-farbe-linie-stark` | `#7A83A6` | `#7480C4` | Rand von Feld und sekundärem Knopf |
+| `--ci-farbe-hintergrund` | `#0E1226` | `#080A17` | Seitengrund |
+| `--ci-farbe-hintergrund-tief` | `#151A36` | `#0C0F22` | Eingabefeld, Schiene, Balken |
+| `--ci-farbe-oberflaeche` | `#1B2146` | `#10142C` | Karte, Kachel, Fußleiste |
+| `--ci-farbe-oberflaeche-hoch` | `#262E5E` | `#181D3C` | Modal, Toast |
+| `--ci-farbe-text` | `#F6F8FF` | `#E9ECF8` | Fließtext (dunkel etwas gedämpft gegen Blendung) |
+| `--ci-farbe-text-leise` | `#A3ABD8` | `#949CC6` | Untertitel, Hinweise, Platzhalter |
+| `--ci-farbe-titel` / `--ci-farbe-akzent-text` | `#F2C14E` | `#F2C14E` | Überschriften, Links, Zahlen |
+| `--ci-farbe-linie` | `#323B74` | `#24294F` | nur Schmuck |
+| `--ci-farbe-linie-stark` | `#7480C4` | `#5F6BAB` | Rand von Feld und sekundärem Knopf |
 | `--ci-farbe-primaer` | `#F2C14E` | `#F2C14E` | Hauptknopf, Ring, Balken |
 | `--ci-farbe-auf-primaer` | `#2A1D02` | `#2A1D02` | Schrift auf Gold |
-| `--ci-farbe-primaer-hauch` | `#FBF3DC` | Gold 14 % | eigene Ranglistenzeile, Umschalter an |
+| `--ci-farbe-primaer-hauch` | Gold 14 % | Gold 11 % | eigene Ranglistenzeile, Umschalter an |
 | `--ci-farbe-signal` | `#E8141B` | `#E8141B` | Zähler, „neu“, Fehlerrand – nie große Fläche |
 | `--ci-farbe-auf-signal` | `#FFFFFF` | `#FFFFFF` | Schrift auf Kreuzrot |
-| `--ci-farbe-fehler-text` | `#C00A14` | `#FF8087` | Fehlertext |
-| `--ci-farbe-ok` / `--ci-farbe-warnung` | `#0A7A55` / `#9A5400` | `#5FE0B0` / `#FFB54A` | Zustände |
-| `--ci-farbe-gesperrt-flaeche` / `-text` | `#E7E9F0` / `#5C6276` | `#2B3050` / `#A4A9C0` | Gesperrtes |
-| `--ci-farbe-fokus` | `#1B2A55` | `#FFE39A` | Tastatur-Fokusrahmen |
-| `--ci-farbe-hover` / `-gedrueckt` | Nacht 5 % / 9 % | Weiß 8 % / 14 % | Überlagerung bei Hover/Druck |
+| `--ci-farbe-fehler-text` | `#FF8087` | `#FF8087` | Fehlertext |
+| `--ci-farbe-ok` / `--ci-farbe-warnung` | `#5FE0B0` / `#FFB54A` | gleich | Zustände |
+| `--ci-farbe-gesperrt-flaeche` / `-text` | `#2B3050` / `#A4A9C0` | `#1C2040` / `#9499B3` | Gesperrtes |
+| `--ci-farbe-fokus` | `#FFE39A` | `#FFE39A` | Tastatur-Fokusrahmen |
+| `--ci-farbe-hover` / `-gedrueckt` | Weiß 8 % / 14 % | Weiß 6 % / 11 % | Überlagerung bei Hover/Druck |
 
-Gold als **Fläche** bleibt in beiden Modi `#F2C14E`. Als **Schrift** auf Hell wird es zu Bronze `#7A4E0C`,
-weil helles Gold auf Weiß nur 1,7:1 erreicht.
+Gold, Kreuzrot und die Bereichsfarben sind in beiden Modi gleich.
 
 ### Bereichsfarben (`data-bereich="…"` setzt `--ar`)
 
-| Bereich | Variable | Hell | Dunkel |
-|---|---|---|---|
-| Lernen (Saphir) | `--ci-farbe-lernen` | `#0B6AA8` | `#7FC8FF` |
-| Spielen (Bernstein) | `--ci-farbe-spielen` | `#9A5400` | `#FFB54A` |
-| Gemeinde (Grün) | `--ci-farbe-gemeinde` | `#0A7A55` | `#5FE0B0` |
-| Laden/Lohn (Violett) | `--ci-farbe-lohn` | `#6A3FC4` | `#B38CFF` |
-| Biblionär (Türkis) | `--ci-farbe-biblionaer` | `#08776C` | `#66E0D0` |
-| Duell (Koralle) | `--ci-farbe-duell` | `#B8441A` | `#FF8A5C` |
-| Spenden (Rosé) | `--ci-farbe-spende` | `#A8336C` | `#F4A6C8` |
-| Bedienung (Silber) | `--ci-farbe-bedienung` | `#4B5470` | `#E3E9F6` |
+| Bereich | Variable | Wert |
+|---|---|---|
+| Lernen (Saphir) | `--ci-farbe-lernen` | `#7FC8FF` |
+| Spielen (Bernstein) | `--ci-farbe-spielen` | `#FFB54A` |
+| Gemeinde (Grün) | `--ci-farbe-gemeinde` | `#5FE0B0` |
+| Laden/Lohn (Violett) | `--ci-farbe-lohn` | `#B38CFF` |
+| Biblionär (Türkis) | `--ci-farbe-biblionaer` | `#66E0D0` |
+| Duell (Koralle) | `--ci-farbe-duell` | `#FF8A5C` |
+| Spenden (Rosé) | `--ci-farbe-spende` | `#F4A6C8` |
+| Bedienung (Silber) | `--ci-farbe-bedienung` | `#E3E9F6` |
 
-Schrift auf einer Bereichsfarbe: `--ci-farbe-auf-bereich` (hell: Weiß, dunkel: Nacht).
+Schrift auf einer Bereichsfarbe: `--ci-farbe-auf-bereich` (Nacht bzw. Tiefnacht).
 
 ## Abstände, Radien, Schatten
 
@@ -83,7 +81,7 @@ Schrift auf einer Bereichsfarbe: `--ci-farbe-auf-bereich` (hell: Weiß, dunkel: 
 | Goldschein | `--ci-schein` / `--ci-schein-hover` | nur Hauptknopf und Belohnung |
 | Innenlicht | `--ci-innenlicht` | Glanzkante oben am Goldknopf |
 
-Schatten sind im hellen Modus blaugrau und zart, im dunklen schwarz und kräftiger.
+Im Dunkelmodus sind die Schatten tiefer und der Goldschein etwas ruhiger.
 
 ## Schriften und Typografie
 
@@ -120,20 +118,20 @@ Schatten sind im hellen Modus blaugrau und zart, im dunklen schwarz und kräftig
 
 ## Kontraste (WCAG 2.1, im Browser gemessen)
 
-| Paar | Hell | Dunkel |
+| Paar | Standard | Dunkel |
 |---|---|---|
-| Text auf Hintergrund | 17,2 | 17,5 |
-| Text leise auf Oberfläche | 7,5 | 6,9 |
-| Titel (Gold) auf Oberfläche | 6,7 | 11,0 |
-| Akzent-Zahl auf Oberfläche | 7,2 | 9,3 |
+| Text auf Hintergrund | 17,5 | 16,7 |
+| Text leise auf Hintergrund | 6,9 | 6,8 |
+| Titel (Gold) auf Hintergrund | 11,0 | 11,7 |
+| Akzent-Zahl auf Oberfläche | 9,3 | 10,8 |
 | Schrift auf Gold | 9,8 | 9,8 |
-| Sekundärer Knopf | 18,5 | 14,6 |
-| Gesperrter Knopf / Feld | 5,0 | 5,5 |
-| Fehlertext | 6,4 | 6,4 |
+| Sekundärer Knopf | 14,6 | 15,4 |
+| Gesperrter Knopf / Feld | 5,5 | 5,6 |
+| Fehlertext | 6,4 | 7,5 |
 | Weiß auf Kreuzrot (Marke, Zähler) | 4,6 | 4,6 |
-| Schrift auf Bereichsknopf (Lernen) | 5,8 | 10,2 |
-| Bereichsfarbe als Untertitel (schwächste: Gemeinde hell) | 4,95 | 11,3 |
-| Linie stark (Bedien-Rand) auf Oberfläche / tief | 3,7 / 3,2 | 4,2 / 4,6 |
+| Schrift auf Bereichsknopf (Lernen) | 10,2 | 10,9 |
+| Bereichsfarbe als Untertitel | 11,3 | 12,0 |
+| Linie stark (Bedien-Rand) auf Oberfläche | 4,2 | 3,6 |
 
 Alle Texte erreichen AA (4,5:1), alle Bedien-Ränder 3:1. `--ci-farbe-linie` ist nur Schmuck.
 
@@ -155,7 +153,7 @@ zeigen auf die CI-Werte. Sie wirken nur, wenn `ci.css` **nach** dem `<style>` de
 
 ## Beim Einbau in die App beachten
 
-1. Die App ist heute nur dunkel. Bis der helle Modus durchgetestet ist: `<html data-theme="dark">` setzen.
+1. Standard „Nacht“ entspricht dem heutigen Look. Wer das Gerät auf dunkel stellt, bekommt automatisch „Tiefnacht“; soll die App vorerst immer gleich aussehen: `<html data-theme="light">` setzen.
 2. Bereichsfarben weichen ab: In `index.html` ist Spielen Violett und Gemeinde Koralle, die CI legt Bernstein und Grün fest.
 3. Lexend läuft breiter als Nunito und hat kein 800/900 – enge Stellen (Fußleiste, Zahlentafel) bei 390 px prüfen.
 4. `ci/ci.css` in die `APP`-Liste von `sw.js` aufnehmen (Offline-Start).
