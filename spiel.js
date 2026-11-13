@@ -1901,13 +1901,14 @@ function spielMenue(zus) {
 }
 /* 9.21: Solo im Medaillon-Stil von „Zusammen“ – ein Tipp startet das Spiel direkt (kein Gegner nötig); die Medaillons und Stände kommen aus zvSpiele() */
 const soloAttr = s => { if (s.id === "blitz") return 'data-go="blitz"'; if (s.id === "vers") return 'data-go="verslektion"'; const id = s.id.replace(/^kette-/, ""); return KETTEN[id] ? `data-k="${id}"` : `data-tk="${id}"`; };
+/* 9.70: Solo als Kachel-Raster (2 Spalten) – Medaillon, Name, Stand, Fortschrittsbalken, goldener Haken bei „geschafft“; Reihenfolge der Ketten: AT, NT, Ganze Bibel, Rückwärts */
+const soloKachel = s => `<button class="sok-k" ${soloAttr(s)} style="--c:${ZV_FARBE[s.grp]};--p:${zvPr(s.pct)}"><span class="sok-kopf"><span class="zv2-ring"><span class="zv2-in">${svg(s.ic)}</span></span><span class="sok-re">${s.pct >= 100 ? `<span class="sok-ok" aria-label="geschafft">${svg("check")}</span>` : ""}<small>${esc(s.sub)}</small></span></span><b>${esc(s.kurz)}</b><span class="sok-bal"><i></i></span></button>`;
 VIEWS.spielen = () => {
   const g = zvSpiele();
   screen.innerHTML = `${bereichKopf("spielen", { ic: "user", t: "Solo", sub: "Wie weit kommst du heute?" })}
   <div class="zv"><div class="zv2-buehne">
-    <div class="zv2-reihe"><span class="zv2-tit">${svg("link")}Ketten</span></div><div class="zv2-gitter">${g.slice(0, 4).map(x => zvMedaille(x, false, soloAttr(x))).join("")}</div>
-    <div class="zv2-reihe"><span class="zv2-tit">${svg("star")}Themen · Blitz · Vers</span></div><div class="zv2-gitter">${g.slice(4).map(x => zvMedaille(x, false, soloAttr(x))).join("")}</div></div>
-    <p class="zv2-hinw"><span>1</span>Spiel antippen<i></i><span>2</span>Los geht's!</p></div>`;
+    <div class="zv2-reihe"><span class="zv2-tit">${svg("link")}Ketten</span></div><div class="sok-gitter">${[g[1], g[2], g[0], g[3]].map(soloKachel).join("")}</div>
+    <div class="zv2-reihe"><span class="zv2-tit">${svg("star")}Themen · Blitz · Vers</span></div><div class="sok-gitter">${g.slice(4).map(soloKachel).join("")}</div></div></div>`;
   wireGo();
   screen.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playChain(b.dataset.k), cdSolo("kette-" + b.dataset.k)); });
   screen.querySelectorAll("[data-tk]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playThemenKette(b.dataset.tk), cdSolo("kette-" + b.dataset.tk)); });
@@ -2633,6 +2634,11 @@ const GROSS_KEY = "bq-gross3"; /* 9.8: neuer Schlüssel – Große Schrift ist f
 function grossAn() { try { return localStorage.getItem(GROSS_KEY) === "1"; } catch (e) { return false; } }
 function grossSetzen(an) { try { localStorage.setItem(GROSS_KEY, an ? "1" : "0"); } catch (e) {} document.documentElement.classList.toggle("gross", an); }
 document.documentElement.classList.toggle("gross", grossAn());
+/* 9.69: Dunkelmodus „Tiefnacht“ – je Gerät, standardmäßig aus (data-theme setzt schon ein kleines Skript im Kopf von index.html) */
+const DUNKEL_KEY = "bq-dunkel";
+function dunkelAn() { try { return localStorage.getItem(DUNKEL_KEY) === "1"; } catch (e) { return false; } }
+function dunkelSetzen(an) { try { localStorage.setItem(DUNKEL_KEY, an ? "1" : "0"); } catch (e) {} document.documentElement.setAttribute("data-theme", an ? "dark" : "light"); }
+document.documentElement.setAttribute("data-theme", dunkelAn() ? "dark" : "light");
 
 /* ---------- Mein Profil ---------- */
 function statsZeilen(p) {
@@ -2682,6 +2688,7 @@ VIEWS.profil = () => {
     ${deferredInstall && !S.appBonus ? `<button class="pf2-zeile pf2-k pf3-z" id="pfInstall"><span class="pf2-ic">${svg("down")}</span><span class="pf2-tx"><b>App installieren</b></span><small class="pf3-w">+${APP_BONUS} Talente</small>${PF_IC.pfeil}</button>` : ""}
     ${entwickler ? `<button class="pf2-zeile pf2-k pf3-z" id="edVorschauBtn"><span class="pf2-ic">${svg("biblionaer")}</span><span class="pf2-tx"><b>Sondereditionen</b></span><small class="pf3-w">${ED_REIHE.filter(edVorschau).length ? `${ED_REIHE.filter(edVorschau).length} Vorschau` : "vorab testen"}</small>${PF_IC.pfeil}</button>` : ""}
     ${(BETA || betaDarfLokal()) && online ? `<button class="pf2-zeile pf2-k pf3-z" id="betaSchalter"><span class="pf2-ic">${svg("star")}</span><span class="pf2-tx"><b>Beta-Version</b></span><small class="pf3-w">${BETA ? "an – zurück zu Live" : "aus – Neues testen"}</small>${PF_IC.pfeil}</button>` : ""}
+    <button class="pf2-zeile pf2-k pf3-z gs-schalter" id="dmSchalterP" aria-pressed="${dunkelAn()}"><span class="pf2-ic">${svg("star")}</span><span class="pf2-tx"><b>Dunkelmodus</b></span><small class="pf3-w">${dunkelAn() ? "an" : "aus"}</small><i class="gs-knopf"></i></button>
     <button class="pf2-zeile pf2-k pf3-z gs-schalter pf-gross" id="gsSchalterP" aria-pressed="${grossAn()}"><span class="pf2-ic">${svg("eye")}</span><span class="pf2-tx"><b>Große Schrift</b></span><small class="pf3-w">${grossAn() ? "an" : "aus"}</small><i class="gs-knopf"></i></button>
     ${entwickler && online ? kennungHtml("kennProfil") : ""}
     <p class="small muted pf3-fuss">Bibelverse: ${VERS_QUELLE} © Genfer Bibelgesellschaft.</p>
@@ -2691,6 +2698,7 @@ VIEWS.profil = () => {
   if ($("betaSchalter")) $("betaSchalter").onclick = () => { SFX.tap(); kanalFrage(); };
   /* 9.60: Freigabe für die Beta-Version nur hier prüfen (höchstens 1× je Stunde) – erscheint/verschwindet der Schalter, Profil neu zeichnen */
   if (!BETA && online && S.pid) betaPruefen(false).then(neu => { if (neu && current === "profil" && !document.querySelector(".modal")) go("profil"); }).catch(() => {});
+  $("dmSchalterP").onclick = () => { SFX.tap(); const b = $("dmSchalterP"); dunkelSetzen(!dunkelAn()); b.setAttribute("aria-pressed", dunkelAn()); b.querySelector("small").textContent = dunkelAn() ? "an" : "aus"; };
   $("gsSchalterP").onclick = () => { SFX.tap(); const b = $("gsSchalterP"); grossSetzen(!grossAn()); b.setAttribute("aria-pressed", grossAn()); b.querySelector("small").textContent = grossAn() ? "an" : "aus"; };
   $("fbLink2").onclick = () => { SFX.tap(); feedbackOeffnen(); };
   if ($("pfInstall")) $("pfInstall").onclick = () => { SFX.tap(); deferredInstall.prompt(); deferredInstall.userChoice.catch(() => {}).then(() => { deferredInstall = null; }); };

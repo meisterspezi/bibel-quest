@@ -3,6 +3,9 @@
 <head>
 <script>/* 9.60 Beta-Kanal: Wer „Beta“ gewählt hat (und freigeschaltet ist), wird sofort dorthin geleitet. „?live=1“ führt immer zurück. */
 try{(function(){var b=location.pathname.indexOf("/beta/")>=0,q=location.search;if(/[?&]live=1/.test(q)){localStorage.setItem("bq-kanal","live")}else if(!b&&location.protocol==="https:"&&localStorage.getItem("bq-kanal")==="beta"&&localStorage.getItem("bq-beta-ok")==="1"){location.replace("beta/"+q+location.hash)}})()}catch(e){}</script>
+<script>/* 9.69 Dunkelmodus „Tiefnacht“: standardmäßig AUS (unabhängig von der Geräte-Einstellung), im Profil zuschaltbar, je Gerät gemerkt */
+try{document.documentElement.setAttribute("data-theme",localStorage.getItem("bq-dunkel")==="1"?"dark":"light")}catch(e){document.documentElement.setAttribute("data-theme","light")}
+</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Bibelbuch-Quest</title>
@@ -2711,6 +2714,21 @@ body.ed-an:not(.weih-an) .bib-opt.eingeloggt i,body.ed-an:not(.weih-an) .bib-opt
 body.ed-an:not(.weih-an) .bib-zeit i{background:linear-gradient(90deg,var(--bad),#ffcf5a 40%,var(--edc))}
 body.ed-an:not(.weih-an) .bib-ende .bib-ic{filter:drop-shadow(0 0 14px var(--edc))}
 body.ed-an:not(.weih-an) .bib-ende .bib-gross b{text-shadow:0 0 18px var(--edc)}
+/* 9.70: Solo – Kachel-Raster */
+.sok-gitter{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:0 4px 10px}
+.sok-gitter:last-child{margin-bottom:4px}
+.sok-k{display:flex;flex-direction:column;gap:6px;min-width:0;padding:10px 12px;border-radius:18px;border:1px solid color-mix(in srgb,var(--c) 38%,#343c78);background:linear-gradient(180deg,#262e66,#161b44);color:#fff;text-align:left;box-shadow:0 4px 10px #0006,inset 0 1px 0 #ffffff1a}
+.sok-k:active{transform:scale(.97)}
+.sok-kopf{display:flex;align-items:stretch;justify-content:space-between;gap:8px}
+.sok-k .zv2-ring{width:54px;height:54px;flex:none}.sok-k .zv2-in{width:46px;height:46px}.sok-k .zv2-in svg{width:36px;height:36px}
+.sok-re{display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;min-width:0}
+.sok-re small{margin-top:auto;font:700 .74rem/1.15 var(--body);color:#b4badb;white-space:nowrap}
+.sok-ok{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(180deg,#ffd978,#f2a93a);color:#1b2a55;box-shadow:0 1px 0 #a86a12}.sok-ok svg{width:14px;height:14px}
+.sok-k b{font:800 1rem/1.15 var(--body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sok-bal{display:block;height:5px;border-radius:3px;background:#ffffff24;overflow:hidden}
+.sok-bal i{display:block;height:100%;width:calc(var(--p)*1%);border-radius:3px;background:var(--c)}
+@media (min-height:830px){.sok-k{gap:7px}.sok-k .zv2-ring{width:62px;height:62px}.sok-k .zv2-in{width:53px;height:53px}.sok-k .zv2-in svg{width:41px;height:41px}}
+@media (max-height:760px){.sok-k{padding:8px 12px;gap:4px}.sok-k .zv2-ring{width:46px;height:46px}.sok-k .zv2-in{width:40px;height:40px}.sok-k .zv2-in svg{width:31px;height:31px}}
 </style>
 <!-- CI-Stylesheet (Farben, Schriften, Bausteine) – nach dem App-Stil, damit seine Werte gelten -->
 <link rel="stylesheet" href="ci/ci.css">
