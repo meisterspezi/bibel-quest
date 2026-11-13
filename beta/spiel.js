@@ -1904,13 +1904,13 @@ const soloAttr = s => { if (s.id === "blitz") return 'data-go="blitz"'; if (s.id
 /* 9.70: Solo als Kachel-Raster (2 Spalten) – Medaillon, Name, Stand, Fortschrittsbalken, goldener Haken bei „geschafft“; Reihenfolge der Ketten: AT, NT, Ganze Bibel, Rückwärts */
 const soloKachel = s => spKachel2(s, soloAttr(s));
 /* 9.70: dieselbe Kachel für „Zusammen“ (an = gewähltes Spiel) */
-const spKachel2 = (s, attr, an) => `<button class="sok-k${an ? " an" : ""}" ${attr} style="--c:${ZV_FARBE[s.grp]};--p:${zvPr(s.pct)}"><span class="zv2-ring"><span class="zv2-in">${svg(s.ic)}</span></span><small class="sok-pl">${esc(s.sub)}</small><b>${esc(s.kurz)}</b></button>`; /* 9.73: Variante „Medaille“ – Symbol zentriert und groß, Stand als Plakette am Ring, kein Balken, kein Haken */
+const spKachel2 = (s, attr, an) => `<button class="sok-k${an ? " an" : ""}" ${attr} style="--c:${ZV_FARBE[s.grp]};--p:${zvPr(s.pct)}"><span class="zv2-ring"><span class="zv2-in">${svg(s.ic)}</span></span><small class="sok-pl">${esc(s.sub)}</small><b>${s.mini && s.mini !== s.kurz ? `<span class="lang">${esc(s.kurz)}</span><span class="kurz">${esc(s.mini)}</span>` : esc(s.kurz)}</b></button>`; /* 9.73: Variante „Medaille“ – Symbol zentriert und groß, Stand als Plakette am Ring, kein Balken, kein Haken */
 VIEWS.spielen = () => {
   const g = zvSpiele();
   screen.innerHTML = `${bereichKopf("spielen", { ic: "user", t: "Solo", sub: "Wie weit kommst du heute?" })}
-  <div class="zv"><div class="zv2-buehne">
-    <div class="zv2-reihe"><span class="zv2-tit">${svg("link")}Ketten</span></div><div class="sok-gitter">${[g[1], g[2], g[0], g[3]].map(soloKachel).join("")}</div>
-    <div class="zv2-reihe"><span class="zv2-tit">${svg("star")}Themen · Blitz · Vers</span></div><div class="sok-gitter">${g.slice(4).map(soloKachel).join("")}</div></div></div>`;
+  <div class="zv"><div class="zv2-buehne sok-solo">
+    <div class="zv2-reihe"><span class="zv2-tit">${svg("link")}Ketten</span></div><div class="sok-gitter sok-ketten">${[g[1], g[2], g[0], g[3]].map(soloKachel).join("")}</div>
+    <div class="zv2-reihe"><span class="zv2-tit">${svg("star")}Themen · Blitz · Vers</span></div><div class="sok-gitter sok-themen">${g.slice(4).map(soloKachel).join("")}</div></div></div>`;
   wireGo();
   screen.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playChain(b.dataset.k), cdSolo("kette-" + b.dataset.k)); });
   screen.querySelectorAll("[data-tk]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playThemenKette(b.dataset.tk), cdSolo("kette-" + b.dataset.tk)); });
@@ -1923,7 +1923,7 @@ function zvSpiele() {
   const k = id => { const K = KETTEN[id], n = Math.min(K.seq.length, kettenBuecher(K.key));
     return { id: "kette-" + id, ic: "kette-" + id, name: K.name, kurz: { bibel: "Ganze Bibel", at: "Altes Test.", nt: "Neues Test.", rueck: "Rückwärts" }[id], sub: n ? `${n} von ${K.seq.length}` : "Los geht's!", pct: n / K.seq.length * 100, grp: "kette" }; };
   const t = id => { const K = TKETTEN[id], n = Math.min(K.items.length, S[K.key] ? S[K.key] + 1 : 0);
-    return { id: "kette-" + id, ic: K.ic, name: K.name, kurz: K.name, sub: n ? `${n} von ${K.items.length}` : "Los geht's!", pct: n / K.items.length * 100, grp: id }; };
+    return { id: "kette-" + id, ic: K.ic, name: K.name, kurz: K.name, mini: K.name.replace(/^Zehn /, ""), sub: n ? `${n} von ${K.items.length}` : "Los geht's!", pct: n / K.items.length * 100, grp: id }; };
   const bp = spielStand("blitz")[1], [vs0, vp] = spielStand("vers"), r = S.bestBlitz | 0;
   const vs = vs0.startsWith("Neuer") ? "Neuer Vers!" : vs0.startsWith("Vers des") ? "Gemeistert" : vs0.startsWith("Prüfung") ? "Prüfung!" : vs0;
   return [k("bibel"), k("at"), k("nt"), k("rueck"), t("gebote"), t("schoepfung"),
@@ -1951,9 +1951,9 @@ VIEWS.zusammen = () => {
   screen.innerHTML = `${bereichKopf("gemeinde", { ic: "people", t: "Zusammen", sub: duN ? `${duN} ${duN === 1 ? "Duell wartet" : "Duelle warten"} auf dich!` : "Mit der Gemeinde spielen" })}
   ${online ? "" : `<p class="small muted zus-hinweis">${window.LB && window.LB.ok ? "Für Duelle brauchst du einen Eintrag in der Gemeinde-Rangliste." : "Für Duelle brauchst du Internet."}</p>`}
   ${dran}
-  <div class="zv ${online ? "" : "sp-aus"}"><div class="zv2-buehne">
-    <div class="zv2-reihe"><span class="zv2-tit">${svg("link")}Ketten</span></div><div class="sok-gitter">${[g[1], g[2], g[0], g[3]].map(zvKachel).join("")}</div>
-    <div class="zv2-reihe"><span class="zv2-tit">${svg("star")}Themen · Blitz · Vers</span></div><div class="sok-gitter">${g.slice(4).map(zvKachel).join("")}</div></div>
+  <div class="zv ${online ? "" : "sp-aus"}"><div class="zv2-buehne sok-solo">
+    <div class="zv2-reihe"><span class="zv2-tit">${svg("link")}Ketten</span></div><div class="sok-gitter sok-ketten">${[g[1], g[2], g[0], g[3]].map(zvKachel).join("")}</div>
+    <div class="zv2-reihe"><span class="zv2-tit">${svg("star")}Themen · Blitz · Vers</span></div><div class="sok-gitter sok-themen">${g.slice(4).map(zvKachel).join("")}</div></div>
     <p class="zv2-hinw"><span>1</span>Spiel antippen<i></i><span>2</span>Gegner wählen<i></i><span>3</span>Duell!</p>
     <div id="zvGegnerBox">${zvWahl ? zvGegnerHtml() : ""}</div></div>`;
   wireGo(); duDranVerdrahten(); zvVerdrahten();
