@@ -1902,7 +1902,9 @@ function spielMenue(zus) {
 /* 9.21: Solo im Medaillon-Stil von „Zusammen“ – ein Tipp startet das Spiel direkt (kein Gegner nötig); die Medaillons und Stände kommen aus zvSpiele() */
 const soloAttr = s => { if (s.id === "blitz") return 'data-go="blitz"'; if (s.id === "vers") return 'data-go="verslektion"'; const id = s.id.replace(/^kette-/, ""); return KETTEN[id] ? `data-k="${id}"` : `data-tk="${id}"`; };
 /* 9.70: Solo als Kachel-Raster (2 Spalten) – Medaillon, Name, Stand, Fortschrittsbalken, goldener Haken bei „geschafft“; Reihenfolge der Ketten: AT, NT, Ganze Bibel, Rückwärts */
-const soloKachel = s => `<button class="sok-k" ${soloAttr(s)} style="--c:${ZV_FARBE[s.grp]};--p:${zvPr(s.pct)}"><span class="sok-kopf"><span class="zv2-ring"><span class="zv2-in">${svg(s.ic)}</span></span><span class="sok-re">${s.pct >= 100 ? `<span class="sok-ok" aria-label="geschafft">${svg("check")}</span>` : ""}<small>${esc(s.sub)}</small></span></span><b>${esc(s.kurz)}</b><span class="sok-bal"><i></i></span></button>`;
+const soloKachel = s => spKachel2(s, soloAttr(s));
+/* 9.70: dieselbe Kachel für „Zusammen“ (an = gewähltes Spiel) */
+const spKachel2 = (s, attr, an) => `<button class="sok-k${an ? " an" : ""}" ${attr} style="--c:${ZV_FARBE[s.grp]};--p:${zvPr(s.pct)}"><span class="sok-kopf"><span class="zv2-ring"><span class="zv2-in">${svg(s.ic)}</span></span><span class="sok-re">${s.pct >= 100 ? `<span class="sok-ok" aria-label="geschafft">${svg("check")}</span>` : ""}<small>${esc(s.sub)}</small></span></span><b>${esc(s.kurz)}</b><span class="sok-bal"><i></i></span></button>`;
 VIEWS.spielen = () => {
   const g = zvSpiele();
   screen.innerHTML = `${bereichKopf("spielen", { ic: "user", t: "Solo", sub: "Wie weit kommst du heute?" })}
@@ -1942,6 +1944,7 @@ function zvGegnerHtml() {
       return `<li><button class="du-person" data-zvg="${esc(r.id)}" ${laeuft ? "disabled" : ""}>${avatarLv(r, 34)}<span class="du-tx"><b>${esc(r.name)}</b><span>${duUnterzeile(r, laeuft)}</span></span>${laeuft ? "" : `<span class="zv2-vor" aria-hidden="true">${svg(G.ic)}</span>`}</button></li>`; })}</ul>`}`}
   </section>`;
 }
+const zvKachel = s => { const an = zvWahl === s.id; return spKachel2(s, `data-dtyp="${s.id}" aria-pressed="${an}"`, an); };
 VIEWS.zusammen = () => {
   const duN = duFuerMich().length, online = duOk(), dran = duDranHtml(), g = zvSpiele();
   if (!online) zvWahl = null;
@@ -1949,8 +1952,8 @@ VIEWS.zusammen = () => {
   ${online ? "" : `<p class="small muted zus-hinweis">${window.LB && window.LB.ok ? "Für Duelle brauchst du einen Eintrag in der Gemeinde-Rangliste." : "Für Duelle brauchst du Internet."}</p>`}
   ${dran}
   <div class="zv ${online ? "" : "sp-aus"}"><div class="zv2-buehne">
-    <div class="zv2-reihe"><span class="zv2-tit">${svg("link")}Ketten</span></div><div class="zv2-gitter">${g.slice(0, 4).map(s => zvMedaille(s, zvWahl === s.id)).join("")}</div>
-    <div class="zv2-reihe"><span class="zv2-tit">${svg("star")}Themen · Blitz · Vers</span></div><div class="zv2-gitter">${g.slice(4).map(s => zvMedaille(s, zvWahl === s.id)).join("")}</div></div>
+    <div class="zv2-reihe"><span class="zv2-tit">${svg("link")}Ketten</span></div><div class="sok-gitter">${[g[1], g[2], g[0], g[3]].map(zvKachel).join("")}</div>
+    <div class="zv2-reihe"><span class="zv2-tit">${svg("star")}Themen · Blitz · Vers</span></div><div class="sok-gitter">${g.slice(4).map(zvKachel).join("")}</div></div>
     <p class="zv2-hinw"><span>1</span>Spiel antippen<i></i><span>2</span>Gegner wählen<i></i><span>3</span>Duell!</p>
     <div id="zvGegnerBox">${zvWahl ? zvGegnerHtml() : ""}</div></div>`;
   wireGo(); duDranVerdrahten(); zvVerdrahten();
