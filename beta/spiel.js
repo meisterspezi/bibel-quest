@@ -15,7 +15,7 @@ const DEF = {
   songHeard: [], gapPerfect: false, peeked: false, earlyBird: false,
   dq: { day: "", items: [], bonus: false }, questBonusCount: 0, lv: {}, duGes: [], duSiege: 0, duSpiele: 0, duTyp: "vers", duGesendet: 0, duAngenommen: 0, duArten: [], duKetteVoll: false,
   mute: false, beat: true, gapSing: false, atTi: 0, ntTi: 0,
-  ruestStufe: {}, stift: {}, spendeXp: {}, advTest: { on: false, d: "2026-11-29" }, advT: null, beth: {}, bethG: {}, bethSync: "", bethTage: [], bethGefeiert: [], bethAngekommen: false, kal: {}, advBib: {}, advLv: 0, advLr: 0, adventIntro: false, stiftGefeiert: [], stiftEingeweiht: false,
+  ruestStufe: {}, stift: {}, spendeXp: {}, edBib: {}, stiftGefeiert: [], stiftEingeweiht: false,
   xq: null, dlgGesehen: 0, dlgDev: {}, lvLohn: 0, gem: null, gemNeu: false, nachGel: [], nachAb: 0, gemGesendet: "", rankScope: "", duAlle: false, lbName: "", pid: "", ownersSet: false, offlineOnly: false, weekKey: "", weekXp: 0, podium: false, wochensieger: false, wochenziel: false,
   ver: 6
 };
@@ -88,7 +88,6 @@ async function allesSenden() {
   const L = window.LB; if (!S.lbName || !S.pid || !L || !L.ok || S.offlineOnly) return;
   const auf = [L.push(S.pid, lbPayload(), {}).catch(() => {})];
   if (S.ownersSet && L.saveState) auf.push(L.saveState(S.pid, spielstandExport()).catch(() => {}));
-  try { bethSenden(); } catch (e) {}
   if (S.xq && L.xpSetzen) auf.push(L.xpSetzen(S.pid, S.lbName, xqKuerzen(S.xq)).then(() => { S.xqSync = JSON.stringify(S.xq); lsSchreiben(); }).catch(e => xqNachholen(e)));
   auf.push(xqLogLeeren(S.pid, S.lbName, XQ_LOGKEY()));
   await Promise.all(auf);
@@ -1134,7 +1133,6 @@ async function xqStartPruefung() {
 function addXp(n, el, quelle, info) {
   if (gesperrt) return;
   neuerTag(); serieZaehlen(); tagMerken();
-  try { adventLichterVerdienen(n, quelle); } catch (e) {} /* 7.3: Adventslichter */
   xqEreignis(n, quelle, info, S.xp);
   xqZaehlen(n, quelle);
   const vorher = levelOf(S.xp);
@@ -1465,7 +1463,7 @@ function go(name, arg) {
 const SONNE_STRAHLEN = [0, 1, 2, 3, 4, 5, 6, 7].map(k => `<path d="M50 8 L55 27 L45 27 Z" transform="rotate(${k * 45} 50 50)"/><path d="M50 14 L53.5 27 L46.5 27 Z" transform="rotate(${k * 45 + 22.5} 50 50)"/>`).join("");
 ICONS.sun = `<g class="wr" transform="scale(.24)"><defs><radialGradient id="snM" cx=".4" cy=".3" r=".8"><stop offset="0" stop-color="#3a4ca8"/><stop offset=".6" stop-color="#1b2250"/><stop offset="1" stop-color="#0e1226"/></radialGradient><linearGradient id="snG" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#fff7d6"/><stop offset=".45" stop-color="#f2c14e"/><stop offset="1" stop-color="#b9821f"/></linearGradient><radialGradient id="snD" cx=".38" cy=".32" r=".8"><stop offset="0" stop-color="#ffffff"/><stop offset=".35" stop-color="#fff0bf"/><stop offset=".75" stop-color="#f2c14e"/><stop offset="1" stop-color="#b9821f"/></radialGradient></defs><circle cx="50" cy="50" r="47" fill="url(#snM)" stroke="url(#snG)" stroke-width="2.5"/><g fill="url(#snG)" stroke="#0e1226" stroke-width=".6" stroke-linejoin="round">${SONNE_STRAHLEN}</g><circle cx="50" cy="50" r="23" fill="url(#snD)" stroke="#8a5d12" stroke-width="1"/><ellipse cx="43" cy="41" rx="8" ry="4.5" fill="#fff" opacity=".45" transform="rotate(-30 43 41)"/></g>`;
 const TABS = [["home", "Start", "sun"], ["lernen", "Lektionen", "book"], ["spielen", "Solo", "user"], ["bib", "Biblionär", "biblionaer"], ["duelle", "Arena", "arena"], ["rank", "Rangliste", "trophy"]]; /* 9.14: Arena + Biblionär statt „Zusammen“ (VIEWS.zusammen bleibt im Code, ist aber nicht mehr im Menü) */
-const TAB_VON = { advent: "home", beth: "home", kal: "home", duell: "duelle", zusammen: "duelle", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen", biblionaer: "bib",
+const TAB_VON = { duell: "duelle", zusammen: "duelle", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen", biblionaer: "bib",
   bib: "bib", gemverwaltung: "", betatester: "", gegner: "duelle", duelle: "duelle", rank: "rank", shop: "rank", ich: "", profil: "", stat: "", errung: "", badges: "", wer: "", postfach: "", neuigkeiten: "", nachrichten: "" };
 /* rote Zahl am Duell-Reiter: wartende Herausforderungen */
 function tbDuSetzen() { let a = 0, b = 0; try { a = duFuerMich().length; b = duFuerBib().length; } catch (e) {} [["tbDu", a], ["tbBib", b]].forEach(([id, n]) => { const t = $(id); if (!t) return; t.hidden = !n; t.textContent = n; }); }
@@ -1486,7 +1484,7 @@ const backBtn = (to = "home", txt = "Zurück") => `<button class="back" data-go=
 /* Seitenkopf der Hauptbereiche: Titel links, kleine Info rechts */
 const seitenKopf = (titel, info = "") => `<div class="seitenkopf"><h1>${titel}</h1>${info ? `<span class="pill sk-info">${info}</span>` : ""}</div>`;
 /* 6.57: Bereichs-Kopf im Arena-Stil – o: {ic | bild, t, sub, ring:[zahl, text], tafel:[[zahl, text]×3], zeile:{ic,t,p,r}, knopf:{ic,t,attr}} */
-const BK_FARBE = { home: "#f2c14e", lernen: "var(--ar-lernen)", spielen: "var(--ar-spielen)", bib: "#7be04a", gemeinde: "var(--ar-gemeinde)", advent: "#ffcf5a", laden: "#3fd0c0" };
+const BK_FARBE = { home: "#f2c14e", lernen: "var(--ar-lernen)", spielen: "var(--ar-spielen)", bib: "#7be04a", gemeinde: "var(--ar-gemeinde)", laden: "#3fd0c0" };
 /* 8.2: Zusatzinfos im Kopf (Ring, Zahlentafel, „Zahlen“-Knopf) entfallen – ruhiger. Die Elemente bleiben unsichtbar im Dokument, damit Stellen, die Werte nachtragen (ringId, Tafel-IDs), weiter funktionieren. */
 const bereichKopf = (m, o) => `<div class="bkopf" style="--bk:${BK_FARBE[m]}">
   <header class="bk-kopf">${o.bild ? `<span class="bk-med bild"><img src="${o.bild}" alt="" width="480" height="455"></span>` : `<span class="bk-med">${svg(o.ic)}</span>`}
@@ -1574,7 +1572,6 @@ function hilfeZeile(buch) {
    Bildschirme
    ===================================================================== */
 const VIEWS = {};
-VIEWS.advent = VIEWS_ADVENT; VIEWS.beth = VIEWS_BETH; VIEWS.kal = VIEWS_KAL; /* 7.3: Advent (advent.js) */
 
 /* Schatztruhe für den Tagesbonus: zu, solange Aufgaben offen sind; offen mit Lichtschein, wenn alle drei geschafft sind */
 const TRUHE_DEFS = `<defs><linearGradient id="trHolz" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9783c"/><stop offset=".55" stop-color="#8a5226"/><stop offset="1" stop-color="#5a3214"/></linearGradient>
@@ -1724,7 +1721,7 @@ VIEWS.home = () => {
         <section class="heute3 ${S.dq.bonus ? "fertig" : ""}" aria-label="Tagesaufgaben, ${erledigt} von 3 erledigt"><ul>${aufg}</ul>${truhe}</section></details></div>`;
   screen.innerHTML = `<div class="stack start start2 start8">
     ${kopf}
-    ${adventMiniHtml(true)}${siegel}
+    ${siegel}
     <div class="start-vers">${MONATSVERSE[monatKey()] ? lvStartHtml(lvMonate().includes(lvAnsicht) ? lvAnsicht : (lvAnsicht = monatKey()), lvMonate()) : `<button class="vers-zeile" id="versZeile" aria-expanded="false">${versHtml(vKey, "tag klein")}<span class="vz-mehr">mehr</span></button>`}</div>
     <div class="kt-grid">
       ${ktKachel("lernen", "var(--ar-lernen)", svg("book"), "Lektionen", "66 Bücher der Bibel")}
@@ -2111,7 +2108,7 @@ function cdDuell() {
   const D = duSpiel; if (!D) return {};
   const id = D.art === "kette" ? "kette-" + D.k : D.art === "quiz" ? "quiz" : D.art;
   const ziele = D.ziele && D.ziele.length ? D.ziele : [{ id: D.vonPid || D.an, name: D.gegner }];
-  return Object.assign(cdSolo(id), { modus: D.weih ? "Weihnachts-Duell" : "Duell", weih: !!D.weih, sub: "Gleiche Fragen für beide",
+  return Object.assign(cdSolo(id), { modus: D.ed ? `${edAdj(D.ed)}-Duell` : "Duell", weih: D.ed === "weihnachten", sub: "Gleiche Fragen für beide",
     gegner: ziele.map(g => ({ id: g.id, name: g.name || "?", p: cdGegnerFinden(g) })) });
 }
 /* 9.22: echte Avatare der Gegner – aus der geladenen Gegnerliste (nach id, sonst nach Name) */
@@ -2596,7 +2593,7 @@ VIEWS.profil = () => {
     ${zeile("stat", "fire", "Statistik", `${tageN} ${tageN === 1 ? "Tag" : "Tage"} in Folge`)}
     ${zeile("share", "share", "Mit Freunden teilen", "QR-Code")}
     ${deferredInstall && !S.appBonus ? `<button class="pf2-zeile pf2-k pf3-z" id="pfInstall"><span class="pf2-ic">${svg("down")}</span><span class="pf2-tx"><b>App installieren</b></span><small class="pf3-w">+${APP_BONUS} Talente</small>${PF_IC.pfeil}</button>` : ""}
-    ${entwickler && (advTestOn() || dayNum(today()) < dayNum(ADV_START)) ? `<button class="pf2-zeile pf2-k pf3-z" id="advTestBtn"><span class="pf2-ic">${svg("kerze")}</span><span class="pf2-tx"><b>Advent-Testmodus</b></span><small class="pf3-w">${advTestOn() ? "an – öffnen" : "starten"}</small>${PF_IC.pfeil}</button>` : ""}
+    ${entwickler ? `<button class="pf2-zeile pf2-k pf3-z" id="edVorschauBtn"><span class="pf2-ic">${svg("biblionaer")}</span><span class="pf2-tx"><b>Sondereditionen</b></span><small class="pf3-w">${ED_REIHE.filter(edVorschau).length ? `${ED_REIHE.filter(edVorschau).length} Vorschau` : "vorab testen"}</small>${PF_IC.pfeil}</button>` : ""}
     ${(BETA || betaDarfLokal()) && online ? `<button class="pf2-zeile pf2-k pf3-z" id="betaSchalter"><span class="pf2-ic">${svg("star")}</span><span class="pf2-tx"><b>Beta-Version</b></span><small class="pf3-w">${BETA ? "an – zurück zu Live" : "aus – Neues testen"}</small>${PF_IC.pfeil}</button>` : ""}
     <button class="pf2-zeile pf2-k pf3-z gs-schalter pf-gross" id="gsSchalterP" aria-pressed="${grossAn()}"><span class="pf2-ic">${svg("eye")}</span><span class="pf2-tx"><b>Große Schrift</b></span><small class="pf3-w">${grossAn() ? "an" : "aus"}</small><i class="gs-knopf"></i></button>
     ${entwickler && online ? kennungHtml("kennProfil") : ""}
@@ -2610,7 +2607,7 @@ VIEWS.profil = () => {
   $("gsSchalterP").onclick = () => { SFX.tap(); const b = $("gsSchalterP"); grossSetzen(!grossAn()); b.setAttribute("aria-pressed", grossAn()); b.querySelector("small").textContent = grossAn() ? "an" : "aus"; };
   $("fbLink2").onclick = () => { SFX.tap(); feedbackOeffnen(); };
   if ($("pfInstall")) $("pfInstall").onclick = () => { SFX.tap(); deferredInstall.prompt(); deferredInstall.userChoice.catch(() => {}).then(() => { deferredInstall = null; }); };
-  if ($("advTestBtn")) $("advTestBtn").onclick = () => { SFX.tap(); if (!advTestOn()) advTestSchalten(true); go("advent"); };
+  if ($("edVorschauBtn")) $("edVorschauBtn").onclick = () => { SFX.tap(); edVorschauModal(); };
   kennungKopierenVerdrahten(screen);
   /* Name direkt am Namen ändern */
   if ($("rename")) $("rename").onclick = () => {
@@ -2698,7 +2695,6 @@ function lbSync(now) {
   if (L.eigenMerken && !eigenTimer) eigenTimer = setTimeout(() => { eigenTimer = null; try { if (S.pid && S.lbName) L.eigenMerken(S.pid, lbPayload()); } catch (e) {} }, 2500);
   lbTimer = setTimeout(() => {
     lbTimer = null; lbZuletzt = Date.now();
-    try { bethSenden(); } catch (e) {} /* 7.3: Weg nach Bethlehem */
     try { xqSenden(); } catch (e) {} /* 6.73: XP-Quellen */
     try { gemSenden(); } catch (e) {} /* 9.0: Gemeinde-Zuordnung */
     const opts = {}; if (!S.ownersSet && eigenePid(S.pid)) opts.owners = [L.uid];
@@ -2807,6 +2803,7 @@ function zusammenfuehren(r) {
   if (r.duGT && r.duGT.t === today()) { const n = duGleichStand(); Object.entries(r.duGT.n || {}).forEach(([k, v]) => { n[k] = Math.max(n[k] | 0, v | 0); }); }
   if (r.spWdh && r.spWdh.t === today()) { const n = wdhStand(); Object.entries(r.spWdh.n || {}).forEach(([k, v]) => { n[k] = Math.max(n[k] | 0, v | 0); }); }
   if (r.duKurz && typeof r.duKurz === "object") S.duKurz = Object.assign({}, r.duKurz, S.duKurz || {});
+  bibGesMischen(r); /* 9.63: Fragenverlauf beider Geräte */
   try { xqAbgleich(xpVorher); } catch (e) {}
   if (r.weekKey === S.weekKey) S.weekXp = Math.max(S.weekXp, r.weekXp || 0); else if ((r.weekKey || "") > (S.weekKey || "")) { S.weekKey = r.weekKey; S.weekXp = r.weekXp; }
   if (r.todayDay === S.todayDay) { S.todayXp = Math.max(S.todayXp, r.todayXp || 0); S.todayRight = Math.max(S.todayRight || 0, r.todayRight || 0); }
@@ -2824,7 +2821,7 @@ function zusammenfuehren(r) {
   /* 6.68: Rüstungs-Stufen und Stiftshütten-Spenden: je Schlüssel das Maximum */
   ["ruestStufe", "stift", "spendeXp"].forEach(k => { const a = S[k] = Object.assign({}, S[k] || {}); Object.entries(r[k] || {}).forEach(([i, v]) => { a[i] = Math.max(a[i] | 0, v | 0); }); });
   S.stiftGefeiert = [...new Set([...(S.stiftGefeiert || []), ...(Array.isArray(r.stiftGefeiert) ? r.stiftGefeiert : [])])]; S.stiftEingeweiht = !!(S.stiftEingeweiht || r.stiftEingeweiht);
-  try { adventMischen(r); } catch (e) {} /* 7.3: Advent */
+  try { edMischen(r); } catch (e) {} /* 9.63: Biblionär der Woche der Sondereditionen */
   if (r.lbName && !S.lbName) S.lbName = r.lbName;
 }
 /* Diesem Gerät ein bestehendes Spielerprofil zuordnen (Kopplungscode oder Zusammenführung durch den Verwalter) */
@@ -2942,8 +2939,6 @@ async function lbStart() {
         if (["spielen", "duelle", "home"].includes(current) && !document.querySelector(".modal") && !duSpiel) go(current);
       });
       bibSiegerPruefen();
-      /* 7.3: Advent – Gaben senden, Stationen feiern, Willkommen */
-      bethSenden(); bethLaden().then(() => { if (["home", "advent", "beth"].includes(current)) setTimeout(() => { bethFeiern(); adventStartHinweis(); }, 1500); });
     }
   } catch (e) {}
 }
@@ -3458,7 +3453,7 @@ VIEWS.rank = (tab) => {
   const L = window.LB;
   /* 6.58: Kopf im Arena-Stil – Ring = eigener Platz in der gewählten Liste, Tafel Level/Abzeichen/Spieler (nach dem Laden nachgetragen) */
   let html = bereichKopf("gemeinde", { ic: "trophy", t: "Rangliste", sub: meineGem() === "gast" ? "Alle Spieler" : gemName(meineGem()), ring: ["–", "Platz"], ringId: "bkPlatz",
-    tafel: [[levelOf(S.xp), "Level"], [`${S.badges.length}`, "Abzeichen"], ["–", "Spieler", "bkSpieler"]] }) + `<div id="shMiniBox">${adventMiniHtml()}</div>` + bkLabel("trophy", "Ranglisten");
+    tafel: [[levelOf(S.xp), "Level"], [`${S.badges.length}`, "Abzeichen"], ["–", "Spieler", "bkSpieler"]] }) + bkLabel("trophy", "Ranglisten");
   if (!L) { screen.innerHTML = html + `<div class="card"><p class="muted" style="margin:0">Rangliste wird geladen …</p></div>`; wireGo(); return; }
   if (!L.configured) { screen.innerHTML = html + `<div class="card stack"><b>Noch nicht eingerichtet</b><p class="muted small" style="margin:0">Die Rangliste braucht einen gemeinsamen Online-Speicher. Bis dahin kannst du ganz normal spielen – dein Fortschritt wird später übernommen.</p></div>`; wireGo(); return; }
   if (!L.ok) { screen.innerHTML = html + `<div class="card stack"><b>Keine Verbindung</b><p class="muted small" style="margin:0">Für die Rangliste brauchst du Internet. Deine Punkte werden übertragen, sobald du wieder online bist.</p><button class="btn" id="retry">Neu laden</button></div>`; wireGo(); $("retry").onclick = () => location.reload(); return; }
@@ -3811,9 +3806,10 @@ function duAufloesVersuch() {
 }
 function rngVon(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 /* Fragen aus Startwert + Art – für beide Spieler genau gleich (Zufall wird dafür kurz ersetzt) */
-function duFragen(seed, art, k, stand, weih) {
+/* ed = Sonderedition (oder null), zeit = Zeitpunkt der Herausforderung (bestimmt die freigeschalteten Wellen) */
+function duFragen(seed, art, k, stand, ed, zeit) {
   const alt = Math.random; Math.random = rngVon(seed);
-  if (art === "quiz") { Math.random = alt; return bibFragen(seed, stand, weih ? ADV_ALLE_FRAGEN : null); }
+  if (art === "quiz") { Math.random = alt; return bibFragen(seed, stand, ed ? edPool(ed, zeit) : null, null, ed || null); }
   try {
     if (art === "kette") {
       if (TKETTEN[k]) { const T = TKETTEN[k], it = T.items;
@@ -3970,7 +3966,7 @@ function duBelohnen() {
   checkBadges(); lbSync();
 }
 /* Kleine farbige Marke für die Duell-Art (Liste, Hinweise) */
-const duMarke = d => { const t = duTypVon(d) || "vers"; return `<i class="du-marke t-${DU_TYPEN[t].art}">${esc(DU_TYPEN[t].kurz || DU_TYPEN[t].name)}</i>${weihMarke(d)}`; };
+const duMarke = d => { const t = duTypVon(d) || "vers"; return `<i class="du-marke t-${DU_TYPEN[t].art}">${esc(DU_TYPEN[t].kurz || DU_TYPEN[t].name)}</i>${edMarke(d)}`; };
 
 /* Anzeige-Helfer der Duellseite: Initialen, Siegesserie, nächstes Abzeichen, Arena-Banner */
 const duInitialen = n => (String(n || "?").trim().split(/\s+/).map(w => w[0]).join("").slice(0, 2) || "?").toUpperCase();
@@ -3999,7 +3995,7 @@ function duArenaHtml(fuerMich) {
 }
 
 /* 8.4: Duell direkt annehmen – von Start und Zusammen aus (je 1 Karte „Du bist dran“) */
-const duAnnehmen = d => duSpielStarten({ id: d.id, seed: d.seed, erstellt: d.erstellt, art: d.art || "vers", k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von, weih: !!(d.opt && d.opt.w) });
+const duAnnehmen = d => duSpielStarten({ id: d.id, seed: d.seed, erstellt: d.erstellt, art: d.art || "vers", k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von, ed: duEdition(d) });
 function duDranKarte(d) {
   const art = DU_TYPEN[duTypVon(d)].art, n = Math.max(0, Math.ceil((d.ablauf - Date.now()) / 864e5));
   return `<li class="ar-karte t-${art}${n <= 1 ? " eilig" : ""}">
@@ -4128,7 +4124,6 @@ function duGegnerHtml() {
   const q = nameSchluessel(duSuche), typ = duTypAktuell(), n = duAuswahl.length, voll = n >= maxWahl;
   return `<div class="card du-gegner" id="duGegner">
     ${!frei ? `<p class="small muted" style="margin:0">Du hast schon ${DU_MAX_OFFEN} offene Herausforderungen – erst müssen diese gespielt werden. Unten bei „Wartet auf Gegner“ kannst du eine abbrechen.</p>` : `
-    ${typ === "quiz" ? weihSchalterHtml() : ""}
     <div class="label du-schritt du-schritt2"><span>${esc(DU_TYPEN[typ].name)} · Gegner</span><i class="du-zahl${n ? " an" : ""}">${n}/${maxWahl}</i></div>
     <input class="du-suche" id="duSuche" type="search" placeholder="Name suchen …" value="${esc(duSuche)}" autocomplete="off" aria-label="Gegner suchen">
     ${n ? `<div class="du-chips">${duAuswahl.map(g => `<button class="du-chip" data-raus="${esc(g.id)}" aria-label="${esc(g.name)} abwählen">${esc(g.name)}${svg("nein")}</button>`).join("")}</div>` : ""}
@@ -4142,11 +4137,10 @@ function duGegnerVerdrahten() {
   const neuZeichnen = () => { const box = $("duGegner"); if (!box) return; const alt = box.querySelector(".du-wahl"), top = alt ? alt.scrollTop : 0;
     box.outerHTML = duGegnerHtml(); duGegnerVerdrahten(); const w = $("duGegner") && $("duGegner").querySelector(".du-wahl"); if (w) w.scrollTop = top; };
   const f = $("duSuche"); if (f) f.oninput = () => { duSuche = f.value; const pos = f.selectionStart; neuZeichnen(); const g = $("duSuche"); g.focus(); try { g.setSelectionRange(pos, pos); } catch (e) {} };
-  weihSchalterWire(neuZeichnen);
   screen.querySelectorAll("[data-gegner]").forEach(b => b.onclick = () => { SFX.tap(); const r = (duGegner || []).find(x => x.id === b.dataset.gegner); if (!r) return;
     duAuswahl = duAuswahl.some(g => g.id === r.id) ? duAuswahl.filter(g => g.id !== r.id) : [...duAuswahl, { id: r.id, name: r.name }]; neuZeichnen(); });
   screen.querySelectorAll("[data-raus]").forEach(b => b.onclick = () => { SFX.tap(); duAuswahl = duAuswahl.filter(g => g.id !== b.dataset.raus); neuZeichnen(); });
-  if ($("duLos")) $("duLos").onclick = () => { if (!duAuswahl.length) return; SFX.tap(); const wahl = duAuswahl.slice(); const t = duTypAktuell(); duHerausfordern(wahl, t, t === "quiz" && weihAktiv() ? { weih: true } : {}); };
+  if ($("duLos")) $("duLos").onclick = () => { if (!duAuswahl.length) return; SFX.tap(); const wahl = duAuswahl.slice(); const t = duTypAktuell(); duHerausfordern(wahl, t); };
 }
 /* Duell-Art wählen und herausfordern (Revanche, Profil): die bisherige Art ist markiert, eine andere wird vorgeschlagen */
 function duTypWahl(r, bisher, revanche = false) {
@@ -4158,7 +4152,7 @@ function duTypWahl(r, bisher, revanche = false) {
     <p class="small muted" style="margin:0">${bisher ? "Noch einmal dasselbe – oder diesmal eine andere Duell-Art?" : "Welche Duell-Art?"}</p>
     ${duTypKacheln(wahl, "data-mtyp", marken)}<p class="small muted du-typ-info" id="duMInfo">${esc(DU_TYPEN[wahl].info)}</p>
     <button class="btn primary du-fordern" data-close="los" id="duMLos">${svg("bolt")} ${esc(DU_TYPEN[wahl].name)}-Duell starten</button><button class="btn ghost" data-close>Abbrechen</button>`,
-    x => { if (x !== "los") return; S.duTyp = wahl; save(); const los = () => duHerausfordern(r, wahl, wahl === "quiz" && weihAktiv() ? { weih: true } : {}); if (duListe) los(); else duAktualisieren().then(los); });
+    x => { if (x !== "los") return; S.duTyp = wahl; save(); const los = () => duHerausfordern(r, wahl); if (duListe) los(); else duAktualisieren().then(los); });
   m.dataset.frei = "1";
   m.querySelectorAll("[data-mtyp]").forEach(b => b.onclick = () => { SFX.tap(); wahl = b.dataset.mtyp;
     m.querySelectorAll("[data-mtyp]").forEach(x => x.setAttribute("aria-checked", x === b)); $("duMInfo").textContent = DU_TYPEN[wahl].info;
@@ -4174,7 +4168,7 @@ function duHerausfordern(r, typ = duTypAktuell(), extra = {}) {
   if (offen.length + ziele.length > DU_MAX_OFFEN) { const frei = Math.max(0, DU_MAX_OFFEN - offen.length);
     toast(`${svg("bolt", "var(--muted)")}<div>${frei ? `Du kannst nur noch ${frei} ${frei === 1 ? "Gegner" : "Gegner"} herausfordern (höchstens ${DU_MAX_OFFEN} offene Duelle).` : `Du hast schon ${DU_MAX_OFFEN} offene Duelle.`}</div>`); return; }
   const T = DU_TYPEN[typ] || DU_TYPEN.vers;
-  const seed = crypto.getRandomValues(new Uint32Array(1))[0] % 2147483647;
+  const seed = T.art === "quiz" ? bibDuellSeed(extra.ed || null) : crypto.getRandomValues(new Uint32Array(1))[0] % 2147483647; /* 9.63: Biblionär-Duell meidet bekannte Fragen */
   duAuswahl = [];
   duSpielStarten(Object.assign({ neu: true, an: ziele[0].id, gegner: ziele.length === 1 ? ziele[0].name : `${ziele.length} Gegner`, ziele: ziele.map(g => ({ id: g.id, name: g.name })),
     seed, art: T.art, k: T.art === "vers" ? duVerseKey() : T.k }, extra));
@@ -4186,7 +4180,8 @@ function duSpielStarten(opt) {
   go("duell");
   const art = DU_TYPEN[opt.art === "kette" ? "kette-" + opt.k : opt.art] ? opt.art : "vers";
   duSpiel = Object.assign({ i: 0, p: 0, r: 0, f: 0, combo: 0, maxCombo: 0, rest: DU_BLITZ_SEK, gesendet: false }, opt, { art });
-  duSpiel.fragen = duFragen(opt.seed, art, opt.k, opt.erstellt ? weekKey(opt.erstellt) : weekKey(), !!opt.weih);
+  duSpiel.ed = EDITIONEN[opt.ed] ? opt.ed : null; duSpiel.weih = duSpiel.ed === "weihnachten";
+  duSpiel.fragen = duFragen(opt.seed, art, opt.k, opt.erstellt ? weekKey(opt.erstellt) : weekKey(), duSpiel.ed, opt.erstellt || Date.now());
   document.body.classList.add("spiel-laeuft");
   if (art === "quiz") { duSpiel.modus = "duell"; countdown(() => bibStart(duSpiel), cdDuell()); return; }
   countdown(() => { duSpiel.t0 = Date.now(); if (art === "blitz") duBlitzUhr(); duZeige(); }, cdDuell());
@@ -4305,7 +4300,7 @@ async function duEnde() {
     if (D.neu) {
       /* je Gegner ein eigenes Duell mit demselben Startwert; bei einem Fehler werden beim nächsten Versuch nur die fehlenden gesendet */
       D.ok = D.ok || [];
-      for (const g of ziele) if (!D.ok.includes(g.id)) { D.id = await L.duellAnlegen({ art: D.art, von: S.pid, an: g.id, vonName: S.lbName, anName: g.name, k: D.k, seed: D.seed, vonErg: erg, weih: D.weih }); D.ok.push(g.id); duListe = null;
+      for (const g of ziele) if (!D.ok.includes(g.id)) { D.id = await L.duellAnlegen({ art: D.art, von: S.pid, an: g.id, vonName: S.lbName, anName: g.name, k: D.k, seed: D.seed, vonErg: erg, ed: D.ed }); D.ok.push(g.id); duListe = null;
         /* späterer Sieg-/Remis-Lohn für dieses Duell ebenfalls gekürzt, wenn es heute schon das 5.+ gegen diesen Gegner war */
         const f = D.gleichEinzel ? D.gleichEinzel[g.id] : 1; if (f < 1 && D.id) { S.duKurz = Object.assign({}, S.duKurz || {}); S.duKurz[D.id] = f; const ks = Object.keys(S.duKurz); while (ks.length > 60) delete S.duKurz[ks.shift()]; save(); } }
       D.gesendet = true;
@@ -4339,7 +4334,7 @@ async function duEnde() {
   const aufl = !D.neu && !fehler && !weg;
   if (aufl) {
     screen.innerHTML = `<div class="vl vl-ende du-ende sb-ende">
-    <div class="sb-kopf"><small>${duMarke({ art: D.art, k: D.k, opt: D.weih ? { w: 1 } : null })}</small><b>Du gegen ${esc(D.gegner)}</b></div>
+    <div class="sb-kopf"><small>${duMarke({ art: D.art, k: D.k, opt: edOpt(D.ed) })}</small><b>Du gegen ${esc(D.gegner)}</b></div>
     ${sbHtml({ gegner: D.gegner, du: { p: D.p, r: D.r, n }, er: D.gegnerErg, art: D.art })}
     <h1 class="sb-spaet${sieg || remis ? "" : " leise"}">${titel}</h1><p class="muted sb-spaet">${zeile}${extra ? `<br><span class="small">${extra.replace(/^ · /, "")}</span>` : ""}</p>
     <div class="vle-werte sb-spaet"><div><b>+${xp}</b><span>XP</span></div>${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>${tal > DU_FAIR_TAL ? "Talente" : "Fairplay"}</span></div>` : ""}</div>
@@ -4352,7 +4347,7 @@ async function duEnde() {
   screen.innerHTML = `<div class="vl vl-ende du-ende">
     <div class="vle-ic ${sieg ? "" : D.art === "quiz" ? "bib-ic" : "du"}">${svg(sieg ? "crown" : D.art === "quiz" ? "biblionaer" : "bolt")}</div>
     <h1>${titel}</h1><p class="muted">${zeile}</p>
-    <div class="du-art-zeile">${duMarke({ art: D.art, k: D.k, opt: D.weih ? { w: 1 } : null })}<span class="small muted">${esc(DU_TYPEN[typ].info)}</span></div>
+    <div class="du-art-zeile">${duMarke({ art: D.art, k: D.k, opt: edOpt(D.ed) })}<span class="small muted">${esc(DU_TYPEN[typ].info)}</span></div>
     <div class="du-vs"><div class="du-vs-sp ${sieg ? "vorn" : ""}"><span>Du</span><b>${duP(D.p)}</b><small>${duErgText(D.art, ich)}${extra}</small></div><span class="du-vs-x">:</span>${gegnerSpalte}</div>
     <div class="vle-werte"><div><b>+${xp}</b><span>XP</span></div>${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>${tal > DU_FAIR_TAL ? "Talente" : "Fairplay"}</span></div>` : ""}</div>
     ${fehler ? `<button class="btn primary breit" id="duNochmal">Nochmal senden</button>` : `<button class="btn primary breit" id="duFertig">${D.heim === "bib" ? "Zurück zu Biblionär" : "Zurück zu " + heimName("duelle")}</button>`}
@@ -4385,12 +4380,50 @@ const bibWocheTage = () => { const d = new Date(), wt = (d.getDay() + 6) % 7; re
 
 /* Fragen aus dem Startwert: Auswahl, Antwort-Reihenfolge und die Joker-Ergebnisse sind für alle gleich */
 /* stand: Kalenderwoche, aus deren Fragenpool gezogen wird (Duell: Woche der Herausforderung) – neue Fragen mit ab: … ändern so keine alten Runden */
-function bibFragen(seed, stand, pool) {
-  const alt = Math.random; Math.random = rngVon(seed); stand = stand || weekKey();
+/* ---------- 9.63: Fragenverlauf gegen Wiederholungen ----------
+   Je Spieler merkt sich der Spielstand die zuletzt gezeigten Biblionär-Fragen als Kennungen (4 Zeichen aus dem Fragetext),
+   getrennt nach Klassisch (k) und Weihnachten (w), als ein Text (älteste zuerst). Er reist mit dem Spielstand mit, der ohnehin
+   gespeichert wird – keine zusätzlichen Lese- oder Schreibzugriffe. Solo meidet gesehene Fragen, Duelle suchen einen passenden Startwert. */
+const BIB_GES_MAX = { k: 450, w: 300, o: 300, p: 240, r: 300 }; /* je 4 Zeichen; Verläufe von Editionen außerhalb ihres Zeitraums werden gelöscht */
+const bibFid = q => hash(q.f).toString(36).padStart(4, "0").slice(-4);
+const bibGesListe = k => { const s = (S.bibGes && typeof S.bibGes[k] === "string") ? S.bibGes[k] : ""; const l = []; for (let i = 0; i + 4 <= s.length; i += 4) l.push(s.slice(i, i + 4)); return l; };
+const bibGesSetzen = (k, l) => { if (!S.bibGes || typeof S.bibGes !== "object") S.bibGes = {}; S.bibGes[k] = l.slice(-BIB_GES_MAX[k]).join(""); };
+/* Rang je Kennung: 0 = nie gesehen, 1 = am längsten her … n = zuletzt */
+const bibGesRang = k => new Map(bibGesListe(k).map((id, i) => [id, i + 1]));
+function bibGesMerken(q) {
+  try { const k = q.ed && EDITIONEN[q.ed] ? EDITIONEN[q.ed].ges : "k", id = bibFid(q); bibGesSetzen(k, [...bibGesListe(k).filter(x => x !== id), id]);
+    ED_REIHE.forEach(e => { if (!edAktiv(e) && S.bibGes) delete S.bibGes[EDITIONEN[e].ges]; }); } catch (e) {}
+}
+/* Zwei Geräte: beide Verläufe vereinigen (Reihenfolge: anderes Gerät zuerst, eigene Einträge zuletzt) */
+function bibGesMischen(r) {
+  if (!r || !r.bibGes || typeof r.bibGes !== "object") return;
+  ["k", "w"].forEach(k => { if (typeof r.bibGes[k] !== "string") return; const fremd = []; for (let i = 0; i + 4 <= r.bibGes[k].length; i += 4) fremd.push(r.bibGes[k].slice(i, i + 4));
+    const eigen = bibGesListe(k), set = new Set(eigen); bibGesSetzen(k, [...fremd.filter(x => !set.has(x)), ...eigen]); });
+}
+/* Duell: aus mehreren Startwerten den nehmen, bei dem der Herausforderer am wenigsten schon kennt (reine Rechnung auf dem Gerät) */
+function bibDuellSeed(ed) {
+  const neu = () => crypto.getRandomValues(new Uint32Array(1))[0] % 2147483647;
   try {
-    const alle = pool ? pool.map(q => Object.assign({ thema: "Advent" }, q)) : QUIZ_THEMEN.flatMap(t => t.fragen.filter(q => (!q.ab || q.ab <= stand) && (!q.bis || stand < q.bis)).map(q => Object.assign({ thema: t.name }, q)));
-    const stufe = st => { const gew = [], themen = []; for (const q of shuffle(alle.filter(x => x.st === st))) {
-        if (gew.length >= 5) break; if (!pool && themen.filter(t => t === q.thema).length >= 2) continue; gew.push(q); themen.push(q.thema); }
+    const rang = bibGesRang(ed ? EDITIONEN[ed].ges : "k"); if (!rang.size) return neu(); const pool = ed ? edPool(ed, Date.now()) : null;
+    let best = 0, bestWert = Infinity;
+    for (let n = 0; n < 24; n++) { const s = neu(), fr = bibFragen(s, weekKey(), pool, null, ed);
+      const wert = fr.reduce((a, q) => { const r = rang.get(bibFid(q)) || 0; return a + (r ? 1000 + r : 0); }, 0);
+      if (wert < bestWert) { best = s; bestWert = wert; } if (!wert) break; }
+    return best || neu();
+  } catch (e) { return neu(); }
+}
+
+/* 9.63: meiden = Fragenverlauf des Spielers (Map Kennung → Rang, nur Solo): ungesehene Fragen zuerst, dann die am längsten zurückliegenden.
+   Weihnachts-Pool: gilt jetzt auch ab/bis (Wellen) und je Unterthema th höchstens 2 Fragen je Stufe. */
+function bibFragen(seed, stand, pool, meiden, ed) {
+  const alt = Math.random; Math.random = rngVon(seed); stand = stand || weekKey();
+  const gilt = q => (!q.ab || q.ab <= stand) && (!q.bis || stand < q.bis);
+  try {
+    const alle = pool ? pool.filter(gilt).map(q => Object.assign({ thema: q.th || (EDITIONEN[ed] || {}).name || "Biblionär" }, q)) : QUIZ_THEMEN.flatMap(t => t.fragen.filter(gilt).map(q => Object.assign({ thema: t.name }, q)));
+    const stufe = st => { const gew = [], themen = []; let liste = shuffle(alle.filter(x => x.st === st));
+      if (meiden) liste = liste.map((q, i) => [q, i, meiden.get(bibFid(q)) || 0]).sort((a, b) => a[2] - b[2] || a[1] - b[1]).map(x => x[0]);
+      for (const q of liste) {
+        if (gew.length >= 5) break; if ((!pool || q.th) && themen.filter(t => t === q.thema).length >= 2) continue; gew.push(q); themen.push(q.thema); }
       return gew; };
     return [...stufe(1), ...stufe(2), ...stufe(3)].map(q => {
       const loesung = q.a[0], falsche = q.a.slice(1), opts = shuffle(q.a.slice()), weg = shuffle(falsche).slice(0, 2);
@@ -4400,7 +4433,7 @@ function bibFragen(seed, stand, pool) {
       let ant = opts.map(o => (o === loesung ? richtigAnteil : (1 - richtigAnteil) * w[falsche.indexOf(o)] / sw));
       if (q.st === 3 && Math.random() < .18) { const j = ant.indexOf(Math.max(...ant.filter((_, k) => opts[k] !== loesung))), r = opts.indexOf(loesung); [ant[j], ant[r]] = [ant[r], ant[j]]; }
       let proz = ant.map(a => Math.round(a * 100)); proz[proz.indexOf(Math.max(...proz))] += 100 - proz.reduce((a, b) => a + b, 0);
-      return { f: q.f, opts, loesung, ref: q.ref, st: q.st, thema: q.thema, weg, gemeinde: proz, weih: !!pool };
+      return { f: q.f, opts, loesung, ref: q.ref, st: q.st, thema: q.thema, weg, gemeinde: proz, weih: ed === "weihnachten", ed: pool ? ed || null : null };
     }).map((q, idx) => Object.assign(q, { ws: hash("willi|" + seed + "|" + idx) }));
   } finally { Math.random = alt; }
 }
@@ -4426,12 +4459,13 @@ function bibZeige(G) {
   if (G.modus !== "duell" && current !== "biblionaer") return;
   const f = G.fragen[G.i], halb = G.halbBei === G.i;
   const lang = f.opts.some(o => o.length > 22);
+  if (G.gemerkt !== G.i) { G.gemerkt = G.i; bibGesMerken(f); } /* 9.63: Fragenverlauf */
   weihDeko(!!G.weih); /* 9.61: Weihnachts-Runden spielen im Schnee */
-  const titel = G.modus === "duell" ? `${G.weih ? "Weihnachts-Duell" : "Duell"} gegen ${esc(G.gegner)}` : G.modus === "woche" ? `Biblionär der Woche · ${weekKey().split("-W")[1]}. KW` : G.modus === "advent" ? `Weihnachts-Biblionär · ${advRundeName(G.adv)}` : G.weih ? "Weihnachts-Biblionär" : "Biblionär";
+  const titel = G.modus === "duell" ? `${G.ed ? edAdj(G.ed) + "-Duell" : "Duell"} gegen ${esc(G.gegner)}` : G.modus === "woche" ? `Biblionär der Woche · ${weekKey().split("-W")[1]}. KW` : G.modus === "edwoche" ? `${edAdj(G.ed)}-Biblionär · ${edRundeName(G.ed, G.edR)}` : G.ed ? `${edAdj(G.ed)}-Biblionär` : "Biblionär";
   screen.innerHTML = `<div class="vl bib">
     <div class="vl-kopf"><button class="vl-x" id="bibX" aria-label="Spiel abbrechen">${svg("back")}</button>
       <button class="bib-leiste" id="bibLeiter" aria-label="Gewinnleiter ansehen"><span>Frage ${G.i + 1}/15</span><b>${pkt(BIB_LEITER[G.i])}</b></button></div>
-    <span class="vl-titel bib-titel">${G.weih ? WEIH_FLOCKE : svg("biblionaer")} ${titel}</span>
+    <span class="vl-titel bib-titel">${G.ed ? edSym(G.ed) : svg("biblionaer")} ${titel}</span>
     <div class="bib-stand"><span>${G.gewonnen ? `Erreicht <b>${pkt(G.gewonnen)}</b>` : "Noch keine Punkte"}</span><span>Sicher <b>${pkt(bibGesichert(G.i))}</b></span></div>
     <div class="du-zeit bib-zeit"><i id="bibZeit" style="animation-duration:${BIB_SEK}s"></i></div>
     <div class="bib-frage-box st${f.st}">${G.weih ? WEIH_HAUBE : ""}<span class="bib-thema">${esc(f.thema)}</span><h2 class="bib-frage">${esc(f.f)}</h2></div>
@@ -4515,12 +4549,12 @@ function bibZeige(G) {
   $("bibX").onclick = () => {
     SFX.tap();
     const text = G.modus === "duell" ? (G.neu ? "Die Herausforderung wird dann nicht gesendet." : "Du kannst später noch einmal neu anfangen.")
-      : (G.modus === "woche" || G.modus === "advent") ? "Die Runde hat nur einen Versuch. Wenn du abbrichst, zählt sie mit 0 Punkten." : "Dein Fortschritt in dieser Runde geht verloren.";
+      : (G.modus === "woche" || G.modus === "edwoche") ? "Die Runde hat nur einen Versuch. Wenn du abbrichst, zählt sie mit 0 Punkten." : "Dein Fortschritt in dieser Runde geht verloren.";
     modal(`<div class="label">Spiel abbrechen?</div><h2>Biblionär</h2><p class="muted">${text}</p><button class="btn primary" data-close="weiter">Weiterspielen</button><button class="btn ghost" data-close="ende">Abbrechen</button>`,
       r => { if (r !== "ende") return; fertig = true; G.abgeschlossen = true; clearTimers();
         if (G.modus === "duell") { duSpiel = null; go(G.heim || heimAnsicht("duelle")); }
         else if (G.modus === "woche") { G.gewonnen = 0; G.fertigGrund = "abbruch"; bibErgebnis(G, 0); go("rank", "bibWoche"); }
-        else if (G.modus === "advent") { G.gewonnen = 0; G.fertigGrund = "abbruch"; bibErgebnis(G, 0); go("advent"); }
+        else if (G.modus === "edwoche") { G.gewonnen = 0; G.fertigGrund = "abbruch"; bibErgebnis(G, 0); go("bib"); }
         else go(heimAnsicht("bib")); });
   };
 }
@@ -4535,22 +4569,22 @@ function bibFertig(G, grund) {
 /* Rekord, Wochenrunde, Zähler (für alle Wege gleich) */
 function bibErgebnis(G, punkte) {
   if (G.gezaehlt) return; G.gezaehlt = true;
-  if (G.modus === "advent" && advTestOn()) { A().advBib = Object.assign({}, A().advBib, { [G.adv]: punkte }); save(); return; } /* Testmodus: keine Zähler, keine Rekorde */
+  if (G.vorschau) return; /* 9.63: Vorschau des Entwicklers – keine Zähler, keine Rekorde */
   S.bibSpiele = (S.bibSpiele || 0) + 1;
   if (punkte > (S.bibRekord || 0)) { G.rekord = !!S.bibRekord || punkte > 0; S.bibRekord = punkte; }
   if (punkte >= BIB_LEITER[14]) S.bibMillion = (S.bibMillion || 0) + 1;
   if (G.modus === "woche") { S.bwP = punkte; S.bwFertig = true; }
-  if (G.modus === "advent") A().advBib = Object.assign({}, A().advBib, { [G.adv]: punkte });
+  if (G.modus === "edwoche") S.edBib = Object.assign({}, S.edBib, { [G.edKey]: punkte });
   save();
 }
 function bibEnde(G, punkte) {
   bibErgebnis(G, punkte);
-  const grund = G.fertigGrund, million = grund === "biblionaer", woche = G.modus === "woche", adv = G.modus === "advent";
+  const grund = G.fertigGrund, million = grund === "biblionaer", woche = G.modus === "woche", adv = G.modus === "edwoche";
   if (!woche && !adv && !G.wdh) G.wdh = spielWdh("bib-solo");
   const W = woche || adv ? null : G.wdh;
-  const xp = adv && advTestOn() ? 0 : wdhMal(30 + 42 * G.r + (million ? 300 : 0), W);
-  const tal = adv && advTestOn() ? 0 : wdhMal(Math.floor(G.r / 3) + (million ? 25 : 0) + (G.rekord && !woche ? 3 : 0), W) + (woche ? BIB_WOCHE_TAL : 0) + (adv ? ADV_BIB_TAL : 0);
-  if (!G.belohnt) { G.belohnt = true; if (!(adv && advTestOn())) { richtig(G.r); quest("runde", 1); } save(); }
+  const xp = G.vorschau ? 0 : wdhMal(30 + 42 * G.r + (million ? 300 : 0), W);
+  const tal = G.vorschau ? 0 : wdhMal(Math.floor(G.r / 3) + (million ? 25 : 0) + (G.rekord && !woche ? 3 : 0), W) + (woche ? BIB_WOCHE_TAL : 0) + (adv ? ED_BIB_TAL : 0);
+  if (!G.belohnt) { G.belohnt = true; if (!G.vorschau) { richtig(G.r); quest("runde", 1); } save(); }
   const titel = million ? "Biblionär!" : grund === "raus" ? "Klug ausgestiegen!" : grund === "zeit" ? "Die Zeit ist um" : "Leider falsch";
   const zeile = million ? "Alle 15 Fragen richtig – du hast die Million!" : grund === "raus" ? `Du nimmst ${pkt(punkte)} Punkte mit.` : `Du fällst auf die Sicherheitsstufe zurück: ${pkt(punkte)} Punkte.`;
   const f = G.letzte;
@@ -4561,24 +4595,24 @@ function bibEnde(G, punkte) {
     <div class="bib-gross"><b>${pkt(punkte)}</b><span>Punkte · ${G.r} von 15 richtig${G.rekord && !million ? " · neuer Rekord!" : ""}</span></div>
     ${f && !million ? `<div class="bib-loesung"><span class="small muted">Frage ${G.i + 1}: ${esc(f.f)}</span><b>${svg("check", "var(--good)")} ${esc(f.loesung)}</b><span class="small muted">${svg("book")} ${esc(f.ref)}</span></div>` : ""}
     <div class="vle-werte"><div><b>+${xp}</b><span>XP</span></div><div><b>+${tal}${TAL_MUENZE}</b><span>Talente</span></div>${woche || adv ? "" : `<div><b>${pkt(S.bibRekord)}</b><span>Rekord</span></div>`}</div>
-    ${adv ? `<p class="small muted" style="margin:0">Alle in der Gemeinde bekommen dieselben Fragen. Nächsten Sonntag gibt es neue.</p><button class="btn primary breit" data-go="advent">${svg("kerze")} Zurück zum Advent</button>`
+    ${adv ? `<p class="small muted" style="margin:0">Alle in der Gemeinde bekommen dieselben Fragen. Nächste Woche gibt es neue.</p><button class="btn primary breit" data-go="bib">${svg("biblionaer")} Zurück zu Biblionär</button>`
       : woche ? `<p class="small muted" style="margin:0">Alle in der Gemeinde bekommen diese Woche dieselben Fragen. Am Montag gibt es neue.</p>
       <button class="btn primary breit" id="bibRang">${svg("trophy")} Zur Wochen-Rangliste</button><button class="btn ghost breit" data-go="${heimAnsicht("bib")}">Zurück zu ${heimName("bib")}</button>`
       : `<button class="btn primary breit" id="bibNochmal">${svg("biblionaer")} Nochmal spielen</button><button class="btn ghost breit" data-go="${heimAnsicht("bib")}">Zurück zu ${heimName("bib")}</button>`}
   </div>`;
   wireGo();
-  if ($("bibNochmal")) $("bibNochmal").onclick = () => { SFX.tap(); bibSolo(); };
+  if ($("bibNochmal")) $("bibNochmal").onclick = () => { SFX.tap(); bibSolo(G.ed); };
   if ($("bibRang")) $("bibRang").onclick = () => { SFX.tap(); go("rank", "bibWoche"); };
   SFX.win(); if (million) rain(140); else if (punkte >= 16000) rain(60);
-  setTimeout(() => { if (xp) addXp(xp, null, "bib", { t0: G.t0, f: G.r, fm: 15, d: `${woche ? "Wochenrunde" : adv ? "Weihnachts-Woche" : "Solo"} · ${pkt(punkte)} Punkte${W ? W.d : ""}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350);
+  setTimeout(() => { if (xp) addXp(xp, null, "bib", { t0: G.t0, f: G.r, fm: 15, d: `${woche ? "Wochenrunde" : adv ? `${edAdj(G.ed)}-Woche` : G.ed ? `${edAdj(G.ed)}-Solo` : "Solo"} · ${pkt(punkte)} Punkte${W ? W.d : ""}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350);
 }
 /* Solo-Übung (Spielen): zufällige Fragen */
 VIEWS.biblionaer = () => { screen.innerHTML = ""; };
-function bibSolo(weih) {
+function bibSolo(ed) {
   go("biblionaer");
-  const w = !!weih && weihnachtsDuellOk();
-  const G = { modus: "solo", weih: w, fragen: bibFragen(crypto.getRandomValues(new Uint32Array(1))[0] % 2147483647, "", w ? ADV_ALLE_FRAGEN : null) };
-  countdown(() => bibStart(G), cdSolo("quiz", { modus: w ? "Weihnachts-Solo" : "Solo", weih: w }));
+  const e = ed && edAktiv(ed) ? ed : null, w = e === "weihnachten";
+  const G = { modus: "solo", ed: e, weih: w, vorschau: !!e && edNurVorschau(e), fragen: bibFragen(crypto.getRandomValues(new Uint32Array(1))[0] % 2147483647, "", e ? edPool(e, Date.now()) : null, bibGesRang(e ? EDITIONEN[e].ges : "k"), e) };
+  countdown(() => bibStart(G), cdSolo("quiz", { modus: e ? `${edAdj(e)}-Solo` : "Solo", weih: w }));
 }
 /* ---------- 6.80: Wochen-Sicherung (Biblionär der Woche) ----------
    Wie bei der Schatztruhe: je Spieler und Serverwoche entsteht genau ein Dokument „bibversuch/<pid>_<Wochennummer>“ (nur anlegen).
@@ -4813,14 +4847,14 @@ const jkBytes = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
 function jokerSperren() {
   try { localStorage.removeItem(JK_KEY); } catch (e) {}
   jokerGeladen = false; jokerVersuch = null;
-  ["willi", "aaron"].forEach(k => { delete PASTOREN[k]; delete ADV_PASTOREN[k]; });
+  ["willi", "aaron"].forEach(k => { delete PASTOREN[k]; delete WEIH_PASTOREN[k]; });
 }
 async function jokerEntschluesseln(k) {
   const buf = new Uint8Array(await (await fetch("joker.enc")).arrayBuffer());
   const key = await crypto.subtle.importKey("raw", jkBytes(k), "AES-GCM", false, ["decrypt"]);
   const klar = await crypto.subtle.decrypt({ name: "AES-GCM", iv: buf.slice(0, 12) }, key, buf.slice(12));
   const M = new Function(new TextDecoder().decode(klar))();
-  Object.assign(PASTOREN, M.PASTOREN); Object.assign(ADV_PASTOREN, M.ADV_PASTOREN); jokerGeladen = true;
+  Object.assign(PASTOREN, M.PASTOREN); Object.assign(WEIH_PASTOREN, M.ADV_PASTOREN); jokerGeladen = true;
 }
 function jokerLaden(neu) {
   if (meineGem() !== GEM_STANDARD) return Promise.resolve(false);
@@ -4849,8 +4883,8 @@ const TEL_ZULETZT_KEY = "bq-telefon-zuletzt";
 function telZuletzt() { try { const a = JSON.parse(localStorage.getItem(TEL_ZULETZT_KEY) || "[]"); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
 function telMerken(liste) { try { localStorage.setItem(TEL_ZULETZT_KEY, JSON.stringify(liste.slice(-150))); } catch (e) {} }
 function pastorAntwort(f, halb, id = "willi") {
-  const P0 = PASTOREN[id] || PASTOREN.gast, weih = !!f.weih && !!ADV_PASTOREN[id]; /* 7.3: Weihnachtsmodus – Mütze und weihnachtliche Antworten */
-  const P = weih ? Object.assign({}, P0, ADV_PASTOREN[id], { sicherOhne: null, ziemlichOhne: null }) : P0; if (weih) id = id + "-w";
+  const P0 = PASTOREN[id] || PASTOREN.gast, weih = !!f.weih && !!WEIH_PASTOREN[id]; /* 7.3: Weihnachtsmodus – Mütze und weihnachtliche Antworten */
+  const P = weih ? Object.assign({}, P0, WEIH_PASTOREN[id], { sicherOhne: null, ziemlichOhne: null }) : P0; if (weih) id = id + "-w";
   const rnd = rngVon((f.ws || hash(f.f)) ^ (halb ? 0x5bd1e995 : 0) ^ P.salt), zuletzt = telZuletzt();
   /* wahl: zufälliger Eintrag; ist er kürzlich gekommen, der nächste noch nicht gehörte. Gesperrt wird je Liste
      höchstens gut die Hälfte, damit immer genug Auswahl bleibt. */
@@ -4954,8 +4988,8 @@ function bibGegnerVerdrahten() {
   screen.querySelectorAll("[data-bqg]").forEach(b => b.onclick = () => { SFX.tap(); const r = (duGegner || []).find(x => x.id === b.dataset.bqg); if (r) bibHerausfordern(r); });
 }
 function bibHerausfordern(r) {
-  /* 7.5: Der Modus (Normal/Weihnachten) kommt vom Schalter im Reiter Biblionär bzw. in der Arena */
-  const los = () => { bibDuWahl = false; duHerausfordern(r, "quiz", { heim: "bib", weih: weihAktiv() }); };
+  /* 9.63: Die Ausgabe (Klassisch oder Sonderedition) kommt vom Schalter im Reiter Biblionär */
+  const los = () => { bibDuWahl = false; const e = edGewaehlt(); duHerausfordern(r, "quiz", e ? { heim: "bib", ed: e } : { heim: "bib" }); };
   if (duListe) los(); else duAktualisieren().then(los);
 }
 /* Revanche nach einem Biblionär-Duell: gleich wieder Biblionär, nur kurz bestätigen */
@@ -4975,34 +5009,34 @@ VIEWS.bib = () => {
   const wocheAn = S.lbName && !S.offlineOnly;
   /* 6.49: Wochenrunde als schmale goldene Zeile unter den beiden Startknöpfen */
   /* 6.57: Biblionär der Woche als goldener Kasten mit Kronen-Medaillon und Resttage-Marke */
-  const ar = advRunde(), advGesp = ar ? advBibGespielt(ar) : true;
-  const woche = weihAktiv()
-    ? (ar ? `<button class="bq4-woche weih" id="bqWoche" aria-label="Weihnachts-Biblionär der Woche – ${advRundeName(ar)}"><span class="bq4-kr">${svg("kerze")}</span><span><b>Biblionär der Woche</b><small>${advGesp ? `Weihnachten · deine Runde ${pkt((A().advBib || {})[ar] | 0)} Punkte` : `Weihnachten · ${advRundeName(ar)} · 1 Versuch`}</small></span>${advGesp ? `<span class="bq4-uhr">${svg("check")}<small>gespielt</small></span>` : `<span class="bq4-uhr">${svg("play")}<small>Start</small></span>`}</button>`
-        : `<div class="bq4-woche aus"><span class="bq4-kr">${svg("kerze")}</span><span><b>Biblionär der Woche</b><small>die Weihnachtsrunden sind vorbei</small></span><span></span></div>`)
+  const eA = edGewaehlt(), ER = eA ? edRunde(eA) : null, eGesp = edWocheGespielt(ER), eN = eA ? EDITIONEN[eA] : null;
+  const woche = eA
+    ? (ER ? `<button class="bq4-woche weih ed-${eA}" id="bqWoche" aria-label="${esc(eN.adj)}-Biblionär der Woche – ${edRundeName(eA, ER.r)}"><span class="bq4-kr">${eA === "weihnachten" ? svg("kerze") : eN.sym}</span><span><b>Biblionär der Woche</b><small>${eGesp ? `${esc(eN.name)} · deine Runde ${pkt(edWochePunkte(ER))} Punkte` : `${esc(eN.name)} · ${edRundeName(eA, ER.r)} · 1 Versuch`}</small></span>${eGesp ? `<span class="bq4-uhr">${svg("check")}<small>gespielt</small></span>` : `<span class="bq4-uhr">${svg("play")}<small>Start</small></span>`}</button>`
+        : `<div class="bq4-woche aus"><span class="bq4-kr">${eN.sym}</span><span><b>Biblionär der Woche</b><small>die Runden sind vorbei</small></span><span></span></div>`)
     : !wocheAn
     ? `<div class="bq4-woche aus"><span class="bq4-kr">${svg("crown")}</span><span><b>Biblionär der Woche</b><small>nur mit Eintrag in der Rangliste</small></span><span></span></div>`
     : `<button class="bq4-woche" id="bqWoche" aria-label="${gespielt ? `Biblionär der Woche: deine Runde ${pkt(S.bwP)} Punkte – Rangliste` : `Biblionär der Woche starten – noch ${n} ${n === 1 ? "Tag" : "Tage"}`}"><span class="bq4-kr">${svg("crown")}</span><span><b>Biblionär der Woche</b><small>${gespielt ? `deine Runde · ${pkt(S.bwP)} Punkte` : `${wk.split("-W")[1]}. KW · gleiche Fragen für alle · 1 Versuch`}</small></span>${gespielt ? `<span class="bq4-uhr">${svg("trophy")}<small>Liste</small></span>` : `<span class="bq4-uhr">${n}<small>${n === 1 ? "Tag" : "Tage"}</small></span>`}</button>`;
   const ichKurz = esc(duInitialen(S.lbName || "Ich"));
-  const dranZeile = d => `<li class="bq2-z"><span class="bq2-av">${esc(duInitialen(d.vonName))}</span><span class="bq2-tx"><b>${esc(d.vonName)}${weihMarke(d)}</b><small>fordert dich heraus · noch ${Math.max(0, Math.ceil((d.ablauf - Date.now()) / 864e5))} T.</small></span>
+  const dranZeile = d => `<li class="bq2-z"><span class="bq2-av">${esc(duInitialen(d.vonName))}</span><span class="bq2-tx"><b>${esc(d.vonName)}${edMarke(d)}</b><small>fordert dich heraus · noch ${Math.max(0, Math.ceil((d.ablauf - Date.now()) / 864e5))} T.</small></span>
       <span class="bq2-p du-verdeckt" aria-label="Punkte verdeckt">?</span><span class="bq2-kn"><button class="bq2-an" data-bqan="${d.id}">${svg("bolt")}Antreten</button><button class="bq2-x" data-bqab="${d.id}" aria-label="Duell von ${esc(d.vonName)} ablehnen">${svg("nein")}</button></span></li>`;
   const ergKachel = d => { const ich = d.von === S.pid, g = ich ? d.anName : d.vonName, p = ich ? d.vonErg.p : d.anErg.p, q = ich ? d.anErg.p : d.vonErg.p, e = duMeinVgl(d) > 0 ? "sieg" : duMeinVgl(d) === 0 ? "remis" : "nieder";
-    return `<button class="bq2-e ${e}" data-bqrev="${d.id}" aria-label="${e === "sieg" ? "Nochmal" : "Revanche"} gegen ${esc(g)}">${e === "sieg" ? svg("crown") : `<span class="bq2-av klein">${esc(duInitialen(g))}</span>`}<span class="bq2-tx"><b>${d.opt && d.opt.w ? WEIH_FLOCKE : ""}${esc(g)}</b><em>${e === "sieg" ? "Gewonnen" : e === "remis" ? "Remis" : "Verloren"}</em></span><span class="bq2-p">${duP(p)}<small>${duP(q)}</small></span>${svg("bolt")}</button>`; };
+    return `<button class="bq2-e ${e}" data-bqrev="${d.id}" aria-label="${e === "sieg" ? "Nochmal" : "Revanche"} gegen ${esc(g)}">${e === "sieg" ? svg("crown") : `<span class="bq2-av klein">${esc(duInitialen(g))}</span>`}<span class="bq2-tx"><b>${edSym(duEdition(d))}${esc(g)}</b><em>${e === "sieg" ? "Gewonnen" : e === "remis" ? "Remis" : "Verloren"}</em></span><span class="bq2-p">${duP(p)}<small>${duP(q)}</small></span>${svg("bolt")}</button>`; };
   const duell = !online
     ? `<p class="small muted bq2-leer">${window.LB && window.LB.ok ? "Für Duelle brauchst du einen Eintrag in der Gemeinde-Rangliste." : "Für Duelle brauchst du Internet."}</p>`
     : `${duListe === null ? `<p class="small muted du-laden">${svg("biblionaer")} Lade Duelle …</p>` : ""}
       ${dran.length ? `<ul class="bq2-liste">${dran.map(dranZeile).join("")}</ul>` : ""}
-      ${warte.length ? `<div class="bq2-warte">${svg("sun")}<span>Wartet auf:</span>${warte.map(d => `<button class="du-chip bq-stop${duStopGesperrt(d) ? " gesperrt" : ""}" data-bqstop="${d.id}" aria-label="${esc(duStopLabel(d))}">${d.opt && d.opt.w ? WEIH_FLOCKE : ""}${esc(d.anName)}${duStopKnopfIc(d)}</button>`).join("")}</div>` : ""}
+      ${warte.length ? `<div class="bq2-warte">${svg("sun")}<span>Wartet auf:</span>${warte.map(d => `<button class="du-chip bq-stop${duStopGesperrt(d) ? " gesperrt" : ""}" data-bqstop="${d.id}" aria-label="${esc(duStopLabel(d))}">${edSym(duEdition(d))}${esc(d.anName)}${duStopKnopfIc(d)}</button>`).join("")}</div>` : ""}
       ${fertig.length ? `<div class="bq2-erg">${fertig.map(ergKachel).join("")}</div>` : ""}
       ${!dran.length && !warte.length && !fertig.length && duListe !== null ? `<p class="small muted bq2-leer">Noch keine Duelle – fordere oben jemanden heraus. Ihr bekommt beide dieselben 15 Fragen.</p>` : ""}
       ${andere > 0 ? `<button class="ar-mehr bq2-mehr" data-go="duelle">${andere} ${andere === 1 ? "weiteres Duell wartet" : "weitere Duelle warten"} in der Arena</button>` : ""}`;
-  const wA = weihAktiv(); weihDeko(wA); /* 9.61: Weihnachts-Ausgabe „Stille Nacht“ – Stern, Schneehaube, Solo/Duell als Christbaumkugeln */
+  const wA = eA === "weihnachten"; weihDeko(wA); /* 9.61: Weihnachts-Ausgabe „Stille Nacht“ – Stern, Schneehaube, Solo/Duell als Christbaumkugeln; 9.63: andere Editionen nur mit Farbe und Symbol */
   screen.innerHTML = `
-    <div class="weih-kopf">${bereichKopf("bib", { bild: "icons/biblionaer-logo.webp", t: "Biblionär", sub: wA ? "Die Weihnachts-Ausgabe" : "15 Bibelfragen bis zur Million" })}${wA ? WEIH_STERN : ""}</div>
-    ${weihSchalterHtml()}
+    <div class="weih-kopf">${bereichKopf("bib", { bild: "icons/biblionaer-logo.webp", t: "Biblionär", sub: eA ? `Die ${eN.adj}-Ausgabe` : "15 Bibelfragen bis zur Million" })}${wA ? WEIH_STERN : ""}</div>
+    ${edSchalterHtml()}
     <div class="zv"><div class="zv2-buehne bq5-buehne${wA ? " weih" : ""}">${wA ? WEIH_HAUBE : ""}
       <div class="zv2-reihe"><span class="zv2-tit">${svg("biblionaer")}Spielen</span></div>
       <div class="zv2-gitter bq5-gitter">
-        ${bqMedaille("bqSolo", "user", "Solo", weihAktiv() ? "Weihnachtsfragen" : rek ? `Rekord ${pkt(rek)}` : "Allein üben", stufe / 15 * 100, wA ? "#ff5a6e" : "#66e0d0", false, 'aria-label="Solo spielen – 1 Spieler"')}
+        ${bqMedaille("bqSolo", "user", "Solo", eA ? `${eN.adj}fragen` : rek ? `Rekord ${pkt(rek)}` : "Allein üben", stufe / 15 * 100, eA ? eN.farbe : "#66e0d0", false, 'aria-label="Solo spielen – 1 Spieler"')}
         ${online ? bqMedaille("bqNeu", "people", "Duell", bibDuWahl ? "Gegner antippen" : "Gegen die Gemeinde", 100, wA ? "#3fd08a" : "#ff8a5c", bibDuWahl, `aria-pressed="${bibDuWahl}" aria-label="${bibDuWahl ? "Gegnerwahl schließen" : "Neues Duell – 2 Spieler"}"`)
           : `<div class="zv2-m aus" style="--c:#ff8a5c;--p:0"><span class="zv2-ring"><span class="zv2-in">${svg("people")}</span></span><b>Duell</b><small>${window.LB && window.LB.ok ? "Nur mit Rangliste" : "Nur mit Internet"}</small></div>`}
       </div>
@@ -5021,17 +5055,17 @@ VIEWS.bib = () => {
       <span>${svg("telefon")}<span><b>Telefon</b><small>${jokerBeschreibung()}</small></span></span>
     </div>`;
   wireGo();
-  $("bqSolo").onclick = () => { SFX.tap(); bibSolo(weihAktiv()); };
-  weihSchalterWire(() => VIEWS.bib());
-  if ($("bqWoche")) $("bqWoche").onclick = () => { SFX.tap(); if (weihAktiv()) { if (ar) bibAdventStarten(); return; } if (gespielt) go("rank", "bibWoche"); else bibWocheStarten(); };
+  $("bqSolo").onclick = () => { SFX.tap(); bibSolo(edGewaehlt()); };
+  edSchalterWire(() => VIEWS.bib());
+  if ($("bqWoche")) $("bqWoche").onclick = () => { SFX.tap(); if (eA) { edWocheStarten(eA); return; } if (gespielt) go("rank", "bibWoche"); else bibWocheStarten(); };
   if ($("bqNeu")) $("bqNeu").onclick = () => { SFX.tap(); bibDuWahl = !bibDuWahl; VIEWS.bib();
     if (bibDuWahl) { const g0 = $("bqGegner"); if (g0) { let ruhig = false; try { ruhig = matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {} g0.scrollIntoView({ behavior: ruhig ? "auto" : "smooth", block: "start" }); } duGegnerLaden().then(() => { if (current !== "bib" || !bibDuWahl) return; const b = $("bqGegner"); if (!b) return;
         const fokus = document.activeElement?.id === "bqSuche"; b.outerHTML = bibGegnerHtml(); bibGegnerVerdrahten(); if (fokus) { const f = $("bqSuche"); f.focus(); f.setSelectionRange(f.value.length, f.value.length); } });
       const f = $("bqSuche"); if (f && !matchMedia("(pointer: coarse)").matches) f.focus(); } };
   bibGegnerVerdrahten();
   screen.querySelectorAll("[data-bqan]").forEach(b => b.onclick = () => { SFX.tap(); const d = dran.find(x => x.id === b.dataset.bqan); if (!d) return;
-    duSpielStarten({ id: d.id, seed: d.seed, erstellt: d.erstellt, art: "quiz", k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von, heim: "bib", weih: !!(d.opt && d.opt.w) }); });
-  const bqAntreten = d => duSpielStarten({ id: d.id, seed: d.seed, erstellt: d.erstellt, art: "quiz", k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von, heim: "bib", weih: !!(d.opt && d.opt.w) });
+    duSpielStarten({ id: d.id, seed: d.seed, erstellt: d.erstellt, art: "quiz", k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von, heim: "bib", ed: duEdition(d) }); });
+  const bqAntreten = d => duSpielStarten({ id: d.id, seed: d.seed, erstellt: d.erstellt, art: "quiz", k: d.k, gegner: d.vonName, gegnerErg: d.vonErg, vonPid: d.von, heim: "bib", ed: duEdition(d) });
   screen.querySelectorAll("[data-bqab]").forEach(b => b.onclick = () => { SFX.tap(); const d = dran.find(x => x.id === b.dataset.bqab); if (d) duAblehnenFrage(d, () => bqAntreten(d)); });
   screen.querySelectorAll("[data-bqstop]").forEach(b => b.onclick = () => { SFX.tap(); const d = warte.find(x => x.id === b.dataset.bqstop); if (d) duAbbrechenFrage(d); });
   screen.querySelectorAll("[data-bqrev]").forEach(b => b.onclick = () => { SFX.tap(); const d = liste.find(x => x.id === b.dataset.bqrev); if (!d) return; const ich = d.von === S.pid;
