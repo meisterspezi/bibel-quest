@@ -2597,6 +2597,26 @@ body.weih-an .bib-opt.eingeloggt i,body.weih-an .bib-opt.richtig i{background:ra
 body.weih-an .bib-zeit i{background:linear-gradient(90deg,var(--bad),#ffcf5a 40%,#bfe3ff)}
 body.weih-an .bib-ende .bib-ic{filter:drop-shadow(0 0 14px #bfe3ffaa)}
 body.weih-an .bib-ende .bib-gross b{text-shadow:0 0 18px #bfe3ff88}
+
+/* 9.63 Sondereditionen: Schalter, Marken und Symbole für Ostern, Pfingsten, Reformation */
+.ed-fl-ostern{color:#f2c14e}.ed-fl-pfingsten{color:#ff8a3d}.ed-fl-reformation{color:#ff6f7d}
+.bq2-e .bq2-tx b>.ed-fl-ostern,.du-chip .ed-fl-ostern{color:#f2c14e}.bq2-e .bq2-tx b>.ed-fl-pfingsten,.du-chip .ed-fl-pfingsten{color:#ff8a3d}.bq2-e .bq2-tx b>.ed-fl-reformation,.du-chip .ed-fl-reformation{color:#ff6f7d}
+.weih-marke.ed-marke .ed-fl{color:#14234f}
+.weih-marke.ed-ostern{background:linear-gradient(180deg,#fff4cf,#f2c14e);box-shadow:0 0 8px #f2c14e66}
+.weih-marke.ed-pfingsten{background:linear-gradient(180deg,#ffe0cc,#ff8a3d);box-shadow:0 0 8px #ff8a3d66}
+.weih-marke.ed-reformation{background:linear-gradient(180deg,#ffe0e4,#ff6f7d);box-shadow:0 0 8px #ff6f7d66}
+.ed-schalter button{min-width:0;padding:0 4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.ed-schalter button .ed-fl{width:16px;height:16px;flex:none}
+.ed-schalter button[data-ed="ostern"][aria-checked="true"]{background:linear-gradient(180deg,#fff4cf,#f2c14e);color:#3a2a06;box-shadow:0 0 12px #f2c14e66}
+.ed-schalter button[data-ed="pfingsten"][aria-checked="true"]{background:linear-gradient(180deg,#ffe0cc,#ff8a3d);color:#3a1606;box-shadow:0 0 12px #ff8a3d66}
+.ed-schalter button[data-ed="reformation"][aria-checked="true"]{background:linear-gradient(180deg,#ffe0e4,#ff6f7d);color:#3a0a12;box-shadow:0 0 12px #ff6f7d66}
+.ed-schalter button[aria-checked="true"] .ed-fl{color:currentColor}
+.ed-test{font:800 .55rem var(--body);padding:1px 4px;border-radius:5px;background:#ffffff33;margin-left:2px}
+.bq4-woche.ed-ostern,.bq4-woche.ed-pfingsten,.bq4-woche.ed-reformation{border-color:currentColor}
+.bq4-woche.ed-ostern .bq4-kr .ed-fl,.bq4-woche.ed-pfingsten .bq4-kr .ed-fl,.bq4-woche.ed-reformation .bq4-kr .ed-fl{width:24px;height:24px}
+.ed-vz-liste{display:grid;gap:6px}
+.ed-vz[aria-pressed="true"]{box-shadow:inset 0 0 0 1px #f2c14e88}
+.ed-vz-ic .ed-fl,.ed-vz-ic .weih-fl{width:20px;height:20px;color:#bfe3ff}
 </style>
 </head>
 <body>
@@ -2669,8 +2689,8 @@ body.weih-an .bib-ende .bib-gross b{text-shadow:0 0 18px #bfe3ff88}
 <script src="daten.js"></script><script>window.SPL&&SPL.set(0.25)</script>
 <script src="bibelquiz.js"></script>
 <script src="symbole.js"></script><script>window.SPL&&SPL.set(0.45)</script>
-<script src="advent-daten.js"></script>
-<script src="advent.js"></script>
+<script src="editionen-daten.js"></script>
+<script src="editionen.js"></script>
 <script src="tk-bilder.js"></script><script>window.SPL&&SPL.set(0.65)</script>
 <script src="spiel.js"></script><script>window.SPL&&SPL.set(.9)</script>
 <script type="module" src="leaderboard.js"></script>

@@ -2,8 +2,8 @@
 // 9.60 Beta-Kanal: Dieselbe Datei liegt auch unter beta/ – dort bekommt sie einen eigenen Speicher („bibel-quest-beta-v…“),
 // damit sich Live und Beta nicht gegenseitig die Offline-Kopien löschen.
 const BETA = self.location.pathname.includes("/beta/");
-const VERSION = "bibel-quest-v9-62".replace("-v", BETA ? "-beta-v" : "-v");
-const APP = ["./", "index.html", "daten.js", "bibelquiz.js", "symbole.js", "advent-daten.js", "advent.js", "tk-bilder.js", "spiel.js", "logo.png", "qrcode.js", "firebase-config.js", "leaderboard.js", "joker.enc", "manifest.webmanifest",
+const VERSION = "bibel-quest-v9-63".replace("-v", BETA ? "-beta-v" : "-v");
+const APP = ["./", "index.html", "daten.js", "bibelquiz.js", "symbole.js", "editionen-daten.js", "editionen.js", "tk-bilder.js", "spiel.js", "logo.png", "qrcode.js", "firebase-config.js", "leaderboard.js", "joker.enc", "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "icons/icon-512-maskable.png", "icons/icon-180.png", "icons/favicon-32.png", "icons/biblionaer-logo.webp", "icons/gem-fbg.png"];
 // Fremde Dateien, die offline mitgespeichert werden dürfen (Schriften, Firebase-Bibliothek).
 // Die Ranglisten-Daten selbst (googleapis.com) werden NIE zwischengespeichert.

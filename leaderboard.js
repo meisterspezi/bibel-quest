@@ -185,7 +185,7 @@ if (!configured) {
       await LB.signIn();
       const r = await fs.addDoc(duelle, { v: 1, art: d.art || "vers", modus: d.modus || "1v1", von: d.von, teil: [d.von, d.an],
         namen: { [d.von]: d.vonName, [d.an]: d.anName }, k: d.k, seed: d.seed, ergebnisse: { [d.von]: d.vonErg },
-        ...(d.weih ? { opt: { w: 1 } } : {}), /* 7.3: Weihnachtsmodus */
+        ...(d.ed ? { opt: d.ed === "weihnachten" ? { w: 1 } : { e: d.ed } } : {}), /* 9.63: Sonderedition (Weihnachten weiter als w: 1) */
         status: "offen", erstellt: fs.serverTimestamp(), ablauf: fs.Timestamp.fromMillis(Date.now() + 7 * 864e5) });
       return r.id;
     };
@@ -197,8 +197,6 @@ if (!configured) {
       await fs.updateDoc(ref("duelle", id), ...felder);
     };
     // 7.3: Weg nach Bethlehem – Gaben je Spieler {pid, name, s: {"1".."8": Talente}, g: {"1".."8": Wegzehrung}}
-    LB.bethListe = async () => { const q = await fs.getDocs(fs.collection(db, "bethlehem")); return q.docs.map(d => ({ pid: d.id, ...d.data() })); };
-    LB.bethSetzen = async (pid, name, s, g) => { await LB.signIn(); await fs.setDoc(ref("bethlehem", pid), { pid, name, s, g, updated: fs.serverTimestamp() }); };
     // 6.73: XP-Quellen je Spieler {pid, name, alt, q:{Quelle:XP}, n:{Quelle:Anzahl}, m:{Quelle:größte Vergabe}, tag:{Tag:XP}, std:{"Tag-Std":XP}, bel:[{z:Zeit(ms), x:XP, t:Talente, a:truhe|gestern, d:Truhen-Tag}]}
     LB.xpListe = async () => { const q = await fs.getDocs(fs.collection(db, "xpquellen")); return q.docs.map(d => ({ pid: d.id, ...d.data() })); };
     LB.xpHolen = async (pid) => { await LB.signIn(); const s = await fs.getDoc(ref("xpquellen", pid)); return s.exists() ? s.data() : null; };  // 6.81
