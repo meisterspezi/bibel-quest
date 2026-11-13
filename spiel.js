@@ -1099,7 +1099,7 @@ async function xqAbgleichMitMeldung(grund) {
   const r = await xqAbgleichen(); if (r.code === "nicht-bereit") return r;
   const wer = `Spieler ${S.lbName || "?"}, Profil ${S.pid || "?"}, Version ${APP_VERSION}`;
   if (!r.ok) postkastenMelden("datenbank", `XP-Zählung speichern fehlgeschlagen (${r.code}${r.msg ? ": " + r.msg : ""}) – ${wer}. Verletzt: ${xqUnterschiedText(r.vorher)}. Nach dem Mischen: ${xqUnterschiedText(r.diffs)}.${r.ok_teile ? ` Einzeln gespeichert: ${r.ok_teile.join(", ") || "nichts"}. Abgelehnt: ${r.abgelehnt.join(", ") || "nichts"}.` : ""}`, "xqz-fehl-" + r.code + "-" + S.pid);
-  else if (r.neu.length || r.vorher.length) postkastenMelden("datenbank", `XP-Zählung nachgeholt (${grund}) – ${wer}. Neu in der Datenbank: ${r.neu.map(x => `${XQ_QUELLEN[x.k] || x.k} ${x.vorher}→${x.jetzt}`).join(", ") || "–"}. Der alte Stand hätte verletzt: ${xqUnterschiedText(r.vorher)}.`, "xqz-ok-" + S.pid);
+  else if (r.neu.length || r.vorher.length) postkastenMelden("status", `XP-Zählung nachgeholt (${grund}) – ${wer}. Neu in der Datenbank: ${r.neu.map(x => `${XQ_QUELLEN[x.k] || x.k} ${x.vorher}→${x.jetzt}`).join(", ") || "–"}. Der alte Stand hätte verletzt: ${xqUnterschiedText(r.vorher)}.`, "xqz-ok-" + S.pid);
   return r;
 }
 /* 6.81: Ein anderes Gerät desselben Spielers hat die Zählung schon weitergeschrieben (Regeln: Summen nur steigend, Anfangsbestand nur
@@ -5210,7 +5210,9 @@ VIEWS.betatester = () => {
 const ART_NAME = { idee: "Idee", fehler: "Fehler", lob: "Lob", frage: "Frage", info: "Datenbank", datenbank: "Datenbank", status: "Status" };
 /* Postkasten des Verwalters: Feedback der Spieler, Statusberichte und Datenbankmeldungen.
    Status und Datenbank werden als Art „info“ gespeichert; „geraet“ beginnt mit „status“ oder „datenbank“. */
-const pkKat = f => f.art !== "info" ? "feedback" : String(f.geraet || "").startsWith("status") ? "status" : "datenbank";
+/* 9.62: „XP-Zählung nachgeholt“ ist ein gelungener Abgleich, kein Fehler → Status (auch für ältere Meldungen, die noch als „datenbank“ gespeichert sind) */
+const PK_ERFOLG = /^XP-Zählung nachgeholt/;
+const pkKat = f => f.art !== "info" ? "feedback" : String(f.geraet || "").startsWith("status") || PK_ERFOLG.test(f.text || "") ? "status" : "datenbank";
 const PK_KAT = [["alle", "Alle", "post"], ["feedback", "Feedback", "chat"], ["status", "Status", "sun"], ["datenbank", "Datenbank", "netz"]];
 let pkKategorie = "alle";
 /* Meldung in den Postkasten schreiben (status | datenbank) – höchstens einmal pro Schlüssel und Tag */

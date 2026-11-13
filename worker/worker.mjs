@@ -111,8 +111,10 @@ async function feedbackSenden(env, f) {
   const [ic, titel] = ART[f.art] || ART.info, fuss = `_${esc(f.name || "ohne Namen")} · v${esc(f.ver || "?")} · ${esc(f.geraet || "?")}_`;
   let m;
   if (f.art === "info") {  // Meldung der App selbst: Kategorie steht vorn im Gerätetext („datenbank · …“, „absturz · …“, „status · …“)
-    const kat = String(f.geraet || "").split(" · ")[0] || "meldung", ernst = kat === "absturz" || kat === "datenbank";
-    m = await sagen(env, env.K_ALARM, `${ernst ? ":rotating_light:" : ":information_source:"} *${esc(kat)}*\n${esc(f.text)}\n${fuss}`);
+    // Statusmeldungen (Version aktiv, Wochenbericht, gelungener XP-Abgleich) gehören nicht zu den Alarmen → #metrics. Ältere App-Versionen melden den Abgleich noch als „datenbank“.
+    let kat = String(f.geraet || "").split(" · ")[0] || "meldung"; if (/^XP-Zählung nachgeholt/.test(f.text || "")) kat = "status";
+    const ernst = kat === "absturz" || kat === "datenbank";
+    m = await sagen(env, kat === "status" && env.K_METRIK ? env.K_METRIK : env.K_ALARM, `${ernst ? ":rotating_light:" : ":information_source:"} *${esc(kat)}*\n${esc(f.text)}\n${fuss}`);
   } else if (f.pid) {  // eigener Beitrag im Kanal der Kategorie; Antworten im Faden darunter gehen an den Spieler
     const k = kanalFuer(env, f.art);
     m = await sagen(env, k, `:${ic}: *${titel}* von *${esc(f.name || "?")}*\n${esc(f.text)}\n${fuss}`);
