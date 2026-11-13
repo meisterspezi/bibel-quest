@@ -3,6 +3,9 @@
 <head>
 <script>/* 9.60 Beta-Kanal: Wer „Beta“ gewählt hat (und freigeschaltet ist), wird sofort dorthin geleitet. „?live=1“ führt immer zurück. */
 try{(function(){var b=location.pathname.indexOf("/beta/")>=0,q=location.search;if(/[?&]live=1/.test(q)){localStorage.setItem("bq-kanal","live")}else if(!b&&location.protocol==="https:"&&localStorage.getItem("bq-kanal")==="beta"&&localStorage.getItem("bq-beta-ok")==="1"){location.replace("beta/"+q+location.hash)}})()}catch(e){}</script>
+<script>/* 9.69 Dunkelmodus „Tiefnacht“: standardmäßig AUS (unabhängig von der Geräte-Einstellung), im Profil zuschaltbar, je Gerät gemerkt */
+try{document.documentElement.setAttribute("data-theme",localStorage.getItem("bq-dunkel")==="1"?"dark":"light")}catch(e){document.documentElement.setAttribute("data-theme","light")}
+</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Bibelbuch-Quest</title>
