@@ -4200,10 +4200,29 @@ function duBlitzUhr() {
 }
 function duAbschluss() { const D = duSpiel; if (!D || D.abgeschlossen) return; D.abgeschlossen = true; duEnde(); }
 VIEWS.duell = () => { screen.innerHTML = ""; };
+/* 9.65: Frage-Block eines Duells (Buch-Fragen oder Lernvers/Quiz-Fragen) */
+const duFrageHtml = f => f.start ? `<div class="du-frage-buch"><span class="qsub">${esc(f.start)}</span></div>`
+  : f.buch ? `<div class="du-frage-buch"><span class="qsub">${esc(f.label || "Was kommt nach")}</span><b class="du-buch">${esc(f.buch)}</b>${f.gruppe ? `<span class="qsub">${esc(f.gruppe)}</span>` : ""}</div>`
+  : `<h2 class="vl-frage">${f.frage}</h2><div class="vl-vers">${f.vers}</div>`;
+function duMass(D) {
+  const m = { top: 0, opt: 0 };
+  try {
+    const t = document.createElement("div"); t.className = `vl du-spiel du-${D.art}`; t.setAttribute("aria-hidden", "true"); t.style.cssText = "height:0;overflow:hidden;visibility:hidden;pointer-events:none";
+    screen.appendChild(t);
+    D.fragen.forEach(f => {
+      t.innerHTML = `<div class="du-fr">${duFrageHtml(f)}</div><div class="vl-wahl ${f.lang ? "" : "du-kurz"} ${f.buch || f.start ? "du-buecher" : ""}">${f.opts.map(o => `<button class="vl-opt">${esc(o)}</button>`).join("")}</div>`;
+      m.top = Math.max(m.top, t.children[0].offsetHeight);
+      t.children[1].querySelectorAll(".vl-opt").forEach(b => { m.opt = Math.max(m.opt, b.offsetHeight); });
+    });
+    t.remove();
+  } catch (e) {}
+  D.mass = m;
+}
 function duZeige() {
   const D = duSpiel; if (!D || current !== "duell" || D.abgeschlossen) return;
   if (D.i >= D.fragen.length || D.aus) return duAbschluss();
   const f = D.fragen[D.i], blitz = D.art === "blitz", kette = D.art === "kette", sek = kette ? DU_KETTE_SEK : DU_SEK;
+  if (!D.mass && !blitz && !kette && D.fragen.length <= 40) duMass(D); /* 9.65: Frage-Block und Antworten in der ganzen Runde gleich hoch */
   const fortschritt = blitz ? (DU_BLITZ_SEK - D.rest) / DU_BLITZ_SEK : D.i / D.fragen.length;
   const mult = () => Math.min(1 + Math.floor(D.combo / 5), 5);
   const titel = blitz ? `Blitz · <span id="duSek">${Math.ceil(D.rest)} s</span>${D.combo >= 2 ? ` · Combo ${D.combo} · x${mult()}` : ""}`
@@ -4213,10 +4232,8 @@ function duZeige() {
       <div class="vl-bar du-bar"><i style="width:${fortschritt * 100}%"></i></div><span class="du-punkte">${D.p}</span></div>
     <span class="vl-titel du-titel">${svg(blitz ? "bolt" : kette ? "link" : "bolt")} ${esc(D.gegner)} · ${titel}</span>
     <div class="du-zeit">${blitz ? `<i id="duZeit" class="global" style="width:${D.rest / DU_BLITZ_SEK * 100}%"></i>` : `<i id="duZeit" style="animation-duration:${sek}s"></i>`}</div>
-    ${f.start ? `<div class="du-frage-buch"><span class="qsub">${esc(f.start)}</span></div>`
-      : f.buch ? `<div class="du-frage-buch"><span class="qsub">${esc(f.label || "Was kommt nach")}</span><b class="du-buch">${esc(f.buch)}</b>${f.gruppe ? `<span class="qsub">${esc(f.gruppe)}</span>` : ""}</div>`
-      : `<h2 class="vl-frage">${f.frage}</h2><div class="vl-vers">${f.vers}</div>`}
-    <div class="vl-wahl ${f.lang ? "" : "du-kurz"} ${f.buch || f.start ? "du-buecher" : ""}">${f.opts.map((o, j) => `<button class="vl-opt" data-o="${j}">${esc(o)}</button>`).join("")}</div>
+    ${D.mass ? `<div class="du-fr" style="min-height:${D.mass.top}px">${duFrageHtml(f)}</div>` : duFrageHtml(f)}
+    <div class="vl-wahl ${f.lang ? "" : "du-kurz"} ${f.buch || f.start ? "du-buecher" : ""}"${D.mass ? ` style="--oh:${D.mass.opt}px"` : ""}>${f.opts.map((o, j) => `<button class="vl-opt" data-o="${j}">${esc(o)}</button>`).join("")}</div>
   </div>`;
   const start = performance.now(); let fertig = false;
   const antworten = (j, el) => {
@@ -4453,12 +4470,28 @@ function bibLeiterZeigen(G, dauer) {
   if (dauer) setTimeout(() => m.remove(), dauer);
   return m;
 }
+/* 9.65: Misst vorab alle 15 Fragen der Runde (unsichtbar) und liefert eine einheitliche Anordnung (lang = eine Spalte) sowie die größte Höhe von Frage-Box und Antwort-Knopf */
+function bibMass(G) {
+  const m = { lang: G.fragen.some(f => f.opts.some(o => o.length > 22)), box: 0, opt: 52 };
+  try {
+    const t = document.createElement("div"); t.className = "vl bib"; t.setAttribute("aria-hidden", "true"); t.style.cssText = "height:0;overflow:hidden;visibility:hidden;pointer-events:none";
+    screen.appendChild(t);
+    G.fragen.forEach(f => {
+      t.innerHTML = `<div class="bib-frage-box st${f.st}"><span class="bib-thema">${esc(f.thema)}</span><h2 class="bib-frage">${esc(f.f)}</h2></div><div class="bib-antw ${m.lang ? "lang" : ""}">${f.opts.map((o, j) => `<button class="bib-opt"><i>${"ABCD"[j]}</i><span>${esc(o)}</span></button>`).join("")}</div>`;
+      m.box = Math.max(m.box, t.children[0].offsetHeight);
+      t.children[1].querySelectorAll(".bib-opt").forEach(b => { m.opt = Math.max(m.opt, b.offsetHeight); });
+    });
+    t.remove();
+  } catch (e) {}
+  G.mass = m;
+}
 function bibZeige(G) {
   if (G.abgeschlossen || G.fertigGrund) return;
   if (G.modus === "duell" && (current !== "duell" || duSpiel !== G)) return;
   if (G.modus !== "duell" && current !== "biblionaer") return;
   const f = G.fragen[G.i], halb = G.halbBei === G.i;
-  const lang = f.opts.some(o => o.length > 22);
+  if (!G.mass) bibMass(G); /* 9.65: Rahmen und Antworten gleich hoch in der ganzen Runde – die vier Antworten bleiben an derselben Stelle */
+  const lang = G.mass.lang;
   if (G.gemerkt !== G.i) { G.gemerkt = G.i; bibGesMerken(f); } /* 9.63: Fragenverlauf */
   edDeko(G.ed || null); /* 9.61/9.64: Runden einer Sonderedition spielen in deren Stimmung */
   const titel = G.modus === "duell" ? `${G.ed ? edAdj(G.ed) + "-Duell" : "Duell"} gegen ${esc(G.gegner)}` : G.modus === "woche" ? `Biblionär der Woche · ${weekKey().split("-W")[1]}. KW` : G.modus === "edwoche" ? `${edAdj(G.ed)}-Biblionär · ${edRundeName(G.ed, G.edR)}` : G.ed ? `${edAdj(G.ed)}-Biblionär` : "Biblionär";
@@ -4468,8 +4501,8 @@ function bibZeige(G) {
     <span class="vl-titel bib-titel">${G.ed ? edSym(G.ed) : svg("biblionaer")} ${titel}</span>
     <div class="bib-stand"><span>${G.gewonnen ? `Erreicht <b>${pkt(G.gewonnen)}</b>` : "Noch keine Punkte"}</span><span>Sicher <b>${pkt(bibGesichert(G.i))}</b></span></div>
     <div class="du-zeit bib-zeit"><i id="bibZeit" style="animation-duration:${BIB_SEK}s"></i></div>
-    <div class="bib-frage-box st${f.st}">${G.weih ? WEIH_HAUBE : G.ed ? edHaube(G.ed) : ""}<span class="bib-thema">${esc(f.thema)}</span><h2 class="bib-frage">${esc(f.f)}</h2></div>
-    <div class="bib-antw ${lang ? "lang" : ""}">${f.opts.map((o, j) => `<button class="bib-opt" data-o="${j}" ${halb && f.weg.includes(o) ? 'disabled data-weg="1"' : ""}><i>${"ABCD"[j]}</i><span>${halb && f.weg.includes(o) ? "" : esc(o)}</span></button>`).join("")}</div>
+    <div class="bib-frage-box st${f.st}" style="min-height:${G.mass.box}px">${G.weih ? WEIH_HAUBE : G.ed ? edHaube(G.ed) : ""}<span class="bib-thema">${esc(f.thema)}</span><h2 class="bib-frage">${esc(f.f)}</h2></div>
+    <div class="bib-antw ${lang ? "lang" : ""}" style="--oh:${G.mass.opt}px">${f.opts.map((o, j) => `<button class="bib-opt" data-o="${j}" ${halb && f.weg.includes(o) ? 'disabled data-weg="1"' : ""}><i>${"ABCD"[j]}</i><span>${halb && f.weg.includes(o) ? "" : esc(o)}</span></button>`).join("")}</div>
     <div class="bib-hilfe" id="bibHilfe" aria-live="polite">${G.hilfe || ""}</div>
     <div class="bib-joker" role="group" aria-label="Joker">
       <button data-j="halb" ${G.joker.halb ? "disabled" : ""}><b>50:50</b><span>2 falsche weg</span></button>
