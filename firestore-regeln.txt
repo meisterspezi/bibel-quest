@@ -1,5 +1,5 @@
 rules_version = '2';
-// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 9.71 – Duell-Sticker (duelle.st); 9.60 – Beta-Tester-Liste (einstellungen/beta); 9.56 – Sammel-Rangliste (rangliste, jobstand); 9.55 – XP-Protokoll als Paket; 9.53 – Talente-Zählung entfernt; 9.52 – Stiftshütte entfernt; 9.28 – Sammlung gemlog (Protokoll Beitritt/Austritt); 9.13.2 – Gemeindename bis 50 Zeichen; 9.12 – Ketten-Duelle gebote/schoepfung; 9.11 – Gespräche (dialoge), Freischaltung: Gemeinden mit pruef, Sammlungen antraege, freigabe, geheim; 9.7 – Sammlung nachrichten, Gemeinden mit Passwort pw und Logo logo; 9.0 – Sammlungen gemeinden + mitglied; 7.3 – Sammlung bethlehem (Weg nach Bethlehem, Advent); 6.95 – Sammlung talente (Talente-Zählung, nur der Verwalter liest); 6.88 – xpquellen: Regel vereinfacht (Limit 1000 Auswertungen pro Schreibzugriff, ab der 4. Quelle wurde abgelehnt); 6.80 – Sammlungen bibversuch (Biblionär-Wochenrunde einmal je Serverwoche) und spendenxp (XP für Spenden einmal je Talent); 6.79 – xpquellen: neue Quelle spende (Stiftshütte); 6.78 – Sammlung tagestruhe (Schatztruhe einmal je Serverdatum); 6.76 – xpquellen: neue Quelle abgleich; 6.75 – Sammlung xpprotokoll (Einzelprotokoll der XP-Vergaben, nur anlegen); 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Version 9.60 – Beta-Tester-Liste (einstellungen/beta); 9.56 – Sammel-Rangliste (rangliste, jobstand); 9.55 – XP-Protokoll als Paket; 9.53 – Talente-Zählung entfernt; 9.52 – Stiftshütte entfernt; 9.28 – Sammlung gemlog (Protokoll Beitritt/Austritt); 9.13.2 – Gemeindename bis 50 Zeichen; 9.12 – Ketten-Duelle gebote/schoepfung; 9.11 – Gespräche (dialoge), Freischaltung: Gemeinden mit pruef, Sammlungen antraege, freigabe, geheim; 9.7 – Sammlung nachrichten, Gemeinden mit Passwort pw und Logo logo; 9.0 – Sammlungen gemeinden + mitglied; 7.3 – Sammlung bethlehem (Weg nach Bethlehem, Advent); 6.95 – Sammlung talente (Talente-Zählung, nur der Verwalter liest); 6.88 – xpquellen: Regel vereinfacht (Limit 1000 Auswertungen pro Schreibzugriff, ab der 4. Quelle wurde abgelehnt); 6.80 – Sammlungen bibversuch (Biblionär-Wochenrunde einmal je Serverwoche) und spendenxp (XP für Spenden einmal je Talent); 6.79 – xpquellen: neue Quelle spende (Stiftshütte); 6.78 – Sammlung tagestruhe (Schatztruhe einmal je Serverdatum); 6.76 – xpquellen: neue Quelle abgleich; 6.75 – Sammlung xpprotokoll (Einzelprotokoll der XP-Vergaben, nur anlegen); 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -195,18 +195,6 @@ service cloud.firestore {
         && artErlaubt(d) && besitzer(d.von);
     }
     function neu() { return request.resource.data; }
-    function stickerOk() {
-      let alt = resource.data.get('st', {});
-      let t = resource.data.teil;
-      let st = request.resource.data.get('st', {});
-      let dif = st.diff(alt);
-      return resource.data.status == 'fertig'
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['st'])
-        && st is map && st.size() <= 2
-        && dif.changedKeys().size() == 0 && dif.removedKeys().size() == 0 && dif.addedKeys().size() == 1
-        && st.values().hasOnly(['hand', 'gut', 'stark', 'glueck', 'auf', 'revanche', 'spass', 'segen'])
-        && ((dif.addedKeys().hasOnly([t[0]]) && besitzer(t[0])) || (dif.addedKeys().hasOnly([t[1]]) && besitzer(t[1])));
-    }
     match /duelle/{id} {
       allow read: if angemeldet();
       allow create: if angemeldet() && duellNeu(request.resource.data);
@@ -222,8 +210,6 @@ service cloud.firestore {
           || (neu().diff(resource.data).affectedKeys().hasOnly(['am', 'status']) && neu().status == 'abgelehnt'
             && !(neu().am in resource.data.ergebnisse))
         ) && besitzer(neu().am);
-      // 9.71: Duell-Sticker – nach einem fertigen Duell setzt jeder Teilnehmer EINMAL st.<eigene pid> auf eine feste Kennung (kein freier Text)
-      allow update: if angemeldet() && stickerOk();
       // Löschen: Ersteller oder (beim Duell eins gegen eins) der Gegner – aber nie fertige Duelle (daraus wird die Duell-Rangliste berechnet)
       allow delete: if angemeldet() && resource.data.status != 'fertig' && (besitzer(resource.data.von) || besitzer(resource.data.teil[1]));
     }
