@@ -1099,7 +1099,7 @@ async function xqAbgleichMitMeldung(grund) {
   const r = await xqAbgleichen(); if (r.code === "nicht-bereit") return r;
   const wer = `Spieler ${S.lbName || "?"}, Profil ${S.pid || "?"}, Version ${APP_VERSION}`;
   if (!r.ok) postkastenMelden("datenbank", `XP-Zählung speichern fehlgeschlagen (${r.code}${r.msg ? ": " + r.msg : ""}) – ${wer}. Verletzt: ${xqUnterschiedText(r.vorher)}. Nach dem Mischen: ${xqUnterschiedText(r.diffs)}.${r.ok_teile ? ` Einzeln gespeichert: ${r.ok_teile.join(", ") || "nichts"}. Abgelehnt: ${r.abgelehnt.join(", ") || "nichts"}.` : ""}`, "xqz-fehl-" + r.code + "-" + S.pid);
-  else if (r.neu.length || r.vorher.length) postkastenMelden("datenbank", `XP-Zählung nachgeholt (${grund}) – ${wer}. Neu in der Datenbank: ${r.neu.map(x => `${XQ_QUELLEN[x.k] || x.k} ${x.vorher}→${x.jetzt}`).join(", ") || "–"}. Der alte Stand hätte verletzt: ${xqUnterschiedText(r.vorher)}.`, "xqz-ok-" + S.pid);
+  else if (r.neu.length || r.vorher.length) postkastenMelden("status", `XP-Zählung nachgeholt (${grund}) – ${wer}. Neu in der Datenbank: ${r.neu.map(x => `${XQ_QUELLEN[x.k] || x.k} ${x.vorher}→${x.jetzt}`).join(", ") || "–"}. Der alte Stand hätte verletzt: ${xqUnterschiedText(r.vorher)}.`, "xqz-ok-" + S.pid);
   return r;
 }
 /* 6.81: Ein anderes Gerät desselben Spielers hat die Zählung schon weitergeschrieben (Regeln: Summen nur steigend, Anfangsbestand nur
@@ -2172,6 +2172,7 @@ function playBlitz(scope) {
   next();
   function mult() { return Math.min(1 + Math.floor(combo / 10), 3); }
   function next() {
+    if (!$("bq")) return; /* 9.62: Runde schon beendet (Zeit lief kurz nach einer Antwort ab) */
     let i; do { i = idx[Math.floor(Math.random() * idx.length)]; } while (idx.length > 1 && i === cur); cur = i; lock = false;
     $("bq").textContent = ALL[i].b; $("bm").textContent = GROUPS[ALL[i].gi].name;
     const o = $("bo"); o.innerHTML = ""; makeOpts(i).forEach(b => { const btn = document.createElement("button"); btn.className = "opt"; btn.textContent = b; btn.onclick = () => ans(btn, b); o.appendChild(btn); });
@@ -2183,10 +2184,10 @@ function playBlitz(scope) {
       btn.classList.add("right"); SFX.right(combo); vibrate(10); const [x, y] = centerOf(btn); burst(x, y, 10 + mult() * 6, { speed: 3 + mult() }); floatText("+" + g, x, y);
       $("br").textContent = right; $("bx").textContent = xp + " XP";
       if (combo % 5 === 0) { tone(1568, 0, .15, "sine", .12); shakeScreen(); }
-      setTimeout(next, 320);
+      timers.push(setTimeout(next, 320));
     } else {
       fehlerBuecher.push(cur + 1); combo = 0; wrong++; time -= 3; btn.classList.add("wrong"); SFX.wrong(); vibrate([40, 30, 40]); shakeScreen();
-      [...$("bo").children].forEach(x => { if (x.textContent === correct) x.classList.add("right"); }); lock = true; setTimeout(next, 700);
+      [...$("bo").children].forEach(x => { if (x.textContent === correct) x.classList.add("right"); }); lock = true; timers.push(setTimeout(next, 700));
     }
     const c = $("bc"); c.textContent = combo >= 2 ? `Combo ${combo} · x${mult()}` : ""; c.className = "combo" + (mult() >= 3 ? " hot" : "");
   }
@@ -5209,7 +5210,9 @@ VIEWS.betatester = () => {
 const ART_NAME = { idee: "Idee", fehler: "Fehler", lob: "Lob", frage: "Frage", info: "Datenbank", datenbank: "Datenbank", status: "Status" };
 /* Postkasten des Verwalters: Feedback der Spieler, Statusberichte und Datenbankmeldungen.
    Status und Datenbank werden als Art „info“ gespeichert; „geraet“ beginnt mit „status“ oder „datenbank“. */
-const pkKat = f => f.art !== "info" ? "feedback" : String(f.geraet || "").startsWith("status") ? "status" : "datenbank";
+/* 9.62: „XP-Zählung nachgeholt“ ist ein gelungener Abgleich, kein Fehler → Status (auch für ältere Meldungen, die noch als „datenbank“ gespeichert sind) */
+const PK_ERFOLG = /^XP-Zählung nachgeholt/;
+const pkKat = f => f.art !== "info" ? "feedback" : String(f.geraet || "").startsWith("status") || PK_ERFOLG.test(f.text || "") ? "status" : "datenbank";
 const PK_KAT = [["alle", "Alle", "post"], ["feedback", "Feedback", "chat"], ["status", "Status", "sun"], ["datenbank", "Datenbank", "netz"]];
 let pkKategorie = "alle";
 /* Meldung in den Postkasten schreiben (status | datenbank) – höchstens einmal pro Schlüssel und Tag */
