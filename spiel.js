@@ -5029,11 +5029,11 @@ VIEWS.bib = () => {
       ${fertig.length ? `<div class="bq2-erg">${fertig.map(ergKachel).join("")}</div>` : ""}
       ${!dran.length && !warte.length && !fertig.length && duListe !== null ? `<p class="small muted bq2-leer">Noch keine Duelle – fordere oben jemanden heraus. Ihr bekommt beide dieselben 15 Fragen.</p>` : ""}
       ${andere > 0 ? `<button class="ar-mehr bq2-mehr" data-go="duelle">${andere} ${andere === 1 ? "weiteres Duell wartet" : "weitere Duelle warten"} in der Arena</button>` : ""}`;
-  const wA = eA === "weihnachten"; weihDeko(wA); /* 9.61: Weihnachts-Ausgabe „Stille Nacht“ – Stern, Schneehaube, Solo/Duell als Christbaumkugeln; 9.63: andere Editionen nur mit Farbe und Symbol */
+  const wA = eA === "weihnachten"; edDeko(eA); /* 9.64: Stimmung je Ausgabe (Schnee, Lichtfunken, Glut, Flugblätter) */ /* 9.61: Weihnachts-Ausgabe „Stille Nacht“ – Stern, Schneehaube, Solo/Duell als Christbaumkugeln; 9.63: andere Editionen nur mit Farbe und Symbol */
   screen.innerHTML = `
-    <div class="weih-kopf">${bereichKopf("bib", { bild: "icons/biblionaer-logo.webp", t: "Biblionär", sub: eA ? `Die ${eN.adj}-Ausgabe` : "15 Bibelfragen bis zur Million" })}${wA ? WEIH_STERN : ""}</div>
+    <div class="weih-kopf">${bereichKopf("bib", { bild: "icons/biblionaer-logo.webp", t: "Biblionär", sub: eA ? edKopfZeile(eA) : "15 Bibelfragen bis zur Million" })}${eA ? edEmblem(eA) : ""}</div>
     ${edSchalterHtml()}
-    <div class="zv"><div class="zv2-buehne bq5-buehne${wA ? " weih" : ""}">${wA ? WEIH_HAUBE : ""}
+    <div class="zv"><div class="zv2-buehne bq5-buehne${wA ? " weih" : ""}${eA ? ` ed ed-${eA}` : ""}">${wA ? WEIH_HAUBE : eA ? edHaube(eA) : ""}
       <div class="zv2-reihe"><span class="zv2-tit">${svg("biblionaer")}Spielen</span></div>
       <div class="zv2-gitter bq5-gitter">
         ${bqMedaille("bqSolo", "user", "Solo", eA ? `${eN.adj}fragen` : rek ? `Rekord ${pkt(rek)}` : "Allein üben", stufe / 15 * 100, eA ? eN.farbe : "#66e0d0", false, 'aria-label="Solo spielen – 1 Spieler"')}

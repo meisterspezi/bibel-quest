@@ -2568,16 +2568,16 @@ section.lv.lvd .lv-fuss .lv-btn.hoert{background:color-mix(in srgb,var(--bad) 35
 @media (prefers-reduced-motion:no-preference){.weih-stern{animation:weihFunkel 3.6s ease-in-out infinite}}
 @keyframes weihFunkel{50%{opacity:.72;transform:scale(.94)}}
 body.weih-an .weih-kopf .bk-kopf::after{height:12px;border-bottom:0;background:radial-gradient(circle at 50% 0,#fff 0,#eaf4ff 5px,transparent 6px) 0 0/13px 12px repeat-x,linear-gradient(#ffffffcc,#ffffffcc) 0 0/100% 2px no-repeat;opacity:.9}
-body.weih-an .weih-kopf .bk-t span{color:#bfe3ff;padding-right:58px}
+body.weih-an .weih-kopf .bk-t span{color:#bfe3ff}
 body.weih-an .weih-kopf .bk-med.bild img{filter:drop-shadow(0 0 12px #bfe3ffaa)}
 .weih-schalter button .weih-fl{width:17px;height:17px}
 .weih-schalter button[data-wm="1"][aria-checked="true"]{background:linear-gradient(180deg,#e9f4ff,#a9cdf2);color:#14234f;box-shadow:0 0 12px #bfe3ff66}
-body.weih-an .weih-schalter{margin-bottom:14px;border-color:#bfe3ff33}
+body.weih-an .weih-schalter{border-color:#bfe3ff33}
 .zv2-buehne.weih{position:relative;overflow:visible;background:linear-gradient(180deg,#22386f,#141c46 70%);box-shadow:inset 0 0 0 1px #bfe3ff55,0 0 24px #7fc8ff22}
 /* Solo und Duell als Christbaumkugeln: goldene Kappe, Faden, Glanzlicht */
-.zv2-buehne.weih .zv2-ring{position:relative;margin-top:14px}
-.zv2-buehne.weih .zv2-ring::before{content:"";position:absolute;left:50%;top:-13px;width:18px;height:12px;margin-left:-9px;border-radius:4px 4px 2px 2px;background:linear-gradient(90deg,#b8862a,#fff1c2,#b8862a);box-shadow:0 0 0 1px #6b4a10;z-index:3}
-.zv2-buehne.weih .zv2-ring::after{content:"";position:absolute;left:50%;top:-34px;width:1.5px;height:22px;background:#f2c14eaa}
+.zv2-buehne.weih .zv2-ring{position:relative}
+.zv2-buehne.weih .zv2-ring::before{content:"";position:absolute;left:50%;top:-7px;width:18px;height:12px;margin-left:-9px;border-radius:4px 4px 2px 2px;background:linear-gradient(90deg,#b8862a,#fff1c2,#b8862a);box-shadow:0 0 0 1px #6b4a10;z-index:3}
+.zv2-buehne.weih .zv2-ring::after{content:"";position:absolute;left:50%;top:-12px;width:1.5px;height:6px;background:#f2c14eaa}
 .zv2-buehne.weih .zv2-in{background:radial-gradient(circle at 34% 28%,#ffffff55,transparent 45%),radial-gradient(circle at 50% 60%,color-mix(in srgb,var(--c) 55%,#1b1238),#1b1238)}
 .bq4-woche.weih{background:linear-gradient(170deg,#274a86,#16224f);box-shadow:inset 0 0 0 1px #bfe3ff66}
 .bq4-woche.weih .bq4-kr{box-shadow:inset 0 0 0 2px #fff1c2;background:radial-gradient(circle,#fff1c255,transparent 70%)}
@@ -2617,6 +2617,74 @@ body.weih-an .bib-ende .bib-gross b{text-shadow:0 0 18px #bfe3ff88}
 .ed-vz-liste{display:grid;gap:6px}
 .ed-vz[aria-pressed="true"]{box-shadow:inset 0 0 0 1px #f2c14e88}
 .ed-vz-ic .ed-fl,.ed-vz-ic .weih-fl{width:20px;height:20px;color:#bfe3ff}
+
+/* ===== 9.64 Sondereditionen: Weihnachten ohne Verschiebung, Ostern/Pfingsten/Reformation im Stil der Weihnachts-Ausgabe.
+   Alle Verzierungen liegen absolut über dem Inhalt – Höhen und Abstände sind in jeder Ausgabe gleich (kein Zeilensprung beim Umschalten). ===== */
+body.ed-weihnachten{--edc:#bfe3ff}body.ed-ostern{--edc:#ffd166}body.ed-pfingsten{--edc:#ff7a2e}body.ed-reformation{--edc:#ff5f6a}
+/* Umschalter: Symbol + Name, „Test“ als kleiner Punkt; ab 3 Knöpfen nur der gewählte mit Namen */
+.weih-schalter button{position:relative}
+.ed-schalter button .ed-n{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.ed-schalter.dicht button:not([aria-checked="true"]) .ed-n{display:none}
+.ed-schalter.dicht button{gap:5px}
+.ed-test{position:absolute;right:3px;top:2px;margin:0;padding:1px 3px;font:800 .5rem/1 var(--body);letter-spacing:.04em;border-radius:4px;background:#ffffff40;color:inherit;pointer-events:none}
+.ed-schalter.dicht button:not([aria-checked="true"]) .ed-test{display:none}
+.weih-schalter button .weih-fl,.ed-schalter button .ed-fl{width:18px;height:18px;flex:none;filter:drop-shadow(0 1px 1px #0006)}
+/* Kopf: Zeile unter dem Titel wechselt (eine Zeile, feste Höhe), Zeichen oben rechts, farbiges Leuchten um das Logo */
+.ed-sub{display:grid!important}
+.ed-sub>*{grid-area:1/1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-style:normal;font:800 .82rem var(--body);opacity:0}
+.ed-sub>b{color:inherit}
+body.ed-an .weih-kopf .bk-t span.ed-sub{padding-right:0}
+@media (prefers-reduced-motion:no-preference){
+  .ed-sub>*{animation:edSub calc(var(--n)*4s) infinite both}
+  @keyframes edSub{0%{opacity:0;transform:translateY(5px)}2.5%{opacity:1;transform:none}14%{opacity:1;transform:none}16.667%{opacity:0;transform:translateY(-5px)}100%{opacity:0}}
+}
+@media (prefers-reduced-motion:reduce){.ed-sub>b{opacity:1}}
+.ed-sub>em{color:var(--edc)}
+body.ed-an .weih-kopf .bk-t span.ed-sub>b{color:var(--edc)}
+body.ed-an .weih-kopf .bk-med.bild{position:relative}
+body.ed-an .weih-kopf .bk-med.bild::before{content:"";position:absolute;inset:-9px;border-radius:50%;background:radial-gradient(circle,var(--edc) 0,transparent 66%);opacity:.5;pointer-events:none}
+body.ed-an .weih-kopf .bk-med.bild img{position:relative;filter:drop-shadow(0 0 12px var(--edc))}
+@media (prefers-reduced-motion:no-preference){body.ed-an .weih-kopf .bk-med.bild::before{animation:edAtem 3.6s ease-in-out infinite}@keyframes edAtem{50%{opacity:.22;transform:scale(.92)}}}
+.ed-emblem{position:absolute;right:4px;top:-2px;width:58px;height:58px;pointer-events:none}
+.ed-emblem .ed-emblem-svg{width:100%;height:100%;display:block;overflow:visible;filter:drop-shadow(0 0 10px var(--edc))}
+.ed-emblem::before{content:"";position:absolute;inset:-14px;border-radius:50%;opacity:.45;background:radial-gradient(circle,var(--edc) 0,transparent 62%)}
+.ed-emblem-ostern::before{background:conic-gradient(from 0deg,#ffd16600,#ffd166aa 4%,#ffd16600 9%,#ffd16600 16%,#ffd166aa 20%,#ffd16600 25%,#ffd16600 34%,#ffd166aa 38%,#ffd16600 43%,#ffd16600 52%,#ffd166aa 56%,#ffd16600 61%,#ffd16600 70%,#ffd166aa 74%,#ffd16600 79%,#ffd16600 88%,#ffd166aa 92%,#ffd16600 97%);-webkit-mask:radial-gradient(circle,#000 30%,transparent 70%);mask:radial-gradient(circle,#000 30%,transparent 70%);opacity:.8}
+@media (prefers-reduced-motion:no-preference){
+  .ed-emblem-ostern::before{animation:edDreh 26s linear infinite}@keyframes edDreh{to{transform:rotate(360deg)}}
+  .ed-emblem-pfingsten .ed-emblem-svg{animation:edFlackern 1.8s ease-in-out infinite;transform-origin:50% 90%}@keyframes edFlackern{50%{transform:scale(1.04,.97) rotate(-1.5deg)}}
+  .ed-emblem-reformation .ed-emblem-svg{animation:edWiegen 5s ease-in-out infinite;transform-origin:50% 8%}@keyframes edWiegen{50%{transform:rotate(3deg)}}
+}
+/* Stimmung: Teilchen im Hintergrund */
+#weihSchnee .ed-teil{position:absolute;top:-16px;animation:weihFall linear infinite}
+#weihSchnee.dk-ostern i,#weihSchnee.dk-pfingsten i{top:auto;bottom:-14px;animation-name:edSteig;filter:blur(.3px)}
+#weihSchnee.dk-ostern .ed-teil,#weihSchnee.dk-pfingsten .ed-teil{top:auto;bottom:-16px;animation-name:edSteig}
+#weihSchnee.dk-ostern i{background:radial-gradient(circle,#fff,#ffd166 55%,#ffd16600);box-shadow:0 0 6px #ffd166}
+#weihSchnee.dk-pfingsten i{background:radial-gradient(circle,#fff6b0,#ff8a1f 55%,#ff3d1f00);box-shadow:0 0 6px #ff6a1f}
+#weihSchnee.dk-reformation i{border-radius:1px;background:#f5e6bd;box-shadow:0 0 0 1px #b08a4a}
+@keyframes edSteig{0%{transform:translate3d(0,0,0) rotate(0)}50%{transform:translate3d(var(--dx),-50vh,0) rotate(20deg)}100%{transform:translate3d(0,-104vh,0) rotate(-10deg);opacity:0}}
+/* Spielen-Kachel */
+.zv2-buehne.ed{position:relative;overflow:visible}
+.zv2-buehne.ed .zv2-ring{position:relative}
+.zv2-buehne.ed-ostern{background:radial-gradient(90% 60% at 50% 0%,#ffd16626,transparent 70%),linear-gradient(180deg,#2e2266,#161646 72%);box-shadow:inset 0 0 0 1px #ffd16666,0 0 24px #8a5fd633}
+.zv2-buehne.ed-pfingsten{background:radial-gradient(90% 60% at 50% 0%,#ff7a2e2e,transparent 70%),linear-gradient(180deg,#4a1a30,#1b1238 74%);box-shadow:inset 0 0 0 1px #ff8a3d66,0 0 24px #ff6a1f33}
+.zv2-buehne.ed-reformation{background:radial-gradient(90% 60% at 50% 0%,#e2c27d26,transparent 70%),linear-gradient(180deg,#46202a,#1c1630 74%);box-shadow:inset 0 0 0 1px #e2c27d66,0 0 24px #c0262d33}
+.zv2-buehne.ed-reformation::before,.zv2-buehne.ed-reformation::after{content:"";position:absolute;bottom:9px;width:7px;height:7px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff1c2,#a9812f 70%);box-shadow:0 0 0 1px #3a2410;opacity:.85}
+.zv2-buehne.ed-reformation::before{left:9px}.zv2-buehne.ed-reformation::after{right:9px}
+.zv2-buehne.ed .zv2-in{background:radial-gradient(circle at 34% 28%,#ffffff44,transparent 45%),radial-gradient(circle at 50% 60%,color-mix(in srgb,var(--c) 45%,#1b1238),#1b1238)}
+.ed-haube svg{filter:drop-shadow(0 2px 2px #0b1030aa)}
+/* Biblionär der Woche: gleiche Höhe in jeder Ausgabe */
+.bq4-woche{min-height:51px}
+.bq4-uhr{min-height:41px;justify-content:center;box-sizing:border-box}
+.bq4-woche.ed-ostern{background:linear-gradient(170deg,#43328a,#1d1a52);box-shadow:inset 0 0 0 1px #ffd16688}
+.bq4-woche.ed-pfingsten{background:linear-gradient(170deg,#7a2a34,#2a1538);box-shadow:inset 0 0 0 1px #ff8a3d88}
+.bq4-woche.ed-reformation{background:linear-gradient(170deg,#6a2a30,#25182f);box-shadow:inset 0 0 0 1px #e2c27d88}
+.bq4-woche.ed-ostern .bq4-kr,.bq4-woche.ed-pfingsten .bq4-kr,.bq4-woche.ed-reformation .bq4-kr{background:radial-gradient(circle,var(--edc,#fff1c2)55,transparent 70%);box-shadow:inset 0 0 0 2px #ffffff55}
+.bq4-woche.ed-ostern .bq4-kr svg,.bq4-woche.ed-pfingsten .bq4-kr svg,.bq4-woche.ed-reformation .bq4-kr svg{filter:drop-shadow(0 1px 1px #0008)}
+.bq4-woche.ed-ostern .bq4-kr{--edc:#ffd166}.bq4-woche.ed-pfingsten .bq4-kr{--edc:#ff7a2e}.bq4-woche.ed-reformation .bq4-kr{--edc:#ff5f6a}
+/* Marken in Duell-Listen: dunkler Grund, damit die mehrfarbigen Symbole leuchten */
+.weih-marke.ed-marke{background:linear-gradient(180deg,#2a3166,#1c2250);color:#fff;box-shadow:inset 0 0 0 1px var(--edc,#ffffff55),0 0 8px #0006}
+.weih-marke.ed-ostern{--edc:#ffd166}.weih-marke.ed-pfingsten{--edc:#ff7a2e}.weih-marke.ed-reformation{--edc:#ff5f6a}.weih-marke.ed-weihnachten{--edc:#bfe3ff}
+.du-chip>.weih-fl,.bq2-e .bq2-tx b>.weih-fl,.du-chip .ed-fl,.bq2-e .bq2-tx b>.ed-fl{filter:none}
 </style>
 </head>
 <body>
