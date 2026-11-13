@@ -111,10 +111,10 @@ async function feedbackSenden(env, f) {
   const [ic, titel] = ART[f.art] || ART.info, fuss = `_${esc(f.name || "ohne Namen")} · v${esc(f.ver || "?")} · ${esc(f.geraet || "?")}_`;
   let m;
   if (f.art === "info") {  // Meldung der App selbst: Kategorie steht vorn im Gerätetext („datenbank · …“, „absturz · …“, „status · …“)
-    // Statusmeldungen (Version aktiv, Wochenbericht, gelungener XP-Abgleich) gehören nicht zu den Alarmen → #metrics. Ältere App-Versionen melden den Abgleich noch als „datenbank“.
+    // Statusmeldungen (Version aktiv, Wochenbericht, gelungener XP-Abgleich) gehören nicht zu den Alarmen → #status. Ältere App-Versionen melden den Abgleich noch als „datenbank“.
     let kat = String(f.geraet || "").split(" · ")[0] || "meldung"; if (/^XP-Zählung nachgeholt/.test(f.text || "")) kat = "status";
     const ernst = kat === "absturz" || kat === "datenbank";
-    m = await sagen(env, kat === "status" && env.K_METRIK ? env.K_METRIK : env.K_ALARM, `${ernst ? ":rotating_light:" : ":information_source:"} *${esc(kat)}*\n${esc(f.text)}\n${fuss}`);
+    m = await sagen(env, kat === "status" && env.K_STATUS ? env.K_STATUS : env.K_ALARM, `${ernst ? ":rotating_light:" : ":information_source:"} *${esc(kat)}*\n${esc(f.text)}\n${fuss}`);
   } else if (f.pid) {  // eigener Beitrag im Kanal der Kategorie; Antworten im Faden darunter gehen an den Spieler
     const k = kanalFuer(env, f.art);
     m = await sagen(env, k, `:${ic}: *${titel}* von *${esc(f.name || "?")}*\n${esc(f.text)}\n${fuss}`);
@@ -211,7 +211,7 @@ async function tageszahlen(env) {
 let beigetreten = false;
 async function beitreten(env) {
   if (beigetreten) return; beigetreten = true;
-  for (const c of [...feedbackKanaele(env), env.K_PATCH, env.K_ALARM, env.K_METRIK]) if (c) await slack(env, "conversations.join", { channel: c }, true).catch(e => { beigetreten = false; console.log("beitreten", c, e.message); });
+  for (const c of [...feedbackKanaele(env), env.K_PATCH, env.K_ALARM, env.K_METRIK, env.K_STATUS]) if (c) await slack(env, "conversations.join", { channel: c }, true).catch(e => { beigetreten = false; console.log("beitreten", c, e.message); });
 }
 /* ---------- Eingänge ---------- */
 const CORS = { "access-control-allow-origin": "*" };

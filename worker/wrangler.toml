@@ -14,6 +14,7 @@ K_LOB = "C0CGTJWJAG7"        # feedback-lob
 K_FRAGE = "C0CH8QASGQ2"      # feedback-frage
 K_ALARM = "C0CH6J11Z9U"      # alerts-crashes
 K_METRIK = "C0CH38EAFDK"     # metrics
+K_STATUS = "C0CGZ0QT0Q7"     # status (Statusmeldungen der App: Version aktiv, Wochenbericht, gelungener XP-Abgleich)
 K_PATCH = "C0CJ2U1PCLQ"      # patchnotes
 # Slack-Mitglieder-IDs (mit Komma getrennt), die Patchnotes senden und Spielern schreiben dürfen. Leer = jedes menschliche Mitglied des Kanals.
 ADMINS = "U0CGB9GHFB9"   # Michael
