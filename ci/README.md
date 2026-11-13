@@ -1,119 +1,10 @@
 # CI Bibelbuch-Quest
 
-Gewählt am 13.11.2026: **Farbe 1 „Nacht, Gold und Kreuzrot“** und **Schrift A4b**.
-Das Stylesheet `ci.css` (Fassung 2) ist noch **nicht** in die App eingebunden.
+Gewählt am 13.11.2026: Farbe **„Nacht, Gold und Kreuzrot“** mit den Schriften **Cinzel / Lexend / Source Serif 4**.
+`ci.css` ist in **Fassung 3**: heller Modus als Standard, Dunkelmodus automatisch nach Geräte-Einstellung.
+Das Stylesheet ist noch **nicht** in die App eingebunden.
 
-Fest gewählt und nicht zu ändern sind: Nacht, Fläche, Umriss, Gold, Kreuzrot, Text, die acht
-Bereichsfarben und die drei Schriften. Alle anderen Werte sind Hilfswerte und dürfen bei Bedarf
-angepasst werden, solange die Kontraste unten eingehalten bleiben.
-
-## Farben
-
-| Rolle | Variable | Wert | Einsatz |
-|---|---|---|---|
-| Hintergrund | `--ci-nacht` | `#0E1226` | Seitengrund |
-| Hintergrund vertieft | `--ci-nacht-2` | `#151A36` | Eingabefeld, Schiene der Reiterleiste |
-| Fläche | `--ci-flaeche` | `#1B2146` | Karten, Kacheln, Fußleiste, Modal |
-| Fläche erhöht | `--ci-flaeche-2` | `#262E5E` | Toast, Schiene des Fortschrittsbalkens |
-| Umriss | `--ci-umriss` | `#1B2A55` | Symbol-Umrisse, dunkle Kante an Gold |
-| Linie | `--ci-linie` | `#323B74` | nur Schmuck: Trenner, Kartenrand |
-| Linie stark | `--ci-linie-stark` | `#7480C4` | Rand von Feldern und leisen Knöpfen |
-| Text | `--ci-text` | `#F6F8FF` | Fließtext |
-| Text leise | `--ci-text-leise` | `#A3ABD8` | Untertitel, Hinweise, Platzhalter |
-| **Hauptfarbe** | `--ci-gold` | `#F2C14E` | Titel, Hauptknopf, Ringe, Punkte |
-| Gold hell / tief | `--ci-gold-hell` / `--ci-gold-tief` | `#FFE39A` / `#C8952A` | Verläufe, Fokusrahmen |
-| Schrift auf Gold | `--ci-gold-ink` | `#2A1D02` | Text auf Gold und auf dem Duell-Verlauf |
-| **Signal** | `--ci-kreuzrot` | `#E8141B` | Zähler, „neu“, Fehler, Duell-Hinweis – nur als kleine Fläche, Rand, Punkt |
-| Schrift auf Kreuzrot | `--ci-kreuzrot-ink` | `#FFFFFF` | reines Weiß, nicht `--ci-text` |
-| Rote Schrift | `--ci-kreuzrot-hell` | `#FF8087` | Fehlertext auf dunklem Grund |
-| Gesperrt | `--ci-gesperrt-flaeche` / `--ci-gesperrt-text` | `#2B3050` / `#A4A9C0` | Gesperrtes: grau, ohne Schein |
-| Zustände | `--ci-ok` / `--ci-warnung` / `--ci-fehler` / `--ci-fehler-text` | `#5FE0B0` / `#FFB54A` / Kreuzrot / Kreuzrot hell | richtig, Achtung, Fehler |
-| Logo | `--ci-logo-…` | `#000000` / `#EE0002` / `#FFFFFF` | nur im Logo und im Druck |
-
-Bereichsfarben (wie in der App), gesetzt über `data-bereich="…"`:
-
-| Bereich | `data-bereich` | Variable | Wert |
-|---|---|---|---|
-| Start | `start` | `--ci-gold` | `#F2C14E` |
-| Lernen | `lernen` | `--ci-lernen` | `#7FC8FF` |
-| Spielen | `spielen` | `--ci-spielen` | `#FFB54A` |
-| Gemeinde | `gemeinde` | `--ci-gemeinde` | `#5FE0B0` |
-| Laden/Lohn | `lohn` | `--ci-lohn` | `#B38CFF` |
-| Biblionär | `biblionaer` | `--ci-biblionaer` | `#66E0D0` |
-| Duell | `duell` | `--ci-duell` | `#FF8A5C` |
-| Spenden | `spende` | `--ci-spende` | `#F4A6C8` |
-| Bedienung | `bedienung` | `--ci-bedienung` | `#E3E9F6` |
-
-Verläufe: `--ci-goldverlauf` (Hauptknopf), `--ci-lichtverlauf` (Weißgold-Titel „Himmlisches Licht“),
-`--ci-goldbogen` (Trenner), `--ci-duellverlauf` (Gold → Koralle → Rosé, nur im Duell).
-
-## Kontraste (WCAG 2.1, nachgerechnet)
-
-Ziel ist Stufe AA: Schrift mindestens **4,5:1**, große Schrift (ab 24 px oder 18,7 px fett) und
-Bedien-Ränder mindestens **3:1**.
-
-### Schrift auf den Grundflächen
-
-| Schrift | auf Nacht `#0E1226` | auf Fläche `#1B2146` | auf Fläche 2 `#262E5E` | Urteil |
-|---|---|---|---|---|
-| Text `#F6F8FF` | 17,5 | 14,6 | 12,1 | AAA |
-| Text leise `#A3ABD8` | 8,3 | 6,9 | 5,7 | AA |
-| Gold `#F2C14E` | 11,0 | 9,3 | 7,7 | AAA |
-| Kreuzrot hell `#FF8087` (Fehlertext) | 7,7 | 6,4 | 5,3 | AA |
-| **Kreuzrot `#E8141B` als Schrift** | **4,0** | **3,4** | – | **zu wenig** – nur Fläche/Rand/Punkt |
-| Gesperrt-Text `#A4A9C0` | 8,0 | 6,7 | 5,5 | AA |
-| Lernen `#7FC8FF` | 10,2 | 8,6 | 7,1 | AAA |
-| Spielen `#FFB54A` | 10,6 | 8,8 | 7,3 | AAA |
-| Gemeinde `#5FE0B0` | 11,3 | 9,5 | 7,8 | AAA |
-| Laden/Lohn `#B38CFF` | 7,2 | 6,0 | 5,0 | AA |
-| Biblionär `#66E0D0` | 11,6 | 9,7 | 8,0 | AAA |
-| Duell `#FF8A5C` | 8,0 | 6,7 | 5,5 | AA |
-| Spenden `#F4A6C8` | 9,8 | 8,2 | 6,8 | AA |
-| Bedienung `#E3E9F6` | 15,2 | 12,8 | 10,6 | AAA |
-
-### Schrift auf farbigen Flächen
-
-| Paar | Kontrast | Urteil |
-|---|---|---|
-| Gold-Ink `#2A1D02` auf Gold `#F2C14E` | 9,8 | AAA |
-| Gold-Ink auf Gold hell `#FFE39A` (oberes Ende des Verlaufs) | 13,1 | AAA |
-| Gold-Ink auf Gold tief `#C8952A` (unteres Ende des Verlaufs) | 6,1 | AA |
-| Weiß `#FFFFFF` auf Kreuzrot `#E8141B` | 4,6 | AA (knapp) |
-| Text `#F6F8FF` auf Kreuzrot | 4,35 | **zu wenig** – deshalb reines Weiß |
-| App-Textfarbe `#EEF0FF` auf Kreuzrot | 4,1 | **zu wenig** |
-| Gold-Ink auf Koralle `#FF8A5C` / Rosé `#F4A6C8` (Duell-Verlauf) | 7,1 / 8,7 | AAA |
-| Nacht `#0E1226` auf den Bereichsfarben (Startknopf) | 7,2 (Violett) bis 15,2 (Silber) | AAA |
-| Gesperrt-Text `#A4A9C0` auf Gesperrt-Fläche `#2B3050` | 5,5 | AA |
-| Text / Text leise / Gold auf „eigene Zeile“ (Gold 14 % auf Fläche, `#393747`) | 10,9 / 5,2 / 6,9 | AA |
-| Kreuzrot hell auf Fehler-Hinterlegung (Rot 14 % auf Fläche) | 6,0 | AA |
-
-### Ränder und Zeichen (mindestens 3:1)
-
-| Paar | Kontrast | Urteil |
-|---|---|---|
-| Linie stark `#7480C4` auf Nacht / Nacht 2 / Fläche / Fläche 2 | 5,0 / 4,6 / 4,2 / 3,4 | erfüllt |
-| Linie `#323B74` auf Nacht / Fläche | 1,8 / 1,5 | nur Schmuck – nie als einziger Rand eines Bedienelements |
-| Kreuzrot auf Nacht / Fläche (Rand, Punkt, Fehlerrahmen) | 4,0 / 3,4 | erfüllt |
-| Goldbalken auf Schiene (Fläche 2) | 7,7 | erfüllt |
-| Fokusrahmen Gold hell `#FFE39A` auf Nacht / Fläche | 14,8 / 12,4 | erfüllt |
-
-Merksätze daraus:
-
-- Rote **Schrift** auf dunklem Grund immer in `--ci-kreuzrot-hell`, nie in Kreuzrot.
-- Schrift **auf** Kreuzrot immer reinweiß und fett; keine längeren Texte auf Rot.
-- Laden/Lohn-Violett ist die schwächste Bereichsfarbe (5,0 auf Fläche 2) – als Schrift nicht kleiner als 12 px.
-- Gesperrtes zeigt zusätzlich ein Schloss; Grau allein reicht nicht als Hinweis.
-
-## Schriften
-
-| Rolle | Schrift | Ersatz, wenn sie nicht lädt | Regel |
-|---|---|---|---|
-| Titel | Cinzel 600/800 | Trajan Pro, Cormorant SC, Georgia, serif | immer Großbuchstaben, leicht gesperrt (0,05 em) |
-| Text | Lexend 400/500/700 | system-ui, Segoe UI, Roboto, Helvetica Neue, Arial | Fließtext, Knöpfe, Zahlen, Marken |
-| Bibelverse | Source Serif 4 kursiv 500/600 | Source Serif Pro, EB Garamond, Georgia, serif | **immer kursiv**, Stelle in Lexend darunter, Schlachter 2000 |
-
-Die Schriften kommen von **Google Fonts**. `ci.css` lädt sie selbst über `@import`. Schneller ist
-es, sie im `<head>` zu laden und die `@import`-Zeile in `ci.css` zu löschen:
+## Einbinden
 
 ```html
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -122,121 +13,156 @@ es, sie im `<head>` zu laden und die `@import`-Zeile in `ci.css` zu löschen:
 <link rel="stylesheet" href="ci/ci.css">
 ```
 
-Von Source Serif 4 wird nur der kursive Schnitt geladen. Betonung im Vers (`<em>`, `<b>`) bleibt
-kursiv und wird nur kräftiger (600). Ohne Netz erscheinen die Ersatzschriften; das Layout bleibt gleich.
+Mit der `<link>`-Zeile für die Schriften die `@import`-Zeile oben in `ci.css` löschen.
+`<html class="ci">` setzt Seitengrund, Grundschrift und färbt `h1`–`h3` und `p` automatisch.
 
-### Schriftgrößen (rem, 1 rem = 16 px)
+## Hell und Dunkel
 
-| Variable | Größe | Zeilenhöhe | Einsatz |
+| Einstellung | Wirkung |
+|---|---|
+| nichts gesetzt | folgt dem Gerät (`prefers-color-scheme`) |
+| `<html data-theme="dark">` | immer dunkel – so sieht die App heute aus |
+| `<html data-theme="light">` | immer hell – z. B. für Website und Druck |
+
+Die Variablen haben drei Ebenen:
+
+1. **`--ci-pal-…`** – feste Palette (Abschnitt 1). Wird nur in den Bedeutungs-Variablen benutzt.
+2. **`--ci-farbe-…`** – Farbe nach Bedeutung, je Modus anders belegt (Abschnitte 3 und 4).
+   **Bausteine verwenden nur diese**, sonst stimmt der Modus nicht.
+3. **Maße** – Schrift, Abstände, Radien, Schatten, Ebenen (gleich in beiden Modi, Schatten je Modus).
+
+## Farben nach Bedeutung
+
+| Variable | Hell | Dunkel | Einsatz |
 |---|---|---|---|
-| `--ci-gr-1` | 1,75 rem / 28 px | 1,15 | Seitentitel `.ci-h1` |
-| `--ci-gr-2` | 1,375 rem / 22 px | 1,15 | Bereichstitel `.ci-h2` |
-| `--ci-gr-3` | 1,125 rem / 18 px | 1,15 | Abschnitt, Kartentitel `.ci-h3` |
-| `--ci-gr-vers` | 1,125 rem / 18 px | 1,5 | Bibelvers |
-| `--ci-gr-text` | 1 rem / 16 px | 1,55 | Fließtext, Eingabefelder |
-| `--ci-gr-klein` | 0,875 rem / 14 px | 1,25 | Untertitel, Hinweise, Reiter |
-| `--ci-gr-mini` | 0,75 rem / 12 px | 1,25 | Marken, Abschnittstitel |
-| `--ci-gr-winzig` | 0,6875 rem / 11 px | 1,25 | nur Zähler und Fußleiste |
+| `--ci-farbe-hintergrund` | `#F5F6FA` | `#0E1226` | Seitengrund |
+| `--ci-farbe-hintergrund-tief` | `#ECEEF5` | `#151A36` | Eingabefeld, Schiene, Balken |
+| `--ci-farbe-oberflaeche` | `#FFFFFF` | `#1B2146` | Karte, Kachel, Fußleiste |
+| `--ci-farbe-oberflaeche-hoch` | `#FFFFFF` | `#262E5E` | Modal, Toast |
+| `--ci-farbe-text` | `#0E1226` | `#F6F8FF` | Fließtext |
+| `--ci-farbe-text-leise` | `#4B5470` | `#A3ABD8` | Untertitel, Hinweise, Platzhalter |
+| `--ci-farbe-titel` | `#7A4E0C` | `#F2C14E` | Überschriften (Gold) |
+| `--ci-farbe-akzent-text` | `#7A4E0C` | `#F2C14E` | Links, Zahlen, Ring |
+| `--ci-farbe-linie` | `#DDE1EE` | `#323B74` | nur Schmuck |
+| `--ci-farbe-linie-stark` | `#7A83A6` | `#7480C4` | Rand von Feld und sekundärem Knopf |
+| `--ci-farbe-primaer` | `#F2C14E` | `#F2C14E` | Hauptknopf, Ring, Balken |
+| `--ci-farbe-auf-primaer` | `#2A1D02` | `#2A1D02` | Schrift auf Gold |
+| `--ci-farbe-primaer-hauch` | `#FBF3DC` | Gold 14 % | eigene Ranglistenzeile, Umschalter an |
+| `--ci-farbe-signal` | `#E8141B` | `#E8141B` | Zähler, „neu“, Fehlerrand – nie große Fläche |
+| `--ci-farbe-auf-signal` | `#FFFFFF` | `#FFFFFF` | Schrift auf Kreuzrot |
+| `--ci-farbe-fehler-text` | `#C00A14` | `#FF8087` | Fehlertext |
+| `--ci-farbe-ok` / `--ci-farbe-warnung` | `#0A7A55` / `#9A5400` | `#5FE0B0` / `#FFB54A` | Zustände |
+| `--ci-farbe-gesperrt-flaeche` / `-text` | `#E7E9F0` / `#5C6276` | `#2B3050` / `#A4A9C0` | Gesperrtes |
+| `--ci-farbe-fokus` | `#1B2A55` | `#FFE39A` | Tastatur-Fokusrahmen |
+| `--ci-farbe-hover` / `-gedrueckt` | Nacht 5 % / 9 % | Weiß 8 % / 14 % | Überlagerung bei Hover/Druck |
 
-Zeilenhöhen: `--ci-zh-titel` 1,15 · `--ci-zh-eng` 1,25 · `--ci-zh-text` 1,55 · `--ci-zh-vers` 1,5.
+Gold als **Fläche** bleibt in beiden Modi `#F2C14E`. Als **Schrift** auf Hell wird es zu Bronze `#7A4E0C`,
+weil helles Gold auf Weiß nur 1,7:1 erreicht.
 
-### Abstände und Formen
+### Bereichsfarben (`data-bereich="…"` setzt `--ar`)
 
-| Variable | Wert | | Variable | Wert |
-|---|---|---|---|---|
-| `--ci-abstand-1` | 0,25 rem / 4 px | | `--ci-radius-s` | 8 px |
-| `--ci-abstand-2` | 0,5 rem / 8 px | | `--ci-radius-m` | 12 px (Karte, Knopf, Feld) |
-| `--ci-abstand-3` | 0,75 rem / 12 px | | `--ci-radius-l` | 18 px (Modal, Toast, Fußleiste) |
-| `--ci-abstand-4` | 1 rem / 16 px | | `--ci-radius-rund` | 999 px |
-| `--ci-abstand-5` | 1,5 rem / 24 px | | `--ci-rand` | 16 px Seitenrand |
-| `--ci-abstand-6` | 2,5 rem / 40 px | | `--ci-tippflaeche` | 44 px kleinste Tippfläche |
+| Bereich | Variable | Hell | Dunkel |
+|---|---|---|---|
+| Lernen (Saphir) | `--ci-farbe-lernen` | `#0B6AA8` | `#7FC8FF` |
+| Spielen (Bernstein) | `--ci-farbe-spielen` | `#9A5400` | `#FFB54A` |
+| Gemeinde (Grün) | `--ci-farbe-gemeinde` | `#0A7A55` | `#5FE0B0` |
+| Laden/Lohn (Violett) | `--ci-farbe-lohn` | `#6A3FC4` | `#B38CFF` |
+| Biblionär (Türkis) | `--ci-farbe-biblionaer` | `#08776C` | `#66E0D0` |
+| Duell (Koralle) | `--ci-farbe-duell` | `#B8441A` | `#FF8A5C` |
+| Spenden (Rosé) | `--ci-farbe-spende` | `#A8336C` | `#F4A6C8` |
+| Bedienung (Silber) | `--ci-farbe-bedienung` | `#4B5470` | `#E3E9F6` |
 
-Spaltenbreite `--ci-spalte` 520 px, Fußleiste `--ci-fussleiste-hoehe` 68 px.
-Ebenen wie in der App: Fußleiste 20, Toast 45, Modal 50.
+Schrift auf einer Bereichsfarbe: `--ci-farbe-auf-bereich` (hell: Weiß, dunkel: Nacht).
+
+## Abstände, Radien, Schatten
+
+| Abstand | `--ci-abstand-1` … `-8` | 4 · 8 · 12 · 16 · 24 · 32 · 40 · 56 px |
+|---|---|---|
+| Radien | `--ci-radius-s/m/l/rund` | 8 · 12 · 18 px · rund |
+| Schatten | `--ci-schatten-1/2/3` | flach (Karte) · mittel (erhöht, Hover) · hoch (Modal, Fußleiste) |
+| Goldschein | `--ci-schein` / `--ci-schein-hover` | nur Hauptknopf und Belohnung |
+| Innenlicht | `--ci-innenlicht` | Glanzkante oben am Goldknopf |
+
+Schatten sind im hellen Modus blaugrau und zart, im dunklen schwarz und kräftiger.
+
+## Schriften und Typografie
+
+| Klasse / Element | Schrift | Größe |
+|---|---|---|
+| `.ci-h1` / `h1` | Cinzel 800, Großbuchstaben, Gold | 28 px |
+| `.ci-h2` / `h2` | Cinzel 800 | 22 px |
+| `.ci-h3` / `h3` | Cinzel 600 | 18 px |
+| `.ci-text` / `p` | Lexend 400, Zeilenhöhe 1,55, max. 68 Zeichen | 16 px |
+| `.ci-text--gross` / `--klein` | Lexend | 18 / 14 px |
+| `.ci-vers` + `.ci-stelle` | Source Serif 4 kursiv 500 + Lexend | 18 / 14 px |
+| `.ci-label` | Lexend 700, gesperrt, Goldlinie | 12 px |
+| `.ci-unter`, `.ci-leise`, `.ci-zahl`, `.ci-link` | Lexend | 14 px |
+
+`h1`–`h3` und `p` werden nur innerhalb von `.ci` automatisch gestaltet (mit `:where`, also leicht überschreibbar).
 
 ## Bausteine
 
-Benennung: `.ci-baustein`, `.ci-baustein-teil`, `.ci-baustein--variante`. Zustände möglichst über
-Attribute (`disabled`, `aria-pressed`, `aria-selected`, `aria-current`, `aria-invalid`, `hidden`),
-sonst `.ist-aktiv` und `.ist-gesperrt`. Beispiel-HTML steht jeweils als Kommentar in `ci.css`.
-
-| Baustein | Klassen | Hinweis |
+| Baustein | Klassen | Zustände |
 |---|---|---|
-| Seite | `.ci` (auf `<html>`/`<body>`), `.ci-seite`, `.ci-seite--mit-fussleiste`, `.ci-stapel`, `.ci-stapel--eng` | Spalte bis 520 px, 16 px Rand |
-| Titel | `.ci-h1`, `.ci-h2`, `.ci-h3`, `.ci-titel--licht` | Cinzel, Großbuchstaben; `--licht` = Weißgold-Verlauf |
-| Text | `.ci-unter`, `.ci-leise`, `.ci-label`, `.ci-link`, `.ci-zahl` | `.ci-unter` nimmt innerhalb von `[data-bereich]` die Bereichsfarbe |
-| Trenner | `.ci-bogen`, `.ci-bogen--duell` | goldener Bogen |
-| Bibelvers | `.ci-vers`, `.ci-stelle` | immer kursiv |
-| Karte | `.ci-karte`, `.ci-karte--bereich` | |
-| Knopf | `.ci-knopf`, `--leise`, `--bereich`, `--duell`, `--gefahr`, `--breit`, `--klein` | Zustände hover, active, focus-visible, `aria-pressed`, gesperrt |
-| Eingabefeld | `.ci-feld`, `.ci-feld-label`, `.ci-feld-hinweis`, `.ci-feld-hinweis--fehler` | für `input`, `textarea`, `select`; Fehler über `aria-invalid="true"` |
-| Marke | `.ci-marke`, `--signal`, `--bereich`, `--leise`, `--ok`, `--gesperrt` | |
-| Zähler | `.ci-zaehler`, `.ci-zaehler--ecke` | rote Zahl |
-| Bereichskopf | `.ci-bereichskopf`, `.ci-bereichskopf-text`, `.ci-medaillon`, `.ci-ring` | Arena-Stil: Medaillon · Titel + Untertitel · Ring |
-| Zahlentafel | `.ci-tafel` | drei Werte |
-| Fortschritt | `.ci-balken`, `--bereich`, `--duell`, `--schmal` | Breite über `style="--wert:60%"` |
-| Liste | `.ci-liste`, `.ci-zeile`, `.ci-zeile--ich`, `.ci-zeile-rang`, `.ci-zeile-rang--podest`, `.ci-zeile-haupt`, `.ci-zeile-wert` | auch Rangliste; als `<button>`/`<a>` antippbar |
-| Meldung | `.ci-meldung`, `--fehler`, `--ok`, `--warnung` | im Seitenfluss |
-| Reiterleiste | `.ci-reiter` | 3 Reiter, 4 nur mit kurzen Wörtern |
-| Fußleiste | `.ci-fussleiste` | bis 6 Einträge; aktiv über `aria-current="page"` |
-| Modal | `.ci-modal`, `.ci-modal-karte`, `.ci-modal-karte--weit`, `.ci-modal-knoepfe` | `role="dialog" aria-modal="true"` |
-| Toast | `.ci-toast`, `--ok`, `--fehler` | `role="status"`, bei Fehler `role="alert"` |
-| Logo | `.ci-logo`, `--klein`, `--gross` | weiße Scheibe |
-| Helfer | `.ist-gesperrt`, `.ci-schein`, `.ci-nur-vorlesen` | |
+| Primärer Knopf | `.ci-knopf` | Hover (heller, stärkerer Schein), Active, Fokus, `disabled` |
+| Sekundärer Knopf | `.ci-knopf .ci-knopf--sekundaer` | Hover (Goldrand, Goldhauch), Active, Fokus, `disabled` |
+| Weitere Knöpfe | `--leise`, `--bereich`, `--duell`, `--gefahr`, `--breit`, `--klein` | wie oben; `aria-pressed="true"` = Umschalter an |
+| Eingabefeld | `.ci-feld-gruppe`, `.ci-feld-label`, `.ci-feld` (input/textarea/select), `.ci-feld-hinweis(--fehler)` | Hover, Fokus (Goldrand + Hauch), `aria-invalid="true"`, `disabled` |
+| Karte | `.ci-karte` (+ `-kopf`, `-inhalt`, `-fuss`) | `--erhoeht`, `--bereich`, `--akzent`, `--klickbar` (Hover/Active/Fokus), `.ist-gesperrt` |
+| Kleinteile | `.ci-marke(--signal/--bereich/--leise/--ok/--gesperrt)`, `.ci-zaehler(--ecke)`, `.ci-ring`, `.ci-medaillon`, `.ci-logo(--klein/--gross)` | |
+| Bereich | `.ci-bereichskopf`, `.ci-tafel`, `.ci-balken(--bereich/--duell/--schmal)` | |
+| Listen | `.ci-liste`, `.ci-zeile`, `.ci-zeile--ich`, `.ci-zeile-rang(--podest)`, `-haupt`, `-wert` | Hover/Active bei `<button>`/`<a>` |
+| Meldung | `.ci-meldung(--fehler/--ok/--warnung)` | |
+| Navigation | `.ci-reiter`, `.ci-fussleiste` | `aria-selected`, `aria-current`, `.ist-aktiv` |
+| Überlagerung | `.ci-modal` + `.ci-modal-karte(--weit)` + `.ci-modal-knoepfe`, `.ci-toast(--ok/--fehler)` | `hidden` |
+| Seite | `.ci-seite(--mit-fussleiste)`, `.ci-stapel(--eng/--weit)` | |
+| Helfer | `.ist-gesperrt`, `.ci-schein`, `.ci-schatten-1/2/3`, `.ci-nur-vorlesen` | |
+
+## Kontraste (WCAG 2.1, im Browser gemessen)
+
+| Paar | Hell | Dunkel |
+|---|---|---|
+| Text auf Hintergrund | 17,2 | 17,5 |
+| Text leise auf Oberfläche | 7,5 | 6,9 |
+| Titel (Gold) auf Oberfläche | 6,7 | 11,0 |
+| Akzent-Zahl auf Oberfläche | 7,2 | 9,3 |
+| Schrift auf Gold | 9,8 | 9,8 |
+| Sekundärer Knopf | 18,5 | 14,6 |
+| Gesperrter Knopf / Feld | 5,0 | 5,5 |
+| Fehlertext | 6,4 | 6,4 |
+| Weiß auf Kreuzrot (Marke, Zähler) | 4,6 | 4,6 |
+| Schrift auf Bereichsknopf (Lernen) | 5,8 | 10,2 |
+| Bereichsfarbe als Untertitel (schwächste: Gemeinde hell) | 4,95 | 11,3 |
+| Linie stark (Bedien-Rand) auf Oberfläche / tief | 3,7 / 3,2 | 4,2 / 4,6 |
+
+Alle Texte erreichen AA (4,5:1), alle Bedien-Ränder 3:1. `--ci-farbe-linie` ist nur Schmuck.
 
 ## Regeln
 
-- Gold führt, Kreuzrot meldet: Rot nie als große Fläche oder für Titel.
-- Höchstens ein goldener Hauptknopf mit Schein je Ansicht. Bedienknöpfe (`--leise`) ruhig ohne Schein.
-- Gesperrtes grau ohne Schein und ohne Bewegung, dazu ein Schloss-Symbol.
-- Der Duell-Verlauf Gold → Koralle → Rosé gehört nur in den Duell-Bereich (Knopf, Balken, Trenner).
-- Das Gemeindelogo nicht umfärben; auf dunklem Grund auf weißer Scheibe zeigen.
-- Jede Tippfläche ist mindestens 44 px hoch; der Tastatur-Fokus zeigt einen hellgoldenen Rahmen.
-- Übergänge laufen nur ohne `prefers-reduced-motion: reduce`.
-- Alles muss bei 390 px Breite ohne seitliches Wischen passen: Kinder in Flex/Grid bekommen
-  `min-width: 0`, Spalten `minmax(0, 1fr)`, lange Namen werden mit „…“ gekürzt, Titel brechen um.
+- **Gold führt, Kreuzrot meldet.** Rot nur für Zähler, „neu“, Fehler und Duell-Hinweise – nie als große Fläche oder für Titel. Schrift auf Kreuzrot immer reinweiß.
+- In Bausteinen nur `--ci-farbe-…` verwenden, keine festen Werte.
+- Titel in Cinzel immer in Großbuchstaben; Fließtext in Lexend; Verse in Source Serif 4 **kursiv**, Stelle darunter in Lexend (Schlachter 2000).
+- Das Logo nicht umfärben; es steht immer auf einer weißen Scheibe (`.ci-logo`).
+- Höchstens ein primärer Knopf je Ansicht. Sekundäre und Bedienknöpfe ohne Schein, Gesperrtes grau ohne Schein, zusätzlich Schloss-Symbol und `aria-disabled`.
+- Alles passt bei 390 px ohne seitliches Wischen: Kinder in Flex/Grid bekommen `min-width: 0`, Spalten `minmax(0, 1fr)`.
+- Tippflächen mindestens 44 px, Eingabefelder 16 px Schrift (sonst zoomt iOS).
 
 ## Namen wie in `index.html`
 
-`ci.css` setzt zusätzlich die Variablennamen der App, damit sie die Werte später direkt übernimmt:
+`--bg`, `--bg2`, `--surface`, `--surface2`, `--line`, `--fg`, `--muted`, `--accent`, `--accent-ink`, `--good`, `--bad`,
+`--display`, `--body`, `--serif`, `--ar`, `--ar-lernen/-spielen/-gemeinde/-lohn`, `--fs-s/-m/-l`, `--tap`
+zeigen auf die CI-Werte. Sie wirken nur, wenn `ci.css` **nach** dem `<style>` der App geladen wird.
 
-| App-Variable | zeigt auf | heute in der App | Unterschied |
-|---|---|---|---|
-| `--bg`, `--bg2` | `--ci-nacht`, `--ci-nacht-2` | `#0E1226`, `#151A36` | gleich |
-| `--surface`, `--surface2` | `--ci-flaeche`, `--ci-flaeche-2` | `#1B2146`, `#262E5E` | gleich |
-| `--line`, `--muted` | `--ci-linie`, `--ci-text-leise` | `#323B74`, `#A3ABD8` | gleich |
-| `--fg` | `--ci-text` | `#EEF0FF` | etwas heller |
-| `--accent`, `--accent-ink` | `--ci-gold`, `--ci-gold-ink` | `#F2C14E`, `#2A1D00` | praktisch gleich |
-| `--good` | `--ci-ok` | `#46D39A` | heller |
-| `--bad` | `--ci-fehler-text` | `#FF6B6B` | heller, für Schrift gedacht |
-| `--display` | `--ci-schrift-titel` | Cinzel | gleich |
-| `--body` | `--ci-schrift-text` | Nunito | **wird Lexend** |
-| `--serif` | `--ci-schrift-vers` | EB Garamond | **wird Source Serif 4** |
-| `--ar` | `--ci-gold` | `var(--accent)` | gleich |
-| `--ar-lernen`, `--ar-lohn` | `--ci-lernen`, `--ci-lohn` | `#7FC8FF`, `#B38CFF` | gleich |
-| `--ar-spielen`, `--ar-gemeinde` | `--ci-spielen`, `--ci-gemeinde` | `#B38CFF`, `#FF8A5C` (Zeile 519) | **ändert sich** auf Bernstein und Grün |
-| `--fs-s`, `--fs-m`, `--fs-l` | `--ci-gr-mini`, `-klein`, `-text` | 0,75 / 0,875 / 1 rem | gleich |
-| `--tap` | `--ci-tippflaeche` | 44 px | gleich |
-| `--bk` | `--ar` (nur an `[data-bereich]`) | Farbe im Bereichskopf | – |
+## Beim Einbau in die App beachten
 
-Nicht gemappt, weil nicht Teil der CI: `--at`, `--nt` (Altes/Neues Testament), `--g-…` (Buchgruppen),
-`--th`, `--edc`, `--gold`, `--licht` und die Farbthemen `body[data-acc="…"]`.
-
-## Einbau in die App (später)
-
-1. Schriften über `<link>` laden (siehe oben) und die alte Zeile mit Nunito/EB Garamond ersetzen.
-2. `ci/ci.css` **nach** dem `<style>` der App einbinden – oder besser die Werte im ersten `:root`
-   der App streichen. Steht `ci.css` davor, gewinnen die alten App-Werte.
-3. `ci/ci.css` und die Schrift-Adressen in die Dateiliste von `sw.js` aufnehmen, sonst fehlt das
-   Stylesheet ohne Netz.
-4. Lexend läuft breiter als Nunito und hat kein 800/900: enge Stellen (Fußleiste, Zahlentafel,
-   Reiter) bei 390 px nachprüfen; `font-weight: 800/900` fällt auf 700.
-5. Rote Zähler der App nutzen `--bad` als Fläche mit weißer Schrift (heute 2,8:1). Dort auf
-   `--ci-kreuzrot` mit `--ci-kreuzrot-ink` umstellen.
-6. `--ar-spielen` und `--ar-gemeinde` ändern sich sichtbar (siehe Tabelle) – vorher ansehen.
+1. Die App ist heute nur dunkel. Bis der helle Modus durchgetestet ist: `<html data-theme="dark">` setzen.
+2. Bereichsfarben weichen ab: In `index.html` ist Spielen Violett und Gemeinde Koralle, die CI legt Bernstein und Grün fest.
+3. Lexend läuft breiter als Nunito und hat kein 800/900 – enge Stellen (Fußleiste, Zahlentafel) bei 390 px prüfen.
+4. `ci/ci.css` in die `APP`-Liste von `sw.js` aufnehmen (Offline-Start).
+5. Rote Zähler der App (`--bad` als Fläche) auf `--ci-farbe-signal` umstellen.
+6. Modal: Fokusfalle, Escape und `inert` liefert die App selbst; das CSS stellt nur das Aussehen.
 
 ## Dateien
 
-- `ci.css` – Variablen (`--ci-…`), Aliasse für `index.html` und Bausteine.
-- `README.md` – diese Regeln.
-- `gemeinde-logo.png` – Gemeindelogo (Original).
+- `ci.css` – Variablen und Bausteine
+- `gemeinde-logo.png` – Gemeindelogo (Original)
