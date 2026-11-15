@@ -4274,6 +4274,7 @@ function duHerausfordern(r, typ = duTypAktuell(), extra = {}) {
   if (offen.length + ziele.length > DU_MAX_OFFEN) { const frei = Math.max(0, DU_MAX_OFFEN - offen.length);
     toast(`${svg("bolt", "var(--muted)")}<div>${frei ? `Du kannst nur noch ${frei} ${frei === 1 ? "Gegner" : "Gegner"} herausfordern (höchstens ${DU_MAX_OFFEN} offene Duelle).` : `Du hast schon ${DU_MAX_OFFEN} offene Duelle.`}</div>`); return; }
   const T = DU_TYPEN[typ] || DU_TYPEN.vers;
+  if (T.art === "quiz" && mitBibPool(() => duHerausfordern(r, typ, extra))) return;
   const seed = T.art === "quiz" ? bibDuellSeed(extra.ed || null) : crypto.getRandomValues(new Uint32Array(1))[0] % 2147483647; /* 9.63: Biblionär-Duell meidet bekannte Fragen */
   duAuswahl = [];
   duSpielStarten(Object.assign({ neu: true, an: ziele[0].id, gegner: ziele.length === 1 ? ziele[0].name : `${ziele.length} Gegner`, ziele: ziele.map(g => ({ id: g.id, name: g.name })),
@@ -4282,6 +4283,7 @@ function duHerausfordern(r, typ = duTypAktuell(), extra = {}) {
 
 /* ----- Das Duell selbst: eine Frage pro Bildschirm, Zeitbalken, sofortige Rückmeldung ----- */
 function duSpielStarten(opt) {
+  if (opt.art === "quiz" && mitBibPool(() => duSpielStarten(opt))) return;
   duWahl = false;
   go("duell");
   const art = DU_TYPEN[opt.art === "kette" ? "kette-" + opt.k : opt.art] ? opt.art : "vers";
@@ -4536,6 +4538,26 @@ function bibDuellSeed(ed) {
 
 /* 9.63: meiden = Fragenverlauf des Spielers (Map Kennung → Rang, nur Solo): ungesehene Fragen zuerst, dann die am längsten zurückliegenden.
    Weihnachts-Pool: gilt jetzt auch ab/bis (Wellen) und je Unterthema th höchstens 2 Fragen je Stufe. */
+/* 9.80: Fragenpool fehlt (bibelquiz.js auf dem Gerät nicht oder unvollständig geladen, z. B. Verbindungsabbruch beim iPhone)
+   → vor jedem Biblionär-Spiel nachladen statt abstürzen. Mit ?r= fragt der Service Worker frisch nach, offline nimmt er die gespeicherte Kopie. */
+const bibPoolDa = () => typeof QUIZ_THEMEN !== "undefined";
+let bibPoolLaedt = null;
+function bibPoolHolen() {
+  if (bibPoolDa()) return Promise.resolve(true);
+  return bibPoolLaedt || (bibPoolLaedt = new Promise(ok => {
+    const sk = document.createElement("script"), fertig = () => { bibPoolLaedt = null; ok(bibPoolDa()); };
+    sk.src = "bibelquiz.js?r=" + Date.now(); sk.onload = fertig; sk.onerror = fertig; document.head.appendChild(sk);
+  }));
+}
+function bibPoolFehlt() {
+  toast(`${svg("biblionaer")}<div><b>Fragen konnten nicht geladen werden</b><div class="small muted">Bitte Internet prüfen und die App einmal ganz schließen und neu öffnen.</div></div>`);
+}
+/* Startet fn sofort, wenn die Fragen da sind – sonst erst nach dem Nachladen (true = musste warten) */
+function mitBibPool(fn) {
+  if (bibPoolDa()) return false;
+  bibPoolHolen().then(ok => ok ? fn() : bibPoolFehlt()); return true;
+}
+setTimeout(() => { if (!bibPoolDa()) bibPoolHolen(); }, 2000);
 function bibFragen(seed, stand, pool, meiden, ed) {
   const alt = Math.random; Math.random = rngVon(seed); stand = stand || weekKey();
   const gilt = q => (!q.ab || q.ab <= stand) && (!q.bis || stand < q.bis);
@@ -4746,6 +4768,7 @@ function bibEnde(G, punkte) {
 /* Solo-Übung (Spielen): zufällige Fragen */
 VIEWS.biblionaer = () => { screen.innerHTML = ""; };
 function bibSolo(ed) {
+  if (mitBibPool(() => bibSolo(ed))) return;
   go("biblionaer");
   const e = ed && edAktiv(ed) ? ed : null, w = e === "weihnachten";
   const G = { modus: "solo", ed: e, weih: w, vorschau: !!e && edNurVorschau(e), fragen: bibFragen(crypto.getRandomValues(new Uint32Array(1))[0] % 2147483647, "", e ? edPool(e, Date.now()) : null, bibGesRang(e ? EDITIONEN[e].ges : "k"), e) };
@@ -4781,6 +4804,7 @@ let bibWocheLaeuft = false;
 async function bibWocheAnfang() {
   if (bibWocheLaeuft) return; bibWocheLaeuft = true;
   try {
+    if (!(await bibPoolHolen())) { bibPoolFehlt(); return; }   /* 9.80: erst Fragen sichern, dann den Wochenversuch buchen */
     const ms = await serverMs(), wk = weekKey(ms), e = await bibVersuchBuchen(ms);
     if (e === "schon") { S.bwGesperrt = wk; save(); toast(`${svg("biblionaer")}<div><b>Diese Woche schon gespielt</b><div class="small muted">Die Wochenrunde gibt es nur einmal – am Montag kommen neue Fragen.</div></div>`); go("rank", "bibWoche"); return; }
     if (e === "netz") { toast(`${svg("biblionaer")}<div><b>Keine Verbindung</b><div class="small muted">Die Wochenrunde braucht Internet, damit niemand sie doppelt spielt.</div></div>`); return; }
