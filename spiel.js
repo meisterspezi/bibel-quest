@@ -1217,6 +1217,12 @@ async function xqStartPruefung() {
   const fehlt = !srv || !srv.q || Object.entries(S.xq.q).some(([k, v]) => (+v || 0) > ((srv.q[k]) | 0));
   if (fehlt) await xqAbgleichMitMeldung("beim Start");
 }
+/* 9.89: Runde ohne XP (z. B. 0 richtig oder gekürzte Wiederholung) bringt trotzdem Öl fürs Sammelalbum */
+function xpOderOel(n, el, quelle, info) {
+  if (n) return addXp(n, el, quelle, info);
+  if (gesperrt) return;
+  try { if (typeof sammelNachXp === "function") { sammelNachXp(0, quelle, info, 0, 0); renderHud(); } } catch (e) {}
+}
 function addXp(n, el, quelle, info) {
   if (gesperrt) return;
   neuerTag(); serieZaehlen(); tagMerken();
@@ -1227,7 +1233,9 @@ function addXp(n, el, quelle, info) {
   const wk = weekKey(); if (S.weekKey !== wk) { S.weekKey = wk; S.weekXp = 0; } S.weekXp += n;
   if (el) { const [x, y] = centerOf(el); floatText("+" + n + " XP", x, y); }
   quest("xp", n);
-  const nachher = levelOf(S.xp); renderHud(); save(); lbSync();
+  const nachher = levelOf(S.xp);
+  try { if (typeof sammelNachXp === "function") sammelNachXp(n, quelle, info, vorher, nachher); } catch (e) {} /* 9.84: Goldstaub fürs Sammelalbum */
+  renderHud(); save(); lbSync();
   if (nachher > vorher) setTimeout(() => levelUp(nachher), 450);
   checkBadges();
 }
@@ -1443,6 +1451,14 @@ function hudNameAnpassen() {
 }
 window.addEventListener("resize", () => { try { hudNameAnpassen(); } catch (e) {} });
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { try { hudNameAnpassen(); } catch (e) {} });
+/* 9.86: Zahlen in der Kopfleiste ab 10.000 kürzen (23,5k · 100k · 1,2M) */
+function hudZahl(n) {
+  n = Math.max(0, Math.floor(+n || 0));
+  if (n < 10000) return n.toLocaleString("de-DE");
+  if (n < 100000) return (Math.floor(n / 100) / 10).toLocaleString("de-DE") + "k";
+  if (n < 1e6) return Math.floor(n / 1000) + "k";
+  return (Math.floor(n / 1e5) / 10).toLocaleString("de-DE") + "M";
+}
 function renderHud() {
   const n = levelOf(S.xp), lo = cum(n), hi = cum(n + 1);
   $("hLvl").textContent = n; if ($("hGem")) $("hGem").innerHTML = gemLogoHtml(meineGem() === "gast" ? null : gemInfo(meineGem()), 22); $("hAvatar").innerHTML = avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "?" }, 44);
@@ -1451,10 +1467,11 @@ function renderHud() {
   $("hRing").style.setProperty("--p", Math.max(0, Math.min(100, (S.xp - lo) / (hi - lo) * 100)).toFixed(1));
   const serie = streakNow(); $("hStreak").textContent = serie === 1 ? "1 Tag" : serie + " Tage"; $("hStreak").parentElement.classList.toggle("null", !serie);
   { const hs = $("hShop"); if (hs && !hs.firstChild) hs.innerHTML = svg("shop"); }
-  $("hTal").textContent = S.tal; const tbP = $("tbTal"); if (tbP) tbP.hidden = !etwasKaufbar();
+  $("hTal").textContent = hudZahl(S.tal); $("hTalBtn").title = (+S.tal || 0).toLocaleString("de-DE") + " Talente"; const tbP = $("tbTal"); if (tbP) tbP.hidden = !etwasKaufbar();
   $("hLvlT").textContent = "Level " + n;
   { const pz = Math.max(0, Math.min(100, (S.xp - lo) / (hi - lo) * 100)); const lt = $("hLvlT"); lt.style.setProperty("--lp", pz.toFixed(1) + "%"); lt.title = `Level ${n}: ${Math.round(S.xp) - lo} von ${hi - lo} XP (noch ${Math.max(0, hi - Math.round(S.xp))} bis Level ${n + 1})`; }
   hudNameAnpassen();
+  try { if (typeof smHud === "function") { smHud(0); smHudPlatz(); } } catch (e) {}
   const pk = $("pkBtn"); if (pk) { pk.hidden = !entwickler; pk.innerHTML = `${svg("post")}${pkOffenPruef ? `<i class="pk-ap" aria-hidden="true"></i>` : ""}${postfachNeu ? `<span class="pk-zahl">${postfachNeu > 99 ? "99+" : postfachNeu}</span>` : ""}`; pk.setAttribute("aria-label", `Postkasten${postfachNeu ? ", " + postfachNeu + " neu" : ""}`); }
 }
 /* Was ist im Laden gerade kaufbar? (je Kategorie, Reihenfolge-Regeln wie im Laden) */
@@ -1508,6 +1525,12 @@ function rangVon(r) {
 const ruestStufe = id => Math.min(2, (S.ruestStufe || {})[id] | 0);
 /* 9.5: Veredeln aus dem Laden gestrichen – bereits erreichte Stufen bleiben sichtbar */
 const veredelPreis = id => { return 0; if (!S.owned.includes("ar-" + id)) return 0; const st = ruestStufe(id); return st >= 2 ? 0 : RUEST_VEREDEL_PREIS[id][st]; };
+/* 9.85/9.92: Goldkarten aus dem Sammelalbum neben dem Namen (Feld gl) */
+function glanzHtml(r) {
+  const eigen = r && r.id === S.pid && typeof smGlanz === "function" ? smGlanz() : 0;
+  const n = Math.min(66, Math.max(eigen, r && +r.gl > 0 ? r.gl | 0 : 0)); if (!n) return "";
+  return `<span class="rk-gl" title="${n} Goldkarten im Sammelalbum"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5" fill="#f2c14e" stroke="#7a4c0e" stroke-width="1.4"/><path d="M8.5 7.5h7" stroke="#fff6c8" stroke-width="1.6" stroke-linecap="round"/></svg>${n}</span>`; /* 9.92: Goldkarten */
+}
 function ruestungHtml(n, klein = true) {
   if (!n) return "";
   return `<span class="ruest ${klein ? "klein" : ""}" title="Waffenrüstung Gottes: ${n} von 6">${RUESTUNG.slice(0, n).map(r => `<i class="rst-${ruestStufe(r.id)}">${svg("ar-" + r.id)}</i>`).join("")}</span>`;
@@ -2200,7 +2223,7 @@ VIEWS.gap = (arg) => {
       <button class="btn primary" id="again">Nochmal</button><button class="btn ghost" data-go="${alle ? heimAnsicht("spielen") : "lied"}">Zurück</button><button class="btn fertig" data-go="home">Fertig</button></div>`;
     wireGo(); wireSing(); $("again").onclick = () => { SFX.tap(); vorlesenStop(); VIEWS.gap(arg); };
     SFX.win(); if (perfekt) rain(80);
-    if (xp) addXp(xp, null, "luecke", { t0, f: luecken.length - Math.min(fehler, luecken.length), fm: luecken.length, d: `${alle ? "Ganzes Lied" : "Strophe " + (strophen[0] + 1)} · ${fehler} Fehler${W.d}` }); save(); checkBadges();
+    xpOderOel(xp, null, "luecke", { t0, f: luecken.length - Math.min(fehler, luecken.length), fm: luecken.length, d: `${alle ? "Ganzes Lied" : "Strophe " + (strophen[0] + 1)} · ${fehler} Fehler${W.d}` }); save(); checkBadges();
   };
   render();
 };
@@ -2332,7 +2355,7 @@ function playBlitz(scope) {
       <button class="btn primary" id="again">Nochmal</button><button class="btn ghost" data-go="${heimAnsicht("spielen")}">Zurück</button><button class="btn fertig" data-go="home">Fertig</button></div>`; wireGo(); wireSing();
     $("again").onclick = () => { SFX.tap(); vorlesenStop(); VIEWS.blitz(); };
     if (right > 0) { SFX.win(); if (rec) rain(90); }
-    if (xp) addXp(xp, null, "blitz", { t0, f: right, fm: right + wrong, d: `${scope === "all" ? "Ganze Bibel" : scope} · ${wrong} Fehler · ${maxCombo} in Folge${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
+    xpOderOel(xp, null, "blitz", { t0, f: right, fm: right + wrong, d: `${scope === "all" ? "Ganze Bibel" : scope} · ${wrong} Fehler · ${maxCombo} in Folge${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
   }
 }
 
@@ -2402,7 +2425,7 @@ function playChain(mode) {
       <button class="btn primary" id="cagain">Nochmal</button><button class="btn ghost" data-go="${heimAnsicht("spielen")}">Andere Kette</button><button class="btn fertig" data-go="home">Fertig</button></div>`; wireGo(); wireSing();
     $("cagain").onclick = () => { SFX.tap(); vorlesenStop(); countdown(() => playChain(mode), cdSolo("kette-" + mode)); };
     if (full) { SFX.level(); rain(200); } else if (rec) SFX.win();
-    if (xp) addXp(xp, null, "kette", { t0, f: Math.max(0, i), fm: seq.length - 1, d: `${K.name}${full ? " · komplett" : " · gerissen"}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
+    xpOderOel(xp, null, "kette", { t0, f: Math.max(0, i), fm: seq.length - 1, d: `${K.name}${full ? " · komplett" : " · gerissen"}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
   }
 }
 
@@ -2507,7 +2530,7 @@ function playThemenKette(id) {
       ${tkErgebnis(id, i, full)}</div>`; wireGo();
     $("cagain").onclick = () => { SFX.tap(); countdown(() => playThemenKette(id), cdSolo("kette-" + id)); };
     if (full) { SFX.level(); rain(200); } else if (rec) SFX.win();
-    if (xp) addXp(xp, null, "kette", { t0, f: Math.max(0, i), fm: seq.length - 1, d: `${K.name}${full ? " · komplett" : " · gerissen"}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
+    xpOderOel(xp, null, "kette", { t0, f: Math.max(0, i), fm: seq.length - 1, d: `${K.name}${full ? " · komplett" : " · gerissen"}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
   }
 }
 
@@ -2831,6 +2854,7 @@ function lbSync(now) {
     try { xqSenden(); } catch (e) {} /* 6.73: XP-Quellen */
     try { gemSenden(); } catch (e) {} /* 9.0: Gemeinde-Zuordnung */
     const opts = {}; if (!S.ownersSet && eigenePid(S.pid)) opts.owners = [L.uid];
+    try { if (typeof smGlanzSenden === "function") smGlanzSenden(L); } catch (e) {} /* 9.85: Glanz-Karten in eigener Sammlung „album“ */
     const ok = () => { if (opts.owners) { S.ownersSet = true; lsSchreiben(); geraetSpeichern(); } };
     /* Übergang 6.40: Solange die neuen Firebase-Regeln (Biblionär-Felder) noch nicht veröffentlicht sind, ohne diese Felder speichern */
     const ohneBib = () => { const d = lbPayload(); delete d.bib; return d; };
@@ -2937,6 +2961,7 @@ function zusammenfuehren(r) {
   if (r.spWdh && r.spWdh.t === today()) { const n = wdhStand(); Object.entries(r.spWdh.n || {}).forEach(([k, v]) => { n[k] = Math.max(n[k] | 0, v | 0); }); }
   if (r.duKurz && typeof r.duKurz === "object") S.duKurz = Object.assign({}, r.duKurz, S.duKurz || {});
   bibGesMischen(r); /* 9.63: Fragenverlauf beider Geräte */
+  try { if (typeof smMischen === "function") smMischen(r); } catch (e) {} /* 9.84: Sammelalbum und Goldstaub */
   try { xqAbgleich(xpVorher); } catch (e) {}
   if (r.weekKey === S.weekKey) S.weekXp = Math.max(S.weekXp, r.weekXp || 0); else if ((r.weekKey || "") > (S.weekKey || "")) { S.weekKey = r.weekKey; S.weekXp = r.weekXp; }
   if (r.todayDay === S.todayDay) { S.todayXp = Math.max(S.todayXp, r.todayXp || 0); S.todayRight = Math.max(S.todayRight || 0, r.todayRight || 0); }
@@ -3644,7 +3669,7 @@ VIEWS.rank = (tab) => {
       const voll = rankTab === "kette" && wert1 >= KETTE_SUB[ketteSub][2];
       const vollText = { bibel: "Alle 66 Bücher geschafft!", at: "Das ganze Alte Testament geschafft!", nt: "Das ganze Neue Testament geschafft!", rueck: "Alle 66 Bücher rückwärts geschafft!" }[ketteSub];
       /* Waffenrüstung (bzw. Siegel bei „Bewährt“) auch auf dem Podest */
-      const ext = r => rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor);
+      const ext = r => (rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)) + glanzHtml(r);
       const person = (r, sz) => `<button class="gk-p ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}">${avatarLv(r, sz)}<b>${esc(r.name)}</b>${ext(r)}</button>`;
       const gold = `<div class="gk-gold"><span class="pod-krone">${svg("crown")}</span>
         <div class="gk-t">${voll ? vollText : `Platz 1 · ${pkt(wert1)} ${esc(unit)}`}${g1.length > 1 ? `<small>${g1.length} Spieler teilen sich Platz 1</small>` : voll ? `<small>${wert1} ${esc(unit)}</small>` : ""}</div>
@@ -3653,7 +3678,7 @@ VIEWS.rank = (tab) => {
         <div class="gk-stapel">${g.slice(0, 5).map(r => `<button data-pid="${esc(r.id)}" class="${r.id === me ? "me" : ""}">${avatarLv(r, 36)}</button>`).join("")}${g.length > 5 ? `<span class="gk-mehr">+${g.length - 5}</span>` : ""}</div>
         <div class="gk-wer">${g.slice(0, 3).map(r => `<div class="${r.id === me ? "me" : ""}"><b>${esc(r.name)}</b>${ext(r)}</div>`).join("")}${g.length > 3 ? `<div class="small muted">+${g.length - 3} weitere</div>` : ""}</div></div>` : "";
       const pod = `<div class="gk">${gold}${g2.length ? `<div class="gk-zd">${klein(2, g2)}${klein(3, g3)}</div>` : ""}</div>`;
-      const rest = rows.map((r, i) => [r, platz[i]]).filter(([, p]) => p > 3).slice(0, 80).map(([r, p], k, arr) => `<button class="rrow ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}"><div class="rk">${k && arr[k - 1][1] === p ? "" : p}</div>${avatarLv(r, 38)}<div class="who"><b>${esc(r.name)}${r.id === me ? '<span class="you">DU</span>' : ""}</b><span>${esc(rangVon(r))}</span>${rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)}</div><div class="val">${pkt(rankWert(r))}</div></button>`).join("");
+      const rest = rows.map((r, i) => [r, platz[i]]).filter(([, p]) => p > 3).slice(0, 80).map(([r, p], k, arr) => `<button class="rrow ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}"><div class="rk">${k && arr[k - 1][1] === p ? "" : p}</div>${avatarLv(r, 38)}<div class="who"><b>${esc(r.name)}${glanzHtml(r)}${r.id === me ? '<span class="you">DU</span>' : ""}</b><span>${esc(rangVon(r))}</span>${rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)}</div><div class="val">${pkt(rankWert(r))}</div></button>`).join("");
       if ($("rcount")) $("rcount").textContent = (rankTab === "woche" || rankTab === "bibWoche" ? wk.split("-W")[1] + ". KW · " : istBibTab(rankTab) ? "Gemeinde · " : "") + rows.length + " Spieler";
       body.innerHTML = `${pod}${rest ? `<div class="rlist">${rest}</div>` : ""}`;
       body.querySelectorAll("[data-pid]").forEach(b => b.onclick = () => { SFX.tap(); const r = rows.find(x => x.id === b.dataset.pid);
@@ -4465,6 +4490,7 @@ async function duEnde() {
         const f = D.gleichEinzel ? D.gleichEinzel[g.id] : 1; if (f < 1 && D.id) { S.duKurz = Object.assign({}, S.duKurz || {}); S.duKurz[D.id] = f; const ks = Object.keys(S.duKurz); while (ks.length > 60) delete S.duKurz[ks.shift()]; save(); } }
       D.gesendet = true;
       angekommen();
+      try { if (!D.oelHf && typeof smHerausforderung === "function") { D.oelHf = true; smHerausforderung(ziele); } } catch (e) {} /* 9.89: +1 Öl je Herausforderung */
       titel = viele ? `${ziele.length} Herausforderungen gesendet!` : "Herausforderung gesendet!";
       zeile = viele ? `${esc(duNamenText(ziele))} bekommen dieselben Fragen und haben ${DU_TAGE} Tage Zeit. Jedes Duell wird einzeln gewertet.`
         : `${esc(D.gegner)} bekommt dieselben Fragen und hat ${DU_TAGE} Tage Zeit. Du siehst das Ergebnis hier und auf der Startseite.`;
@@ -4800,7 +4826,7 @@ function bibEnde(G, punkte) {
   if ($("bibNochmal")) $("bibNochmal").onclick = () => { SFX.tap(); bibSolo(G.ed); };
   if ($("bibRang")) $("bibRang").onclick = () => { SFX.tap(); go("rank", "bibWoche"); };
   SFX.win(); if (million) rain(140); else if (punkte >= 16000) rain(60);
-  setTimeout(() => { if (xp) addXp(xp, null, "bib", { t0: G.t0, f: G.r, fm: 15, d: `${woche ? "Wochenrunde" : adv ? `${edAdj(G.ed)}-Woche` : G.ed ? `${edAdj(G.ed)}-Solo` : "Solo"} · ${pkt(punkte)} Punkte${W ? W.d : ""}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350);
+  setTimeout(() => { xpOderOel(xp, null, "bib", { t0: G.t0, f: G.r, fm: 15, d: `${woche ? "Wochenrunde" : adv ? `${edAdj(G.ed)}-Woche` : G.ed ? `${edAdj(G.ed)}-Solo` : "Solo"} · ${pkt(punkte)} Punkte${W ? W.d : ""}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350);
 }
 /* Solo-Übung (Spielen): zufällige Fragen */
 VIEWS.biblionaer = () => { screen.innerHTML = ""; };
@@ -4808,7 +4834,7 @@ function bibSolo(ed) {
   if (mitBibPool(() => bibSolo(ed))) return;
   go("biblionaer");
   const e = ed && edAktiv(ed) ? ed : null, w = e === "weihnachten";
-  const G = { modus: "solo", ed: e, weih: w, vorschau: !!e && edNurVorschau(e), fragen: bibFragen(crypto.getRandomValues(new Uint32Array(1))[0] % 2147483647, "", e ? edPool(e, Date.now()) : null, bibGesRang(e ? EDITIONEN[e].ges : "k"), e) };
+  const G = { modus: "solo", ed: e, weih: w, vorschau: !!e && (edNurVorschau(e) || (typeof testDatumAktiv === "function" && testDatumAktiv())), fragen: bibFragen(crypto.getRandomValues(new Uint32Array(1))[0] % 2147483647, "", e ? edPool(e, Date.now()) : null, bibGesRang(e ? EDITIONEN[e].ges : "k"), e) };
   countdown(() => bibStart(G), cdSolo("quiz", { modus: e ? `${edAdj(e)}-Solo` : "Solo", weih: w, ed: e }));
 }
 /* ---------- 6.80: Wochen-Sicherung (Biblionär der Woche) ----------
@@ -5423,7 +5449,7 @@ function kanalFrage() {
   modal(`<div class="label">Beta-Version</div><h2>Neues zuerst ausprobieren?</h2><p class="muted">In der Beta-Version testest du neue Funktionen und Designs, bevor sie für alle erscheinen. Dein Spielstand bleibt derselbe, und du kannst jederzeit zurückwechseln. Es kann dort noch Fehler geben – melde sie bitte über „Feedback“.</p><button class="btn primary" data-close="beta">Zur Beta-Version wechseln</button><button class="btn ghost" data-close>Hier bleiben</button>`,
     r => { if (r === "beta") kanalWechseln(true); }).dataset.frei = "1";
 }
-if (BETA) addEventListener("DOMContentLoaded", () => { const b = document.createElement("button"); b.id = "betaMarke"; b.textContent = "BETA"; b.setAttribute("aria-label", "Beta-Version – antippen für Infos"); b.onclick = () => { if (!document.querySelector(".modal") && !document.body.classList.contains("spiel-laeuft")) kanalFrage(); }; document.body.appendChild(b); });
+if (BETA) addEventListener("DOMContentLoaded", () => { const b = document.createElement("button"); b.id = "betaMarke"; b.textContent = "BETA"; b.setAttribute("aria-label", "Beta-Version – Testlabor öffnen"); b.onclick = () => { if (!document.querySelector(".modal, .sm-ov") && !document.body.classList.contains("spiel-laeuft")) { SFX.tap(); go("testlabor"); } }; document.body.appendChild(b); });
 /* Verwalter: Beta-Tester auswählen */
 VIEWS.betatester = () => {
   const L = window.LB; if (!entwickler || !L || !L.ok || !L.betaSetzen) { go("home"); return; }

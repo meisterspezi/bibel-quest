@@ -14,7 +14,7 @@ import { getFirestore, Timestamp, FieldPath } from "firebase-admin/firestore";
 export const TAG = 864e5;
 // Felder einer Zeile in fester Reihenfolge (spart Platz: die Namen stehen nur einmal im Dokument)
 export const FELDER = ["id", "name", "xp", "level", "bestChain", "chainAT", "chainNT", "chainRueck", "stars", "badges", "streak", "bestStreak", "blitz", "combo",
-  "week", "weekXp", "avatar", "frame", "title", "armor", "atP", "ntP", "t28", "sg", "bew", "duS", "duG", "bib", "u", "tb", "tm", "g"];
+  "week", "weekXp", "avatar", "frame", "title", "armor", "atP", "ntP", "t28", "sg", "bew", "duS", "duG", "bib", "gl", "u", "tb", "tm", "g"];
 const ms = t => (t && typeof t.toMillis === "function" ? t.toMillis() : 0);
 // Spieltage (Liste von Tagesnummern) als Basis-Tag + Bitmaske der 31 Tage davor – die App macht daraus wieder die Liste
 export function tageMaske(tl) {
@@ -23,6 +23,8 @@ export function tageMaske(tl) {
   return [tb, tm];
 }
 // Ein Spieler-Dokument → schlanke Zeile (ohne Geräteliste, Abzeichen-Liste … – die holt die App bei Bedarf einzeln)
+// 9.85 Glanz-Karten aus album/{pid} (0 = leer, spart Platz)
+const glanz = x => { const n = x && Number.isInteger(x.gl) ? Math.max(0, Math.min(66, x.gl)) : 0; return n || ""; };
 export function zeile(id, d, g) {
   const [tb, tm] = tageMaske(d.tl), r = { ...d, id, u: ms(d.updated), tb, tm, g: g || "" };
   return FELDER.map(f => { const v = r[f]; return v === undefined || v === null || (typeof v === "number" && !Number.isFinite(v)) ? "" : (typeof v === "string" ? v.slice(0, 40) : typeof v === "number" || typeof v === "boolean" ? v : ""); });
@@ -58,17 +60,19 @@ export async function sammeln(db, opt = {}) {
   let gelesen = 0;
   if (voll) {
     karte.clear();
-    const [sp, mi] = await Promise.all([db.collection("spieler").get(), db.collection("mitglied").get()]);
-    gelesen = sp.size + mi.size;
-    const g = new Map(mi.docs.map(d => [d.id, String(d.data().g || "")]));
-    sp.docs.forEach(d => { const x = d.data(); if (!x.zu) karte.set(d.id, zeile(d.id, x, g.get(d.id))); });
+    const [sp, mi, al] = await Promise.all([db.collection("spieler").get(), db.collection("mitglied").get(), db.collection("album").get()]);
+    gelesen = sp.size + mi.size + al.size;
+    const g = new Map(mi.docs.map(d => [d.id, String(d.data().g || "")])), gl = new Map(al.docs.map(d => [d.id, glanz(d.data())]));
+    sp.docs.forEach(d => { const x = d.data(); if (!x.zu) karte.set(d.id, zeile(d.id, { ...x, gl: gl.get(d.id) }, g.get(d.id))); });
   } else {
     const seit = Timestamp.fromMillis(stand - 5 * 60000);  // 5 Minuten Überlappung
-    const [sp, mi] = await Promise.all([db.collection("spieler").where("updated", ">", seit).get(), db.collection("mitglied").where("updated", ">", seit).get()]);
-    gelesen = sp.size + mi.size;
-    const iG = FELDER.indexOf("g");
-    sp.docs.forEach(d => { const x = d.data(), vor = karte.get(d.id); if (x.zu) karte.delete(d.id); else karte.set(d.id, zeile(d.id, x, vor ? vor[iG] : "")); });
+    const [sp, mi, al] = await Promise.all([db.collection("spieler").where("updated", ">", seit).get(), db.collection("mitglied").where("updated", ">", seit).get(),
+      db.collection("album").where("updated", ">", seit).get()]);
+    gelesen = sp.size + mi.size + al.size;
+    const iG = FELDER.indexOf("g"), iGl = FELDER.indexOf("gl");
+    sp.docs.forEach(d => { const x = d.data(), vor = karte.get(d.id); if (x.zu) karte.delete(d.id); else karte.set(d.id, zeile(d.id, { ...x, gl: vor ? vor[iGl] : "" }, vor ? vor[iG] : "")); });
     mi.docs.forEach(d => { const z = karte.get(d.id); if (z) z[iG] = String(d.data().g || ""); });
+    al.docs.forEach(d => { const z = karte.get(d.id); if (z) z[iGl] = glanz(d.data()); });
   }
   const zeilen = [...karte.values()].sort((a, b) => (a[0] < b[0] ? -1 : 1)), teile = teilen(zeilen);
   const b = db.batch(), ts = Timestamp.fromMillis(jetzt);
