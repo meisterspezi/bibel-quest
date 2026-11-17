@@ -3120,6 +3120,20 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .sm-mark b{left:50%;top:-11px;transform:translateX(-50%);padding:3px 6px;border-radius:7px;background:var(--mc);color:var(--mt);font:900 .66rem/1.1 var(--body);letter-spacing:.04em;border:1.5px solid #fff;animation:markPuls 1.6s ease-out infinite}
 .sm-mark.dup b{border-color:#c9d1ff;animation:none;box-shadow:0 2px 6px #0009}
 @media (prefers-reduced-motion:reduce){.sm-mark b{animation:none}}
+
+/* 9.100: Talente und Manna größer und besser lesbar */
+.hud .hud-kasse{gap:4px}
+.hud .hud-kasse .pill.hud-tal,.hud .hud-kasse .pill.hud-gold{height:40px;font-size:1.02rem;letter-spacing:0;border-width:1.5px}
+.hud .hud-kasse .pill>span[id]{font-weight:900;font-variant-numeric:tabular-nums;color:#fff;text-shadow:0 1px 2px #000a}
+.hud .hud-kasse .pill.hud-gold>span[id]{color:#ffe9a0}
+.hud:not(.eng) .hud-kasse .pill{padding:0 9px 0 33px}
+.hud:not(.eng) .hud-kasse .hud-shop svg,.hud:not(.eng) .hud-kasse .hud-album svg{width:25px!important;height:25px!important}
+.hud:not(.eng) .hud-kasse .pill>svg{left:18px;bottom:3px;width:15px!important;height:15px!important}
+.hud.eng .hud-kasse .pill{padding:0 9px 0 6px}
+.hud.eng .hud-kasse .pill>svg{width:18px!important;height:18px!important}
+.hud .hud-kasse .tb-punkt{width:9px;height:9px}
+.hud{margin-inline:-8px;padding-inline:4px}
+.xptitle:not(.zwei){overflow-wrap:normal;word-break:keep-all}
 </style>
 </head>
 <body>
