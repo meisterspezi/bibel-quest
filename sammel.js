@@ -286,10 +286,12 @@ VIEWS.album = () => {
 };
 function smKarteZeigen(i) {
   const m = smInit(), s = m.album[i], T = ALBUM_TEXT[i] || {}, b = ALL[i];
-  const info = !s ? `<p class="muted">Noch nicht gefunden – diese Karte steckt in einem der Krüge.</p>`
+  /* 9.94: ab Bronze alle Infos (Gruppe, Kapitel, Kernaussage, Verfasser, Schlüsselstelle) */
+  const info = !s ? `<p class="muted">Noch nicht gefunden – diese Karte steckt in einem der goldenen Krüge.</p>`
     : `<dl class="sm-info"><dt>Gruppe</dt><dd>${esc(GROUPS[b.gi].name)} · ${b.t === "AT" ? "Altes" : "Neues"} Testament</dd><dt>Kapitel</dt><dd>${T.k}</dd>
-      ${s >= 2 ? `<dt>Worum es geht</dt><dd>${esc(T.t)}</dd><dt>Verfasser</dt><dd>${esc(T.v)}</dd>` : `<dt>Mehr ab Silber</dt><dd class="muted">Kernaussage und Verfasser</dd>`}
-      ${s >= 3 ? `<dt>Schlüsselstelle</dt><dd><b>${esc(T.s)}</b> – ${esc(T.z)}</dd>` : `<dt>Ab Gold</dt><dd class="muted">Schlüsselstelle</dd>`}</dl>`;
+      <dt>Worum es geht</dt><dd>${esc(T.t)}</dd><dt>Verfasser</dt><dd>${esc(T.v)}</dd>
+      <dt>Schlüsselstelle</dt><dd><b>${esc(T.s)}</b> – ${esc(T.z)}</dd></dl>
+      ${s < SM_MAX ? `<p class="small muted" style="margin:6px 0 0">Nächste Stufe: ${SM_STUFE[s + 1]} – über Krüge oder den Tauschbeutel.</p>` : ""}`;
   modal(`<div class="sm-gross">${smKarteHtml(i, s)}</div>${info}<button class="btn primary" data-close="1">Schließen</button>`).dataset.frei = "1";
 }
 
