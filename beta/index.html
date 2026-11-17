@@ -2827,6 +2827,25 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .bk-med.bild::before{content:"";position:absolute;inset:-10px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--gl) 85%,transparent) 0,transparent 68%);opacity:.65;pointer-events:none}
 .bk-med.bild img{position:relative;filter:drop-shadow(0 0 12px color-mix(in srgb,var(--gl) 80%,transparent))}
 @media (prefers-reduced-motion:no-preference){.bk-med.bild::before{animation:bkLeucht 3.4s ease-in-out infinite}@keyframes bkLeucht{50%{opacity:1;transform:scale(1.1)}}}
+/* 9.83: Hinweise auf eine laufende Biblionär-Ausgabe – Untertitel der Start-Kachel, Stern am Reiter, Begrüßungsfenster */
+.kt-tx small.kt-ed{display:inline-flex;align-items:center;gap:4px;max-width:100%;box-sizing:border-box;border-color:var(--edc);color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kt-tx small.kt-ed.an{background:color-mix(in srgb,var(--edc) 78%,#0e1226);box-shadow:0 0 10px color-mix(in srgb,var(--edc) 60%,transparent)}
+.kt-tx small.kt-ed svg{width:1.1em;height:1.1em;flex:none}.kt-tx small.kt-ed em{font-style:normal;font-weight:900;letter-spacing:.03em}
+.tabbar .tb-ed{position:absolute;top:2px;left:calc(50% - 32px);width:22px;height:22px;display:grid;place-items:center;z-index:2;filter:drop-shadow(0 0 5px #ffe9a8)}
+.tabbar .tb-ed svg{width:22px;height:22px}
+@media (prefers-reduced-motion:no-preference){.tabbar .tb-ed{animation:tbEdFunkel 1.8s ease-in-out infinite}@keyframes tbEdFunkel{50%{transform:scale(1.25) rotate(18deg);filter:drop-shadow(0 0 9px #ffe9a8)}}}
+.ed-neu{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px}
+.ed-neu-bild{position:relative;width:110px;height:104px;margin-top:4px}
+.ed-neu-bild::before{content:"";position:absolute;inset:-14px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--edc) 70%,transparent) 0,transparent 68%);opacity:.7}
+.ed-neu-bild img{position:relative;width:110px;height:auto;display:block;filter:drop-shadow(0 0 12px color-mix(in srgb,var(--edc) 70%,transparent))}
+.ed-neu-sym{position:absolute;right:-12px;top:-8px;width:40px;height:40px;filter:drop-shadow(0 0 6px var(--edc))}.ed-neu-sym svg{width:100%;height:100%;position:static}
+.ed-neu-marke{padding:3px 12px;border-radius:12px;background:var(--edc);color:#fff;font:900 .72rem/1.3 var(--body);letter-spacing:.06em;text-transform:uppercase;box-shadow:0 0 12px color-mix(in srgb,var(--edc) 60%,transparent)}
+.ed-neu h2{margin:2px 0 0;font:800 1.5rem/1.1 var(--display);letter-spacing:.06em;text-transform:uppercase;background:linear-gradient(180deg,#fff,#fff1c2 40%,#f2c14e 75%,#c9902a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ed-neu p{margin:0;line-height:1.4}
+.ed-neu-frist{display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:.92rem;padding:6px 12px;border-radius:12px;border:1.5px solid var(--edc);background:color-mix(in srgb,var(--edc) 14%,transparent);font-weight:700}
+.ed-neu-frist svg{width:18px;height:18px;flex:none}
+.ed-neu .btn{width:100%;justify-content:center}
+@media (prefers-reduced-motion:no-preference){.ed-neu-bild::before{animation:bkLeucht 3.4s ease-in-out infinite}}
 </style>
 </head>
 <body>

@@ -210,7 +210,9 @@ const ED_ZEILEN = {
 };
 function edKopfZeile(id) {
   const E = EDITIONEN[id], l = ED_ZEILEN[id] || [], n = Math.min(l.length, 5), t = edTag(), tag = l.length ? ((t % l.length) + l.length) % l.length : 0;
-  const z = l.length ? Array.from({ length: n }, (_, i) => l[(tag + i) % l.length]) : [];
+  let z = l.length ? Array.from({ length: n }, (_, i) => l[(tag + i) % l.length]) : [];
+  /* 9.83: Frist als erste wechselnde Zeile („Nur bis 6. Januar · noch 38 Tage“) – nur wenn die Ausgabe nach Datum läuft */
+  try { const L = edLaufend(); if (L && L.id === id) z = [`Nur bis ${edBisText(L.z)} · ${edRestText(L)}`].concat(z.slice(0, 4)); } catch (e) {}
   return `<span class="ed-sub" style="--n:${z.length + 1}"><b>Die ${esc(E.adj)}-Ausgabe</b>${z.map((x, i) => `<em style="animation-delay:${((i + 1) * 4)}s">${esc(x)}</em>`).join("")}</span>`;
 }
 /* Zeichen oben rechts im Kopf (wie der Stern der Weihnachts-Ausgabe) */

@@ -1538,7 +1538,7 @@ function go(name, arg) {
   current = name; window.scrollTo(0, 0); document.body.classList.remove("spiel-laeuft");
   try { weihDeko(false); } catch (e) {} /* 9.61: Schnee nur dort, wo die Ansicht ihn einschaltet */
   tabbarSetzen(name); (VIEWS[name] || VIEWS.home)(arg);
-  try { staemmeErstatten(); appBonusPruefen(); appHinweisZeigen(); nachPruefen(); } catch (e) {} /* beim allerersten go() sind die Konstanten unten noch nicht bereit */
+  try { staemmeErstatten(); appBonusPruefen(); appHinweisZeigen(); nachPruefen(); edNeuPruefen(); edTabSetzen(); } catch (e) {} /* beim allerersten go() sind die Konstanten unten noch nicht bereit */
   if (typeof duAufloesQ !== "undefined" && duAufloesQ.length) setTimeout(duAufloesVersuch, 400);
   /* 9.54: Duelle beim Öffnen der Duell-Seiten nachladen – neue Herausforderungen und Ergebnisse kommen auch ohne Neustart an */
   if (typeof duAuffrischen === "function") { if (["duelle", "bib", "zusammen"].includes(name)) duAuffrischen(DU_FRISCH_REITER); else if (name === "home") duAuffrischen(DU_FRISCH_START); }
@@ -1553,13 +1553,50 @@ const TABS = [["home", "Start", "sun"], ["lernen", "Lektionen", "book"], ["spiel
 const TAB_VON = { duell: "duelle", zusammen: "duelle", verslektion: "lernen", lektion: "lernen", lied: "lernen", lernverse: "lernen", learn: "lernen", path: "lernen", stage: "lernen", bibelsong: "lernen", blitz: "spielen", gap: "spielen", chain: "spielen", biblionaer: "bib",
   bib: "bib", gemverwaltung: "", betatester: "", gegner: "duelle", duelle: "duelle", rank: "rank", shop: "rank", ich: "", profil: "", stat: "", errung: "", badges: "", wer: "", postfach: "", neuigkeiten: "", nachrichten: "" };
 /* rote Zahl am Duell-Reiter: wartende Herausforderungen */
-function tbDuSetzen() { let a = 0, b = 0; try { a = duFuerMich().length; b = duFuerBib().length; } catch (e) {} [["tbDu", a], ["tbBib", b]].forEach(([id, n]) => { const t = $(id); if (!t) return; t.hidden = !n; t.textContent = n; }); }
+function tbDuSetzen() { let a = 0, b = 0; try { a = duFuerMich().length; b = duFuerBib().length; } catch (e) {} [["tbDu", a], ["tbBib", b]].forEach(([id, n]) => { const t = $(id); if (!t) return; t.hidden = !n; t.textContent = n; }); try { edTabSetzen(); } catch (e) {} }
+/* 9.83: Hinweise auf eine laufende Biblionär-Ausgabe (z. B. Weihnachten vom 1. Advent bis 6. Januar):
+   einmaliges Begrüßungsfenster, Marke „NEU“ bzw. „Noch n Tage“ auf der Start-Kachel, Stern am Reiter Biblionär bis zum ersten Öffnen,
+   „Nur bis …“ im Kopf. Gilt nur nach Datum (nicht für die Entwickler-Vorschau). Gemerkt je Spieler auf diesem Gerät (LS + ":edneu"). */
+const ED_NEU_TAGE = 14, ED_REST_TAGE = 7;
+const ED_STERN = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.4l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.3l-5.9 3.1 1.2-6.5L2.5 9.3l6.6-.9z" fill="#ffe27a" stroke="#1b2a55" stroke-width="1.3" stroke-linejoin="round"/><path d="M8.6 9.6l1.6-.3" stroke="#fff" stroke-width="1.1" stroke-linecap="round"/></svg>`;
+function edLaufend() {
+  try { const t = edTag(); for (const id of ED_REIHE) { const z = edFensterBei(id, t); if (z && EDITIONEN[id]) return { id, E: EDITIONEN[id], z, t, key: id + "-" + z.jahr, rest: z.bis - t + 1, seit: t - z.von }; } } catch (e) {}
+  return null;
+}
+const edBisText = z => { const d = datumVon(z.bis); return `${d.getDate()}. ${MONATE[d.getMonth()]}`; };
+const edRestText = L => L.rest <= 1 ? "letzter Tag" : `noch ${L.rest} Tage`;
+function edMerkLesen() { try { const o = JSON.parse(localStorage.getItem(LS + ":edneu") || "{}"); return o && typeof o === "object" ? o : {}; } catch (e) { return {}; } }
+const edGemerkt = (feld, key) => (edMerkLesen()[feld] || []).includes(key);
+function edMerken(feld, key) { try { const o = edMerkLesen(), l = (o[feld] || []).filter(k => k !== key); l.push(key); o[feld] = l.slice(-8); localStorage.setItem(LS + ":edneu", JSON.stringify(o)); } catch (e) {} }
+/* Untertitel der Start-Kachel: in den ersten 14 Tagen „NEU“, in den letzten 7 Tagen der Countdown, dazwischen nur der Name der Ausgabe */
+function edStartSub() {
+  const L = edLaufend(); if (!L) return null;
+  const m = L.rest <= ED_REST_TAGE ? (L.rest <= 1 ? "Letzter Tag" : `Noch ${L.rest} Tage`) : L.seit < ED_NEU_TAGE ? "NEU" : "";
+  return { html: m ? `${ED_STERN}<em>${m}</em>${m === "NEU" ? ` · ${esc(L.E.name)}` : ""}` : `${esc(L.E.adj)}-Ausgabe`, attr: ` class="kt-ed${m ? " an" : ""}" style="--edc:${L.E.farbe}"` };
+}
+function edTabSetzen() { const t = $("tbEd"); if (!t) return; const L = edLaufend(); t.hidden = !(L && !edGemerkt("b", L.key)); }
+function edNeuPruefen() {
+  const L = edLaufend(); if (!L || !S.lbName || gesperrt || edGemerkt("f", L.key)) return;
+  setTimeout(() => {
+    if (edGemerkt("f", L.key) || !["home", "lernen", "spielen", "duelle", "rank"].includes(current) || document.querySelector(".modal") || document.body.classList.contains("spiel-laeuft")) return;
+    edMerken("f", L.key);
+    const E = L.E;
+    const m = modal(`<div class="ed-neu" style="--edc:${E.farbe}">
+      <div class="ed-neu-bild"><img src="icons/biblionaer-logo.webp" alt="" width="480" height="455"><span class="ed-neu-sym">${E.sym}</span></div>
+      <small class="ed-neu-marke">${L.seit < ED_NEU_TAGE ? "Neu · nur für kurze Zeit" : "Nur für kurze Zeit"}</small>
+      <h2>${esc(E.adj)}-Biblionär</h2>
+      <p>„Wer wird Biblionär?“ gibt es jetzt in der <b>${esc(E.adj)}-Ausgabe</b>: Fragen rund um ${esc(E.thema)}, jede Woche kommen neue dazu.</p>
+      <p class="ed-neu-frist">${ED_STERN}<span>Nur bis <b>${edBisText(L.z)}</b> · ${edRestText(L)}</span></p>
+      <button class="btn primary" data-close="los">${svg("bolt")} Jetzt spielen</button><button class="btn ghost" data-close="">Später</button></div>`, w => { if (w === "los") go("bib"); });
+    m.classList.add("ed-neu-m"); m.dataset.frei = "1"; try { SFX.tap(); } catch (e) {}
+  }, 900);
+}
 function tabbarSetzen(name) {
   const nav = $("tabbar"); if (!nav) return;
   const aktiv = name in TAB_VON ? TAB_VON[name] : name;
   document.body.dataset.tab = name === "name" ? "" : (aktiv || "frei");
   if (!nav.dataset.fertig) {
-    nav.innerHTML = TABS.map(([k, t, i]) => `<button data-tab="${k}" aria-label="${t}"><span class="tb-ic">${i === "arena" ? DUELL_LOGO : svg(i)}</span><span>${t}</span>${k === "duelle" ? `<span class="tb-du" id="tbDu" hidden></span>` : k === "bib" ? `<span class="tb-du" id="tbBib" hidden></span>` : ""}</button>`).join("");
+    nav.innerHTML = TABS.map(([k, t, i]) => `<button data-tab="${k}" aria-label="${t}"><span class="tb-ic">${i === "arena" ? DUELL_LOGO : svg(i)}</span><span>${t}</span>${k === "duelle" ? `<span class="tb-du" id="tbDu" hidden></span>` : k === "bib" ? `<span class="tb-du" id="tbBib" hidden></span><span class="tb-ed" id="tbEd" hidden>${ED_STERN}</span>` : ""}</button>`).join("");
     nav.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { SFX.tap(); go(b.dataset.tab); });
     nav.dataset.fertig = "1";
   }
@@ -1794,7 +1831,7 @@ VIEWS.home = () => {
   const siegel = (() => { const f = Object.entries(KETTEN).map(([id, k]) => ({ id, k, t: S.meister[id] || [] })).filter(x => x.t.length && siegelRest(x.t) <= 5).sort((a, b) => siegelRest(a.t) - siegelRest(b.t))[0];
       return f ? `<button class="erinnerung" data-go="spielen">${siegelHtml(siegelStufe(f.t), siegelFrisch(f.t), true)}<span><b>${siegelFrisch(f.t) ? `Dein Siegel „${esc(f.k.name)}“ verblasst in ${siegelRest(f.t)} Tag(en)` : `Dein Siegel „${esc(f.k.name)}“ ist verblasst`}</b><span class="small muted">Jetzt die Kette wiederholen und auffrischen${siegelFrisch(f.t) ? "" : ` (+${AUFFRISCH_TAL} Talente)`}</span></span></button>` : ""; })();
   /* 9.15: Startseite – vier Kacheln 2×2, Logo ragt oben heraus */
-  const ktKachel = (go, c, logo, titel, sub, n = 0) => `<button class="kt" data-go="${go}" style="--c:${c}" aria-label="${titel}${n ? ` – ${n} ${n === 1 ? "Duell wartet" : "Duelle warten"}` : ""}"><span class="kt-logo${/^<svg/.test(logo) && !logo.includes('id="dlR"') ? " med" : ""}">${logo}</span><span class="kt-tx"><b>${titel}</b><small>${sub}</small></span>${n ? `<i class="kt-n">${n}</i>` : ""}</button>`;
+  const ktKachel = (go, c, logo, titel, sub, n = 0, subAttr = "") => `<button class="kt" data-go="${go}" style="--c:${c}" aria-label="${titel}${n ? ` – ${n} ${n === 1 ? "Duell wartet" : "Duelle warten"}` : ""}"><span class="kt-logo${/^<svg/.test(logo) && !logo.includes('id="dlR"') ? " med" : ""}">${logo}</span><span class="kt-tx"><b>${titel}</b><small${subAttr}>${sub}</small></span>${n ? `<i class="kt-n">${n}</i>` : ""}</button>`;
   const ezZeile = (go, ar, ic, t, sub, ecke = "") => `<button class="ez" data-ar="${ar}" data-go="${go}"><span class="ez-ic">${ic}</span><span class="ez-tx"><b>${t}</b><small>${sub}</small></span>${ecke}<i class="ez-pf">›</i></button>`;
   /* 8.2: „Dein Tag“ entfällt – der Kopf IST die Tagesaufgabe (Truhe statt Sonne, Schlüssel rechts), darunter wie gewohnt der Kringel-Bogen.
      Antippen klappt die drei Aufgaben auf; ist die Truhe bereit, öffnet der Kopf direkt die Truhe. */
@@ -1813,7 +1850,7 @@ VIEWS.home = () => {
     <div class="kt-grid">
       ${ktKachel("lernen", "var(--ar-lernen)", svg("book"), "Lektionen", "66 Bücher der Bibel")}
       ${ktKachel("spielen", "var(--ar-spielen)", svg("user"), "Solo", "Blitz · Ketten · Lernvers")}
-      ${ktKachel("bib", "#7be04a", `<img src="icons/biblionaer-logo.webp" alt="">`, "Biblionär", bibN ? (bibN === 1 ? "1 Duell wartet" : `${bibN} Duelle warten`) : "15 Fragen zur Million", bibN)}
+      ${(() => { const es = edStartSub(); return ktKachel("bib", "#7be04a", `<img src="icons/biblionaer-logo.webp" alt="">`, "Biblionär", es ? es.html : bibN ? (bibN === 1 ? "1 Duell wartet" : `${bibN} Duelle warten`) : "15 Fragen zur Million", bibN, es ? es.attr : ""); })()}
       ${ktKachel("duelle", "#e0463c", DUELL_LOGO, "Arena", duN ? (duN === 1 ? "1 Duell wartet" : `${duN} Duelle warten`) : "Fordere jemand heraus", duN)}
     </div>
     ${entwickler && postfachNeu ? `<button class="erinnerung pf-hinweis" data-go="postfach">${svg("chat")}<span><b>${postfachNeu} ${postfachNeu === 1 ? "neue Meldung" : "neue Meldungen"} im Postkasten</b><span class="small muted">Feedback, Status und Datenbank</span></span></button>` : ""}
@@ -5163,6 +5200,7 @@ function bibRevanche(r, revanche) {
     x => { if (x === "los") bibHerausfordern(r); }).dataset.frei = "1";
 }
 VIEWS.bib = () => {
+  { const L = edLaufend(); if (L && !edGemerkt("b", L.key)) { edMerken("b", L.key); edTabSetzen(); } } /* 9.83 */
   /* 6.45: kompakt ohne Scrollen – Kopf mit Logo + Rekord-Leiter, Solo/Woche als zwei Kacheln, ein Duell-Kasten, Joker mit Erklärung */
   const online = duOk(), wk = weekKey(), n = bibWocheTage(), gespielt = bibWocheGespielt();
   const liste = (duListe || []).filter(bibIstQuiz), dran = duFuerBib(), andere = duFuerMich().length;
