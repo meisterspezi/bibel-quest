@@ -1,4 +1,4 @@
-/* Bibelbuch-Quest – 9.84–9.86: Sammelalbum (Öl – bis 9.85 „Goldstaub“ –, Krüge, Tauschbeutel) und Jahresrückblick.
+/* Bibelbuch-Quest – 9.84–9.92: Sammelalbum (Manna – früher „Goldstaub“/„Öl“ –, goldener Krug, Tauschbeutel) und Jahresrückblick.
    Lädt nach spiel.js. Alles liegt im Spielstand unter S.sm (keine Datenbank-Änderung):
    sm = { album:[66 Stufen 0–4], gv/ga: Goldstaub verdient/ausgegeben, gt/gn: Tag + heute verdient,
           be/ba: Tauschbeutel erhalten/ausgegeben je Stufe {1,2,3}, kz: Krüge insgesamt (Treue-Siegel), kt/kn: Tag + heute geöffnet,
@@ -78,10 +78,10 @@ const ALBUM_TEXT = [
 ];
 
 /* ---------- Regeln ---------- */
-const SM_KRUG_PREIS = 10, SM_KRUG_KARTEN = 5, SM_KRUG_TAG = 3;
-const SM_TAUSCH = { 1: 3, 2: 4, 3: 5 };                      /* 3 Bronze → Silber, 4 Silber → Gold, 5 Gold → Glanz */
-const SM_W = { 1: 0.60, 2: 0.28, 3: 0.10, 4: 0.02 };         /* Seltenheit je Karte */
-const SM_STUFE = ["Grau", "Bronze", "Silber", "Gold", "Glanz"];
+const SM_KRUG_PREIS = 10, SM_KRUG_KARTEN = 4, SM_KRUG_TAG = 3, SM_TREUE = 7, SM_MAX = 3; /* 9.92: nur Bronze/Silber/Gold, 4 Karten, jeder 7. Krug sicher Gold */
+const SM_TAUSCH = { 1: 4, 2: 4 };                             /* 4 Bronze → Silber, 4 Silber → Gold */
+const SM_W = { 1: 0.75, 2: 0.20, 3: 0.05 };         /* Seltenheit je Karte */
+const SM_STUFE = ["Grau", "Bronze", "Silber", "Gold"];
 const SM_RC = { 1: "#d58b4f", 2: "#bfe3ff", 3: "#f2c14e", 4: "#ff9ee8" };
 const SM_GC = { geschichte: "#f0b85a", lehre: "#7fc8ff", prophetie: "#c49bff" };
 const SM_GRUPPEN_LOHN = { 1: 10, 2: 25, 3: 50, 4: 100 };   /* Talente, wenn eine Lektionsgruppe komplett ist */
@@ -93,6 +93,7 @@ function smInit() {
   if (!S.sm || typeof S.sm !== "object") S.sm = {};
   const m = S.sm;
   if (!Array.isArray(m.album) || m.album.length !== 66) m.album = Array(66).fill(0);
+  if (m.album.some(x => x > SM_MAX)) m.album = m.album.map(x => Math.min(SM_MAX, x | 0)); /* 9.92: Glanz-Karten werden Gold */
   ["gv", "ga", "gn", "kz", "kn", "kga", "tz", "ah", "tour", "gls"].forEach(k => { m[k] = Math.max(0, +m[k] || 0); });
   ["gt", "kt"].forEach(k => { if (typeof m[k] !== "string") m[k] = ""; });
   ["be", "ba"].forEach(k => { if (!m[k] || typeof m[k] !== "object") m[k] = { 1: 0, 2: 0, 3: 0 }; });
@@ -108,21 +109,21 @@ const smGeschenkeGesamt = () => 1 + Math.floor(smInit().tz / SM_TRUHEN_GESCHENK)
 const smGeschenke = () => { const m = smInit(); return Math.max(0, smGeschenkeGesamt() - m.kga); };
 const smHeuteKruege = () => { const m = smInit(); return m.kt === today() ? m.kn : 0; };
 const smGefunden = () => smInit().album.filter(s => s > 0).length;
-const smGlanz = () => smInit().album.filter(s => s === 4).length;
+const smGlanz = () => smInit().album.filter(s => s >= SM_MAX).length; /* 9.92: Goldkarten (Name bleibt für die Rangliste/Sammlung album) */
 
 /* Zwei Geräte zusammenführen: je Wert das Maximum (verdient und ausgegeben getrennt, damit nichts doppelt zählt) */
 function smMischen(r) {
   if (!r || !r.sm || typeof r.sm !== "object") return;
   const m = smInit(), o = r.sm;
-  if (Array.isArray(o.album)) o.album.forEach((s, i) => { if (i < 66) m.album[i] = Math.max(m.album[i] | 0, Math.min(4, s | 0)); });
+  if (Array.isArray(o.album)) o.album.forEach((s, i) => { if (i < 66) m.album[i] = Math.max(m.album[i] | 0, Math.min(SM_MAX, s | 0)); });
   ["gv", "ga", "kz", "kga", "tz", "ah", "tour"].forEach(k => { m[k] = Math.max(m[k] | 0, +o[k] || 0); });
   [["gt", "gn"], ["kt", "kn"]].forEach(([t, n]) => { if ((o[t] || "") > m[t]) { m[t] = o[t]; m[n] = +o[n] || 0; } else if (o[t] === m[t]) m[n] = Math.max(m[n], +o[n] || 0); });
-  ["be", "ba"].forEach(k => { [1, 2, 3].forEach(x => { m[k][x] = Math.max(m[k][x] | 0, ((o[k] || {})[x]) | 0); }); });
+  ["be", "ba"].forEach(k => { [1, 2].forEach(x => { m[k][x] = Math.max(m[k][x] | 0, ((o[k] || {})[x]) | 0); }); });
   m.lohn = [...new Set([...m.lohn, ...(Array.isArray(o.lohn) ? o.lohn : [])])];
   if (o.rb) Object.keys(o.rb).forEach(k => { if (m.rb[k] === undefined) m.rb[k] = o.rb[k]; });
 }
 
-/* ---------- Öl (intern weiter „gold“: smGold, gv/ga) ---------- */
+/* ---------- Manna (intern weiter „gold“: smGold, gv/ga) ---------- */
 function smGoldGeben(n) {
   const m = smInit(), t = today();
   if (m.gt !== t) { m.gt = t; m.gn = 0; }
@@ -148,20 +149,20 @@ function sammelNachXp(n, quelle, info, vorher, nachher) {
   if (nachher > vorher) g += 3 * (nachher - vorher);
   if (g) smGoldGeben(g);
 }
-/* 9.89/9.91: Duell-Herausforderung gesendet: +1 Öl, egal ob der andere annimmt – auch an Spieler vom eigenen Gerät */
+/* 9.89/9.91: Duell-Herausforderung gesendet: +1 Manna, egal ob der andere annimmt – auch an Spieler vom eigenen Gerät */
 function smHerausforderung(ziele) {
-  const x = smGoldGeben(1); if (x) setTimeout(() => toast(`Herausforderung gesendet: +${x} Öl`), 1200);
+  const x = smGoldGeben(1); if (x) setTimeout(() => toast(`Herausforderung gesendet: +${x} Manna`), 1200);
 }
-/* ---------- Kopfleiste: Öl (bis 9.85 Goldstaub) unter den Talenten ---------- */
-const SM_GOLD_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="olG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0b0"/><stop offset=".5" stop-color="#f4bd3c"/><stop offset="1" stop-color="#b8740f"/></linearGradient></defs><path d="M12 2.4c3.3 4.5 6.6 8.4 6.6 12.2a6.6 6.6 0 0 1-13.2 0c0-3.8 3.3-7.7 6.6-12.2z" fill="url(#olG)" stroke="#5a3a08" stroke-width="1.2" stroke-linejoin="round"/><path d="M8.8 14.4a3.4 3.4 0 0 0 2.3 3.6" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity=".9"/></svg>`;
+/* ---------- Kopfleiste: Manna neben den Talenten ---------- */
+const SM_GOLD_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="#fffbe8" stroke="#c9a24a" stroke-width=".9"><circle cx="8" cy="9" r="3.4"/><circle cx="15.8" cy="7.4" r="2.7"/><circle cx="12" cy="15.4" r="3.8"/><circle cx="18.4" cy="14.6" r="2.3"/><circle cx="6.2" cy="16.8" r="2"/></g><path d="M6.6 7.6a1.7 1.7 0 0 1 1.7-1M10.4 13.6a2.1 2.1 0 0 1 2-1.1" stroke="#fff" stroke-width="1" fill="none" stroke-linecap="round"/></svg>`;
 const SM_ALBUM_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="smAlbG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a9bff"/><stop offset="1" stop-color="#1d4bb0"/></linearGradient></defs><rect x="4.5" y="2.2" width="16" height="19.6" rx="2" fill="#fff4d6" stroke="#1b2a55" stroke-width="1.1"/><rect x="3.2" y="1.6" width="15.8" height="19.8" rx="2.2" fill="url(#smAlbG)" stroke="#f2c14e" stroke-width="1.5"/><path d="M5.2 1.8v19.4" stroke="#13306f" stroke-width="1.6"/><circle cx="12" cy="11.4" r="5" fill="#13306f" stroke="#f2c14e" stroke-width="1.2"/><text x="12" y="13.7" text-anchor="middle" font-size="6.4" font-weight="900" font-family="Lexend, Arial, sans-serif" fill="#f2c14e">66</text></svg>`;
-const SM_KRUG_SVG = `<svg class="sm-kr-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 4h7l.6 2.5c3 1.8 4.4 5 4 9-.4 4-3 6.3-8.1 6.5-5.1-.2-7.7-2.5-8.1-6.5-.4-4 1-7.2 4-9z" fill="#c88a52" stroke="#2a160a" stroke-width="1.3" stroke-linejoin="round"/><rect x="7.6" y="2" width="8.8" height="3" rx="1" fill="#8a5a30" stroke="#2a160a" stroke-width="1.1"/><path d="M6.5 11.5c3.5 1 7.5 1 11 0" fill="none" stroke="#5e3216" stroke-width="1.1"/></svg>`;
+const SM_KRUG_SVG = `<svg class="sm-kr-ic" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="smKgK" x1="0" x2="1"><stop offset="0" stop-color="#8a5a12"/><stop offset=".45" stop-color="#fff0b0"/><stop offset="1" stop-color="#9a6614"/></linearGradient></defs><path d="M9.5 6.5h5c.2 1 .7 1.6 1.6 2.3 1.9 1.4 2.9 3.6 2.9 6.2 0 4.3-3 7-7 7.3-4-.3-7-3-7-7.3 0-2.6 1-4.8 2.9-6.2.9-.7 1.4-1.3 1.6-2.3z" fill="url(#smKgK)" stroke="#5a3a08" stroke-width="1.1" stroke-linejoin="round"/><path d="M8.6 6.5c.4-1.9 1.9-2.9 3.4-2.9s3 1 3.4 2.9z" fill="url(#smKgK)" stroke="#5a3a08" stroke-width="1"/><circle cx="12" cy="2.6" r="1.1" fill="#ffe48a" stroke="#5a3a08" stroke-width=".7"/><path d="M6.4 14.2c3.7 1.2 7.5 1.2 11.2 0" fill="none" stroke="#fffbe8" stroke-width="1.2"/></svg>`;
 function smHud(neu) {
   const b = $("hGoldBtn"); if (!b) return;
-  $("hGold").textContent = typeof hudZahl === "function" ? hudZahl(smGold()) : smGold(); b.title = smGold().toLocaleString("de-DE") + " Öl";
+  $("hGold").textContent = typeof hudZahl === "function" ? hudZahl(smGold()) : smGold(); b.title = smGold().toLocaleString("de-DE") + " Manna";
   const kann = smHeuteKruege() < SM_KRUG_TAG && (smGold() >= SM_KRUG_PREIS || smGeschenke() > 0);
   const p = $("tbKrug"); if (p) p.hidden = !kann;
-  if (neu > 0) { b.classList.remove("sm-plus"); void b.offsetWidth; b.classList.add("sm-plus"); try { const r = b.getBoundingClientRect(); floatText("+" + neu + " Öl", r.left + r.width / 2, r.top + r.height + 18); } catch (e) {} }
+  if (neu > 0) { b.classList.remove("sm-plus"); void b.offsetWidth; b.classList.add("sm-plus"); try { const r = b.getBoundingClientRect(); floatText("+" + neu + " Manna", r.left + r.width / 2, r.top + r.height + 18); } catch (e) {} }
 }
 /* Passt der Name nicht mehr neben die beiden Währungen, werden Laden- und Album-Symbol ausgeblendet (die Anzeigen bleiben antippbar).
    hudNameAnpassen (spiel.js) wird dafür umhüllt – so greift es auch, wenn die Schrift später nachlädt. */
@@ -183,7 +184,7 @@ try { document.fonts.ready.then(() => { try { smHudPlatz(); } catch (e) {} }); d
 [1500, 4000].forEach(ms => setTimeout(() => { try { smHudPlatz(); } catch (e) {} }, ms));
 (function smHudBauen() {
   const tal = $("hTalBtn"); if (!tal || $("hGoldBtn")) return;
-  const b = document.createElement("button"); b.className = "pill hud-gold"; b.id = "hGoldBtn"; b.setAttribute("aria-label", "Öl – zum Sammelalbum");
+  const b = document.createElement("button"); b.className = "pill hud-gold"; b.id = "hGoldBtn"; b.setAttribute("aria-label", "Manna – zum Sammelalbum");
   b.innerHTML = `${SM_GOLD_SVG}<span id="hGold">0</span><span class="hud-album" aria-hidden="true">${SM_ALBUM_SVG}</span><span class="tb-punkt" id="tbKrug" hidden aria-label="Ein Krug kann geöffnet werden"></span>`;
   tal.insertAdjacentElement("afterend", b); /* 9.90: nebeneinander in #hKasse */
   b.onclick = () => { SFX.tap(); go("album"); };
@@ -191,14 +192,14 @@ try { document.fonts.ready.then(() => { try { smHudPlatz(); } catch (e) {} }); d
 })();
 
 /* ---------- Krug ziehen: nie doppelt, fehlende zuerst ----------
-   1. Seltenheit würfeln (Garantie: mind. 1 Silber, jeder 4. Krug Gold – mit der letzten Karte).
+   1. Seltenheit würfeln (Garantie: mind. 1 Silber, jeder 7. Krug Gold – mit der letzten Karte).
    2. Gibt es Bücher unter dieser Stufe, wird eines aufgewertet (bevorzugt genau eine Stufe darunter → fehlende Bronze zuerst).
    3. Sonst eine doppelte Karte dieser Stufe → Tauschbeutel. 4. Jedes Buch höchstens einmal pro Krug. */
-function smWuerfeln(min) { const o = []; let t = 0; for (let r = Math.max(1, min); r <= 4; r++) { o.push(r); t += SM_W[r]; } let x = Math.random() * t; for (const r of o) { x -= SM_W[r]; if (x <= 0) return r; } return o[o.length - 1]; }
+function smWuerfeln(min) { const o = []; let t = 0; for (let r = Math.max(1, min); r <= SM_MAX; r++) { o.push(r); t += SM_W[r]; } let x = Math.random() * t; for (const r of o) { x -= SM_W[r]; if (x <= 0) return r; } return o[o.length - 1]; }
 function smZiehen(album, nr) {
-  const res = [], used = {}, min = nr % 4 === 0 ? 3 : 2, z = l => l[Math.floor(Math.random() * l.length)];
+  const res = [], used = {}, min = nr % SM_TREUE === 0 ? SM_MAX : 2, z = l => l[Math.floor(Math.random() * l.length)];
   for (let k = 0; k < SM_KRUG_KARTEN; k++) {
-    if (album.every(s => s === 4)) break;
+    if (album.every(s => s >= SM_MAX)) break;
     const r = (k === SM_KRUG_KARTEN - 1 && !res.some(c => c.s >= min)) ? smWuerfeln(min) : smWuerfeln(1);
     const idx = album.map((s, i) => i).filter(i => !used[i]), frei = idx.filter(i => album[i] < r);
     if (frei.length) { const g = frei.filter(i => album[i] === r - 1), i = z(g.length ? g : frei); used[i] = 1; res.push({ i, s: r, v: album[i] }); album[i] = r; }
@@ -206,19 +207,26 @@ function smZiehen(album, nr) {
   }
   return res.sort((a, b) => a.s - b.s || (b.d | 0) - (a.d | 0));
 }
-function smKrugMoeglich() { const m = smInit(); if (m.album.every(s => s === 4)) return "fertig"; if (smHeuteKruege() >= SM_KRUG_TAG) return "tag"; if (smGeschenke() > 0) return "geschenk"; if (smGold() >= SM_KRUG_PREIS) return "gold"; return "arm"; }
+function smKrugMoeglich() { const m = smInit(); if (m.album.every(s => s >= SM_MAX)) return "fertig"; if (smHeuteKruege() >= SM_KRUG_TAG) return "tag"; if (smGeschenke() > 0) return "geschenk"; if (smGold() >= SM_KRUG_PREIS) return "gold"; return "arm"; }
 function smKrugKaufen() {
   const art = smKrugMoeglich(); if (art !== "geschenk" && art !== "gold") return null;
   const m = smInit(), t = today();
   if (art === "geschenk") m.kga++; else m.ga += SM_KRUG_PREIS;
   if (m.kt !== t) { m.kt = t; m.kn = 0; } m.kn++; m.kz++;
   const vor = m.album.slice(), zug = smZiehen(m.album, m.kz);
-  zug.forEach(c => { if (c.d) m.be[c.s] = (m.be[c.s] | 0) + 1; });
+  zug.forEach(c => { if (c.d && c.s < SM_MAX) m.be[c.s] = (m.be[c.s] | 0) + 1; });
   m.offen = { z: zug, vor, nr: m.kz, art }; /* Ergebnis wird VOR der Animation gespeichert – Schließen der App würfelt nichts neu */
   save(); smHud(0); lbSync();
   return m.offen;
 }
 
+/* 9.92: kurze Buchnamen für das kleine Album beim Einsortieren */
+const SM_KURZ = { "Klagelieder": "Klagel.", "Apostelgeschichte": "Apg.", "1. Thessalonicher": "1. Thess.", "2. Thessalonicher": "2. Thess.", "Offenbarung": "Offenb.",
+  "1. Korinther": "1. Kor.", "2. Korinther": "2. Kor.", "1. Chronik": "1. Chron.", "2. Chronik": "2. Chron.", "1. Timotheus": "1. Tim.", "2. Timotheus": "2. Tim.",
+  "Philipper": "Philipper", "Hoheslied": "Hoheslied", "1. Johannes": "1. Joh.", "2. Johannes": "2. Joh.", "3. Johannes": "3. Joh.", "Zephanja": "Zephanja", "Habakuk": "Habakuk" };
+const smZugText = zug => { const neu = zug.filter(c => !c.d && !c.v).length, besser = zug.filter(c => !c.d && c.v).length, d = zug.filter(c => c.d).length;
+  return [neu ? `<b>${neu} neu</b>` : "", besser ? `${besser} verbessert` : "", d ? `${d} doppelt` : ""].filter(Boolean).join(" · "); };
+const smKurz = n => SM_KURZ[n] || (n.length > 10 ? n.replace(/^(\d\.\s?)?(.{4}).*$/, "$1$2.") : n);
 /* ---------- Gruppen komplett → Talente (einmal je Gruppe und Stufe) ---------- */
 function smGruppenPruefen() {
   const m = smInit(), neu = [];
@@ -242,29 +250,29 @@ function smKarteHtml(i, s, extra) {
 let smWahl = 0; /* Tauschen: Stufe, deren Karte gerade gewählt wird */
 const SM_SACK = `<svg class="sack" viewBox="0 0 64 64" aria-hidden="true"><ellipse cx="32" cy="60" rx="19" ry="3" fill="#0006"/><path class="sk-k" d="M21 24C9 31 7 54 18 58.5h28C57 54 55 31 43 24z"/><path d="M17 33c-2 7-1 15 3 20" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".35"/><path class="sk-k2" d="M21 24l-4-9c5 2 9 3 15 3s10-1 15-3l-4 9c-7 3-15 3-22 0z"/><path d="M19.5 22.5c8 3.6 17 3.6 25 0" fill="none" stroke="#3a2410" stroke-width="3" stroke-linecap="round"/><path d="M19.5 22.5c8 3.6 17 3.6 25 0" fill="none" stroke="#e8c27a" stroke-width="1.4" stroke-linecap="round"/><path d="M33 25.5c3 4 6 6 9 6M33 25.5c-1 4-3 7-6 8" fill="none" stroke="#e8c27a" stroke-width="1.6" stroke-linecap="round"/><circle cx="33" cy="25.5" r="2.2" fill="#e8c27a" stroke="#3a2410" stroke-width="1"/><path class="sk-m" d="M32 37l2.6 5.3 5.8.8-4.2 4.1 1 5.8L32 50.3 26.8 53l1-5.8-4.2-4.1 5.8-.8z"/></svg>`;
 function smBeutelHtml() {
-  return `<div class="sm-beutel">${[1, 2, 3].map(r => { const n = smBeutel(r), voll = n >= SM_TAUSCH[r];
+  return `<div class="sm-beutel">${[1, 2].map(r => { const n = smBeutel(r), voll = n >= SM_TAUSCH[r];
     return `<button class="sm-bz${voll ? " voll" : ""}" data-tausch="${r}" style="--c:${SM_RC[r]}" aria-label="${SM_STUFE[r]}-Säckchen: ${n} von ${SM_TAUSCH[r]}${voll ? " – tauschen" : ""}">${SM_SACK}<span class="pk">${Array.from({ length: SM_TAUSCH[r] }, (_, k) => `<i class="${k < n ? "an" : ""}"></i>`).join("")}</span><span class="sm-bz-t"><b>${n}</b> ${SM_STUFE[r]}</span><small>${SM_TAUSCH[r]} → 1 ${SM_STUFE[r + 1]}</small></button>`; }).join("")}</div>`;
 }
 VIEWS.album = () => {
   const m = smInit();
   if (m.offen) { smKrugBuehne(m.offen, true); }
-  const art = smKrugMoeglich(), gold = smGold(), heute = smHeuteKruege(), bisGold = 4 - (m.kz % 4); /* der nächste Krug hat die Nummer kz+1; jeder 4. ist sicher Gold */
+  const art = smKrugMoeglich(), gold = smGold(), heute = smHeuteKruege(), bisGold = SM_TREUE - (m.kz % SM_TREUE); /* der nächste Krug hat die Nummer kz+1; jeder 7. ist sicher Gold */
   const nochT = SM_TRUHEN_GESCHENK - (m.tz % SM_TRUHEN_GESCHENK);
   const truhe = `Schatztruhen: noch <b>${nochT}</b> bis zum nächsten Geschenk-Krug`;
   const treue = bisGold === 1 ? "Treue-Siegel: der nächste Krug hat <b>sicher eine Goldkarte</b>" : `Treue-Siegel: noch <b>${bisGold}</b> Krüge bis zur sicheren Goldkarte`;
-  const knopf = art === "fertig" ? `<p class="sm-hinw">Alle 66 Karten in Glanz – dein Album ist vollendet!</p>`
-    : `<button class="sm-krug-kn${art === "gold" || art === "geschenk" ? "" : " aus"}" id="smKrugKn">${SM_KRUG_SVG}<span><b>${art === "geschenk" ? "Geschenk-Krug öffnen" : "Krug öffnen"}</b><small>${art === "geschenk" ? `${smGeschenke()} ${smGeschenke() === 1 ? "Geschenk" : "Geschenke"} bereit` : art === "tag" ? "Heute schon 3 Krüge – morgen wieder" : art === "arm" ? `Noch ${SM_KRUG_PREIS - gold} Öl – spiel eine Runde!` : `5 Karten · ${SM_KRUG_PREIS} Öl`}</small></span>${art === "gold" ? `<i class="sm-preis">${SM_GOLD_SVG}${SM_KRUG_PREIS}</i>` : ""}</button>`;
+  const knopf = art === "fertig" ? `<p class="sm-hinw">Alle 66 Karten in Gold – dein Album ist vollendet!</p>`
+    : `<button class="sm-krug-kn${art === "gold" || art === "geschenk" ? "" : " aus"}" id="smKrugKn">${SM_KRUG_SVG}<span><b>${art === "geschenk" ? "Geschenk-Krug öffnen" : "Krug öffnen"}</b><small>${art === "geschenk" ? `${smGeschenke()} ${smGeschenke() === 1 ? "Geschenk" : "Geschenke"} bereit` : art === "tag" ? "Heute schon 3 Krüge – morgen wieder" : art === "arm" ? `Noch ${SM_KRUG_PREIS - gold} Manna – spiel eine Runde!` : `${SM_KRUG_KARTEN} Karten · ${SM_KRUG_PREIS} Manna`}</small></span>${art === "gold" ? `<i class="sm-preis">${SM_GOLD_SVG}${SM_KRUG_PREIS}</i>` : ""}</button>`;
   const gruppen = GROUPS.map((g, gi) => { const idx = ALL.map((b, i) => b.gi === gi ? i : -1).filter(i => i >= 0), n = idx.filter(i => m.album[i] > 0).length;
     return `<section class="sm-gruppe"><div class="sm-gk"><b>${esc(g.name)}</b><span>${n} / ${idx.length}</span></div><div class="sm-raster">${idx.map(i => smKarteHtml(i, m.album[i])).join("")}</div></section>`; }).join("");
-  screen.innerHTML = `${bereichKopf("home", { ic: "book", t: "Sammelalbum", sub: `${smGefunden()} / 66 gefunden · ${smGlanz()} in Glanz` })}
-    <div class="sm-kasse"><span class="sm-gold">${SM_GOLD_SVG}<b>${gold}</b> Öl</span><span class="sm-heute">Krüge heute ${heute}/${SM_KRUG_TAG}</span></div>
+  screen.innerHTML = `${bereichKopf("home", { ic: "book", t: "Sammelalbum", sub: `${smGefunden()} / 66 gefunden · ${smGlanz()} in Gold` })}
+    <div class="sm-kasse"><span class="sm-gold">${SM_GOLD_SVG}<b>${gold}</b> Manna</span><span class="sm-heute">Krüge heute ${heute}/${SM_KRUG_TAG}</span></div>
     ${knopf}
     <p class="sm-treue">${treue}<br>${truhe}</p>
     <div class="sm-bt"><b>Tauschbeutel</b><span>Doppelte Karten sammeln sich hier</span></div>
     ${smBeutelHtml()}
     <p class="sm-hinw sm-wahl" id="smWahl" hidden></p>
     ${gruppen}
-    <div class="sm-fuss"><button class="btn" id="smTeilen">${SM_ALBUM_SVG} Mein Album teilen</button><p class="small muted">Öl gibt es für jede beendete Runde ab 30 Sekunden (+1 bei guter Runde), jede Duell-Herausforderung (1), jede Schatztruhe (4), Biblionär der Woche (2) und jeden Level-Aufstieg (3). Sparen ohne Grenze – öffnen kannst du bis zu ${SM_KRUG_TAG} Krüge am Tag. Jede ${SM_TRUHEN_GESCHENK}. Schatztruhe bringt einen Geschenk-Krug. Seltenheit: Bronze 60 %, Silber 28 %, Gold 10 %, Glanz 2 %.</p></div>`;
+    <div class="sm-fuss"><button class="btn" id="smTeilen">${SM_ALBUM_SVG} Mein Album teilen</button><p class="small muted">Manna gibt es für jede beendete Runde ab 30 Sekunden (+1 bei guter Runde), jede Duell-Herausforderung (1), jede Schatztruhe (4), Biblionär der Woche (2) und jeden Level-Aufstieg (3). Sparen ohne Grenze – öffnen kannst du bis zu ${SM_KRUG_TAG} Krüge am Tag. Jede ${SM_TRUHEN_GESCHENK}. Schatztruhe bringt einen Geschenk-Krug. Seltenheit: Bronze 75 %, Silber 20 %, Gold 5 % – jeder Krug mit mindestens 1 Silber, jeder 7. Krug mit sicherer Goldkarte. Tausch: 4 Bronze → 1 Silber, 4 Silber → 1 Gold.</p></div>`;
   { const med = screen.querySelector(".bk-med"); if (med) med.innerHTML = SM_ALBUM_SVG; } /* 9.88: Album-Buch mit „66“ */
   wireGo();
   const kk = $("smKrugKn"); if (kk) kk.onclick = () => { if (kk.classList.contains("aus")) { SFX.tap(); return; } SFX.tap(); const o = smKrugKaufen(); if (o) smKrugBuehne(o, false); };
@@ -290,7 +298,7 @@ function smTauschStart(r) {
   if (n < N) { toast(`${SM_STUFE[r]}-Säckchen: ${n} von ${N} – noch ${N - n} doppelte ${SM_STUFE[r]}karten bis zum Tausch.`); return; }
   const m = smInit(), wahl = m.album.map((s, i) => s === r ? i : -1).filter(i => i >= 0);
   if (!wahl.length) { /* keine Karte genau dieser Stufe: in das nächste Säckchen */
-    m.ba[r] += N; if (r < 3) m.be[r + 1] = (m.be[r + 1] | 0) + 1; save(); toast(`${N} ${SM_STUFE[r]} → 1 ${SM_STUFE[r + 1]} im Säckchen`); go("album"); return;
+    m.ba[r] += N; if (r + 1 < SM_MAX) m.be[r + 1] = (m.be[r + 1] | 0) + 1; else { m.ba[r] -= N; toast("Alle Karten sind schon Gold."); save(); return; } save(); toast(`${N} ${SM_STUFE[r]} → 1 ${SM_STUFE[r + 1]} im Säckchen`); go("album"); return;
   }
   smWahl = r;
   screen.querySelectorAll(".smk").forEach(k => k.classList.toggle("waehlbar", m.album[+k.dataset.i] === r));
@@ -306,19 +314,21 @@ function smTauschWahl(i) {
 }
 
 /* ---------- Krug-Bühne (Auspack-Animation) ---------- */
-const SM_KRUG_GROSS = `<svg viewBox="0 0 120 150" aria-hidden="true"><defs><linearGradient id="smTon" x1="0" x2="1"><stop offset="0" stop-color="#7a4422"/><stop offset=".35" stop-color="#d99a62"/><stop offset=".6" stop-color="#c07d45"/><stop offset="1" stop-color="#5e3216"/></linearGradient><linearGradient id="smDeckel" x1="0" x2="1"><stop offset="0" stop-color="#6b3a18"/><stop offset=".4" stop-color="#c88a52"/><stop offset="1" stop-color="#5e3216"/></linearGradient><radialGradient id="smGlut"><stop offset="0" stop-color="#fff3b8"/><stop offset=".5" stop-color="#ffd34d88"/><stop offset="1" stop-color="#ffd34d00"/></radialGradient></defs>
-  <ellipse class="smj-glut" cx="60" cy="85" rx="62" ry="70" fill="url(#smGlut)"/>
-  <path d="M38 30c-12 4-16 10-12 15M82 30c12 4 16 10 12 15" fill="none" stroke="#5e3216" stroke-width="7" stroke-linecap="round"/><path d="M38 30c-12 4-16 10-12 15M82 30c12 4 16 10 12 15" fill="none" stroke="#b97a44" stroke-width="3.5" stroke-linecap="round"/>
-  <path d="M42 26h36l3 10c18 10 26 28 24 52-2 30-18 52-45 56-27-4-43-26-45-56-2-24 6-42 24-52z" fill="url(#smTon)" stroke="#2a160a" stroke-width="2.5" stroke-linejoin="round"/>
-  <path d="M24 70c20 6 52 6 72 0M22 92c22 7 54 7 76 0" fill="none" stroke="#5e3216" stroke-width="2" opacity=".7"/><path d="M30 60c3-10 8-17 14-21" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".45"/>
-  <rect x="36" y="16" width="48" height="14" rx="5" fill="url(#smDeckel)" stroke="#2a160a" stroke-width="2.5"/><path d="M44 12h32" stroke="#2a160a" stroke-width="2.5" stroke-linecap="round"/><path d="M52 8h16v6H52z" fill="#8a5a30" stroke="#2a160a" stroke-width="2"/>
-  <path class="smj-riss" d="M60 40l-4 14 6 8-5 12"/><path class="smj-riss" d="M36 72l10 4 4 10 10 2 6 14M84 66l-8 10 3 10-9 8"/><path class="smj-riss" d="M28 100l14-2 8 10 12-4 10 10 14-6M66 120l-6 10 4 8M46 44l-6 10"/></svg>`;
+const SM_KRUG_GROSS = `<svg viewBox="0 0 120 150" aria-hidden="true"><defs><radialGradient id="smGlut" cx="50%" cy="55%" r="55%"><stop offset="0" stop-color="#ffe9a0" stop-opacity=".55"/><stop offset="1" stop-color="#ffe9a0" stop-opacity="0"/></radialGradient><linearGradient id="smGk" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8a5a12"/><stop offset=".22" stop-color="#e9b94a"/><stop offset=".42" stop-color="#fff0b0"/><stop offset=".6" stop-color="#f2c14e"/><stop offset="1" stop-color="#7a4c0e"/></linearGradient><linearGradient id="smGd" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#9a6614"/><stop offset=".45" stop-color="#fff2bf"/><stop offset="1" stop-color="#8a5a12"/></linearGradient></defs>
+  <ellipse class="smj-glut" cx="60" cy="88" rx="64" ry="72" fill="url(#smGlut)"/>
+  <path d="M44 34h32c1 5 3 8 8 12 10 8 16 20 16 36 0 30-18 52-40 54-22-2-40-24-40-54 0-16 6-28 16-36 5-4 7-7 8-12z" fill="url(#smGk)" stroke="#5a3a08" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M24 56c-12 2-14 22-2 28M96 56c12 2 14 22 2 28" fill="none" stroke="url(#smGk)" stroke-width="6" stroke-linecap="round"/>
+  <path d="M22 78c24 7 52 7 76 0" fill="none" stroke="#7a4c0e" stroke-width="7" opacity=".55"/><path d="M22 78c24 7 52 7 76 0" fill="none" stroke="#ffe48a" stroke-width="2.2"/>
+  <g fill="#fffbe8" stroke="#a8781a" stroke-width=".7"><circle cx="40" cy="82.5" r="2.4"/><circle cx="50" cy="84" r="2.4"/><circle cx="60" cy="84.5" r="2.6"/><circle cx="70" cy="84" r="2.4"/><circle cx="80" cy="82.5" r="2.4"/></g>
+  <path d="M40 58c-8 10-10 26-6 42" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".45"/>
+  <rect x="42" y="27" width="36" height="9" rx="3" fill="url(#smGd)" stroke="#5a3a08" stroke-width="1.6"/>
+  <g class="smj-deckel"><path d="M38 27c2-9 12-13 22-13s20 4 22 13z" fill="url(#smGd)" stroke="#5a3a08" stroke-width="1.8" stroke-linejoin="round"/><circle cx="60" cy="10" r="5" fill="url(#smGd)" stroke="#5a3a08" stroke-width="1.5"/><path d="M60 4.5l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1z" fill="#fff"/></g></svg>`;
 const smRm = () => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } };
 function smVibr(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
 function smKlang(art) {
   const f = { bruch: () => { tone(220, 0, .5, "sine", .25, 120); [523, 659, 784, 1046].forEach((x, i) => tone(x, .2 + i * .06, .4, "triangle", .08)); }, klopf: () => { tone(140, 0, .16, "sine", .3, 90); tone(900, .02, .04, "square", .04); },
     silber: () => [784, 988, 1175].forEach((x, i) => tone(x, i * .07, .3, "triangle", .1)), gold: () => [523, 659, 784, 1046, 1318].forEach((x, i) => tone(x, i * .08, .5, "triangle", .13)),
-    glanz: () => [1046, 1318, 1568, 2093, 2637, 3136].forEach((x, i) => tone(x, i * .06, .5, "sine", .08)), flip: () => { tone(660, 0, .1, "sine", .07); tone(880, .04, .1, "sine", .07); }, plopp: () => { tone(880, 0, .08, "sine", .07); tone(1320, .02, .08, "sine", .07); } };
+    glanz: () => [1046, 1318, 1568, 2093, 2637, 3136].forEach((x, i) => tone(x, i * .06, .5, "sine", .08)), auf: () => { [392, 494, 587, 784].forEach((x, i) => tone(x, i * .12, .8, "triangle", .07)); for (let k = 0; k < 12; k++) tone(1800 + Math.random() * 1600, .4 + k * .07, .08, "sine", .015); }, flip: () => { tone(660, 0, .1, "sine", .07); tone(880, .04, .1, "sine", .07); }, plopp: () => { tone(880, 0, .08, "sine", .07); tone(1320, .02, .08, "sine", .07); } };
   try { (f[art] || f.plopp)(); } catch (e) {}
 }
 /* kleine Partikel-Fläche für die Bühne */
@@ -335,11 +345,11 @@ function smKrugBuehne(offen, wieder) {
   if (document.querySelector(".sm-ov")) return;
   const rm = smRm(), zug = offen.z, ov = document.createElement("div");
   ov.className = "sm-ov"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-label", "Krug öffnen");
-  ov.innerHTML = `<div class="sm-ov-in"><div class="sm-ov-kopf"><b>${offen.art === "geschenk" ? "Geschenk-Krug" : "Krug"}</b><span>${wieder ? "Dein Krug wartet noch" : offen.nr % 4 === 0 ? "Treue-Siegel: sicher Gold" : "5 Karten"}</span></div>
+  ov.innerHTML = `<div class="sm-ov-in"><div class="sm-ov-kopf"><b>${offen.art === "geschenk" ? "Geschenk-Krug" : "Krug"}</b><span>${wieder ? "Dein Krug wartet noch" : offen.nr % SM_TREUE === 0 ? "Treue-Siegel: sicher Gold" : "5 Karten"}</span></div>
     <div class="sm-buehne"><div class="sm-kegel"></div><div class="sm-beam"></div><div class="sm-sockel"></div>
       <div class="sm-jar ${rm ? "" : zug.some(c => c.s >= 3) ? "stark" : "wackel"}" role="button" tabindex="0" aria-label="Krug antippen">${SM_KRUG_GROSS}</div>
-      <p class="sm-tipp">${rm ? "Tippe auf den Krug" : "Tippe dreimal auf den Krug"}</p>
-      <div class="sm-selten"><span style="--c:#d58b4f"><b>60 %</b>Bronze</span><span style="--c:#bfe3ff"><b>28 %</b>Silber</span><span style="--c:#f2c14e"><b>10 %</b>Gold</span><span class="gl"><b>2 %</b>Glanz</span></div>
+      <p class="sm-tipp">Tippe auf den goldenen Krug</p>
+      <div class="sm-selten"><span style="--c:#d58b4f"><b>75 %</b>Bronze</span><span style="--c:#bfe3ff"><b>20 %</b>Silber</span><span style="--c:#f2c14e"><b>5 %</b>Gold</span></div>
       <div class="sm-fan"></div><p class="sm-zus"></p><canvas class="sm-fx"></canvas></div>
     <div class="sm-ov-kn"><button class="btn" data-k="alle" hidden>Alle aufdecken</button><button class="btn primary" data-k="fertig" hidden>Ins Album</button></div></div>`;
   document.body.appendChild(ov); document.body.classList.add("spiel-laeuft");
@@ -370,43 +380,71 @@ function smKrugBuehne(offen, wieder) {
       if (c.s === 1) staub(x, y, 14, ["#f0b07a", "#d58b4f"], 2);
       if (c.s === 2) { smKlang("silber"); staub(x, y, 30, ["#e6f4ff", "#bfe3ff", "#fff"], 3); }
       if (c.s === 3) { smKlang("gold"); smVibr([60, 40, 90]); staub(x, y, 80, ["#fff3b8", "#ffe08a", "#f2c14e"], 5); }
-      if (c.s === 4) { smKlang("glanz"); smVibr([40, 30, 40, 30, 120]); staub(x, y, 120, ["#ff8a8a", "#ffd95c", "#5fe0b0", "#7fc8ff", "#c49bff", "#fff"], 6); }
     }, 320);
     if (++offenN === zug.length) setTimeout(alleOffen, 650);
   }
   function alleOffen() {
     phase = "offen"; q('[data-k="alle"]').hidden = true; q('[data-k="fertig"]').hidden = false;
-    const neu = zug.filter(c => !c.d).length, d = zug.length - neu;
-    q(".sm-zus").textContent = `${neu} neue ${neu === 1 ? "Karte" : "Karten"}${d ? ` · ${d} doppelt` : ""}`;
+    q(".sm-zus").innerHTML = smZugText(zug);
   }
   q('[data-k="alle"]').onclick = () => { let t = 0; fan.querySelectorAll(".sm-karte").forEach((el, k) => { if (!el.classList.contains("offen")) { setTimeout(() => aufdecken(el, zug[k]), t); t += 260; } }); };
-  q('[data-k="fertig"]').onclick = () => {
+  const schliessen = () => {
     const m = smInit(); m.offen = null; save();
     const neu = smGruppenPruefen(); ov.remove(); document.body.classList.remove("spiel-laeuft");
     smNeuBanner(neu); if (current === "album") go("album"); smHud(0);
   };
-  const tippen = () => {
+  /* 9.92: Einsortieren – Album mit allen 66 Büchern (echte Namen), Ziel-Plätze leuchten, jede Karte fliegt an ihren Platz */
+  q('[data-k="fertig"]').onclick = () => {
+    if (phase === "sortiert") return schliessen();
+    if (phase !== "offen") return;
+    phase = "sortieren"; q('[data-k="fertig"]').hidden = true; q(".sm-zus").textContent = "";
+    const vor = (offen.vor || smInit().album).slice(), be = { 1: smBeutel(1), 2: smBeutel(2) };
+    zug.forEach(c => { if (c.d && c.s < SM_MAX) be[c.s] = Math.max(0, be[c.s] - 1); }); /* Beutel-Stand vor diesem Krug */
+    const alb = document.createElement("div"); alb.className = "sm-alb";
+    alb.innerHTML = `<div class="sm-alb-k"><b>Sammelalbum</b><span><i>${vor.filter(x => x > 0).length}</i> / 66</span></div>
+      <div class="sm-alb-r">${ALL.map((b, i) => `<span class="sm-alb-p" data-s="${vor[i]}" style="--gc:${smGc(i)}">${esc(smKurz(b.b))}</span>`).join("")}</div>
+      <div class="sm-alb-b"><span class="sm-alb-z"></span>Tauschbeutel <span data-b="1" style="--c:${SM_RC[1]}"><i></i><b>${be[1]}</b>/${SM_TAUSCH[1]}</span><span data-b="2" style="--c:${SM_RC[2]}"><i></i><b>${be[2]}</b>/${SM_TAUSCH[2]}</span></div>`;
+    buehne.appendChild(alb);
+    requestAnimationFrame(() => alb.classList.add("an"));
+    const plaetze = alb.querySelectorAll(".sm-alb-p"), karten_ = fan.querySelectorAll(".sm-karte");
+    zug.forEach(c => { if (!c.d) plaetze[c.i].classList.add("ziel"); });
+    const tz = rm ? 120 : 520, flug = rm ? 10 : 750;
+    zug.forEach((c, k) => setTimeout(() => {
+      const el = karten_[k]; if (!el) return;
+      const ziel = c.d && c.s < SM_MAX ? alb.querySelector(`[data-b="${c.s}"]`) : plaetze[c.i];
+      const kr = el.getBoundingClientRect(), zr = ziel.getBoundingClientRect();
+      const dx = zr.left + zr.width / 2 - (kr.left + kr.width / 2), dy = zr.top + zr.height / 2 - (kr.top + kr.height / 2), sc = Math.max(.15, zr.width / kr.width);
+      el.style.zIndex = 6;
+      if (!rm) el.animate([{ transform: el.style.transform, opacity: 1 }, { transform: `${el.style.transform} translate(${dx}px,${dy}px) rotate(0deg) scale(${sc})`, opacity: .2 }], { duration: flug, easing: "cubic-bezier(.5,0,.3,1)", fill: "forwards" });
+      setTimeout(() => {
+        el.style.visibility = "hidden"; smKlang("flip");
+        if (c.d && c.s < SM_MAX) { const z = alb.querySelector(`[data-b="${c.s}"]`), bb = z.querySelector("b"); bb.textContent = +bb.textContent + 1; z.classList.remove("plopp"); void z.offsetWidth; z.classList.add("plopp"); }
+        else if (!c.d) { const p = plaetze[c.i]; p.dataset.s = c.s; p.classList.remove("ziel"); p.classList.add("plopp");
+          const br = buehne.getBoundingClientRect(), pr = p.getBoundingClientRect();
+          staub(pr.left - br.left + pr.width / 2, pr.top - br.top + pr.height / 2, c.s === 3 ? 26 : 12, c.s === 3 ? ["#fff3b8", "#f2c14e"] : c.s === 2 ? ["#e6f4ff", "#bfe3ff"] : ["#f0b07a", "#d58b4f"], 2.5);
+          alb.querySelector(".sm-alb-k i").textContent = [...plaetze].filter(x => +x.dataset.s > 0).length; }
+      }, flug);
+    }, 250 + k * tz));
+    setTimeout(() => {
+      alb.querySelector(".sm-alb-z").innerHTML = smZugText(zug);
+      phase = "sortiert"; const kn = q('[data-k="fertig"]'); kn.textContent = "Fertig"; kn.hidden = false;
+    }, 250 + zug.length * tz + flug + 300);
+  };
+  const tippen = () => { /* 9.92: goldener Krug – einmal tippen, Deckel hebt sich, Manna rieselt */
     if (phase !== "krug") return;
-    if (rm) { phase = "weg"; jar.style.opacity = 0; setTimeout(() => { jar.remove(); karten(); }, 300); return; }
-    tipps++; smKlang("klopf"); jar.querySelectorAll(".smj-riss")[Math.min(2, tipps - 1)].classList.add("an"); jar.querySelector(".smj-glut").style.opacity = tipps * .3;
-    jar.animate([{ transform: "translateX(-50%) scale(1)" }, { transform: "translateX(-50%) scale(1.07,.93)" }, { transform: "translateX(-50%) scale(1)" }], { duration: 320 });
-    const [x, y] = mitte(jar); staub(x, y, 10 * tipps, ["#ffe9a8", "#f2c14e", "#d99a62"], 2.5);
-    if (tipps >= 3) { phase = "weg"; setTimeout(zerspringen, 260); }
+    phase = "weg";
+    if (rm) { jar.style.opacity = 0; setTimeout(() => { jar.remove(); karten(); }, 300); return; }
+    oeffnen();
   };
   jar.onclick = tippen; jar.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tippen(); } };
-  function zerspringen() {
-    smKlang("bruch"); smVibr(40);
-    const [mx, my] = mitte(jar); jar.remove();
-    const formen = ["polygon(0 0,100% 20%,70% 100%,10% 80%)", "polygon(20% 0,100% 30%,80% 100%,0 70%)", "polygon(0 20%,80% 0,100% 80%,30% 100%)", "polygon(10% 0,90% 10%,100% 100%,0 90%)"];
-    for (let k = 0; k < 9; k++) {
-      const s = document.createElement("div"), gr = 18 + Math.random() * 26; s.className = "sm-scherbe";
-      Object.assign(s.style, { width: gr + "px", height: gr * (.7 + Math.random() * .6) + "px", left: mx - gr / 2 + "px", top: my - gr / 2 + "px", clipPath: formen[k % 4] });
-      buehne.appendChild(s); const w = k / 9 * 6.283 + Math.random() * .5, dist = 120 + Math.random() * 90;
-      s.animate([{ transform: "translate(0,0) rotate(0)", opacity: 1 }, { transform: `translate(${Math.cos(w) * dist}px,${Math.sin(w) * dist + 140}px) rotate(${Math.random() * 720 - 360}deg)`, opacity: 0 }], { duration: 1200, easing: "cubic-bezier(.2,.6,.4,1)", fill: "forwards" }).onfinish = () => s.remove();
-    }
-    q(".sm-beam").classList.add("an"); q(".sm-sockel").style.opacity = .35;
-    staub(mx, my, 140, ["#fff3b8", "#ffe08a", "#f2c14e", "#ffd34d", "#fff"], 6);
-    setTimeout(karten, 650);
+  function oeffnen() {
+    smKlang("klopf"); smVibr(30); jar.classList.remove("wackel", "stark"); jar.classList.add("glueht");
+    const [mx, my] = mitte(jar), oben = my - 70, manna = ["#fffbee", "#fff3c4", "#ffffff", "#ffe9a0"];
+    setTimeout(() => { jar.classList.add("auf"); smKlang("auf"); q(".sm-beam").classList.add("an"); staub(mx, oben, 70, manna, 4.5); }, 380);
+    setTimeout(() => staub(mx, oben, 50, manna, 3.5), 780);
+    setTimeout(() => staub(mx, oben, 40, manna, 3), 1150);
+    setTimeout(() => { jar.classList.add("weg"); q(".sm-sockel").style.opacity = .35; }, 1350);
+    setTimeout(karten, 1450);
   }
   if (wieder && rm) { tippen(); }
 }
@@ -470,17 +508,17 @@ async function smTeilen(cv, name, text) {
 }
 async function smTeilenAlbum() {
   const m = smInit();
-  const cv = await smZeichnen("quadrat", "Mein Sammelalbum", `${smGefunden()} / 66 gefunden · ${smGlanz()} in Glanz`, async (cx, W, y0, y1) => {
+  const cv = await smZeichnen("quadrat", "Mein Sammelalbum", `${smGefunden()} / 66 gefunden · ${smGlanz()} in Gold`, async (cx, W, y0, y1) => {
     const sp = 11, gap = 10, w = (W - 140 - gap * (sp - 1)) / sp, h = Math.min(w * 1.3, (y1 - y0 - gap * 5) / 6);
     m.album.forEach((s, i) => { const x = 70 + (i % sp) * (w + gap), y = y0 + Math.floor(i / sp) * (h + gap);
       if (s === 4) { const gr = cx.createLinearGradient(x, y, x + w, y + h); ["#ff8a8a", "#ffd95c", "#5fe0b0", "#7fc8ff", "#c49bff"].forEach((c, k) => gr.addColorStop(k / 4, c)); cx.fillStyle = gr; }
       else cx.fillStyle = s ? SM_RC[s] : "#1e2552";
       smRund(cx, x, y, w, h, 8); cx.fill(); cx.fillStyle = smGc(i); cx.fillRect(x + 4, y, w - 8, 6); });
   });
-  smTeilen(cv, "mein-sammelalbum.png", `Mein Sammelalbum in Bibelbuch-Quest: ${smGefunden()} von 66 Bibelbüchern gefunden, ${smGlanz()} in Glanz! Sammelst du mit?`);
+  smTeilen(cv, "mein-sammelalbum.png", `Mein Sammelalbum in Bibelbuch-Quest: ${smGefunden()} von 66 Bibelbüchern gefunden, ${smGlanz()} in Gold! Sammelst du mit?`);
 }
 
-/* ---------- 9.85: Glanz-Karten für die Rangliste ----------
+/* ---------- 9.85/9.92: Goldkarten für die Rangliste (Feld gl, Sammlung album) ----------
    Eigene kleine Sammlung album/{pid} = { gl, updated } – die Ranglisten-Regel für „spieler“ ist an der Grenze von 1000 Rechenschritten.
    Geschrieben wird nur, wenn sich die Zahl ändert (höchstens 66-mal je Spieler). Der Sammel-Job trägt gl in die Rangliste ein. */
 let smGlLaeuft = false;
@@ -499,16 +537,16 @@ function smAnkuendigen() {
     m.ah = 1; save();
     const karten = [[0, 1], [18, 2], [42, 3]].map(([i, st]) => `<span class="sm-ank-k">${smKarteHtml(i, st)}</span>`).join("");
     modal(`<div class="rb-fenster sm-ank"><div class="sm-ank-f">${karten}</div><small class="sm-ank-neu">NEU</small><h2>Das Sammelalbum</h2>
-      <p>Sammle alle 66 Bibelbücher als Karten – von Bronze bis Glanz. Beim Spielen sammelst du <b>Öl</b>, damit öffnest du Krüge mit je 5 Karten.</p>
+      <p>Sammle alle 66 Bibelbücher als Karten – von Bronze bis Gold. Beim Spielen sammelst du <b>Manna</b>, damit öffnest du goldene Krüge mit je 4 Karten.</p>
       <p class="sm-ank-g">${SM_KRUG_SVG}<span>Dein <b>erster Krug</b> ist ein Geschenk!</span></p>
       <button class="btn primary" data-close="los">Startkrug öffnen</button><button class="btn ghost" data-close="">Später</button></div>`,
       w => { if (w === "los") go("album"); }).dataset.frei = "1";
   }, 1500);
 }
 const SM_TOUR = [
-  { sel: ".sm-kasse", t: "Öl", x: "Bekommst du für jede Runde, gute Runden, Duell-Herausforderungen, Schatztruhen und Level-Aufstiege. Spare so viel du willst – öffnen kannst du 3 Krüge am Tag." },
-  { sel: "#smKrugKn", t: "Krüge", x: "Ein Krug kostet 10 Öl und enthält 5 Karten. Bis zu 3 Krüge am Tag. Jede 7. Schatztruhe schenkt dir einen Krug – dein erster wartet schon." },
-  { sel: ".sm-beutel", t: "Tauschbeutel", x: "Doppelte Karten landen hier. 3 Bronze → 1 Silber, 4 Silber → 1 Gold, 5 Gold → 1 Glanz. Welche Karte aufsteigt, wählst du selbst." }
+  { sel: ".sm-kasse", t: "Manna", x: "Bekommst du für jede Runde, gute Runden, Duell-Herausforderungen, Schatztruhen und Level-Aufstiege. Spare so viel du willst – öffnen kannst du 3 Krüge am Tag." },
+  { sel: "#smKrugKn", t: "Krüge", x: "Ein goldener Krug kostet 10 Manna und enthält 4 Karten. Bis zu 3 Krüge am Tag. Jede 7. Schatztruhe schenkt dir einen Krug – dein erster wartet schon." },
+  { sel: ".sm-beutel", t: "Tauschbeutel", x: "Doppelte Karten landen hier. 4 Bronze → 1 Silber, 4 Silber → 1 Gold. Welche Karte aufsteigt, wählst du selbst." }
 ];
 function smTour() {
   const m = smInit(); if (m.tour || current !== "album" || document.querySelector(".modal, .sm-ov, .sm-tour")) return;
@@ -557,13 +595,13 @@ VIEWS.rueckblick = () => {
     `<div class="rb-k"><small>Treue</small><div class="rb-gross"><b>${D.serie}</b><span>${D.serie === 1 ? "Tag" : "Tage"} in Folge</span></div><p>So lange war deine längste Serie. Dranbleiben lohnt sich – auch ${D.jahr + 1}!</p></div>`,
     `<div class="rb-k"><small>Dein Lieblingsbereich</small><div class="rb-ringw"><div class="rb-ring" style="background:${ring}"></div><span>${esc(D.lieb || "–")}</span></div><div class="rb-leg">${D.ber.map(([k, p]) => `<span style="--c:${RB_FARBE[k] || "#888"}"><i></i>${esc(k)} ${p} %</span>`).join("")}</div></div>`,
     `<div class="rb-k"><small>Deine Rekorde</small><div class="rb-zahlen"><span><b>${D.kette}</b>Bücher in der Kette</span><span><b>${D.blitz}</b>Blitz-Rekord</span><span><b>${pkt(D.bib)}</b>Biblionär-Punkte</span><span><b>${D.siege}</b>Duell-Siege von ${D.duelle}</span></div></div>`,
-    `<div class="rb-k"><small>Sammelalbum</small><div class="rb-gross"><b>${D.album}</b><span>von 66 Karten</span></div><p>${D.gold} Öl stehen bereit – ${D.gold >= SM_KRUG_PREIS ? "genug für einen Krug!" : "spiel ein paar Runden für den nächsten Krug."}</p></div>`,
+    `<div class="rb-k"><small>Sammelalbum</small><div class="rb-gross"><b>${D.album}</b><span>von 66 Karten</span></div><p>${D.gold} Manna liegen bereit – ${D.gold >= SM_KRUG_PREIS ? "genug für einen Krug!" : "spiel ein paar Runden für den nächsten Krug."}</p></div>`,
     `<div class="rb-k"><small>Gemeinsam</small><div class="rb-gross"><b>${rbGemeinde ? pkt(rbGemeinde) : "…"}</b><span>XP haben alle zusammen gesammelt</span></div><p>Danke, dass du Teil davon bist!</p></div>`,
     `<div class="rb-k rb-vers"><small>Dein Vers für ${D.jahr + 1}</small><blockquote>${esc(D.vers[0])}</blockquote><cite>${esc(D.vers[1])}</cite></div>`,
     `<div class="rb-k rb-teil"><small>Teilen</small><h3>Zeig deinen Freunden dein Bibeljahr</h3>
       <div class="rb-vorschau" id="rbVorschau"><span class="muted small">Bild wird erstellt …</span></div>
       <p class="rb-link small">Mit dem Bild wird dieser Link geteilt:<br><b>${esc(smLink())}</b></p>
-      <button class="btn primary" id="rbTeilen">${svg("share") || ""} Teilen${m.rb.g === D.jahr ? "" : " · +5 Öl"}</button></div>`
+      <button class="btn primary" id="rbTeilen">${svg("share") || ""} Teilen${m.rb.g === D.jahr ? "" : " · +5 Manna"}</button></div>`
   ];
   rbSeite = Math.max(0, Math.min(seiten.length - 1, rbSeite));
   screen.innerHTML = `<div class="rb"><div class="rb-balken">${seiten.map((_, k) => `<i class="${k <= rbSeite ? "an" : ""}"></i>`).join("")}</div>
@@ -601,7 +639,7 @@ async function rbTeilenSeite(D) {
   const v = $("rbVorschau"); if (v) { v.innerHTML = ""; cv.className = "rb-bild " + rbFormat; v.appendChild(cv); }
   $("rbTeilen").onclick = async () => { SFX.tap();
     const ok = await smTeilen(cv, `mein-bibeljahr-${D.jahr}.png`, `Mein Bibeljahr ${D.jahr} mit Bibelbuch-Quest: ${pkt(D.right)} richtige Antworten und schon ${D.buecher} von 66 Bibelbüchern gelernt! Lern mit und spiel gegen mich! 👇`);
-    if (ok && m.rb.g !== D.jahr) { m.rb.g = D.jahr; save(); const x = smGoldGeben(5); if (x) toast(`Danke fürs Teilen! +${x} Öl`); } };
+    if (ok && m.rb.g !== D.jahr) { m.rb.g = D.jahr; save(); const x = smGoldGeben(5); if (x) toast(`Danke fürs Teilen! +${x} Manna`); } };
 }
 /* Start: Banner und einmaliges Fenster */
 (function rbStart() {

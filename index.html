@@ -2995,7 +2995,7 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .sm-tour-bl b{font:800 1.1rem var(--display)}
 .sm-tour-bl p{margin:0;line-height:1.4;font-size:.92rem}
 .sm-tour-kn{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
-.rk-gl{display:inline-flex;align-items:center;gap:2px;margin-left:6px;padding:0 6px 0 3px;border-radius:99px;background:#ff9ee824;border:1px solid #ff9ee866;color:#ffd6f5;font:800 .72rem/1.5 var(--body,inherit);vertical-align:middle;white-space:nowrap}
+.rk-gl{display:inline-flex;align-items:center;gap:2px;margin-left:6px;padding:0 6px 0 3px;border-radius:99px;background:#f2c14e24;border:1px solid #f2c14e66;color:#ffe9a0;font:800 .72rem/1.5 var(--body,inherit);vertical-align:middle;white-space:nowrap}
 .rk-gl svg{width:12px;height:12px}
 .gk-p .rk-gl,.gk-wer .rk-gl{margin:2px auto 0}
 
@@ -3021,6 +3021,37 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .hud:not(.eng) .hud-kasse .hud-shop svg,.hud:not(.eng) .hud-kasse .hud-album svg{width:21px!important;height:21px!important}
 .hud:not(.eng) .hud-kasse .pill>svg{position:absolute;left:15px;bottom:2px;width:13px!important;height:13px!important;filter:drop-shadow(0 0 1.5px #0b0e1f) drop-shadow(0 0 1px #0b0e1f);z-index:1}
 .hud.eng .hud-kasse .pill{padding:0 7px 0 5px}
+
+/* 9.92: goldener Krug (Deckel hebt sich, Manna rieselt) und Einsortieren ins Album */
+.sm-beutel{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.sm-selten{grid-template-columns:repeat(3,1fr)}
+.sm-jar .smj-deckel{transform-box:fill-box;transform-origin:50% 100%;transition:transform .9s cubic-bezier(.2,.8,.2,1),opacity .7s}
+.sm-jar.auf .smj-deckel{transform:translate(34px,-110px) rotate(28deg);opacity:0}
+.sm-jar.glueht .smj-glut{opacity:1;transition:opacity .4s}
+.sm-jar.glueht{animation:none}
+.sm-jar.weg{opacity:0;transform:translateX(-50%) translateY(24px) scale(.92);transition:opacity .4s,transform .4s}
+.sm-alb{position:absolute;inset:8px;z-index:5;display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:16px;background:linear-gradient(#1c2459,#121640);border:1px solid #f2c14e66;
+  box-shadow:0 10px 30px #000a;opacity:0;transform:translateY(30px);transition:opacity .45s,transform .45s cubic-bezier(.2,.9,.3,1.1);pointer-events:none}
+.sm-alb.an{opacity:1;transform:none}
+.sm-buehne .sm-fan{z-index:6}
+.sm-alb-k{display:flex;justify-content:space-between;align-items:baseline;padding:0 2px}
+.sm-alb-k b{font:800 .9rem var(--display);letter-spacing:.08em;text-transform:uppercase;color:#f2c14e}
+.sm-alb-k span{font:800 .8rem var(--body);color:#dfe4ff}.sm-alb-k i{font-style:normal}
+.sm-alb-r{flex:1;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));grid-auto-rows:minmax(0,1fr);gap:3px;min-height:0}
+.sm-alb-p{position:relative;display:grid;place-items:center;border-radius:5px;border:1px dashed #3d4689;background:#141a40;color:#6f78b8;
+  font:800 .54rem/1.05 var(--body);letter-spacing:-.02em;text-align:center;padding:2px 1px 0;overflow:hidden;overflow-wrap:normal;word-break:keep-all}
+.sm-alb-p::before{content:"";position:absolute;left:3px;right:3px;top:0;height:3px;border-radius:0 0 2px 2px;background:var(--gc);opacity:.35}
+.sm-alb-p[data-s="1"]{background:#d58b4f;border:1px solid #1b2a55;color:#1b1430}
+.sm-alb-p[data-s="2"]{background:#bfe3ff;border:1px solid #1b2a55;color:#1b2a55}
+.sm-alb-p[data-s="3"]{background:#f2c14e;border:1px solid #1b2a55;color:#1b1430;box-shadow:0 0 6px #f2c14e88}
+.sm-alb-p:not([data-s="0"])::before{opacity:1}
+.sm-alb-p.ziel{border:1.5px solid #fff;color:#fff;animation:smZiel .7s ease-in-out infinite alternate}
+@keyframes smZiel{from{box-shadow:0 0 0 1px #fff4,0 0 6px #fff}to{box-shadow:0 0 0 3px #fff8,0 0 16px #fff}}
+.sm-alb-p.plopp,.sm-alb-b span.plopp{animation:smPlopp .45s cubic-bezier(.3,1.6,.5,1)}
+@keyframes smPlopp{0%{transform:scale(1.8)}100%{transform:scale(1)}}
+.sm-alb-b{display:flex;align-items:center;justify-content:flex-end;gap:6px;font:700 .72rem var(--body);color:#dfe4ff}.sm-alb-b{flex-wrap:wrap}.sm-alb-b .sm-alb-z{display:block;flex:1 1 100%;padding:0;border:0;background:none;color:#fff;font-weight:700;text-align:center;font-size:.85rem}.sm-alb-z:empty{display:none!important}.sm-alb-z b{color:#f2c14e}
+.sm-alb-b span{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;background:#0e1330;border:1px solid #2e3670}
+.sm-alb-b i{width:9px;height:9px;border-radius:50%;background:var(--c)}
 </style>
 </head>
 <body>
