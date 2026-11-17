@@ -242,10 +242,13 @@ function smGruppenPruefen() {
 
 /* ---------- Karten-HTML ---------- */
 const SM_BUCH = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4.5C6.5 3.6 9.5 3.6 12 5c2.5-1.4 5.5-1.4 8-.5V19c-2.5-.9-5.5-.9-8 .5-2.5-1.4-5.5-1.4-8-.5z" fill="#fff8e0" stroke="#1b2a55" stroke-width="1.3" stroke-linejoin="round"/><path d="M12 5v14.5" stroke="#1b2a55" stroke-width="1.3"/></svg>`;
+/* 9.95: Kirchenfenster je Buch (karten-motive.js), Glasfarbe je Gruppe */
+const SM_GLAS = ["#e0894a", "#d24a3a", "#5cc94a", "#a77cf0", "#d07ad8", "#4aa8f0", "#e8608a", "#2fc4a8"];
+const smFenster = i => typeof KARTEN_MOTIV !== "undefined" && KARTEN_MOTIV[i] ? `<span class="smk-fenster" aria-hidden="true"><svg viewBox="0 0 64 64">${KARTEN_MOTIV[i]}</svg></span>` : `<span class="smk-band">${SM_BUCH}</span>`;
 function smKarteHtml(i, s, extra) {
   const b = ALL[i], lang = b.b.length > 9 ? " lang" : "";
   if (!s) return `<span class="smk grau" data-i="${i}"><span class="smk-in"><span class="smk-fr">?</span><span class="smk-nm${lang}">${esc(b.b)}</span></span></span>`;
-  return `<span class="smk" data-i="${i}" data-s="${s}" style="--rc:${SM_RC[s]};--gc:${smGc(i)}"><span class="smk-in"><span class="smk-band">${SM_BUCH}</span>${extra || ""}<span class="smk-nm${lang}">${esc(b.b)}</span><span class="smk-gr">${esc(GROUPS[b.gi].name)}</span><span class="smk-st">${SM_STUFE[s]}</span></span></span>`;
+  return `<span class="smk" data-i="${i}" data-s="${s}" style="--rc:${SM_RC[s]};--gc:${smGc(i)};--gl:${SM_GLAS[b.gi] || "#7fc8ff"}"><span class="smk-in">${smFenster(i)}${extra || ""}<span class="smk-nm${lang}">${esc(b.b)}</span><span class="smk-gr">${esc(GROUPS[b.gi].name)}</span><span class="smk-st">${SM_STUFE[s]}</span></span></span>`;
 }
 
 /* ---------- Ansicht: Sammelalbum ---------- */
@@ -349,7 +352,7 @@ function smKrugBuehne(offen, wieder) {
   if (document.querySelector(".sm-ov")) return;
   const rm = smRm(), zug = offen.z, ov = document.createElement("div");
   ov.className = "sm-ov"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-label", "Krug öffnen");
-  ov.innerHTML = `<div class="sm-ov-in"><div class="sm-ov-kopf"><b>${offen.art === "geschenk" ? "Geschenk-Krug" : "Krug"}</b><span>${wieder ? "Dein Krug wartet noch" : offen.nr % SM_TREUE === 0 ? "Treue-Siegel: sicher Gold" : "5 Karten"}</span></div>
+  ov.innerHTML = `<div class="sm-ov-in"><div class="sm-ov-kopf"><b>${offen.art === "geschenk" ? "Geschenk-Krug" : "Krug"}</b><span>${wieder ? "Dein Krug wartet noch" : offen.nr % SM_TREUE === 0 ? "Treue-Siegel: sicher Gold" : SM_KRUG_KARTEN + " Karten"}</span></div>
     <div class="sm-buehne"><div class="sm-kegel"></div><div class="sm-beam"></div><div class="sm-sockel"></div>
       <div class="sm-jar ${rm ? "" : zug.some(c => c.s >= 3) ? "stark" : "wackel"}" role="button" tabindex="0" aria-label="Krug antippen">${SM_KRUG_GROSS}</div>
       <p class="sm-tipp">Tippe auf den goldenen Krug</p>
