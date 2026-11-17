@@ -2977,6 +2977,27 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .rb-banner{display:flex;align-items:center;gap:10px;width:100%;padding:6px 12px;min-height:44px;border-radius:18px;border:1.5px solid #f2c14e;background:linear-gradient(90deg,#3a2d10,#1b2146);color:inherit;text-align:left;cursor:pointer;font:inherit;box-shadow:0 0 16px #f2c14e33}
 .rb-banner-ic svg{width:28px;height:28px;display:block}.rb-banner span{display:flex;flex-direction:column;flex:1;min-width:0}.rb-banner b{font:800 .95rem var(--display);letter-spacing:.06em;text-transform:uppercase;color:#fff1c2}.rb-banner small{font-size:.75rem;color:var(--muted)}.rb-banner i{font-style:normal;font-size:1.4rem;color:#f2c14e}
 .rb-fenster{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}.rb-fenster h2{margin:0;font:800 1.4rem var(--display);color:#f2c14e}.rb-fenster p{margin:0;line-height:1.45}.rb-fenster .btn{width:100%}
+
+/* 9.85: Sammelalbum-Ankündigung, Tour, Glanz in der Rangliste */
+.sm-ank-f{position:relative;width:200px;height:118px;margin:4px auto 0}
+.sm-ank-k{position:absolute;top:6px;left:50%;width:74px;margin-left:-37px;transform-origin:50% 120%;filter:drop-shadow(0 6px 10px #0008)}
+.sm-ank-k:nth-child(1){transform:rotate(-17deg) translateX(-34px)}
+.sm-ank-k:nth-child(3){transform:rotate(17deg) translateX(34px)}
+.sm-ank-k:nth-child(2){z-index:1;top:0}
+.sm-ank-k .smk{cursor:default}
+.sm-ank-neu{background:#f2c14e;color:#1b2a55;font-weight:900;letter-spacing:.12em;border-radius:99px;padding:2px 10px;font-size:.72rem}
+.sm-ank-g{display:flex;align-items:center;gap:8px;background:#f2c14e1f;border:1px solid #f2c14e55;border-radius:12px;padding:8px 12px;text-align:left}
+.sm-ank-g .sm-kr-ic{width:30px;height:30px;flex:none}
+.sm-tour{position:fixed;inset:0;z-index:70}
+.sm-tour-loch{position:fixed;border-radius:14px;box-shadow:0 0 0 9999px #05071ad9,0 0 0 2px #f2c14e inset;transition:all .3s;pointer-events:none}
+.sm-tour-bl{position:fixed;left:16px;right:16px;max-width:420px;margin:0 auto;background:var(--card,#1b2350);border:1px solid #f2c14e66;border-radius:16px;padding:12px 14px;display:grid;gap:4px;box-shadow:0 10px 30px #000a}
+.sm-tour-bl small{color:#f2c14e;font-weight:800}
+.sm-tour-bl b{font:800 1.1rem var(--display)}
+.sm-tour-bl p{margin:0;line-height:1.4;font-size:.92rem}
+.sm-tour-kn{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+.rk-gl{display:inline-flex;align-items:center;gap:2px;margin-left:6px;padding:0 6px 0 3px;border-radius:99px;background:#ff9ee824;border:1px solid #ff9ee866;color:#ffd6f5;font:800 .72rem/1.5 var(--body,inherit);vertical-align:middle;white-space:nowrap}
+.rk-gl svg{width:12px;height:12px}
+.gk-p .rk-gl,.gk-wer .rk-gl{margin:2px auto 0}
 </style>
 </head>
 <body>

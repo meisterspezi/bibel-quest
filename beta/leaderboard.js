@@ -39,6 +39,12 @@ if (!configured) {
       await fs.setDoc(ref("spieler", pid), d, { merge: true });
     };
 
+    // 9.85 Sammelalbum: Anzahl der Glanz-Karten (eigene kleine Sammlung – die Regel für „spieler“ ist an ihrer Rechengrenze)
+    LB.albumSetzen = async (pid, gl) => {
+      await LB.signIn();
+      await fs.setDoc(ref("album", pid), { gl: Math.max(0, Math.min(66, gl | 0)), updated: fs.serverTimestamp() });
+    };
+
     // Dieses Gerät einem bestehenden Profil zuordnen (per Kopplungscode oder Zusammenführung)
     LB.join = async (pid, opts = {}) => {
       await LB.signIn();
