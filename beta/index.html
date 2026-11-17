@@ -2814,6 +2814,14 @@ html.handy-quer:not(.quer-ok) #drehHinweis{display:flex;position:fixed;inset:0;z
 #drehHinweis button{margin-top:6px;border:1px solid #ffffff33;background:#ffffff12;color:#eef0ff;border-radius:999px;padding:9px 16px;font:700 .85rem var(--body);cursor:pointer}
 @media (prefers-reduced-motion:no-preference){#drehHinweis .dh-handy{animation:dhDreh 2.4s ease-in-out infinite;transform-origin:50% 50%}@keyframes dhDreh{0%,25%{transform:rotate(-90deg)}55%,100%{transform:rotate(0)}}}
 html.handy-quer:not(.quer-ok) .tabbar{display:none}
+/* 9.81: Kopfbereich auf allen Hauptreitern (Start, Lektionen, Solo, Biblionär, Arena, Rangliste) an derselben Stelle.
+   Das Logo ist genau so groß wie das Spieler-Logo oben (58 px) und steht bündig darunter (gleiche linke Kante); Titel, Untertitel und Bogen überall gleich. */
+.start{margin-top:0}
+.bk-kopf,.start-aufg .bk-kopf.bk-aufg,.ar-kopf{grid-template-columns:58px minmax(0,1fr) auto;gap:10px;padding:2px 2px 12px 0;margin:0 0 6px}
+.bk-med,.start-aufg .bk-med.truhe,.ar-logo{width:58px;height:58px}
+.bk-med.bild img{width:58px}
+.bk-t h1,.start-aufg .bk-t h1,.ar-titel h1{font-size:1.4rem}
+.bk-t span,.start-aufg .bk-aufg .bk-t span,.ar-titel span{font-size:.8rem}
 </style>
 </head>
 <body>
