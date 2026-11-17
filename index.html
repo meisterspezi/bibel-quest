@@ -3065,6 +3065,29 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .tl-reihe{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
 .tl-reihe .btn{flex:1 1 auto;min-width:0;padding:8px 10px;font-size:.82rem}
 .tl-reihe .btn.tl-k{flex:1 1 30%}
+
+/* 9.95: Sammelkarten als Kirchenfenster – das Motiv wächst mit der Stufe */
+.smk-fenster{position:relative;display:block;width:82%;aspect-ratio:1/1.02;margin:7% auto 4%;border-radius:50% 50% 8% 8%/38% 38% 8% 8%;overflow:hidden;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--gl) 55%,#1d4bb0) 0 25%,color-mix(in srgb,var(--gl) 30%,#2c5fd0) 25% 50%,color-mix(in srgb,var(--gl) 45%,#1d4bb0) 50% 75%,color-mix(in srgb,var(--gl) 25%,#2c5fd0) 75%);
+  border:2px solid #0b0e22;box-shadow:inset 0 0 0 1.5px #f2c14e55,inset 0 0 12px #fff3}
+.smk-fenster svg{display:block;width:100%;height:100%}
+.smk-fenster .m1{fill:var(--gl);stroke:#0b0e22;stroke-width:2.4;stroke-linejoin:round}
+.smk-fenster .m2{fill:color-mix(in srgb,var(--gl) 45%,#fff);stroke:#0b0e22;stroke-width:2.2;stroke-linejoin:round}
+.smk-fenster .m3{fill:#ffe48a;stroke:#0b0e22;stroke-width:1.8;stroke-linejoin:round}
+.smk-fenster .s{fill:none;stroke:#0b0e22;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.smk .smk-nm{margin-top:0}
+.smk-in{filter:none}
+/* Bronze: gedämpftes Glas */
+.smk[data-s="1"] .smk-fenster{filter:saturate(.45) brightness(.82)}
+/* Silber: klares Glas mit Lichtkranz */
+.smk[data-s="2"] .smk-fenster{box-shadow:inset 0 0 0 1.5px #ffffffaa,inset 0 0 14px #fff6,0 0 8px #bfe3ff88}
+/* Gold: leuchtendes Glas, Goldrand, Glanz und Funkeln */
+.smk[data-s="3"] .smk-fenster{filter:saturate(1.15) brightness(1.08);border-color:#f2c14e;box-shadow:inset 0 0 0 1.5px #fff6c8,inset 0 0 16px #fff8,0 0 12px #f2c14ecc}
+.smk[data-s="3"] .smk-fenster::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,#fff8 45%,transparent 60%) 0 0/250% 100%;mix-blend-mode:screen;animation:smGlanzLicht 3.2s ease-in-out infinite;pointer-events:none}
+.smk[data-s="3"] .smk-fenster::before{content:"✦";position:absolute;right:8%;top:10%;z-index:1;color:#fff;font-size:22cqw;line-height:1;text-shadow:0 0 6px #fff,0 0 12px #f2c14e;animation:smFunkel 2.4s ease-in-out infinite}
+@keyframes smGlanzLicht{0%,40%{background-position:120% 0}100%{background-position:-60% 0}}
+@keyframes smFunkel{0%,100%{opacity:0;transform:scale(.4) rotate(0)}50%{opacity:1;transform:scale(1) rotate(45deg)}}
+@media (prefers-reduced-motion:reduce){.smk[data-s="3"] .smk-fenster::after,.smk[data-s="3"] .smk-fenster::before{animation:none}}
 </style>
 </head>
 <body>
@@ -3142,7 +3165,7 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 <script src="editionen-daten.js"></script>
 <script src="editionen.js"></script>
 <script src="tk-bilder.js"></script><script>window.SPL&&SPL.set(0.65)</script>
-<script src="spiel.js"></script><script src="sammel.js"></script><script src="testlabor.js"></script><script>window.SPL&&SPL.set(.9)</script>
+<script src="spiel.js"></script><script src="karten-motive.js"></script><script src="sammel.js"></script><script src="testlabor.js"></script><script>window.SPL&&SPL.set(.9)</script>
 <script type="module" src="leaderboard.js"></script>
 </body>
 </html>
