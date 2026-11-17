@@ -398,47 +398,14 @@ function smKrugBuehne(offen, wieder) {
     q(".sm-zus").innerHTML = smZugText(zug);
   }
   q('[data-k="alle"]').onclick = () => { let t = 0; fan.querySelectorAll(".sm-karte").forEach((el, k) => { if (!el.classList.contains("offen")) { setTimeout(() => aufdecken(el, zug[k]), t); t += 260; } }); };
-  const schliessen = () => {
-    const m = smInit(); m.offen = null; save();
-    const neu = smGruppenPruefen(); ov.remove(); document.body.classList.remove("spiel-laeuft");
-    smNeuBanner(neu); if (current === "album") go("album"); smHud(0);
-  };
-  /* 9.92: Einsortieren – Album mit allen 66 Büchern (echte Namen), Ziel-Plätze leuchten, jede Karte fliegt an ihren Platz */
+  /* 9.97: „Ins Album“ – das Krug-Fenster schließt sich, die Karten fliegen ins echte Sammelalbum (mit Scrollen) */
   q('[data-k="fertig"]').onclick = () => {
-    if (phase === "sortiert") return schliessen();
     if (phase !== "offen") return;
-    phase = "sortieren"; q('[data-k="fertig"]').hidden = true; q(".sm-zus").textContent = "";
-    const vor = (offen.vor || smInit().album).slice(), be = { 1: smBeutel(1), 2: smBeutel(2) };
-    zug.forEach(c => { if (c.d && c.s < SM_MAX) be[c.s] = Math.max(0, be[c.s] - 1); }); /* Beutel-Stand vor diesem Krug */
-    const alb = document.createElement("div"); alb.className = "sm-alb";
-    alb.innerHTML = `<div class="sm-alb-k"><b>Sammelalbum</b><span><i>${vor.filter(x => x > 0).length}</i> / 66</span></div>
-      <div class="sm-alb-r">${ALL.map((b, i) => `<span class="sm-alb-p" data-s="${vor[i]}" style="--gc:${smGc(i)}">${esc(smKurz(b.b))}</span>`).join("")}</div>
-      <div class="sm-alb-b"><span class="sm-alb-z"></span>Tauschbeutel <span data-b="1" style="--c:${SM_RC[1]}"><i></i><b>${be[1]}</b>/${SM_TAUSCH[1]}</span><span data-b="2" style="--c:${SM_RC[2]}"><i></i><b>${be[2]}</b>/${SM_TAUSCH[2]}</span></div>`;
-    buehne.appendChild(alb);
-    requestAnimationFrame(() => alb.classList.add("an"));
-    const plaetze = alb.querySelectorAll(".sm-alb-p"), karten_ = fan.querySelectorAll(".sm-karte");
-    zug.forEach(c => { if (!c.d) plaetze[c.i].classList.add("ziel"); });
-    const tz = rm ? 120 : 520, flug = rm ? 10 : 750;
-    zug.forEach((c, k) => setTimeout(() => {
-      const el = karten_[k]; if (!el) return;
-      const ziel = c.d && c.s < SM_MAX ? alb.querySelector(`[data-b="${c.s}"]`) : plaetze[c.i];
-      const kr = el.getBoundingClientRect(), zr = ziel.getBoundingClientRect();
-      const dx = zr.left + zr.width / 2 - (kr.left + kr.width / 2), dy = zr.top + zr.height / 2 - (kr.top + kr.height / 2), sc = Math.max(.15, zr.width / kr.width);
-      el.style.zIndex = 6;
-      if (!rm) el.animate([{ transform: el.style.transform, opacity: 1 }, { transform: `${el.style.transform} translate(${dx}px,${dy}px) rotate(0deg) scale(${sc})`, opacity: .2 }], { duration: flug, easing: "cubic-bezier(.5,0,.3,1)", fill: "forwards" });
-      setTimeout(() => {
-        el.style.visibility = "hidden"; smKlang("flip");
-        if (c.d && c.s < SM_MAX) { const z = alb.querySelector(`[data-b="${c.s}"]`), bb = z.querySelector("b"); bb.textContent = +bb.textContent + 1; z.classList.remove("plopp"); void z.offsetWidth; z.classList.add("plopp"); }
-        else if (!c.d) { const p = plaetze[c.i]; p.dataset.s = c.s; p.classList.remove("ziel"); p.classList.add("plopp");
-          const br = buehne.getBoundingClientRect(), pr = p.getBoundingClientRect();
-          staub(pr.left - br.left + pr.width / 2, pr.top - br.top + pr.height / 2, c.s === 3 ? 26 : 12, c.s === 3 ? ["#fff3b8", "#f2c14e"] : c.s === 2 ? ["#e6f4ff", "#bfe3ff"] : ["#f0b07a", "#d58b4f"], 2.5);
-          alb.querySelector(".sm-alb-k i").textContent = [...plaetze].filter(x => +x.dataset.s > 0).length; }
-      }, flug);
-    }, 250 + k * tz));
-    setTimeout(() => {
-      alb.querySelector(".sm-alb-z").innerHTML = smZugText(zug);
-      phase = "sortiert"; const kn = q('[data-k="fertig"]'); kn.textContent = "Fertig"; kn.hidden = false;
-    }, 250 + zug.length * tz + flug + 300);
+    phase = "sortieren";
+    const m = smInit(), vor = (offen.vor || m.album).slice();
+    m.offen = null; save();
+    ov.remove(); document.body.classList.remove("spiel-laeuft");
+    smEinfliegen(zug, vor, () => { const neu = smGruppenPruefen(); smNeuBanner(neu); smHud(0); });
   };
   const tippen = () => { /* 9.92: goldener Krug – einmal tippen, Deckel hebt sich, Manna rieselt */
     if (phase !== "krug") return;
@@ -477,6 +444,57 @@ function smVerschmelzen(r, i, fertig) {
     fan.appendChild(el); el.animate([{ transform: "scale(.2)", opacity: 0 }, { transform: "scale(1.15)", opacity: 1, offset: .6 }, { transform: "scale(1)" }], { duration: rm ? 200 : 700, easing: "cubic-bezier(.2,1.4,.5,1)" });
     const ok = ov.querySelector('[data-k="ok"]'); ok.hidden = false; ok.onclick = () => { ov.remove(); fertig(); };
   }, rm ? 400 : 1650);
+}
+/* 9.97: Karten fliegen nacheinander an ihren Platz im echten Album; vorher zeigt das Album noch den alten Stand */
+let smFliegt = false;
+function smEinfliegen(zug, vor, fertig) {
+  const rm = smRm();
+  if (current !== "album") go("album"); else VIEWS.album();
+  smFliegt = true;
+  const platz = i => screen.querySelector(`.sm-raster .smk[data-i="${i}"]`);
+  zug.forEach(c => { const el = platz(c.i); if (el && !c.d) el.outerHTML = smKarteHtml(c.i, vor[c.i]); }); /* alter Stand */
+  const be = { 1: smBeutel(1), 2: smBeutel(2) }; zug.forEach(c => { if (c.d && c.s < SM_MAX) be[c.s] = Math.max(0, be[c.s] - 1); });
+  const beutelZeigen = r => { const b = screen.querySelector(`[data-tausch="${r}"]`); if (!b) return; const n = Math.min(be[r], SM_TAUSCH[r]);
+    b.querySelectorAll(".pk i").forEach((x, k) => x.classList.toggle("an", k < n)); const z = b.querySelector("b, .bz-n"); if (z && /^\d+$/.test(z.textContent.trim())) z.textContent = be[r]; };
+  [1, 2].forEach(beutelZeigen);
+  const schicht = document.createElement("div"); schicht.className = "sm-flug";
+  schicht.innerHTML = `<button class="btn ghost sm-flug-weg">Überspringen</button><p class="sm-flug-z"></p>`;
+  document.body.appendChild(schicht);
+  let ende = false, k = 0; zug = zug.slice().sort((a, b) => a.i - b.i); /* in Album-Reihenfolge, damit die Ansicht nicht springt */
+  const abschluss = () => {
+    if (ende) return; ende = true; smFliegt = false; schicht.remove();
+    go("album"); scrollTo({ top: 0, behavior: rm ? "auto" : "smooth" });
+    toast(`${SM_ALBUM_SVG}<div><b>Ins Album sortiert</b><div class="small muted">${smZugText(zug)}</div></div>`);
+    fertig && fertig();
+  };
+  schicht.querySelector(".sm-flug-weg").onclick = () => { SFX.tap(); abschluss(); };
+  const naechste = () => {
+    if (ende) return; if (k >= zug.length) return setTimeout(abschluss, rm ? 200 : 700);
+    const c = zug[k++], ziel = c.d && c.s < SM_MAX ? screen.querySelector(`[data-tausch="${c.s}"]`) : platz(c.i);
+    schicht.querySelector(".sm-flug-z").innerHTML = `${k} / ${zug.length} · <b>${esc(ALL[c.i].b)}</b> ${c.d ? "doppelt → Tauschbeutel" : c.v ? `${SM_STUFE[c.v]} → ${SM_STUFE[c.s]}` : "neu"}`;
+    if (!ziel) return naechste();
+    ziel.scrollIntoView({ block: "center", behavior: rm ? "auto" : "smooth" });
+    setTimeout(() => {
+      if (ende) return;
+      const r = ziel.getBoundingClientRect(), fl = document.createElement("div");
+      const w = c.d ? Math.min(70, r.width) : r.width, h = c.d ? w * 94 / 66 : r.height;
+      fl.className = "sm-flieger"; fl.innerHTML = smKarteHtml(c.i, c.s);
+      Object.assign(fl.style, { left: r.left + r.width / 2 - w / 2 + "px", top: r.top + r.height / 2 - h / 2 + "px", width: w + "px", height: h + "px" });
+      schicht.appendChild(fl);
+      const dx = innerWidth / 2 - (r.left + r.width / 2), dy = innerHeight / 2 - (r.top + r.height / 2), gr = Math.min(2.4, 150 / w);
+      const fertigK = () => {
+        fl.remove(); smKlang("flip");
+        if (c.d && c.s < SM_MAX) { be[c.s]++; beutelZeigen(c.s); ziel.classList.remove("sm-plopp"); void ziel.offsetWidth; ziel.classList.add("sm-plopp"); }
+        else { const neu = document.createElement("span"); neu.innerHTML = smKarteHtml(c.i, c.s); const el = neu.firstElementChild; el.classList.add("sm-plopp", "sm-neu-da"); ziel.replaceWith(el);
+          if (c.s === 3) smKlang("gold"); else if (c.s === 2) smKlang("silber"); }
+        setTimeout(naechste, rm ? 80 : 380);
+      };
+      if (rm) return fertigK();
+      fl.animate([{ transform: `translate(${dx}px,${dy}px) scale(${gr}) rotate(-6deg)`, opacity: 0 }, { transform: `translate(${dx}px,${dy}px) scale(${gr})`, opacity: 1, offset: .25 },
+        { transform: "translate(0,0) scale(1) rotate(0)", opacity: 1 }], { duration: 1050, easing: "cubic-bezier(.45,0,.25,1)" }).onfinish = fertigK;
+    }, rm ? 30 : 520);
+  };
+  setTimeout(naechste, rm ? 50 : 350);
 }
 function smNeuBanner(neu) {
   (neu || []).forEach((x, k) => setTimeout(() => { try { SFX.badge(); toast(`<b>${esc(GROUPS[x.gi].name)} komplett in ${SM_STUFE[x.s]}!</b> ${BETA ? "(Beta: " + SM_GRUPPEN_LOHN[x.s] + " Talente nur zum Test, nicht gutgeschrieben)" : "+" + SM_GRUPPEN_LOHN[x.s] + " Talente"}`); } catch (e) {} }, 600 + k * 2800));
