@@ -148,6 +148,11 @@ function sammelNachXp(n, quelle, info, vorher, nachher) {
   if (nachher > vorher) g += 3 * (nachher - vorher);
   if (g) smGoldGeben(g);
 }
+/* 9.89: Duell-Herausforderung gesendet: +1 Öl, egal ob der andere annimmt (nicht gegen Spieler vom eigenen Gerät) */
+function smHerausforderung(ziele) {
+  if (!(ziele || []).some(z => !(typeof eigenePid === "function" && eigenePid(z.id)))) return;
+  const x = smGoldGeben(1); if (x) setTimeout(() => toast(`Herausforderung gesendet: +${x} Öl`), 1200);
+}
 /* ---------- Kopfleiste: Öl (bis 9.85 Goldstaub) unter den Talenten ---------- */
 const SM_GOLD_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="olG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0b0"/><stop offset=".5" stop-color="#f4bd3c"/><stop offset="1" stop-color="#b8740f"/></linearGradient></defs><path d="M12 2.4c3.3 4.5 6.6 8.4 6.6 12.2a6.6 6.6 0 0 1-13.2 0c0-3.8 3.3-7.7 6.6-12.2z" fill="url(#olG)" stroke="#5a3a08" stroke-width="1.2" stroke-linejoin="round"/><path d="M8.8 14.4a3.4 3.4 0 0 0 2.3 3.6" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity=".9"/></svg>`;
 const SM_ALBUM_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="smAlbG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a9bff"/><stop offset="1" stop-color="#1d4bb0"/></linearGradient></defs><rect x="4.5" y="2.2" width="16" height="19.6" rx="2" fill="#fff4d6" stroke="#1b2a55" stroke-width="1.1"/><rect x="3.2" y="1.6" width="15.8" height="19.8" rx="2.2" fill="url(#smAlbG)" stroke="#f2c14e" stroke-width="1.5"/><path d="M5.2 1.8v19.4" stroke="#13306f" stroke-width="1.6"/><circle cx="12" cy="11.4" r="5" fill="#13306f" stroke="#f2c14e" stroke-width="1.2"/><text x="12" y="13.7" text-anchor="middle" font-size="6.4" font-weight="900" font-family="Lexend, Arial, sans-serif" fill="#f2c14e">66</text></svg>`;
@@ -255,7 +260,7 @@ VIEWS.album = () => {
     ${smBeutelHtml()}
     <p class="sm-hinw sm-wahl" id="smWahl" hidden></p>
     ${gruppen}
-    <div class="sm-fuss"><button class="btn" id="smTeilen">${SM_ALBUM_SVG} Mein Album teilen</button><p class="small muted">Öl gibt es für jede beendete Runde (+1 bei guter Runde), jede Schatztruhe (4), Biblionär der Woche (2) und jeden Level-Aufstieg (3). Sparen ohne Grenze – öffnen kannst du bis zu ${SM_KRUG_TAG} Krüge am Tag. Jede ${SM_TRUHEN_GESCHENK}. Schatztruhe bringt einen Geschenk-Krug. Seltenheit: Bronze 60 %, Silber 28 %, Gold 10 %, Glanz 2 %.</p></div>`;
+    <div class="sm-fuss"><button class="btn" id="smTeilen">${SM_ALBUM_SVG} Mein Album teilen</button><p class="small muted">Öl gibt es für jede beendete Runde ab 30 Sekunden (+1 bei guter Runde), jede Duell-Herausforderung (1), jede Schatztruhe (4), Biblionär der Woche (2) und jeden Level-Aufstieg (3). Sparen ohne Grenze – öffnen kannst du bis zu ${SM_KRUG_TAG} Krüge am Tag. Jede ${SM_TRUHEN_GESCHENK}. Schatztruhe bringt einen Geschenk-Krug. Seltenheit: Bronze 60 %, Silber 28 %, Gold 10 %, Glanz 2 %.</p></div>`;
   { const med = screen.querySelector(".bk-med"); if (med) med.innerHTML = SM_ALBUM_SVG; } /* 9.88: Album-Buch mit „66“ */
   wireGo();
   const kk = $("smKrugKn"); if (kk) kk.onclick = () => { if (kk.classList.contains("aus")) { SFX.tap(); return; } SFX.tap(); const o = smKrugKaufen(); if (o) smKrugBuehne(o, false); };
@@ -497,7 +502,7 @@ function smAnkuendigen() {
   }, 1500);
 }
 const SM_TOUR = [
-  { sel: ".sm-kasse", t: "Öl", x: "Bekommst du für jede Runde, gute Runden, Schatztruhen und Level-Aufstiege. Spare so viel du willst – öffnen kannst du 3 Krüge am Tag." },
+  { sel: ".sm-kasse", t: "Öl", x: "Bekommst du für jede Runde, gute Runden, Duell-Herausforderungen, Schatztruhen und Level-Aufstiege. Spare so viel du willst – öffnen kannst du 3 Krüge am Tag." },
   { sel: "#smKrugKn", t: "Krüge", x: "Ein Krug kostet 10 Öl und enthält 5 Karten. Bis zu 3 Krüge am Tag. Jede 7. Schatztruhe schenkt dir einen Krug – dein erster wartet schon." },
   { sel: ".sm-beutel", t: "Tauschbeutel", x: "Doppelte Karten landen hier. 3 Bronze → 1 Silber, 4 Silber → 1 Gold, 5 Gold → 1 Glanz. Welche Karte aufsteigt, wählst du selbst." }
 ];

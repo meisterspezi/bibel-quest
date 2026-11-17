@@ -1217,6 +1217,12 @@ async function xqStartPruefung() {
   const fehlt = !srv || !srv.q || Object.entries(S.xq.q).some(([k, v]) => (+v || 0) > ((srv.q[k]) | 0));
   if (fehlt) await xqAbgleichMitMeldung("beim Start");
 }
+/* 9.89: Runde ohne XP (z. B. 0 richtig oder gekürzte Wiederholung) bringt trotzdem Öl fürs Sammelalbum */
+function xpOderOel(n, el, quelle, info) {
+  if (n) return addXp(n, el, quelle, info);
+  if (gesperrt) return;
+  try { if (typeof sammelNachXp === "function") { sammelNachXp(0, quelle, info, 0, 0); renderHud(); } } catch (e) {}
+}
 function addXp(n, el, quelle, info) {
   if (gesperrt) return;
   neuerTag(); serieZaehlen(); tagMerken();
@@ -2217,7 +2223,7 @@ VIEWS.gap = (arg) => {
       <button class="btn primary" id="again">Nochmal</button><button class="btn ghost" data-go="${alle ? heimAnsicht("spielen") : "lied"}">Zurück</button><button class="btn fertig" data-go="home">Fertig</button></div>`;
     wireGo(); wireSing(); $("again").onclick = () => { SFX.tap(); vorlesenStop(); VIEWS.gap(arg); };
     SFX.win(); if (perfekt) rain(80);
-    if (xp) addXp(xp, null, "luecke", { t0, f: luecken.length - Math.min(fehler, luecken.length), fm: luecken.length, d: `${alle ? "Ganzes Lied" : "Strophe " + (strophen[0] + 1)} · ${fehler} Fehler${W.d}` }); save(); checkBadges();
+    xpOderOel(xp, null, "luecke", { t0, f: luecken.length - Math.min(fehler, luecken.length), fm: luecken.length, d: `${alle ? "Ganzes Lied" : "Strophe " + (strophen[0] + 1)} · ${fehler} Fehler${W.d}` }); save(); checkBadges();
   };
   render();
 };
@@ -2349,7 +2355,7 @@ function playBlitz(scope) {
       <button class="btn primary" id="again">Nochmal</button><button class="btn ghost" data-go="${heimAnsicht("spielen")}">Zurück</button><button class="btn fertig" data-go="home">Fertig</button></div>`; wireGo(); wireSing();
     $("again").onclick = () => { SFX.tap(); vorlesenStop(); VIEWS.blitz(); };
     if (right > 0) { SFX.win(); if (rec) rain(90); }
-    if (xp) addXp(xp, null, "blitz", { t0, f: right, fm: right + wrong, d: `${scope === "all" ? "Ganze Bibel" : scope} · ${wrong} Fehler · ${maxCombo} in Folge${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
+    xpOderOel(xp, null, "blitz", { t0, f: right, fm: right + wrong, d: `${scope === "all" ? "Ganze Bibel" : scope} · ${wrong} Fehler · ${maxCombo} in Folge${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
   }
 }
 
@@ -2419,7 +2425,7 @@ function playChain(mode) {
       <button class="btn primary" id="cagain">Nochmal</button><button class="btn ghost" data-go="${heimAnsicht("spielen")}">Andere Kette</button><button class="btn fertig" data-go="home">Fertig</button></div>`; wireGo(); wireSing();
     $("cagain").onclick = () => { SFX.tap(); vorlesenStop(); countdown(() => playChain(mode), cdSolo("kette-" + mode)); };
     if (full) { SFX.level(); rain(200); } else if (rec) SFX.win();
-    if (xp) addXp(xp, null, "kette", { t0, f: Math.max(0, i), fm: seq.length - 1, d: `${K.name}${full ? " · komplett" : " · gerissen"}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
+    xpOderOel(xp, null, "kette", { t0, f: Math.max(0, i), fm: seq.length - 1, d: `${K.name}${full ? " · komplett" : " · gerissen"}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
   }
 }
 
@@ -2524,7 +2530,7 @@ function playThemenKette(id) {
       ${tkErgebnis(id, i, full)}</div>`; wireGo();
     $("cagain").onclick = () => { SFX.tap(); countdown(() => playThemenKette(id), cdSolo("kette-" + id)); };
     if (full) { SFX.level(); rain(200); } else if (rec) SFX.win();
-    if (xp) addXp(xp, null, "kette", { t0, f: Math.max(0, i), fm: seq.length - 1, d: `${K.name}${full ? " · komplett" : " · gerissen"}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
+    xpOderOel(xp, null, "kette", { t0, f: Math.max(0, i), fm: seq.length - 1, d: `${K.name}${full ? " · komplett" : " · gerissen"}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
   }
 }
 
@@ -4484,6 +4490,7 @@ async function duEnde() {
         const f = D.gleichEinzel ? D.gleichEinzel[g.id] : 1; if (f < 1 && D.id) { S.duKurz = Object.assign({}, S.duKurz || {}); S.duKurz[D.id] = f; const ks = Object.keys(S.duKurz); while (ks.length > 60) delete S.duKurz[ks.shift()]; save(); } }
       D.gesendet = true;
       angekommen();
+      try { if (!D.oelHf && typeof smHerausforderung === "function") { D.oelHf = true; smHerausforderung(ziele); } } catch (e) {} /* 9.89: +1 Öl je Herausforderung */
       titel = viele ? `${ziele.length} Herausforderungen gesendet!` : "Herausforderung gesendet!";
       zeile = viele ? `${esc(duNamenText(ziele))} bekommen dieselben Fragen und haben ${DU_TAGE} Tage Zeit. Jedes Duell wird einzeln gewertet.`
         : `${esc(D.gegner)} bekommt dieselben Fragen und hat ${DU_TAGE} Tage Zeit. Du siehst das Ergebnis hier und auf der Startseite.`;
@@ -4819,7 +4826,7 @@ function bibEnde(G, punkte) {
   if ($("bibNochmal")) $("bibNochmal").onclick = () => { SFX.tap(); bibSolo(G.ed); };
   if ($("bibRang")) $("bibRang").onclick = () => { SFX.tap(); go("rank", "bibWoche"); };
   SFX.win(); if (million) rain(140); else if (punkte >= 16000) rain(60);
-  setTimeout(() => { if (xp) addXp(xp, null, "bib", { t0: G.t0, f: G.r, fm: 15, d: `${woche ? "Wochenrunde" : adv ? `${edAdj(G.ed)}-Woche` : G.ed ? `${edAdj(G.ed)}-Solo` : "Solo"} · ${pkt(punkte)} Punkte${W ? W.d : ""}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350);
+  setTimeout(() => { xpOderOel(xp, null, "bib", { t0: G.t0, f: G.r, fm: 15, d: `${woche ? "Wochenrunde" : adv ? `${edAdj(G.ed)}-Woche` : G.ed ? `${edAdj(G.ed)}-Solo` : "Solo"} · ${pkt(punkte)} Punkte${W ? W.d : ""}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350);
 }
 /* Solo-Übung (Spielen): zufällige Fragen */
 VIEWS.biblionaer = () => { screen.innerHTML = ""; };
