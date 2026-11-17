@@ -148,9 +148,8 @@ function sammelNachXp(n, quelle, info, vorher, nachher) {
   if (nachher > vorher) g += 3 * (nachher - vorher);
   if (g) smGoldGeben(g);
 }
-/* 9.89: Duell-Herausforderung gesendet: +1 Öl, egal ob der andere annimmt (nicht gegen Spieler vom eigenen Gerät) */
+/* 9.89/9.91: Duell-Herausforderung gesendet: +1 Öl, egal ob der andere annimmt – auch an Spieler vom eigenen Gerät */
 function smHerausforderung(ziele) {
-  if (!(ziele || []).some(z => !(typeof eigenePid === "function" && eigenePid(z.id)))) return;
   const x = smGoldGeben(1); if (x) setTimeout(() => toast(`Herausforderung gesendet: +${x} Öl`), 1200);
 }
 /* ---------- Kopfleiste: Öl (bis 9.85 Goldstaub) unter den Talenten ---------- */
