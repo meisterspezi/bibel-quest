@@ -3066,28 +3066,33 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .tl-reihe .btn{flex:1 1 auto;min-width:0;padding:8px 10px;font-size:.82rem}
 .tl-reihe .btn.tl-k{flex:1 1 30%}
 
-/* 9.95: Sammelkarten als Kirchenfenster – das Motiv wächst mit der Stufe */
-.smk-fenster{position:relative;display:block;width:82%;aspect-ratio:1/1.02;margin:7% auto 4%;border-radius:50% 50% 8% 8%/38% 38% 8% 8%;overflow:hidden;
-  background:linear-gradient(135deg,color-mix(in srgb,var(--gl) 55%,#1d4bb0) 0 25%,color-mix(in srgb,var(--gl) 30%,#2c5fd0) 25% 50%,color-mix(in srgb,var(--gl) 45%,#1d4bb0) 50% 75%,color-mix(in srgb,var(--gl) 25%,#2c5fd0) 75%);
-  border:2px solid #0b0e22;box-shadow:inset 0 0 0 1.5px #f2c14e55,inset 0 0 12px #fff3}
-.smk-fenster svg{display:block;width:100%;height:100%}
-.smk-fenster .m1{fill:var(--gl);stroke:#0b0e22;stroke-width:2.4;stroke-linejoin:round}
-.smk-fenster .m2{fill:color-mix(in srgb,var(--gl) 45%,#fff);stroke:#0b0e22;stroke-width:2.2;stroke-linejoin:round}
-.smk-fenster .m3{fill:#ffe48a;stroke:#0b0e22;stroke-width:1.8;stroke-linejoin:round}
-.smk-fenster .s{fill:none;stroke:#0b0e22;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-.smk .smk-nm{margin-top:0}
-.smk-in{filter:none}
-/* Bronze: gedämpftes Glas */
-.smk[data-s="1"] .smk-fenster{filter:saturate(.45) brightness(.82)}
-/* Silber: klares Glas mit Lichtkranz */
-.smk[data-s="2"] .smk-fenster{box-shadow:inset 0 0 0 1.5px #ffffffaa,inset 0 0 14px #fff6,0 0 8px #bfe3ff88}
-/* Gold: leuchtendes Glas, Goldrand, Glanz und Funkeln */
-.smk[data-s="3"] .smk-fenster{filter:saturate(1.15) brightness(1.08);border-color:#f2c14e;box-shadow:inset 0 0 0 1.5px #fff6c8,inset 0 0 16px #fff8,0 0 12px #f2c14ecc}
-.smk[data-s="3"] .smk-fenster::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,#fff8 45%,transparent 60%) 0 0/250% 100%;mix-blend-mode:screen;animation:smGlanzLicht 3.2s ease-in-out infinite;pointer-events:none}
-.smk[data-s="3"] .smk-fenster::before{content:"✦";position:absolute;right:8%;top:10%;z-index:1;color:#fff;font-size:22cqw;line-height:1;text-shadow:0 0 6px #fff,0 0 12px #f2c14e;animation:smFunkel 2.4s ease-in-out infinite}
-@keyframes smGlanzLicht{0%,40%{background-position:120% 0}100%{background-position:-60% 0}}
-@keyframes smFunkel{0%,100%{opacity:0;transform:scale(.4) rotate(0)}50%{opacity:1;transform:scale(1) rotate(45deg)}}
-@media (prefers-reduced-motion:reduce){.smk[data-s="3"] .smk-fenster::after,.smk[data-s="3"] .smk-fenster::before{animation:none}}
+/* 9.96: Sammelkarten Stil 2 – Gruppenfarbe, Motiv im Metall der Stufe, Metall-Rahmen */
+.smk[data-s]{--met:#e3a26c;--met2:#a8683a}
+.smk[data-s="2"]{--met:#f2f7ff;--met2:#9fb4cc}
+.smk[data-s="3"]{--met:#ffe27a;--met2:#c98a12}
+.smk:not(.grau) .smk-in{isolation:isolate;filter:none;background:linear-gradient(170deg,color-mix(in srgb,var(--gl) 62%,#151b44),color-mix(in srgb,var(--gl) 28%,#0e1230));border:2.5px solid #9a5f36;box-shadow:0 4px 10px #0007}
+.smk[data-s="1"] .smk-in{filter:saturate(.8)}
+.smk[data-s="2"] .smk-in{border-color:transparent;background:linear-gradient(170deg,color-mix(in srgb,var(--gl) 62%,#151b44),color-mix(in srgb,var(--gl) 28%,#0e1230)) padding-box,linear-gradient(135deg,#fff,#9fb4cc 30%,#f2f7ff 50%,#7f93ab 70%,#fff) border-box;box-shadow:0 0 10px #cfe0f088,0 4px 10px #0007}
+.smk[data-s="3"] .smk-in{border:3px solid transparent;background:linear-gradient(170deg,color-mix(in srgb,var(--gl) 62%,#151b44),color-mix(in srgb,var(--gl) 28%,#0e1230)) padding-box,linear-gradient(135deg,#fff3b0,#d49a1e 25%,#ffe27a 45%,#a8700f 65%,#fff3b0 85%,#d49a1e) border-box;box-shadow:0 0 12px #f2c14eaa,0 4px 10px #0007}
+.smk-bild{position:relative;z-index:1;display:block;width:76%;aspect-ratio:1;margin:8% auto 3%;background:radial-gradient(circle,#ffffff26 0,transparent 62%)}
+.smk-bild svg{display:block;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 1px 1.5px #000b)}
+.smk-bild .m1{fill:color-mix(in srgb,var(--met) 18%,transparent);stroke:var(--met);stroke-width:2.3;stroke-linejoin:round}
+.smk-bild .m2{fill:color-mix(in srgb,var(--met) 40%,transparent);stroke:var(--met);stroke-width:1.7;stroke-linejoin:round}
+.smk-bild .m3{fill:color-mix(in srgb,var(--met) 55%,transparent);stroke:var(--met);stroke-width:1.6;stroke-linejoin:round}
+.smk-bild .s{fill:none;stroke:var(--met);stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}
+.smk[data-s="1"] .smk-bild svg{opacity:.88}
+.smk[data-s="2"] .smk-bild svg{filter:drop-shadow(0 1px 1.5px #000b) drop-shadow(0 0 2px #ffffff99)}
+.smk[data-s="3"] .smk-bild svg{filter:drop-shadow(0 1px 1.5px #000c) drop-shadow(0 0 2px #ffd95c99)}
+.smk .smk-nm,.smk .smk-gr,.smk .smk-st{position:relative;z-index:1}
+.smk:not(.grau) .smk-gr{color:#fff;opacity:.85}
+.smk:not(.grau) .smk-st{background:linear-gradient(180deg,var(--met),var(--met2));color:#1b2a55}
+.smk-glanz{position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(115deg,transparent 35%,#ffffff66 47%,transparent 58%) 0 0/250% 100%;opacity:.55;animation:smkGlanz 4.5s ease-in-out infinite}
+.smk[data-s="3"] .smk-glanz{opacity:.6;background-image:linear-gradient(115deg,transparent 35%,#fff6c8a0 47%,transparent 58%);animation-duration:3.2s}
+.smk-fk{position:absolute;z-index:3;pointer-events:none;color:#fff;font-size:14cqw;line-height:1;text-shadow:0 0 5px #fff,0 0 9px var(--met);animation:smkFunkel 2.4s ease-in-out infinite}
+.smk-fk.f1{right:9%;top:7%}.smk-fk.f2{left:9%;top:32%;font-size:10cqw;animation-delay:.8s}.smk-fk.f3{right:13%;top:52%;font-size:11cqw;animation-delay:1.6s}
+@keyframes smkGlanz{0%,35%{background-position:130% 0}100%{background-position:-60% 0}}
+@keyframes smkFunkel{0%,100%{opacity:0;transform:scale(.3) rotate(0)}50%{opacity:1;transform:scale(1) rotate(45deg)}}
+@media (prefers-reduced-motion:reduce){.smk-glanz,.smk-fk{animation:none}.smk-fk{opacity:.8}}
 </style>
 </head>
 <body>

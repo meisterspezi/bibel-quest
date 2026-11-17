@@ -242,13 +242,16 @@ function smGruppenPruefen() {
 
 /* ---------- Karten-HTML ---------- */
 const SM_BUCH = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4.5C6.5 3.6 9.5 3.6 12 5c2.5-1.4 5.5-1.4 8-.5V19c-2.5-.9-5.5-.9-8 .5-2.5-1.4-5.5-1.4-8-.5z" fill="#fff8e0" stroke="#1b2a55" stroke-width="1.3" stroke-linejoin="round"/><path d="M12 5v14.5" stroke="#1b2a55" stroke-width="1.3"/></svg>`;
-/* 9.95: Kirchenfenster je Buch (karten-motive.js), Glasfarbe je Gruppe */
-const SM_GLAS = ["#e0894a", "#d24a3a", "#5cc94a", "#a77cf0", "#d07ad8", "#4aa8f0", "#e8608a", "#2fc4a8"];
-const smFenster = i => typeof KARTEN_MOTIV !== "undefined" && KARTEN_MOTIV[i] ? `<span class="smk-fenster" aria-hidden="true"><svg viewBox="0 0 64 64">${KARTEN_MOTIV[i]}</svg></span>` : `<span class="smk-band">${SM_BUCH}</span>`;
+/* 9.96: Stil 2 – Karte in der Gruppenfarbe, Motiv als Linienzeichnung im Metall der Stufe (karten-motive.js);
+   Silber: Silberrahmen + Lichtschein, Gold: Goldrahmen + Lichtschein + Funkeln (Motiv nur leicht leuchtend, damit es erkennbar bleibt) */
+const SM_GLAS = ["#ff9a52", "#ff5f4f", "#6fe05a", "#b48cff", "#e88cf0", "#5cb8ff", "#ff7fa8", "#3fdcc0"];
+const smFenster = (i, s) => typeof KARTEN_MOTIV !== "undefined" && KARTEN_MOTIV[i]
+  ? `<span class="smk-bild" aria-hidden="true"><svg viewBox="0 0 64 64">${KARTEN_MOTIV[i]}</svg></span>${s >= 2 ? `<span class="smk-glanz" aria-hidden="true"></span>` : ""}${s >= 3 ? `<span class="smk-fk f1" aria-hidden="true">✦</span><span class="smk-fk f2" aria-hidden="true">✦</span><span class="smk-fk f3" aria-hidden="true">✦</span>` : s === 2 ? `<span class="smk-fk f1" aria-hidden="true">✧</span>` : ""}`
+  : `<span class="smk-band">${SM_BUCH}</span>`;
 function smKarteHtml(i, s, extra) {
   const b = ALL[i], lang = b.b.length > 9 ? " lang" : "";
   if (!s) return `<span class="smk grau" data-i="${i}"><span class="smk-in"><span class="smk-fr">?</span><span class="smk-nm${lang}">${esc(b.b)}</span></span></span>`;
-  return `<span class="smk" data-i="${i}" data-s="${s}" style="--rc:${SM_RC[s]};--gc:${smGc(i)};--gl:${SM_GLAS[b.gi] || "#7fc8ff"}"><span class="smk-in">${smFenster(i)}${extra || ""}<span class="smk-nm${lang}">${esc(b.b)}</span><span class="smk-gr">${esc(GROUPS[b.gi].name)}</span><span class="smk-st">${SM_STUFE[s]}</span></span></span>`;
+  return `<span class="smk" data-i="${i}" data-s="${s}" style="--rc:${SM_RC[s]};--gc:${smGc(i)};--gl:${SM_GLAS[b.gi] || "#7fc8ff"}"><span class="smk-in">${smFenster(i, s)}${extra || ""}<span class="smk-nm${lang}">${esc(b.b)}</span><span class="smk-gr">${esc(GROUPS[b.gi].name)}</span><span class="smk-st">${SM_STUFE[s]}</span></span></span>`;
 }
 
 /* ---------- Ansicht: Sammelalbum ---------- */
