@@ -476,25 +476,36 @@ function smEinfliegen(zug, vor, fertig) {
     schicht.querySelector(".sm-flug-z").innerHTML = `${k} / ${zug.length} · <b>${esc(ALL[c.i].b)}</b> ${c.d ? "doppelt → Tauschbeutel" : c.v ? `${SM_STUFE[c.v]} → ${SM_STUFE[c.s]}` : "neu"}`;
     if (!ziel) return naechste();
     ziel.scrollIntoView({ block: "center", behavior: rm ? "auto" : "smooth" });
-    setTimeout(() => {
+    /* 9.99: erst fliegen, wenn das Scrollen wirklich steht; Ziel in jedem Bild neu messen → landet genau einmal exakt auf dem Platz */
+    const scrollFertig = cb => { let y = scrollY, ruhig = 0, n = 0; const t = () => { if (ende) return; n++; if (Math.abs(scrollY - y) < .5) ruhig++; else ruhig = 0; y = scrollY; if (ruhig >= 4 || n > 90) cb(); else requestAnimationFrame(t); }; requestAnimationFrame(t); };
+    scrollFertig(() => {
       if (ende) return;
-      const r = ziel.getBoundingClientRect(), fl = document.createElement("div");
-      const w = c.d ? Math.min(70, r.width) : r.width, h = c.d ? w * 94 / 66 : r.height;
-      fl.className = "sm-flieger"; fl.innerHTML = smKarteHtml(c.i, c.s);
-      Object.assign(fl.style, { left: r.left + r.width / 2 - w / 2 + "px", top: r.top + r.height / 2 - h / 2 + "px", width: w + "px", height: h + "px" });
+      const zielEl = () => c.d && c.s < SM_MAX ? screen.querySelector(`[data-tausch="${c.s}"]`) : platz(c.i);
+      const r0 = zielEl().getBoundingClientRect(), w = c.d && c.s < SM_MAX ? Math.min(70, r0.width) : r0.width, h = c.d && c.s < SM_MAX ? w * 94 / 66 : r0.height;
+      const fl = document.createElement("div"); fl.className = "sm-flieger"; fl.innerHTML = smKarteHtml(c.i, c.s);
+      Object.assign(fl.style, { width: w + "px", height: h + "px", left: "0px", top: "0px" });
       schicht.appendChild(fl);
-      const dx = innerWidth / 2 - (r.left + r.width / 2), dy = innerHeight / 2 - (r.top + r.height / 2), gr = Math.min(2.4, 150 / w);
-      const fertigK = () => {
-        fl.remove(); smKlang("flip");
-        if (c.d && c.s < SM_MAX) { be[c.s]++; beutelZeigen(c.s); ziel.classList.remove("sm-plopp"); void ziel.offsetWidth; ziel.classList.add("sm-plopp"); }
-        else { const neu = document.createElement("span"); neu.innerHTML = smKarteHtml(c.i, c.s); const el = neu.firstElementChild; el.classList.add("sm-plopp", "sm-neu-da"); ziel.replaceWith(el);
+      const gr = Math.min(2.4, 150 / w), dauer = rm ? 0 : 950, t0 = performance.now(), ease = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+      const landen = () => {
+        const z = zielEl(); smKlang("flip");
+        if (c.d && c.s < SM_MAX) { be[c.s]++; beutelZeigen(c.s); if (z) { z.classList.remove("sm-plopp"); void z.offsetWidth; z.classList.add("sm-plopp"); } fl.remove(); }
+        else if (z) { const tmp = document.createElement("span"); tmp.innerHTML = smKarteHtml(c.i, c.s); const el = tmp.firstElementChild; el.classList.add("sm-gelandet");
+          z.replaceWith(el); fl.remove(); /* erst austauschen, dann Flieger weg – kein Flackern, kein zweites Einsetzen */
           if (c.s === 3) smKlang("gold"); else if (c.s === 2) smKlang("silber"); }
-        setTimeout(naechste, rm ? 80 : 380);
+        else fl.remove();
+        setTimeout(naechste, rm ? 80 : 420);
       };
-      if (rm) return fertigK();
-      fl.animate([{ transform: `translate(${dx}px,${dy}px) scale(${gr}) rotate(-6deg)`, opacity: 0 }, { transform: `translate(${dx}px,${dy}px) scale(${gr})`, opacity: 1, offset: .25 },
-        { transform: "translate(0,0) scale(1) rotate(0)", opacity: 1 }], { duration: 1050, easing: "cubic-bezier(.45,0,.25,1)" }).onfinish = fertigK;
-    }, rm ? 30 : 520);
+      const bild = jetzt => {
+        if (ende) { fl.remove(); return; }
+        const z = zielEl(); if (!z) { fl.remove(); return naechste(); }
+        const r = z.getBoundingClientRect(), zx = r.left + r.width / 2 - w / 2, zy = r.top + r.height / 2 - h / 2;
+        const p = dauer ? Math.min(1, (jetzt - t0) / dauer) : 1, e = ease(p), sx = innerWidth / 2 - w / 2, sy = innerHeight / 2 - h / 2;
+        const x = sx + (zx - sx) * e, y = sy + (zy - sy) * e, sc = gr + (1 - gr) * e, rot = -6 * (1 - e);
+        fl.style.transform = `translate(${x}px,${y}px) scale(${sc}) rotate(${rot}deg)`; fl.style.opacity = Math.min(1, p * 5);
+        if (p < 1) requestAnimationFrame(bild); else landen();
+      };
+      requestAnimationFrame(bild);
+    });
   };
   setTimeout(naechste, rm ? 50 : 350);
 }
