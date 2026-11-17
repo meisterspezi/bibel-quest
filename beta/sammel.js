@@ -1,4 +1,4 @@
-/* Bibelbuch-Quest – 9.84/9.85: Sammelalbum (Goldstaub, Krüge, Tauschbeutel) und Jahresrückblick.
+/* Bibelbuch-Quest – 9.84–9.86: Sammelalbum (Öl – bis 9.85 „Goldstaub“ –, Krüge, Tauschbeutel) und Jahresrückblick.
    Lädt nach spiel.js. Alles liegt im Spielstand unter S.sm (keine Datenbank-Änderung):
    sm = { album:[66 Stufen 0–4], gv/ga: Goldstaub verdient/ausgegeben, gt/gn: Tag + heute verdient,
           be/ba: Tauschbeutel erhalten/ausgegeben je Stufe {1,2,3}, kz: Krüge insgesamt (Treue-Siegel), kt/kn: Tag + heute geöffnet,
@@ -122,7 +122,7 @@ function smMischen(r) {
   if (o.rb) Object.keys(o.rb).forEach(k => { if (m.rb[k] === undefined) m.rb[k] = o.rb[k]; });
 }
 
-/* ---------- Goldstaub ---------- */
+/* ---------- Öl (intern weiter „gold“: smGold, gv/ga) ---------- */
 function smGoldGeben(n) {
   const m = smInit(), t = today();
   if (m.gt !== t) { m.gt = t; m.gn = 0; }
@@ -148,16 +148,16 @@ function sammelNachXp(n, quelle, info, vorher, nachher) {
   if (nachher > vorher) g += 3 * (nachher - vorher);
   if (g) smGoldGeben(g);
 }
-/* ---------- Kopfleiste: Goldstaub + Album-Symbol ---------- */
-const SM_GOLD_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l1.9 5.2 5.4.4-4.2 3.4 1.4 5.3L12 14.9l-4.5 2.9 1.4-5.3-4.2-3.4 5.4-.4z" fill="#ffe27a" stroke="#8a5d10" stroke-width="1.1" stroke-linejoin="round"/><circle cx="19" cy="5" r="1.4" fill="#fff3b8"/><circle cx="5" cy="19" r="1.1" fill="#fff3b8"/><circle cx="20" cy="17" r=".9" fill="#ffe27a"/></svg>`;
+/* ---------- Kopfleiste: Öl (bis 9.85 Goldstaub) unter den Talenten ---------- */
+const SM_GOLD_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="olG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0b0"/><stop offset=".5" stop-color="#f4bd3c"/><stop offset="1" stop-color="#b8740f"/></linearGradient></defs><path d="M12 2.4c3.3 4.5 6.6 8.4 6.6 12.2a6.6 6.6 0 0 1-13.2 0c0-3.8 3.3-7.7 6.6-12.2z" fill="url(#olG)" stroke="#5a3a08" stroke-width="1.2" stroke-linejoin="round"/><path d="M8.8 14.4a3.4 3.4 0 0 0 2.3 3.6" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity=".9"/></svg>`;
 const SM_ALBUM_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 6c3-1.6 6.4-1.6 9.5.4v13c-3.1-2-6.5-2-9.5-.4z" fill="#d58b4f" stroke="#1b2a55" stroke-width="1.3" stroke-linejoin="round"/><path d="M21.5 6c-3-1.6-6.4-1.6-9.5.4v13c3.1-2 6.5-2 9.5-.4z" fill="#f2c14e" stroke="#1b2a55" stroke-width="1.3" stroke-linejoin="round"/><rect x="4.6" y="8.5" width="4.6" height="6" rx=".8" fill="#bfe3ff" stroke="#1b2a55" stroke-width=".9"/><rect x="14.8" y="8.5" width="4.6" height="6" rx=".8" fill="#ff9ee8" stroke="#1b2a55" stroke-width=".9"/></svg>`;
 const SM_KRUG_SVG = `<svg class="sm-kr-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 4h7l.6 2.5c3 1.8 4.4 5 4 9-.4 4-3 6.3-8.1 6.5-5.1-.2-7.7-2.5-8.1-6.5-.4-4 1-7.2 4-9z" fill="#c88a52" stroke="#2a160a" stroke-width="1.3" stroke-linejoin="round"/><rect x="7.6" y="2" width="8.8" height="3" rx="1" fill="#8a5a30" stroke="#2a160a" stroke-width="1.1"/><path d="M6.5 11.5c3.5 1 7.5 1 11 0" fill="none" stroke="#5e3216" stroke-width="1.1"/></svg>`;
 function smHud(neu) {
   const b = $("hGoldBtn"); if (!b) return;
-  $("hGold").textContent = smGold();
+  $("hGold").textContent = typeof hudZahl === "function" ? hudZahl(smGold()) : smGold(); b.title = smGold().toLocaleString("de-DE") + " Öl";
   const kann = smHeuteKruege() < SM_KRUG_TAG && (smGold() >= SM_KRUG_PREIS || smGeschenke() > 0);
   const p = $("tbKrug"); if (p) p.hidden = !kann;
-  if (neu > 0) { b.classList.remove("sm-plus"); void b.offsetWidth; b.classList.add("sm-plus"); try { const r = b.getBoundingClientRect(); floatText("+" + neu + " ✦", r.left + r.width / 2, r.top + r.height + 18); } catch (e) {} }
+  if (neu > 0) { b.classList.remove("sm-plus"); void b.offsetWidth; b.classList.add("sm-plus"); try { const r = b.getBoundingClientRect(); floatText("+" + neu + " Öl", r.left + r.width / 2, r.top + r.height + 18); } catch (e) {} }
 }
 /* Passt der Name nicht mehr neben die beiden Währungen, werden Laden- und Album-Symbol ausgeblendet (die Anzeigen bleiben antippbar).
    hudNameAnpassen (spiel.js) wird dafür umhüllt – so greift es auch, wenn die Schrift später nachlädt. */
@@ -174,9 +174,9 @@ try { document.fonts.ready.then(() => { try { smHudPlatz(); } catch (e) {} }); d
 [1500, 4000].forEach(ms => setTimeout(() => { try { smHudPlatz(); } catch (e) {} }, ms));
 (function smHudBauen() {
   const tal = $("hTalBtn"); if (!tal || $("hGoldBtn")) return;
-  const b = document.createElement("button"); b.className = "pill hud-gold"; b.id = "hGoldBtn"; b.setAttribute("aria-label", "Goldstaub – zum Sammelalbum");
-  b.innerHTML = `${SM_GOLD_SVG}<span id="hGold">0</span><span class="hud-album" aria-hidden="true">${SM_ALBUM_SVG}</span><span class="tb-punkt" id="tbKrug" hidden aria-label="Ein Krug kann geöffnet werden"></span>`;
-  tal.insertAdjacentElement("afterend", b);
+  const b = document.createElement("button"); b.className = "pill hud-gold"; b.id = "hGoldBtn"; b.setAttribute("aria-label", "Öl – zum Sammelalbum");
+  b.innerHTML = `${SM_GOLD_SVG}<span id="hGold">0</span><span class="tb-punkt" id="tbKrug" hidden aria-label="Ein Krug kann geöffnet werden"></span>`;
+  tal.insertAdjacentElement("afterend", b); /* 9.86: zwei getrennte Kapseln übereinander (#hKasse) */
   b.onclick = () => { SFX.tap(); go("album"); };
   smHud(0); setTimeout(() => { try { smHudPlatz(); } catch (e) {} }, 300);
 })();
@@ -244,18 +244,18 @@ VIEWS.album = () => {
   const truhe = `Schatztruhen: noch <b>${nochT}</b> bis zum nächsten Geschenk-Krug`;
   const treue = bisGold === 1 ? "Treue-Siegel: der nächste Krug hat <b>sicher eine Goldkarte</b>" : `Treue-Siegel: noch <b>${bisGold}</b> Krüge bis zur sicheren Goldkarte`;
   const knopf = art === "fertig" ? `<p class="sm-hinw">Alle 66 Karten in Glanz – dein Album ist vollendet!</p>`
-    : `<button class="sm-krug-kn${art === "gold" || art === "geschenk" ? "" : " aus"}" id="smKrugKn">${SM_KRUG_SVG}<span><b>${art === "geschenk" ? "Geschenk-Krug öffnen" : "Krug öffnen"}</b><small>${art === "geschenk" ? `${smGeschenke()} ${smGeschenke() === 1 ? "Geschenk" : "Geschenke"} bereit` : art === "tag" ? "Heute schon 3 Krüge – morgen wieder" : art === "arm" ? `Noch ${SM_KRUG_PREIS - gold} Goldstaub – spiel eine Runde!` : `5 Karten · ${SM_KRUG_PREIS} Goldstaub`}</small></span>${art === "gold" ? `<i class="sm-preis">${SM_GOLD_SVG}${SM_KRUG_PREIS}</i>` : ""}</button>`;
+    : `<button class="sm-krug-kn${art === "gold" || art === "geschenk" ? "" : " aus"}" id="smKrugKn">${SM_KRUG_SVG}<span><b>${art === "geschenk" ? "Geschenk-Krug öffnen" : "Krug öffnen"}</b><small>${art === "geschenk" ? `${smGeschenke()} ${smGeschenke() === 1 ? "Geschenk" : "Geschenke"} bereit` : art === "tag" ? "Heute schon 3 Krüge – morgen wieder" : art === "arm" ? `Noch ${SM_KRUG_PREIS - gold} Öl – spiel eine Runde!` : `5 Karten · ${SM_KRUG_PREIS} Öl`}</small></span>${art === "gold" ? `<i class="sm-preis">${SM_GOLD_SVG}${SM_KRUG_PREIS}</i>` : ""}</button>`;
   const gruppen = GROUPS.map((g, gi) => { const idx = ALL.map((b, i) => b.gi === gi ? i : -1).filter(i => i >= 0), n = idx.filter(i => m.album[i] > 0).length;
     return `<section class="sm-gruppe"><div class="sm-gk"><b>${esc(g.name)}</b><span>${n} / ${idx.length}</span></div><div class="sm-raster">${idx.map(i => smKarteHtml(i, m.album[i])).join("")}</div></section>`; }).join("");
   screen.innerHTML = `${bereichKopf("home", { ic: "book", t: "Sammelalbum", sub: `${smGefunden()} / 66 gefunden · ${smGlanz()} in Glanz` })}
-    <div class="sm-kasse"><span class="sm-gold">${SM_GOLD_SVG}<b>${gold}</b> Goldstaub</span><span class="sm-heute">Krüge heute ${heute}/${SM_KRUG_TAG}</span></div>
+    <div class="sm-kasse"><span class="sm-gold">${SM_GOLD_SVG}<b>${gold}</b> Öl</span><span class="sm-heute">Krüge heute ${heute}/${SM_KRUG_TAG}</span></div>
     ${knopf}
     <p class="sm-treue">${treue}<br>${truhe}</p>
     <div class="sm-bt"><b>Tauschbeutel</b><span>Doppelte Karten sammeln sich hier</span></div>
     ${smBeutelHtml()}
     <p class="sm-hinw sm-wahl" id="smWahl" hidden></p>
     ${gruppen}
-    <div class="sm-fuss"><button class="btn" id="smTeilen">${SM_ALBUM_SVG} Mein Album teilen</button><p class="small muted">Goldstaub gibt es für jede beendete Runde (+1 bei guter Runde), jede Schatztruhe (4), Biblionär der Woche (2) und jeden Level-Aufstieg (3). Ansparen ohne Grenze – öffnen kannst du bis zu ${SM_KRUG_TAG} Krüge am Tag. Jede ${SM_TRUHEN_GESCHENK}. Schatztruhe bringt einen Geschenk-Krug. Seltenheit: Bronze 60 %, Silber 28 %, Gold 10 %, Glanz 2 %.</p></div>`;
+    <div class="sm-fuss"><button class="btn" id="smTeilen">${SM_ALBUM_SVG} Mein Album teilen</button><p class="small muted">Öl gibt es für jede beendete Runde (+1 bei guter Runde), jede Schatztruhe (4), Biblionär der Woche (2) und jeden Level-Aufstieg (3). Sparen ohne Grenze – öffnen kannst du bis zu ${SM_KRUG_TAG} Krüge am Tag. Jede ${SM_TRUHEN_GESCHENK}. Schatztruhe bringt einen Geschenk-Krug. Seltenheit: Bronze 60 %, Silber 28 %, Gold 10 %, Glanz 2 %.</p></div>`;
   wireGo();
   const kk = $("smKrugKn"); if (kk) kk.onclick = () => { if (kk.classList.contains("aus")) { SFX.tap(); return; } SFX.tap(); const o = smKrugKaufen(); if (o) smKrugBuehne(o, false); };
   screen.querySelectorAll("[data-tausch]").forEach(b => b.onclick = () => smTauschStart(+b.dataset.tausch));
@@ -489,15 +489,15 @@ function smAnkuendigen() {
     m.ah = 1; save();
     const karten = [[0, 1], [18, 2], [42, 3]].map(([i, st]) => `<span class="sm-ank-k">${smKarteHtml(i, st)}</span>`).join("");
     modal(`<div class="rb-fenster sm-ank"><div class="sm-ank-f">${karten}</div><small class="sm-ank-neu">NEU</small><h2>Das Sammelalbum</h2>
-      <p>Sammle alle 66 Bibelbücher als Karten – von Bronze bis Glanz. Beim Spielen verdienst du <b>Goldstaub</b>, damit öffnest du Krüge mit je 5 Karten.</p>
+      <p>Sammle alle 66 Bibelbücher als Karten – von Bronze bis Glanz. Beim Spielen sammelst du <b>Öl</b>, damit öffnest du Krüge mit je 5 Karten.</p>
       <p class="sm-ank-g">${SM_KRUG_SVG}<span>Dein <b>erster Krug</b> ist ein Geschenk!</span></p>
       <button class="btn primary" data-close="los">Startkrug öffnen</button><button class="btn ghost" data-close="">Später</button></div>`,
       w => { if (w === "los") go("album"); }).dataset.frei = "1";
   }, 1500);
 }
 const SM_TOUR = [
-  { sel: ".sm-kasse", t: "Goldstaub", x: "Verdienst du mit jeder Runde, guten Runden, Schatztruhen und Level-Aufstiegen. Sammeln so viel du willst – öffnen kannst du 3 Krüge am Tag." },
-  { sel: "#smKrugKn", t: "Krüge", x: "Ein Krug kostet 10 Goldstaub und enthält 5 Karten. Bis zu 3 Krüge am Tag. Jede 7. Schatztruhe schenkt dir einen Krug – dein erster wartet schon." },
+  { sel: ".sm-kasse", t: "Öl", x: "Bekommst du für jede Runde, gute Runden, Schatztruhen und Level-Aufstiege. Spare so viel du willst – öffnen kannst du 3 Krüge am Tag." },
+  { sel: "#smKrugKn", t: "Krüge", x: "Ein Krug kostet 10 Öl und enthält 5 Karten. Bis zu 3 Krüge am Tag. Jede 7. Schatztruhe schenkt dir einen Krug – dein erster wartet schon." },
   { sel: ".sm-beutel", t: "Tauschbeutel", x: "Doppelte Karten landen hier. 3 Bronze → 1 Silber, 4 Silber → 1 Gold, 5 Gold → 1 Glanz. Welche Karte aufsteigt, wählst du selbst." }
 ];
 function smTour() {
@@ -547,13 +547,13 @@ VIEWS.rueckblick = () => {
     `<div class="rb-k"><small>Treue</small><div class="rb-gross"><b>${D.serie}</b><span>${D.serie === 1 ? "Tag" : "Tage"} in Folge</span></div><p>So lange war deine längste Serie. Dranbleiben lohnt sich – auch ${D.jahr + 1}!</p></div>`,
     `<div class="rb-k"><small>Dein Lieblingsbereich</small><div class="rb-ringw"><div class="rb-ring" style="background:${ring}"></div><span>${esc(D.lieb || "–")}</span></div><div class="rb-leg">${D.ber.map(([k, p]) => `<span style="--c:${RB_FARBE[k] || "#888"}"><i></i>${esc(k)} ${p} %</span>`).join("")}</div></div>`,
     `<div class="rb-k"><small>Deine Rekorde</small><div class="rb-zahlen"><span><b>${D.kette}</b>Bücher in der Kette</span><span><b>${D.blitz}</b>Blitz-Rekord</span><span><b>${pkt(D.bib)}</b>Biblionär-Punkte</span><span><b>${D.siege}</b>Duell-Siege von ${D.duelle}</span></div></div>`,
-    `<div class="rb-k"><small>Sammelalbum</small><div class="rb-gross"><b>${D.album}</b><span>von 66 Karten</span></div><p>${D.gold} Goldstaub liegen bereit – ${D.gold >= SM_KRUG_PREIS ? "genug für einen Krug!" : "spiel ein paar Runden für den nächsten Krug."}</p></div>`,
+    `<div class="rb-k"><small>Sammelalbum</small><div class="rb-gross"><b>${D.album}</b><span>von 66 Karten</span></div><p>${D.gold} Öl stehen bereit – ${D.gold >= SM_KRUG_PREIS ? "genug für einen Krug!" : "spiel ein paar Runden für den nächsten Krug."}</p></div>`,
     `<div class="rb-k"><small>Gemeinsam</small><div class="rb-gross"><b>${rbGemeinde ? pkt(rbGemeinde) : "…"}</b><span>XP haben alle zusammen gesammelt</span></div><p>Danke, dass du Teil davon bist!</p></div>`,
     `<div class="rb-k rb-vers"><small>Dein Vers für ${D.jahr + 1}</small><blockquote>${esc(D.vers[0])}</blockquote><cite>${esc(D.vers[1])}</cite></div>`,
     `<div class="rb-k rb-teil"><small>Teilen</small><h3>Zeig deinen Freunden dein Bibeljahr</h3>
       <div class="rb-vorschau" id="rbVorschau"><span class="muted small">Bild wird erstellt …</span></div>
       <p class="rb-link small">Mit dem Bild wird dieser Link geteilt:<br><b>${esc(smLink())}</b></p>
-      <button class="btn primary" id="rbTeilen">${svg("share") || ""} Teilen${m.rb.g === D.jahr ? "" : " · +5 Goldstaub"}</button></div>`
+      <button class="btn primary" id="rbTeilen">${svg("share") || ""} Teilen${m.rb.g === D.jahr ? "" : " · +5 Öl"}</button></div>`
   ];
   rbSeite = Math.max(0, Math.min(seiten.length - 1, rbSeite));
   screen.innerHTML = `<div class="rb"><div class="rb-balken">${seiten.map((_, k) => `<i class="${k <= rbSeite ? "an" : ""}"></i>`).join("")}</div>
@@ -591,7 +591,7 @@ async function rbTeilenSeite(D) {
   const v = $("rbVorschau"); if (v) { v.innerHTML = ""; cv.className = "rb-bild " + rbFormat; v.appendChild(cv); }
   $("rbTeilen").onclick = async () => { SFX.tap();
     const ok = await smTeilen(cv, `mein-bibeljahr-${D.jahr}.png`, `Mein Bibeljahr ${D.jahr} mit Bibelbuch-Quest: ${pkt(D.right)} richtige Antworten und schon ${D.buecher} von 66 Bibelbüchern gelernt! Lern mit und spiel gegen mich! 👇`);
-    if (ok && m.rb.g !== D.jahr) { m.rb.g = D.jahr; save(); const x = smGoldGeben(5); if (x) toast(`Danke fürs Teilen! +${x} Goldstaub`); } };
+    if (ok && m.rb.g !== D.jahr) { m.rb.g = D.jahr; save(); const x = smGoldGeben(5); if (x) toast(`Danke fürs Teilen! +${x} Öl`); } };
 }
 /* Start: Banner und einmaliges Fenster */
 (function rbStart() {

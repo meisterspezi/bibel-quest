@@ -3002,6 +3002,15 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 /* 9.86: Rückblick teilen – ein Knopf, Link sichtbar */
 .rb-link{margin:0;text-align:center;color:#c9d1ff;line-height:1.4;overflow-wrap:anywhere}
 .rb-link b{color:#7fc8ff;font-weight:700}
+
+/* 9.86: Kopfleiste – Talente und Öl als zwei getrennte Kapseln übereinander, zusammen nicht höher als das Spielersymbol */
+.hud .hud-kasse{display:flex;flex-direction:column;justify-content:center;gap:4px;height:50px}
+.hud .hud-kasse .pill.hud-tal,.hud .hud-kasse .pill.hud-gold{position:relative;min-height:0;height:23px;box-sizing:border-box;padding:0 9px 0 4px;gap:4px;justify-content:flex-start;
+  font-size:.86rem;line-height:1;font-weight:900;border-radius:999px;min-width:66px}
+.hud .hud-kasse .pill>svg{width:16px!important;height:16px!important;flex:none}
+.hud .hud-kasse .pill.hud-gold{border-color:#f2c14e66;background:linear-gradient(90deg,#2a2440,var(--surface))}
+.hud .hud-kasse .tb-punkt{position:absolute;top:-2px;right:-2px;left:auto;margin:0;width:8px;height:8px}
+.hud .hud-kasse .hud-shop,.hud .hud-kasse .hud-album{display:none}
 </style>
 </head>
 <body>
@@ -3062,7 +3071,7 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
       </span>
     </button>
     <div class="pills">
-      <button class="pill hud-tal" id="hTalBtn" aria-label="Talente – zum Laden"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tal"/></svg><span id="hTal">0</span><span class="hud-shop" id="hShop" aria-hidden="true"></span><span class="tb-punkt" id="tbTal" hidden aria-label="Im Laden ist etwas kaufbar"></span></button>
+      <div class="hud-kasse" id="hKasse"><button class="pill hud-tal" id="hTalBtn" aria-label="Talente – zum Laden"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tal"/></svg><span id="hTal">0</span><span class="tb-punkt" id="tbTal" hidden aria-label="Im Laden ist etwas kaufbar"></span></button></div>
       <button class="iconbtn pk-btn" id="pkBtn" hidden aria-label="Postkasten" onclick="go('postfach')"></button>
       <button class="iconbtn hud-ton" id="muteBtn" aria-label="Ton an oder aus"></button>
     </div>
