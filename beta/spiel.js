@@ -1525,11 +1525,11 @@ function rangVon(r) {
 const ruestStufe = id => Math.min(2, (S.ruestStufe || {})[id] | 0);
 /* 9.5: Veredeln aus dem Laden gestrichen – bereits erreichte Stufen bleiben sichtbar */
 const veredelPreis = id => { return 0; if (!S.owned.includes("ar-" + id)) return 0; const st = ruestStufe(id); return st >= 2 ? 0 : RUEST_VEREDEL_PREIS[id][st]; };
-/* 9.85: Glanz-Karten aus dem Sammelalbum neben dem Namen */
+/* 9.85/9.92: Goldkarten aus dem Sammelalbum neben dem Namen (Feld gl) */
 function glanzHtml(r) {
   const eigen = r && r.id === S.pid && typeof smGlanz === "function" ? smGlanz() : 0;
   const n = Math.min(66, Math.max(eigen, r && +r.gl > 0 ? r.gl | 0 : 0)); if (!n) return "";
-  return `<span class="rk-gl" title="${n} Glanz-Karten im Sammelalbum"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.6 7.4L22 12l-7.4 2.6L12 22l-2.6-7.4L2 12l7.4-2.6z" fill="#ff9ee8"/></svg>${n}</span>`;
+  return `<span class="rk-gl" title="${n} Goldkarten im Sammelalbum"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5" fill="#f2c14e" stroke="#7a4c0e" stroke-width="1.4"/><path d="M8.5 7.5h7" stroke="#fff6c8" stroke-width="1.6" stroke-linecap="round"/></svg>${n}</span>`; /* 9.92: Goldkarten */
 }
 function ruestungHtml(n, klein = true) {
   if (!n) return "";
