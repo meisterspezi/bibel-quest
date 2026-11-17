@@ -2822,6 +2822,11 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .bk-med.bild img{width:58px}
 .bk-t h1,.start-aufg .bk-t h1,.ar-titel h1{font-size:1.4rem}
 .bk-t span,.start-aufg .bk-aufg .bk-t span,.ar-titel span{font-size:.8rem}
+/* 9.82: Biblionär-Logo im Kopf leuchtet wie Arena und Solo – weicher Lichtschein in der Bereichsfarbe (--bk), atmet im Takt des Schwebens. Sonder-Editionen (body.ed-an/weih-an) behalten ihr eigenes Leuchten. */
+.bk-med.bild{position:relative;--gl:var(--bk)}
+.bk-med.bild::before{content:"";position:absolute;inset:-10px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--gl) 85%,transparent) 0,transparent 68%);opacity:.65;pointer-events:none}
+.bk-med.bild img{position:relative;filter:drop-shadow(0 0 12px color-mix(in srgb,var(--gl) 80%,transparent))}
+@media (prefers-reduced-motion:no-preference){.bk-med.bild::before{animation:bkLeucht 3.4s ease-in-out infinite}@keyframes bkLeucht{50%{opacity:1;transform:scale(1.1)}}}
 </style>
 </head>
 <body>
