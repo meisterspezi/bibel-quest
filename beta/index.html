@@ -3003,17 +3003,24 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .rb-link{margin:0;text-align:center;color:#c9d1ff;line-height:1.4;overflow-wrap:anywhere}
 .rb-link b{color:#7fc8ff;font-weight:700}
 
-/* 9.86: Kopfleiste – Talente und Öl als zwei getrennte Kapseln übereinander, zusammen nicht höher als das Spielersymbol */
-.hud .hud-kasse{display:flex;flex-direction:column;justify-content:center;gap:4px;height:50px}
-.hud .hud-kasse .pill.hud-tal,.hud .hud-kasse .pill.hud-gold{position:relative;min-height:0;height:23px;box-sizing:border-box;padding:0 9px 0 4px;gap:4px;justify-content:flex-start;
-  font-size:.86rem;line-height:1;font-weight:900;border-radius:999px;min-width:66px}
-.hud .hud-kasse .pill>svg{width:16px!important;height:16px!important;flex:none}
-.hud .hud-kasse .pill.hud-gold{border-color:#f2c14e66;background:linear-gradient(90deg,#2a2440,var(--surface))}
-.hud .hud-kasse .tb-punkt{position:absolute;top:-2px;right:-2px;left:auto;margin:0;width:8px;height:8px}
-.hud .hud-kasse .hud-shop,.hud .hud-kasse .hud-album{display:none}
-
-/* 9.88: Level-Schild neben dem Namen ohne XP-Fortschritt (der Ring ums Spielersymbol zeigt ihn) */
-.hud .hlvl-t{background:linear-gradient(#10152f,#10152f) padding-box,linear-gradient(90deg,#ffd978,#f2c14e) border-box}
+/* 9.90: Kopfleiste – Talente (+ Laden) und Öl (+ Album) nebeneinander, schmal; kein „Level“-Schild neben dem Namen (Ring + „47“ am Spielersymbol zeigen Level/XP) */
+.hud .hlvl-t{display:none!important}
+.hud .hud-kasse{display:flex;flex-direction:row;align-items:center;gap:3px}
+.hud .hud-kasse .pill.hud-tal,.hud .hud-kasse .pill.hud-gold{position:relative;min-height:0;height:34px;box-sizing:border-box;padding:0 4px 0 4px;gap:2px;
+  font-size:.84rem;line-height:1;font-weight:900;border-radius:999px;letter-spacing:-.01em}
+.hud .hud-kasse .pill>svg{width:15px!important;height:15px!important;flex:none}
+.hud .hud-kasse .pill.hud-gold{border-color:#f2c14e66}
+.hud .hud-kasse .hud-shop,.hud .hud-kasse .hud-album{display:inline-grid;place-items:center;padding-left:3px;margin-left:1px;border-left:1px solid #f2c14e44}
+.hud .hud-kasse .hud-shop svg,.hud .hud-kasse .hud-album svg{width:18px!important;height:18px!important}
+.hud .hud-kasse .tb-punkt{position:absolute;top:-3px;right:-2px;left:auto;margin:0;width:8px;height:8px}
+.hud.eng .hud-kasse .hud-shop,.hud.eng .hud-kasse .hud-album{display:none}
+.hud{gap:6px}.hud .hud-wer{gap:7px}.hud .pills{gap:2px}.hud .hud-ton{width:28px}
+/* 9.90: Laden-/Album-Symbol vorn, Währung als kleine Plakette darauf – spart Breite */
+.hud:not(.eng) .hud-kasse .pill{padding:0 7px 0 28px}
+.hud:not(.eng) .hud-kasse .hud-shop,.hud:not(.eng) .hud-kasse .hud-album{position:absolute;left:4px;top:50%;transform:translateY(-50%);border:0;padding:0;margin:0}
+.hud:not(.eng) .hud-kasse .hud-shop svg,.hud:not(.eng) .hud-kasse .hud-album svg{width:21px!important;height:21px!important}
+.hud:not(.eng) .hud-kasse .pill>svg{position:absolute;left:15px;bottom:2px;width:13px!important;height:13px!important;filter:drop-shadow(0 0 1.5px #0b0e1f) drop-shadow(0 0 1px #0b0e1f);z-index:1}
+.hud.eng .hud-kasse .pill{padding:0 7px 0 5px}
 </style>
 </head>
 <body>
@@ -3074,7 +3081,7 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
       </span>
     </button>
     <div class="pills">
-      <div class="hud-kasse" id="hKasse"><button class="pill hud-tal" id="hTalBtn" aria-label="Talente – zum Laden"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tal"/></svg><span id="hTal">0</span><span class="tb-punkt" id="tbTal" hidden aria-label="Im Laden ist etwas kaufbar"></span></button></div>
+      <div class="hud-kasse" id="hKasse"><button class="pill hud-tal" id="hTalBtn" aria-label="Talente – zum Laden"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tal"/></svg><span id="hTal">0</span><span class="hud-shop" id="hShop" aria-hidden="true"></span><span class="tb-punkt" id="tbTal" hidden aria-label="Im Laden ist etwas kaufbar"></span></button></div>
       <button class="iconbtn pk-btn" id="pkBtn" hidden aria-label="Postkasten" onclick="go('postfach')"></button>
       <button class="iconbtn hud-ton" id="muteBtn" aria-label="Ton an oder aus"></button>
     </div>
