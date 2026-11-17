@@ -170,8 +170,13 @@ const smNameOrig = hudNameAnpassen;
 hudNameAnpassen = function () {
   const hud = document.querySelector(".hud"), t = $("hTitle");
   if (!hud || !t || !t.clientWidth) return smNameOrig();
-  hud.classList.remove("eng"); smNameOrig();
-  if (t.classList.contains("zwei") || t.scrollWidth > t.clientWidth || parseFloat(getComputedStyle(t).fontSize) < 17) { hud.classList.add("eng"); smNameOrig(); }
+  hud.classList.remove("eng"); t.classList.remove("zwei"); t.parentElement.classList.remove("zweizeilig"); t.style.fontSize = "";
+  /* 9.90: Reihenfolge – 1. Name einzeilig bis 13 px verkleinern, 2. bei Leerzeichen/Bindestrich zweizeilig, 3. erst dann Laden-/Album-Symbol ausblenden */
+  const start = parseFloat(getComputedStyle(t).fontSize) || 19;
+  for (let px = start; px >= 13; px -= 0.5) { t.style.fontSize = px.toFixed(1) + "px"; if (t.scrollWidth <= t.clientWidth + 1) return; }
+  t.style.fontSize = "";
+  if (/[\s-]/.test(t.textContent.trim())) { smNameOrig(); if (t.scrollWidth <= t.clientWidth + 1 && t.scrollHeight <= t.clientHeight + 1) return; }
+  hud.classList.add("eng"); smNameOrig();
 };
 const smHudPlatz = () => hudNameAnpassen();
 addEventListener("resize", () => { try { smHudPlatz(); } catch (e) {} });
@@ -180,8 +185,8 @@ try { document.fonts.ready.then(() => { try { smHudPlatz(); } catch (e) {} }); d
 (function smHudBauen() {
   const tal = $("hTalBtn"); if (!tal || $("hGoldBtn")) return;
   const b = document.createElement("button"); b.className = "pill hud-gold"; b.id = "hGoldBtn"; b.setAttribute("aria-label", "Öl – zum Sammelalbum");
-  b.innerHTML = `${SM_GOLD_SVG}<span id="hGold">0</span><span class="tb-punkt" id="tbKrug" hidden aria-label="Ein Krug kann geöffnet werden"></span>`;
-  tal.insertAdjacentElement("afterend", b); /* 9.86: zwei getrennte Kapseln übereinander (#hKasse) */
+  b.innerHTML = `${SM_GOLD_SVG}<span id="hGold">0</span><span class="hud-album" aria-hidden="true">${SM_ALBUM_SVG}</span><span class="tb-punkt" id="tbKrug" hidden aria-label="Ein Krug kann geöffnet werden"></span>`;
+  tal.insertAdjacentElement("afterend", b); /* 9.90: nebeneinander in #hKasse */
   b.onclick = () => { SFX.tap(); go("album"); };
   smHud(0); setTimeout(() => { try { smHudPlatz(); } catch (e) {} }, 300);
 })();
