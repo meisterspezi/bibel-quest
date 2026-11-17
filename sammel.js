@@ -77,6 +77,11 @@ const ALBUM_TEXT = [
   { k: 22, v: "Johannes", t: "Jesus siegt – Gott macht am Ende alles neu.", s: "Offenbarung 21,4", z: "Gott wischt alle Tränen ab." }
 ];
 
+/* ---------- 10.0: Zeitschalter für den Live-Start ----------
+   Das Sammelalbum erscheint in Live erst ab Mittwoch, 18.11.2026, 08:00 Uhr (deutsche Zeit = 07:00 UTC).
+   Vorher: kein Manna, keine Anzeige, keine Ankündigung. In der Beta und auf localhost immer frei. */
+const SM_START = Date.UTC(2026, 10, 18, 7, 0, 0);
+const smFrei = () => (typeof BETA !== "undefined" && BETA) || /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || Date.now() >= SM_START;
 /* ---------- Regeln ---------- */
 const SM_KEY = typeof BETA !== "undefined" && BETA ? "smBeta" : "sm2"; /* 9.93: Beta-Album getrennt vom echten Album */
 const SM_KRUG_PREIS = 10, SM_KRUG_KARTEN = 4, SM_KRUG_TAG = 3, SM_TREUE = 7, SM_MAX = 3; /* 9.92: nur Bronze/Silber/Gold, 4 Karten, jeder 7. Krug sicher Gold */
@@ -138,6 +143,7 @@ function smGeschenk(grund) {
 }
 /* Wird von addXp nach jeder XP-Vergabe aufgerufen */
 function sammelNachXp(n, quelle, info, vorher, nachher) {
+  if (!smFrei()) return;
   const m = smInit(); let g = 0; info = info || {};
   if (SM_SPIEL_Q.includes(quelle)) {
     const dauer = info.t0 ? Date.now() - info.t0 : 60000;
@@ -153,6 +159,7 @@ function sammelNachXp(n, quelle, info, vorher, nachher) {
 }
 /* 9.89/9.91: Duell-Herausforderung gesendet: +1 Manna, egal ob der andere annimmt – auch an Spieler vom eigenen Gerät */
 function smHerausforderung(ziele) {
+  if (!smFrei()) return;
   const x = smGoldGeben(1); if (x) setTimeout(() => toast(`Herausforderung gesendet: +${x} Manna`), 1200);
 }
 /* ---------- Kopfleiste: Manna neben den Talenten ---------- */
@@ -191,6 +198,7 @@ addEventListener("resize", () => { try { smHudPlatz(); } catch (e) {} });
 try { document.fonts.ready.then(() => { try { smHudPlatz(); } catch (e) {} }); document.fonts.addEventListener("loadingdone", () => { try { smHudPlatz(); } catch (e) {} }); } catch (e) {}
 [1500, 4000].forEach(ms => setTimeout(() => { try { smHudPlatz(); } catch (e) {} }, ms));
 (function smHudBauen() {
+  if (!smFrei()) { setTimeout(() => { try { smHudBauen(); renderHud(); } catch (e) {} }, Math.min(2147000000, SM_START - Date.now() + 1500)); return; } /* 10.0: erscheint um 08:00 auch bei offener App */
   const tal = $("hTalBtn"); if (!tal || $("hGoldBtn")) return;
   const b = document.createElement("button"); b.className = "pill hud-gold"; b.id = "hGoldBtn"; b.setAttribute("aria-label", "Manna – zum Sammelalbum");
   b.innerHTML = `${SM_GOLD_SVG}<span id="hGold">0</span><span class="hud-album" aria-hidden="true">${SM_ALBUM_SVG}</span><span class="tb-punkt" id="tbKrug" hidden aria-label="Ein Krug kann geöffnet werden"></span>`;
@@ -268,6 +276,7 @@ function smBeutelHtml() {
     return `<button class="sm-bz${voll ? " voll" : ""}" data-tausch="${r}" style="--c:${SM_RC[r]}" aria-label="${SM_STUFE[r]}-Säckchen: ${n} von ${SM_TAUSCH[r]}${voll ? " – tauschen" : ""}">${SM_SACK}<span class="pk">${Array.from({ length: SM_TAUSCH[r] }, (_, k) => `<i class="${k < n ? "an" : ""}"></i>`).join("")}</span><span class="sm-bz-t"><b>${n}</b> ${SM_STUFE[r]}</span><small>${SM_TAUSCH[r]} → 1 ${SM_STUFE[r + 1]}</small></button>`; }).join("")}</div>`;
 }
 VIEWS.album = () => {
+  if (!smFrei()) { go("home"); return; }
   const m = smInit();
   if (m.offen) { smKrugBuehne(m.offen, true); }
   const art = smKrugMoeglich(), gold = smGold(), heute = smHeuteKruege(), bisGold = SM_TREUE - (m.kz % SM_TREUE); /* der nächste Krug hat die Nummer kz+1; jeder 7. ist sicher Gold */
@@ -570,6 +579,7 @@ async function smTeilenAlbum() {
    Geschrieben wird nur, wenn sich die Zahl ändert (höchstens 66-mal je Spieler). Der Sammel-Job trägt gl in die Rangliste ein. */
 let smGlLaeuft = false;
 function smGlanzSenden(L) {
+  if (!smFrei()) return;
   if (BETA) return; /* 9.93: Beta-Album nicht in die Rangliste */
   const m = smInit(), n = smGlanz();
   if (!S.pid || !L || !L.albumSetzen || smGlLaeuft || (m.gls | 0) === n || (!n && !m.gls)) return;
@@ -579,6 +589,7 @@ function smGlanzSenden(L) {
 
 /* ---------- 9.85: Ankündigung (einmal) und kurze Tour beim ersten Öffnen ---------- */
 function smAnkuendigen() {
+  if (!smFrei()) return;
   const m = smInit(); if (m.ah || !S.lbName) return;
   setTimeout(() => {
     if (current !== "home" || document.querySelector(".modal, .sm-ov, .sm-tour") || m.ah) return;
@@ -709,5 +720,5 @@ async function rbTeilenSeite(D) {
     }, 1200);
   };
   const altP = VIEWS.profil;
-  if (altP) VIEWS.profil = function (a) { altP(a); const j = rbSichtbar(); const b = document.createElement("button"); b.className = "btn"; b.style.marginTop = "10px"; b.innerHTML = `${SM_ALBUM_SVG} ${j ? "Dein Bibeljahr " + j : "Sammelalbum"}`; b.onclick = () => { SFX.tap(); rbSeite = 0; go(j ? "rueckblick" : "album"); }; screen.appendChild(b); };
+  if (altP) VIEWS.profil = function (a) { altP(a); const j = rbSichtbar(); if (!j && !smFrei()) return; const b = document.createElement("button"); b.className = "btn"; b.style.marginTop = "10px"; b.innerHTML = `${SM_ALBUM_SVG} ${j ? "Dein Bibeljahr " + j : "Sammelalbum"}`; b.onclick = () => { SFX.tap(); rbSeite = 0; go(j ? "rueckblick" : "album"); }; screen.appendChild(b); };
 })();
