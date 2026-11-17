@@ -1,5 +1,5 @@
 /* Bibelbuch-Quest – 9.84–9.92: Sammelalbum (Manna – früher „Goldstaub“/„Öl“ –, goldener Krug, Tauschbeutel) und Jahresrückblick.
-   Lädt nach spiel.js. Alles liegt im Spielstand unter S.sm (keine Datenbank-Änderung):
+   Lädt nach spiel.js. Alles liegt im Spielstand unter S[SM_KEY] – Live „sm2“, Beta „smBeta“ (9.93: getrennt, die Beta bringt in Live keine Vorteile):
    sm = { album:[66 Stufen 0–4], gv/ga: Goldstaub verdient/ausgegeben, gt/gn: Tag + heute verdient,
           be/ba: Tauschbeutel erhalten/ausgegeben je Stufe {1,2,3}, kz: Krüge insgesamt (Treue-Siegel), kt/kn: Tag + heute geöffnet,
           kga: Geschenk-Krüge benutzt (9.85: Geschenke = 1 Startkrug + je 7 Schatztruhen einer), tz: Schatztruhen insgesamt (ab 9.85), lohn: erhaltene Gruppen-Belohnungen,
@@ -78,6 +78,7 @@ const ALBUM_TEXT = [
 ];
 
 /* ---------- Regeln ---------- */
+const SM_KEY = typeof BETA !== "undefined" && BETA ? "smBeta" : "sm2"; /* 9.93: Beta-Album getrennt vom echten Album */
 const SM_KRUG_PREIS = 10, SM_KRUG_KARTEN = 4, SM_KRUG_TAG = 3, SM_TREUE = 7, SM_MAX = 3; /* 9.92: nur Bronze/Silber/Gold, 4 Karten, jeder 7. Krug sicher Gold */
 const SM_TAUSCH = { 1: 4, 2: 4 };                             /* 4 Bronze → Silber, 4 Silber → Gold */
 const SM_W = { 1: 0.75, 2: 0.20, 3: 0.05 };         /* Seltenheit je Karte */
@@ -90,8 +91,9 @@ const smGc = i => SM_GC[gattungVon(i)] || "#f0b85a";
 TAB_VON.album = ""; TAB_VON.rueckblick = "";
 
 function smInit() {
-  if (!S.sm || typeof S.sm !== "object") S.sm = {};
-  const m = S.sm;
+  if ("sm" in S) delete S.sm; /* 9.93: Test-Alben der Betas 9.84–9.92 verwerfen */
+  if (!S[SM_KEY] || typeof S[SM_KEY] !== "object") S[SM_KEY] = {};
+  const m = S[SM_KEY];
   if (!Array.isArray(m.album) || m.album.length !== 66) m.album = Array(66).fill(0);
   if (m.album.some(x => x > SM_MAX)) m.album = m.album.map(x => Math.min(SM_MAX, x | 0)); /* 9.92: Glanz-Karten werden Gold */
   ["gv", "ga", "gn", "kz", "kn", "kga", "tz", "ah", "tour", "gls"].forEach(k => { m[k] = Math.max(0, +m[k] || 0); });
@@ -113,8 +115,8 @@ const smGlanz = () => smInit().album.filter(s => s >= SM_MAX).length; /* 9.92: G
 
 /* Zwei Geräte zusammenführen: je Wert das Maximum (verdient und ausgegeben getrennt, damit nichts doppelt zählt) */
 function smMischen(r) {
-  if (!r || !r.sm || typeof r.sm !== "object") return;
-  const m = smInit(), o = r.sm;
+  if (!r || !r[SM_KEY] || typeof r[SM_KEY] !== "object") return;
+  const m = smInit(), o = r[SM_KEY];
   if (Array.isArray(o.album)) o.album.forEach((s, i) => { if (i < 66) m.album[i] = Math.max(m.album[i] | 0, Math.min(SM_MAX, s | 0)); });
   ["gv", "ga", "kz", "kga", "tz", "ah", "tour"].forEach(k => { m[k] = Math.max(m[k] | 0, +o[k] || 0); });
   [["gt", "gn"], ["kt", "kn"]].forEach(([t, n]) => { if ((o[t] || "") > m[t]) { m[t] = o[t]; m[n] = +o[n] || 0; } else if (o[t] === m[t]) m[n] = Math.max(m[n], +o[n] || 0); });
@@ -232,7 +234,7 @@ function smGruppenPruefen() {
   const m = smInit(), neu = [];
   GROUPS.forEach((g, gi) => {
     const idx = ALL.map((b, i) => b.gi === gi ? i : -1).filter(i => i >= 0), minS = Math.min(...idx.map(i => m.album[i]));
-    for (let s = 1; s <= minS; s++) { const key = gi + "-" + s; if (!m.lohn.includes(key)) { m.lohn.push(key); neu.push({ gi, s }); addTal(SM_GRUPPEN_LOHN[s]); } }
+    for (let s = 1; s <= minS; s++) { const key = gi + "-" + s; if (!m.lohn.includes(key)) { m.lohn.push(key); neu.push({ gi, s }); if (!BETA) addTal(SM_GRUPPEN_LOHN[s]); } } /* 9.93: Beta – keine echten Talente */
   });
   if (neu.length) save();
   return neu;
@@ -469,7 +471,7 @@ function smVerschmelzen(r, i, fertig) {
   }, rm ? 400 : 1650);
 }
 function smNeuBanner(neu) {
-  (neu || []).forEach((x, k) => setTimeout(() => { try { SFX.badge(); toast(`<b>${esc(GROUPS[x.gi].name)} komplett in ${SM_STUFE[x.s]}!</b> +${SM_GRUPPEN_LOHN[x.s]} Talente${x.s === 1 ? " und ein Geschenk-Krug" : ""}`); } catch (e) {} }, 600 + k * 2800));
+  (neu || []).forEach((x, k) => setTimeout(() => { try { SFX.badge(); toast(`<b>${esc(GROUPS[x.gi].name)} komplett in ${SM_STUFE[x.s]}!</b> ${BETA ? "(Beta: " + SM_GRUPPEN_LOHN[x.s] + " Talente nur zum Test, nicht gutgeschrieben)" : "+" + SM_GRUPPEN_LOHN[x.s] + " Talente"}`); } catch (e) {} }, 600 + k * 2800));
 }
 
 /* ---------- Teilen-Bilder (Rückblick und Album) ---------- */
@@ -523,6 +525,7 @@ async function smTeilenAlbum() {
    Geschrieben wird nur, wenn sich die Zahl ändert (höchstens 66-mal je Spieler). Der Sammel-Job trägt gl in die Rangliste ein. */
 let smGlLaeuft = false;
 function smGlanzSenden(L) {
+  if (BETA) return; /* 9.93: Beta-Album nicht in die Rangliste */
   const m = smInit(), n = smGlanz();
   if (!S.pid || !L || !L.albumSetzen || smGlLaeuft || (m.gls | 0) === n || (!n && !m.gls)) return;
   smGlLaeuft = true;
