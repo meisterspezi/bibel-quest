@@ -1511,6 +1511,12 @@ function rangVon(r) {
 const ruestStufe = id => Math.min(2, (S.ruestStufe || {})[id] | 0);
 /* 9.5: Veredeln aus dem Laden gestrichen – bereits erreichte Stufen bleiben sichtbar */
 const veredelPreis = id => { return 0; if (!S.owned.includes("ar-" + id)) return 0; const st = ruestStufe(id); return st >= 2 ? 0 : RUEST_VEREDEL_PREIS[id][st]; };
+/* 9.85: Glanz-Karten aus dem Sammelalbum neben dem Namen */
+function glanzHtml(r) {
+  const eigen = r && r.id === S.pid && typeof smGlanz === "function" ? smGlanz() : 0;
+  const n = Math.min(66, Math.max(eigen, r && +r.gl > 0 ? r.gl | 0 : 0)); if (!n) return "";
+  return `<span class="rk-gl" title="${n} Glanz-Karten im Sammelalbum"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.6 7.4L22 12l-7.4 2.6L12 22l-2.6-7.4L2 12l7.4-2.6z" fill="#ff9ee8"/></svg>${n}</span>`;
+}
 function ruestungHtml(n, klein = true) {
   if (!n) return "";
   return `<span class="ruest ${klein ? "klein" : ""}" title="Waffenrüstung Gottes: ${n} von 6">${RUESTUNG.slice(0, n).map(r => `<i class="rst-${ruestStufe(r.id)}">${svg("ar-" + r.id)}</i>`).join("")}</span>`;
@@ -2834,6 +2840,7 @@ function lbSync(now) {
     try { xqSenden(); } catch (e) {} /* 6.73: XP-Quellen */
     try { gemSenden(); } catch (e) {} /* 9.0: Gemeinde-Zuordnung */
     const opts = {}; if (!S.ownersSet && eigenePid(S.pid)) opts.owners = [L.uid];
+    try { if (typeof smGlanzSenden === "function") smGlanzSenden(L); } catch (e) {} /* 9.85: Glanz-Karten in eigener Sammlung „album“ */
     const ok = () => { if (opts.owners) { S.ownersSet = true; lsSchreiben(); geraetSpeichern(); } };
     /* Übergang 6.40: Solange die neuen Firebase-Regeln (Biblionär-Felder) noch nicht veröffentlicht sind, ohne diese Felder speichern */
     const ohneBib = () => { const d = lbPayload(); delete d.bib; return d; };
@@ -3648,7 +3655,7 @@ VIEWS.rank = (tab) => {
       const voll = rankTab === "kette" && wert1 >= KETTE_SUB[ketteSub][2];
       const vollText = { bibel: "Alle 66 Bücher geschafft!", at: "Das ganze Alte Testament geschafft!", nt: "Das ganze Neue Testament geschafft!", rueck: "Alle 66 Bücher rückwärts geschafft!" }[ketteSub];
       /* Waffenrüstung (bzw. Siegel bei „Bewährt“) auch auf dem Podest */
-      const ext = r => rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor);
+      const ext = r => (rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)) + glanzHtml(r);
       const person = (r, sz) => `<button class="gk-p ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}">${avatarLv(r, sz)}<b>${esc(r.name)}</b>${ext(r)}</button>`;
       const gold = `<div class="gk-gold"><span class="pod-krone">${svg("crown")}</span>
         <div class="gk-t">${voll ? vollText : `Platz 1 · ${pkt(wert1)} ${esc(unit)}`}${g1.length > 1 ? `<small>${g1.length} Spieler teilen sich Platz 1</small>` : voll ? `<small>${wert1} ${esc(unit)}</small>` : ""}</div>
@@ -3657,7 +3664,7 @@ VIEWS.rank = (tab) => {
         <div class="gk-stapel">${g.slice(0, 5).map(r => `<button data-pid="${esc(r.id)}" class="${r.id === me ? "me" : ""}">${avatarLv(r, 36)}</button>`).join("")}${g.length > 5 ? `<span class="gk-mehr">+${g.length - 5}</span>` : ""}</div>
         <div class="gk-wer">${g.slice(0, 3).map(r => `<div class="${r.id === me ? "me" : ""}"><b>${esc(r.name)}</b>${ext(r)}</div>`).join("")}${g.length > 3 ? `<div class="small muted">+${g.length - 3} weitere</div>` : ""}</div></div>` : "";
       const pod = `<div class="gk">${gold}${g2.length ? `<div class="gk-zd">${klein(2, g2)}${klein(3, g3)}</div>` : ""}</div>`;
-      const rest = rows.map((r, i) => [r, platz[i]]).filter(([, p]) => p > 3).slice(0, 80).map(([r, p], k, arr) => `<button class="rrow ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}"><div class="rk">${k && arr[k - 1][1] === p ? "" : p}</div>${avatarLv(r, 38)}<div class="who"><b>${esc(r.name)}${r.id === me ? '<span class="you">DU</span>' : ""}</b><span>${esc(rangVon(r))}</span>${rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)}</div><div class="val">${pkt(rankWert(r))}</div></button>`).join("");
+      const rest = rows.map((r, i) => [r, platz[i]]).filter(([, p]) => p > 3).slice(0, 80).map(([r, p], k, arr) => `<button class="rrow ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}"><div class="rk">${k && arr[k - 1][1] === p ? "" : p}</div>${avatarLv(r, 38)}<div class="who"><b>${esc(r.name)}${glanzHtml(r)}${r.id === me ? '<span class="you">DU</span>' : ""}</b><span>${esc(rangVon(r))}</span>${rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)}</div><div class="val">${pkt(rankWert(r))}</div></button>`).join("");
       if ($("rcount")) $("rcount").textContent = (rankTab === "woche" || rankTab === "bibWoche" ? wk.split("-W")[1] + ". KW · " : istBibTab(rankTab) ? "Gemeinde · " : "") + rows.length + " Spieler";
       body.innerHTML = `${pod}${rest ? `<div class="rlist">${rest}</div>` : ""}`;
       body.querySelectorAll("[data-pid]").forEach(b => b.onclick = () => { SFX.tap(); const r = rows.find(x => x.id === b.dataset.pid);

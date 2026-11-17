@@ -1,8 +1,9 @@
-/* Bibelbuch-Quest – 9.84: Sammelalbum (Goldstaub, Krüge, Tauschbeutel) und Jahresrückblick.
+/* Bibelbuch-Quest – 9.84/9.85: Sammelalbum (Goldstaub, Krüge, Tauschbeutel) und Jahresrückblick.
    Lädt nach spiel.js. Alles liegt im Spielstand unter S.sm (keine Datenbank-Änderung):
    sm = { album:[66 Stufen 0–4], gv/ga: Goldstaub verdient/ausgegeben, gt/gn: Tag + heute verdient,
           be/ba: Tauschbeutel erhalten/ausgegeben je Stufe {1,2,3}, kz: Krüge insgesamt (Treue-Siegel), kt/kn: Tag + heute geöffnet,
-          kg/kga: Geschenk-Krüge erhalten/benutzt, lohn: erhaltene Gruppen-Belohnungen, tw: Schatztruhen dieser Woche, tq: letzte belohnte Treue-Woche,
+          kga: Geschenk-Krüge benutzt (9.85: Geschenke = 1 Startkrug + je 7 Schatztruhen einer), tz: Schatztruhen insgesamt (ab 9.85), lohn: erhaltene Gruppen-Belohnungen,
+          ah: Ankündigung gesehen, tour: Album-Tour gesehen,
           rb: Rückblick {f: Fenster gesehen (Jahr), g: geteilt (Jahr), n: Name zeigen}, offen: Krug-Ergebnis, das noch aufgedeckt werden muss } */
 
 /* ---------- Karten-Inhalte (Entwurf 17.11.2026 – von Michael zu prüfen) ----------
@@ -92,18 +93,19 @@ function smInit() {
   if (!S.sm || typeof S.sm !== "object") S.sm = {};
   const m = S.sm;
   if (!Array.isArray(m.album) || m.album.length !== 66) m.album = Array(66).fill(0);
-  ["gv", "ga", "gn", "kz", "kn", "kg", "kga"].forEach(k => { m[k] = Math.max(0, +m[k] || 0); });
-  ["gt", "kt", "tq"].forEach(k => { if (typeof m[k] !== "string") m[k] = ""; });
+  ["gv", "ga", "gn", "kz", "kn", "kga", "tz", "ah", "tour", "gls"].forEach(k => { m[k] = Math.max(0, +m[k] || 0); });
+  ["gt", "kt"].forEach(k => { if (typeof m[k] !== "string") m[k] = ""; });
   ["be", "ba"].forEach(k => { if (!m[k] || typeof m[k] !== "object") m[k] = { 1: 0, 2: 0, 3: 0 }; });
   if (!Array.isArray(m.lohn)) m.lohn = [];
-  if (!m.tw || typeof m.tw !== "object") m.tw = { w: "", n: 0 };
   if (!m.rb || typeof m.rb !== "object") m.rb = {};
   if (m.offen && !Array.isArray(m.offen.z)) m.offen = null;
   return m;
 }
 const smGold = () => { const m = smInit(); return Math.max(0, m.gv - m.ga); };
 const smBeutel = r => { const m = smInit(); return Math.max(0, (m.be[r] | 0) - (m.ba[r] | 0)); };
-const smGeschenke = () => { const m = smInit(); return Math.max(0, m.kg - m.kga); };
+const SM_TRUHEN_GESCHENK = 7; /* jede 7. Schatztruhe (insgesamt) = ein Geschenk-Krug */
+const smGeschenkeGesamt = () => 1 + Math.floor(smInit().tz / SM_TRUHEN_GESCHENK); /* 1 = Startkrug für alle */
+const smGeschenke = () => { const m = smInit(); return Math.max(0, smGeschenkeGesamt() - m.kga); };
 const smHeuteKruege = () => { const m = smInit(); return m.kt === today() ? m.kn : 0; };
 const smGefunden = () => smInit().album.filter(s => s > 0).length;
 const smGlanz = () => smInit().album.filter(s => s === 4).length;
@@ -113,12 +115,10 @@ function smMischen(r) {
   if (!r || !r.sm || typeof r.sm !== "object") return;
   const m = smInit(), o = r.sm;
   if (Array.isArray(o.album)) o.album.forEach((s, i) => { if (i < 66) m.album[i] = Math.max(m.album[i] | 0, Math.min(4, s | 0)); });
-  ["gv", "ga", "kz", "kg", "kga"].forEach(k => { m[k] = Math.max(m[k] | 0, +o[k] || 0); });
+  ["gv", "ga", "kz", "kga", "tz", "ah", "tour"].forEach(k => { m[k] = Math.max(m[k] | 0, +o[k] || 0); });
   [["gt", "gn"], ["kt", "kn"]].forEach(([t, n]) => { if ((o[t] || "") > m[t]) { m[t] = o[t]; m[n] = +o[n] || 0; } else if (o[t] === m[t]) m[n] = Math.max(m[n], +o[n] || 0); });
   ["be", "ba"].forEach(k => { [1, 2, 3].forEach(x => { m[k][x] = Math.max(m[k][x] | 0, ((o[k] || {})[x]) | 0); }); });
   m.lohn = [...new Set([...m.lohn, ...(Array.isArray(o.lohn) ? o.lohn : [])])];
-  if (o.tw && o.tw.w === m.tw.w) m.tw.n = Math.max(m.tw.n, o.tw.n | 0); else if (o.tw && (o.tw.w || "") > m.tw.w) m.tw = { w: o.tw.w, n: o.tw.n | 0 };
-  if ((o.tq || "") > m.tq) m.tq = o.tq;
   if (o.rb) Object.keys(o.rb).forEach(k => { if (m.rb[k] === undefined) m.rb[k] = o.rb[k]; });
 }
 
@@ -130,7 +130,7 @@ function smGoldGeben(n) {
   m.gn += x; m.gv += x; save(); smHud(x); return x;
 }
 function smGeschenk(grund) {
-  const m = smInit(); m.kg++; save(); smHud(0);
+  save(); smHud(0);
   setTimeout(() => { try { toast(`${SM_KRUG_SVG}<b>Geschenk: ein Krug!</b> ${esc(grund)}`); } catch (e) {} }, 900);
 }
 /* Wird von addXp nach jeder XP-Vergabe aufgerufen */
@@ -142,23 +142,12 @@ function sammelNachXp(n, quelle, info, vorher, nachher) {
   }
   if (quelle === "tagesbonus" && /Schatztruhe/.test(info.d || "")) {
     g += 4;
-    const wk = weekKey(); if (m.tw.w !== wk) m.tw = { w: wk, n: 0 }; m.tw.n++;
-    if (m.tw.n === 7) smGeschenk("7 Schatztruhen in dieser Woche");
+    m.tz++;
+    if (m.tz % SM_TRUHEN_GESCHENK === 0) smGeschenk(SM_TRUHEN_GESCHENK + " Schatztruhen gesammelt");
   }
-  if (nachher > vorher) { g += 3 * (nachher - vorher); for (let l = vorher + 1; l <= nachher; l++) if (l % 5 === 0) smGeschenk("Level " + l + " erreicht"); }
-  smTreuePruefen();
+  if (nachher > vorher) g += 3 * (nachher - vorher);
   if (g) smGoldGeben(g);
 }
-/* 4 treue Wochen in Folge → Geschenk-Krug (einmal je Serie) */
-function smTreuePruefen() {
-  const m = smInit(), w = [...new Set(S.treueWochen || [])].sort(); if (w.length < 4) return;
-  const nr = k => { const x = /^(\d{4})-W(\d{2})$/.exec(k); return x ? +x[1] * 53 + +x[2] : NaN; };
-  const l = w.slice(-4).map(nr); if (l.some(isNaN)) return;
-  const folge = l.every((v, i) => !i || v - l[i - 1] === 1 || (v - l[i - 1] === 2 && l[i - 1] % 53 === 52));
-  const letzte = w[w.length - 1];
-  if (folge && letzte > m.tq) { m.tq = letzte; smGeschenk("4 treue Wochen in Folge"); }
-}
-
 /* ---------- Kopfleiste: Goldstaub + Album-Symbol ---------- */
 const SM_GOLD_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l1.9 5.2 5.4.4-4.2 3.4 1.4 5.3L12 14.9l-4.5 2.9 1.4-5.3-4.2-3.4 5.4-.4z" fill="#ffe27a" stroke="#8a5d10" stroke-width="1.1" stroke-linejoin="round"/><circle cx="19" cy="5" r="1.4" fill="#fff3b8"/><circle cx="5" cy="19" r="1.1" fill="#fff3b8"/><circle cx="20" cy="17" r=".9" fill="#ffe27a"/></svg>`;
 const SM_ALBUM_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 6c3-1.6 6.4-1.6 9.5.4v13c-3.1-2-6.5-2-9.5-.4z" fill="#d58b4f" stroke="#1b2a55" stroke-width="1.3" stroke-linejoin="round"/><path d="M21.5 6c-3-1.6-6.4-1.6-9.5.4v13c3.1-2 6.5-2 9.5-.4z" fill="#f2c14e" stroke="#1b2a55" stroke-width="1.3" stroke-linejoin="round"/><rect x="4.6" y="8.5" width="4.6" height="6" rx=".8" fill="#bfe3ff" stroke="#1b2a55" stroke-width=".9"/><rect x="14.8" y="8.5" width="4.6" height="6" rx=".8" fill="#ff9ee8" stroke="#1b2a55" stroke-width=".9"/></svg>`;
@@ -226,7 +215,7 @@ function smGruppenPruefen() {
   const m = smInit(), neu = [];
   GROUPS.forEach((g, gi) => {
     const idx = ALL.map((b, i) => b.gi === gi ? i : -1).filter(i => i >= 0), minS = Math.min(...idx.map(i => m.album[i]));
-    for (let s = 1; s <= minS; s++) { const key = gi + "-" + s; if (!m.lohn.includes(key)) { m.lohn.push(key); neu.push({ gi, s }); addTal(SM_GRUPPEN_LOHN[s]); if (s === 1) { m.kg++; } } }
+    for (let s = 1; s <= minS; s++) { const key = gi + "-" + s; if (!m.lohn.includes(key)) { m.lohn.push(key); neu.push({ gi, s }); addTal(SM_GRUPPEN_LOHN[s]); } }
   });
   if (neu.length) save();
   return neu;
@@ -251,6 +240,8 @@ VIEWS.album = () => {
   const m = smInit();
   if (m.offen) { smKrugBuehne(m.offen, true); }
   const art = smKrugMoeglich(), gold = smGold(), heute = smHeuteKruege(), bisGold = 4 - (m.kz % 4); /* der nächste Krug hat die Nummer kz+1; jeder 4. ist sicher Gold */
+  const nochT = SM_TRUHEN_GESCHENK - (m.tz % SM_TRUHEN_GESCHENK);
+  const truhe = `Schatztruhen: noch <b>${nochT}</b> bis zum nächsten Geschenk-Krug`;
   const treue = bisGold === 1 ? "Treue-Siegel: der nächste Krug hat <b>sicher eine Goldkarte</b>" : `Treue-Siegel: noch <b>${bisGold}</b> Krüge bis zur sicheren Goldkarte`;
   const knopf = art === "fertig" ? `<p class="sm-hinw">Alle 66 Karten in Glanz – dein Album ist vollendet!</p>`
     : `<button class="sm-krug-kn${art === "gold" || art === "geschenk" ? "" : " aus"}" id="smKrugKn">${SM_KRUG_SVG}<span><b>${art === "geschenk" ? "Geschenk-Krug öffnen" : "Krug öffnen"}</b><small>${art === "geschenk" ? `${smGeschenke()} ${smGeschenke() === 1 ? "Geschenk" : "Geschenke"} bereit` : art === "tag" ? "Heute schon 3 Krüge – morgen wieder" : art === "arm" ? `Noch ${SM_KRUG_PREIS - gold} Goldstaub – spiel eine Runde!` : `5 Karten · ${SM_KRUG_PREIS} Goldstaub`}</small></span>${art === "gold" ? `<i class="sm-preis">${SM_GOLD_SVG}${SM_KRUG_PREIS}</i>` : ""}</button>`;
@@ -259,18 +250,19 @@ VIEWS.album = () => {
   screen.innerHTML = `${bereichKopf("home", { ic: "book", t: "Sammelalbum", sub: `${smGefunden()} / 66 gefunden · ${smGlanz()} in Glanz` })}
     <div class="sm-kasse"><span class="sm-gold">${SM_GOLD_SVG}<b>${gold}</b> Goldstaub</span><span class="sm-heute">Krüge heute ${heute}/${SM_KRUG_TAG}</span></div>
     ${knopf}
-    <p class="sm-treue">${treue}</p>
+    <p class="sm-treue">${treue}<br>${truhe}</p>
     <div class="sm-bt"><b>Tauschbeutel</b><span>Doppelte Karten sammeln sich hier</span></div>
     ${smBeutelHtml()}
     <p class="sm-hinw sm-wahl" id="smWahl" hidden></p>
     ${gruppen}
-    <div class="sm-fuss"><button class="btn" id="smTeilen">${SM_ALBUM_SVG} Mein Album teilen</button><p class="small muted">Goldstaub gibt es für jede beendete Runde (+1 bei guter Runde), jede Schatztruhe (4), Biblionär der Woche (2) und jeden Level-Aufstieg (3) – höchstens ${SM_GOLD_TAG} am Tag. Seltenheit: Bronze 60 %, Silber 28 %, Gold 10 %, Glanz 2 %.</p></div>`;
+    <div class="sm-fuss"><button class="btn" id="smTeilen">${SM_ALBUM_SVG} Mein Album teilen</button><p class="small muted">Goldstaub gibt es für jede beendete Runde (+1 bei guter Runde), jede Schatztruhe (4), Biblionär der Woche (2) und jeden Level-Aufstieg (3) – höchstens ${SM_GOLD_TAG} am Tag. Jede ${SM_TRUHEN_GESCHENK}. Schatztruhe bringt einen Geschenk-Krug. Seltenheit: Bronze 60 %, Silber 28 %, Gold 10 %, Glanz 2 %.</p></div>`;
   wireGo();
   const kk = $("smKrugKn"); if (kk) kk.onclick = () => { if (kk.classList.contains("aus")) { SFX.tap(); return; } SFX.tap(); const o = smKrugKaufen(); if (o) smKrugBuehne(o, false); };
   screen.querySelectorAll("[data-tausch]").forEach(b => b.onclick = () => smTauschStart(+b.dataset.tausch));
   screen.querySelectorAll(".smk").forEach(k => k.onclick = () => { if (smWahl) return smTauschWahl(+k.dataset.i); smKarteZeigen(+k.dataset.i); });
   $("smTeilen").onclick = () => { SFX.tap(); smTeilenAlbum(); };
   smWahl = 0;
+  if (!m.tour && !m.offen) setTimeout(smTour, 450);
 };
 function smKarteZeigen(i) {
   const m = smInit(), s = m.album[i], T = ALBUM_TEXT[i] || {}, b = ALL[i];
@@ -478,6 +470,53 @@ async function smTeilenAlbum() {
   smTeilen(cv, "mein-sammelalbum.png", `Mein Sammelalbum in Bibelbuch-Quest: ${smGefunden()} von 66 Bibelbüchern gefunden, ${smGlanz()} in Glanz! Sammelst du mit?`);
 }
 
+/* ---------- 9.85: Glanz-Karten für die Rangliste ----------
+   Eigene kleine Sammlung album/{pid} = { gl, updated } – die Ranglisten-Regel für „spieler“ ist an der Grenze von 1000 Rechenschritten.
+   Geschrieben wird nur, wenn sich die Zahl ändert (höchstens 66-mal je Spieler). Der Sammel-Job trägt gl in die Rangliste ein. */
+let smGlLaeuft = false;
+function smGlanzSenden(L) {
+  const m = smInit(), n = smGlanz();
+  if (!S.pid || !L || !L.albumSetzen || smGlLaeuft || (m.gls | 0) === n || (!n && !m.gls)) return;
+  smGlLaeuft = true;
+  L.albumSetzen(S.pid, n).then(() => { m.gls = n; save(); }).catch(() => {}).finally(() => { smGlLaeuft = false; });
+}
+
+/* ---------- 9.85: Ankündigung (einmal) und kurze Tour beim ersten Öffnen ---------- */
+function smAnkuendigen() {
+  const m = smInit(); if (m.ah || !S.lbName) return;
+  setTimeout(() => {
+    if (current !== "home" || document.querySelector(".modal, .sm-ov, .sm-tour") || m.ah) return;
+    m.ah = 1; save();
+    const karten = [[0, 1], [18, 2], [42, 3]].map(([i, st]) => `<span class="sm-ank-k">${smKarteHtml(i, st)}</span>`).join("");
+    modal(`<div class="rb-fenster sm-ank"><div class="sm-ank-f">${karten}</div><small class="sm-ank-neu">NEU</small><h2>Das Sammelalbum</h2>
+      <p>Sammle alle 66 Bibelbücher als Karten – von Bronze bis Glanz. Beim Spielen verdienst du <b>Goldstaub</b>, damit öffnest du Krüge mit je 5 Karten.</p>
+      <p class="sm-ank-g">${SM_KRUG_SVG}<span>Dein <b>erster Krug</b> ist ein Geschenk!</span></p>
+      <button class="btn primary" data-close="los">Startkrug öffnen</button><button class="btn ghost" data-close="">Später</button></div>`,
+      w => { if (w === "los") go("album"); }).dataset.frei = "1";
+  }, 1500);
+}
+const SM_TOUR = [
+  { sel: ".sm-kasse", t: "Goldstaub", x: "Verdienst du mit jeder Runde, guten Runden, Schatztruhen und Level-Aufstiegen – bis zu 30 am Tag." },
+  { sel: "#smKrugKn", t: "Krüge", x: "Ein Krug kostet 10 Goldstaub und enthält 5 Karten. Bis zu 3 Krüge am Tag. Jede 7. Schatztruhe schenkt dir einen Krug – dein erster wartet schon." },
+  { sel: ".sm-beutel", t: "Tauschbeutel", x: "Doppelte Karten landen hier. 3 Bronze → 1 Silber, 4 Silber → 1 Gold, 5 Gold → 1 Glanz. Welche Karte aufsteigt, wählst du selbst." }
+];
+function smTour() {
+  const m = smInit(); if (m.tour || current !== "album" || document.querySelector(".modal, .sm-ov, .sm-tour")) return;
+  let k = 0; const ov = document.createElement("div"); ov.className = "sm-tour"; document.body.appendChild(ov);
+  const ende = () => { ov.remove(); m.tour = 1; save(); removeEventListener("resize", zeigen); };
+  function zeigen() {
+    const T = SM_TOUR[k], el = document.querySelector(T.sel); if (!el) return ende();
+    el.scrollIntoView({ block: "center" });
+    const r = el.getBoundingClientRect(), pad = 6, unten = r.top + r.height / 2 < innerHeight / 2;
+    ov.innerHTML = `<div class="sm-tour-loch" style="left:${r.left - pad}px;top:${r.top - pad}px;width:${r.width + 2 * pad}px;height:${r.height + 2 * pad}px"></div>
+      <div class="sm-tour-bl" style="${unten ? `top:${r.bottom + 16}px` : `bottom:${innerHeight - r.top + 16}px`}"><small>${k + 1} / ${SM_TOUR.length}</small><b>${T.t}</b><p>${T.x}</p>
+      <div class="sm-tour-kn"><button class="btn ghost mini" data-t="weg">Überspringen</button><button class="btn primary mini" data-t="vor">${k < SM_TOUR.length - 1 ? "Weiter" : "Los geht’s"}</button></div></div>`;
+    ov.querySelector('[data-t="weg"]').onclick = () => { SFX.tap(); ende(); };
+    ov.querySelector('[data-t="vor"]').onclick = () => { SFX.tap(); if (++k >= SM_TOUR.length) { ende(); scrollTo({ top: 0, behavior: "smooth" }); } else zeigen(); };
+  }
+  addEventListener("resize", zeigen); zeigen();
+}
+
 /* ---------- Jahresrückblick ---------- */
 /* Sichtbar vom 26.12. bis 6.1. (Datum zum Testen mit ?edDatum=… auf localhost); in der Beta immer zum Ausprobieren */
 function rbJahr() {
@@ -562,6 +601,7 @@ async function rbTeilenSeite(D) {
   const alt = VIEWS.home;
   VIEWS.home = function (a) {
     alt(a);
+    smAnkuendigen();
     const jahr = rbSichtbar(); if (!jahr || !S.lbName) return;
     const kopf = screen.querySelector(".start-aufg");
     const b = document.createElement("button"); b.className = "rb-banner"; b.innerHTML = `<span class="rb-banner-ic">${SM_ALBUM_SVG}</span><span><b>Dein Bibeljahr ${jahr}</b><small>Rückblick ansehen und teilen</small></span><i>›</i>`;
