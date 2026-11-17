@@ -4834,7 +4834,7 @@ function bibSolo(ed) {
   if (mitBibPool(() => bibSolo(ed))) return;
   go("biblionaer");
   const e = ed && edAktiv(ed) ? ed : null, w = e === "weihnachten";
-  const G = { modus: "solo", ed: e, weih: w, vorschau: !!e && edNurVorschau(e), fragen: bibFragen(crypto.getRandomValues(new Uint32Array(1))[0] % 2147483647, "", e ? edPool(e, Date.now()) : null, bibGesRang(e ? EDITIONEN[e].ges : "k"), e) };
+  const G = { modus: "solo", ed: e, weih: w, vorschau: !!e && (edNurVorschau(e) || (typeof testDatumAktiv === "function" && testDatumAktiv())), fragen: bibFragen(crypto.getRandomValues(new Uint32Array(1))[0] % 2147483647, "", e ? edPool(e, Date.now()) : null, bibGesRang(e ? EDITIONEN[e].ges : "k"), e) };
   countdown(() => bibStart(G), cdSolo("quiz", { modus: e ? `${edAdj(e)}-Solo` : "Solo", weih: w, ed: e }));
 }
 /* ---------- 6.80: Wochen-Sicherung (Biblionär der Woche) ----------
@@ -5449,7 +5449,7 @@ function kanalFrage() {
   modal(`<div class="label">Beta-Version</div><h2>Neues zuerst ausprobieren?</h2><p class="muted">In der Beta-Version testest du neue Funktionen und Designs, bevor sie für alle erscheinen. Dein Spielstand bleibt derselbe, und du kannst jederzeit zurückwechseln. Es kann dort noch Fehler geben – melde sie bitte über „Feedback“.</p><button class="btn primary" data-close="beta">Zur Beta-Version wechseln</button><button class="btn ghost" data-close>Hier bleiben</button>`,
     r => { if (r === "beta") kanalWechseln(true); }).dataset.frei = "1";
 }
-if (BETA) addEventListener("DOMContentLoaded", () => { const b = document.createElement("button"); b.id = "betaMarke"; b.textContent = "BETA"; b.setAttribute("aria-label", "Beta-Version – antippen für Infos"); b.onclick = () => { if (!document.querySelector(".modal") && !document.body.classList.contains("spiel-laeuft")) kanalFrage(); }; document.body.appendChild(b); });
+if (BETA) addEventListener("DOMContentLoaded", () => { const b = document.createElement("button"); b.id = "betaMarke"; b.textContent = "BETA"; b.setAttribute("aria-label", "Beta-Version – Testlabor öffnen"); b.onclick = () => { if (!document.querySelector(".modal, .sm-ov") && !document.body.classList.contains("spiel-laeuft")) { SFX.tap(); go("testlabor"); } }; document.body.appendChild(b); });
 /* Verwalter: Beta-Tester auswählen */
 VIEWS.betatester = () => {
   const L = window.LB; if (!entwickler || !L || !L.ok || !L.betaSetzen) { go("home"); return; }

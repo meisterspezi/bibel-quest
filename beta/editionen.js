@@ -99,7 +99,7 @@ function edNaechstes(id, t) {
 /* Heutiger Tag – auf localhost zum Testen mit ?edDatum=2027-03-20 */
 function edHeute() {
   try {
-    if (/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) {
+    if (/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) || (typeof BETA !== "undefined" && BETA)) { /* 9.93: Testdatum auch in der Beta (Testlabor) */
       const t = new URLSearchParams(location.search).get("edDatum") || sessionStorage.getItem("bq-ed-datum");
       if (t && /^\d{4}-\d{1,2}-\d{1,2}$/.test(t)) { sessionStorage.setItem("bq-ed-datum", t); return t; }
     }
@@ -271,7 +271,7 @@ function edRunde(id) {
   const t = edTag(), z = edFensterBei(id, t);
   if (!z) return edVorschau(id) ? { r: 1, key: "vorschau", start: t, vorschau: true } : null;
   const r = edRundeNr(id, z, t);
-  return { r, key: `${id}-${z.jahr}-${r}`, start: z.von + 7 * (r - 1), vorschau: false };
+  return { r, key: `${id}-${z.jahr}-${r}`, start: z.von + 7 * (r - 1), vorschau: typeof testDatumAktiv === "function" && testDatumAktiv() }; /* 9.93: Testdatum (Beta) = nur Vorschau, zählt nicht */
 }
 function edRundeName(id, r) {
   if (id === "weihnachten") return r <= 4 ? `${r}. Advent` : r === 5 ? "Weihnachtswoche" : "Epiphanias";
