@@ -3093,6 +3093,18 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 @keyframes smkGlanz{0%,35%{background-position:130% 0}100%{background-position:-60% 0}}
 @keyframes smkFunkel{0%,100%{opacity:0;transform:scale(.3) rotate(0)}50%{opacity:1;transform:scale(1) rotate(45deg)}}
 @media (prefers-reduced-motion:reduce){.smk-glanz,.smk-fk{animation:none}.smk-fk{opacity:.8}}
+
+/* 9.97: Karten fliegen ins echte Sammelalbum */
+.sm-flug{position:fixed;inset:0;z-index:58;background:transparent}
+.sm-flug-weg{position:fixed;right:12px;top:calc(env(safe-area-inset-top,0px) + 84px);z-index:3;padding:8px 14px;font-size:.85rem;background:#10152fe6}
+.sm-flug-z{position:fixed;left:12px;right:130px;top:calc(env(safe-area-inset-top,0px) + 86px);z-index:3;margin:0;padding:8px 12px;border-radius:12px;background:#10152fe6;border:1px solid #f2c14e66;font-size:.82rem;color:#dfe4ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sm-flug-z b{color:#fff}
+.sm-flieger{position:fixed;z-index:2;pointer-events:none;filter:drop-shadow(0 10px 18px #000a)}
+.sm-flieger .smk{width:100%;height:100%}
+.sm-plopp{animation:smPlopp2 .55s cubic-bezier(.3,1.6,.5,1)}
+@keyframes smPlopp2{0%{transform:scale(1.25)}100%{transform:scale(1)}}
+.sm-neu-da .smk-in{outline:3px solid #fff;outline-offset:2px;animation:smNeuDa 1.6s ease-out forwards}
+@keyframes smNeuDa{0%{outline-color:#fff}100%{outline-color:#fff0}}
 </style>
 </head>
 <body>
