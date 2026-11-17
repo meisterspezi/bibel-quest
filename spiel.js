@@ -1445,6 +1445,14 @@ function hudNameAnpassen() {
 }
 window.addEventListener("resize", () => { try { hudNameAnpassen(); } catch (e) {} });
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { try { hudNameAnpassen(); } catch (e) {} });
+/* 9.86: Zahlen in der Kopfleiste ab 10.000 kürzen (23,5k · 100k · 1,2M) */
+function hudZahl(n) {
+  n = Math.max(0, Math.floor(+n || 0));
+  if (n < 10000) return n.toLocaleString("de-DE");
+  if (n < 100000) return (Math.floor(n / 100) / 10).toLocaleString("de-DE") + "k";
+  if (n < 1e6) return Math.floor(n / 1000) + "k";
+  return (Math.floor(n / 1e5) / 10).toLocaleString("de-DE") + "M";
+}
 function renderHud() {
   const n = levelOf(S.xp), lo = cum(n), hi = cum(n + 1);
   $("hLvl").textContent = n; if ($("hGem")) $("hGem").innerHTML = gemLogoHtml(meineGem() === "gast" ? null : gemInfo(meineGem()), 22); $("hAvatar").innerHTML = avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "?" }, 44);
@@ -1453,7 +1461,7 @@ function renderHud() {
   $("hRing").style.setProperty("--p", Math.max(0, Math.min(100, (S.xp - lo) / (hi - lo) * 100)).toFixed(1));
   const serie = streakNow(); $("hStreak").textContent = serie === 1 ? "1 Tag" : serie + " Tage"; $("hStreak").parentElement.classList.toggle("null", !serie);
   { const hs = $("hShop"); if (hs && !hs.firstChild) hs.innerHTML = svg("shop"); }
-  $("hTal").textContent = S.tal; const tbP = $("tbTal"); if (tbP) tbP.hidden = !etwasKaufbar();
+  $("hTal").textContent = hudZahl(S.tal); $("hTalBtn").title = (+S.tal || 0).toLocaleString("de-DE") + " Talente"; const tbP = $("tbTal"); if (tbP) tbP.hidden = !etwasKaufbar();
   $("hLvlT").textContent = "Level " + n;
   { const pz = Math.max(0, Math.min(100, (S.xp - lo) / (hi - lo) * 100)); const lt = $("hLvlT"); lt.style.setProperty("--lp", pz.toFixed(1) + "%"); lt.title = `Level ${n}: ${Math.round(S.xp) - lo} von ${hi - lo} XP (noch ${Math.max(0, hi - Math.round(S.xp))} bis Level ${n + 1})`; }
   hudNameAnpassen();
