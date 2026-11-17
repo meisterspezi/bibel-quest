@@ -1227,7 +1227,9 @@ function addXp(n, el, quelle, info) {
   const wk = weekKey(); if (S.weekKey !== wk) { S.weekKey = wk; S.weekXp = 0; } S.weekXp += n;
   if (el) { const [x, y] = centerOf(el); floatText("+" + n + " XP", x, y); }
   quest("xp", n);
-  const nachher = levelOf(S.xp); renderHud(); save(); lbSync();
+  const nachher = levelOf(S.xp);
+  try { if (typeof sammelNachXp === "function") sammelNachXp(n, quelle, info, vorher, nachher); } catch (e) {} /* 9.84: Goldstaub fürs Sammelalbum */
+  renderHud(); save(); lbSync();
   if (nachher > vorher) setTimeout(() => levelUp(nachher), 450);
   checkBadges();
 }
@@ -1455,6 +1457,7 @@ function renderHud() {
   $("hLvlT").textContent = "Level " + n;
   { const pz = Math.max(0, Math.min(100, (S.xp - lo) / (hi - lo) * 100)); const lt = $("hLvlT"); lt.style.setProperty("--lp", pz.toFixed(1) + "%"); lt.title = `Level ${n}: ${Math.round(S.xp) - lo} von ${hi - lo} XP (noch ${Math.max(0, hi - Math.round(S.xp))} bis Level ${n + 1})`; }
   hudNameAnpassen();
+  try { if (typeof smHud === "function") { smHud(0); smHudPlatz(); } } catch (e) {}
   const pk = $("pkBtn"); if (pk) { pk.hidden = !entwickler; pk.innerHTML = `${svg("post")}${pkOffenPruef ? `<i class="pk-ap" aria-hidden="true"></i>` : ""}${postfachNeu ? `<span class="pk-zahl">${postfachNeu > 99 ? "99+" : postfachNeu}</span>` : ""}`; pk.setAttribute("aria-label", `Postkasten${postfachNeu ? ", " + postfachNeu + " neu" : ""}`); }
 }
 /* Was ist im Laden gerade kaufbar? (je Kategorie, Reihenfolge-Regeln wie im Laden) */
@@ -2937,6 +2940,7 @@ function zusammenfuehren(r) {
   if (r.spWdh && r.spWdh.t === today()) { const n = wdhStand(); Object.entries(r.spWdh.n || {}).forEach(([k, v]) => { n[k] = Math.max(n[k] | 0, v | 0); }); }
   if (r.duKurz && typeof r.duKurz === "object") S.duKurz = Object.assign({}, r.duKurz, S.duKurz || {});
   bibGesMischen(r); /* 9.63: Fragenverlauf beider Geräte */
+  try { if (typeof smMischen === "function") smMischen(r); } catch (e) {} /* 9.84: Sammelalbum und Goldstaub */
   try { xqAbgleich(xpVorher); } catch (e) {}
   if (r.weekKey === S.weekKey) S.weekXp = Math.max(S.weekXp, r.weekXp || 0); else if ((r.weekKey || "") > (S.weekKey || "")) { S.weekKey = r.weekKey; S.weekXp = r.weekXp; }
   if (r.todayDay === S.todayDay) { S.todayXp = Math.max(S.todayXp, r.todayXp || 0); S.todayRight = Math.max(S.todayRight || 0, r.todayRight || 0); }
