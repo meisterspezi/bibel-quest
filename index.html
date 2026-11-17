@@ -3105,6 +3105,19 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 @keyframes smPlopp2{0%{transform:scale(1.25)}100%{transform:scale(1)}}
 .sm-neu-da .smk-in{outline:3px solid #fff;outline-offset:2px;animation:smNeuDa 1.6s ease-out forwards}
 @keyframes smNeuDa{0%{outline-color:#fff}100%{outline-color:#fff0}}
+
+/* 9.98: Markierung NEU / BESSER / DOPPELT im Krug – Banner oben auf der Kante (Variante A), Signalfarben, nie über dem Motiv */
+.sm-mark{position:absolute;inset:0;z-index:6;pointer-events:none;opacity:0;transition:opacity .25s .3s}
+.sm-karte.offen .sm-mark{opacity:1}
+.sm-mark b,.sm-mark small{position:absolute;white-space:nowrap;font-family:var(--body)}
+.sm-mark small{left:50%;transform:translateX(-50%);bottom:-17px;font:800 .56rem/1.2 var(--body)}
+.sm-mark.neu{--mc:#ff2e4d;--mt:#fff}.sm-mark.besser{--mc:#1fdc5a;--mt:#0b2a14}.sm-mark.dup{--mc:#5a6290;--mt:#fff}
+.sm-mark.neu small{color:#ff8a99}.sm-mark.besser small{color:#7dffa6}.sm-mark.dup small{color:#c9d1ff}
+.sm-dup{display:none}
+@keyframes markPuls{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--mc) 70%,transparent),0 2px 6px #0009}50%{box-shadow:0 0 0 5px color-mix(in srgb,var(--mc) 0%,transparent),0 2px 6px #0009}}
+.sm-mark b{left:50%;top:-11px;transform:translateX(-50%);padding:3px 6px;border-radius:7px;background:var(--mc);color:var(--mt);font:900 .66rem/1.1 var(--body);letter-spacing:.04em;border:1.5px solid #fff;animation:markPuls 1.6s ease-out infinite}
+.sm-mark.dup b{border-color:#c9d1ff;animation:none;box-shadow:0 2px 6px #0009}
+@media (prefers-reduced-motion:reduce){.sm-mark b{animation:none}}
 </style>
 </head>
 <body>
