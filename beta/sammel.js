@@ -78,7 +78,7 @@ const ALBUM_TEXT = [
 ];
 
 /* ---------- Regeln ---------- */
-const SM_GOLD_TAG = 30, SM_KRUG_PREIS = 10, SM_KRUG_KARTEN = 5, SM_KRUG_TAG = 3;
+const SM_KRUG_PREIS = 10, SM_KRUG_KARTEN = 5, SM_KRUG_TAG = 3;
 const SM_TAUSCH = { 1: 3, 2: 4, 3: 5 };                      /* 3 Bronze → Silber, 4 Silber → Gold, 5 Gold → Glanz */
 const SM_W = { 1: 0.60, 2: 0.28, 3: 0.10, 4: 0.02 };         /* Seltenheit je Karte */
 const SM_STUFE = ["Grau", "Bronze", "Silber", "Gold", "Glanz"];
@@ -126,7 +126,7 @@ function smMischen(r) {
 function smGoldGeben(n) {
   const m = smInit(), t = today();
   if (m.gt !== t) { m.gt = t; m.gn = 0; }
-  const x = Math.min(Math.max(0, SM_GOLD_TAG - m.gn), n | 0); if (x <= 0) return 0;
+  const x = Math.max(0, n | 0); if (x <= 0) return 0; /* 9.86: keine Tagesgrenze mehr – begrenzt sind nur die Krüge (3 am Tag) */
   m.gn += x; m.gv += x; save(); smHud(x); return x;
 }
 function smGeschenk(grund) {
@@ -255,7 +255,7 @@ VIEWS.album = () => {
     ${smBeutelHtml()}
     <p class="sm-hinw sm-wahl" id="smWahl" hidden></p>
     ${gruppen}
-    <div class="sm-fuss"><button class="btn" id="smTeilen">${SM_ALBUM_SVG} Mein Album teilen</button><p class="small muted">Goldstaub gibt es für jede beendete Runde (+1 bei guter Runde), jede Schatztruhe (4), Biblionär der Woche (2) und jeden Level-Aufstieg (3) – höchstens ${SM_GOLD_TAG} am Tag. Jede ${SM_TRUHEN_GESCHENK}. Schatztruhe bringt einen Geschenk-Krug. Seltenheit: Bronze 60 %, Silber 28 %, Gold 10 %, Glanz 2 %.</p></div>`;
+    <div class="sm-fuss"><button class="btn" id="smTeilen">${SM_ALBUM_SVG} Mein Album teilen</button><p class="small muted">Goldstaub gibt es für jede beendete Runde (+1 bei guter Runde), jede Schatztruhe (4), Biblionär der Woche (2) und jeden Level-Aufstieg (3). Ansparen ohne Grenze – öffnen kannst du bis zu ${SM_KRUG_TAG} Krüge am Tag. Jede ${SM_TRUHEN_GESCHENK}. Schatztruhe bringt einen Geschenk-Krug. Seltenheit: Bronze 60 %, Silber 28 %, Gold 10 %, Glanz 2 %.</p></div>`;
   wireGo();
   const kk = $("smKrugKn"); if (kk) kk.onclick = () => { if (kk.classList.contains("aus")) { SFX.tap(); return; } SFX.tap(); const o = smKrugKaufen(); if (o) smKrugBuehne(o, false); };
   screen.querySelectorAll("[data-tausch]").forEach(b => b.onclick = () => smTauschStart(+b.dataset.tausch));
@@ -439,7 +439,7 @@ async function smZeichnen(format, titel, unter, inhalt) {
   const icon = await smBild("icons/icon-192.png"), q = format === "quadrat";
   const kopf = q ? 70 : 110, ic = q ? 110 : 150;
   if (icon) cx.drawImage(icon, 70, kopf, ic, ic);
-  cx.textAlign = "left"; cx.fillStyle = "#f2c14e"; cx.font = `800 ${q ? 58 : 74}px Cinzel, Georgia, serif`; cx.fillText(titel, 70 + ic + 30, kopf + ic * .55);
+  cx.textAlign = "left"; cx.fillStyle = "#f2c14e"; { const frei = W - 70 - (70 + ic + 30); let fs = q ? 58 : 74; do { cx.font = `800 ${fs}px Cinzel, Georgia, serif`; } while (cx.measureText(titel).width > frei && --fs > 30); } cx.fillText(titel, 70 + ic + 30, kopf + ic * .55); /* 9.86: Titel passt immer */
   cx.fillStyle = "#c9d1ff"; cx.font = `600 ${q ? 32 : 38}px Lexend, sans-serif`; cx.fillText(unter, 70 + ic + 30, kopf + ic * .55 + (q ? 46 : 58));
   const fuss = q ? 250 : 360, y0 = kopf + ic + (q ? 40 : 70), y1 = H - fuss - 30;
   await inhalt(cx, W, y0, y1, q);
@@ -453,9 +453,9 @@ async function smZeichnen(format, titel, unter, inhalt) {
 async function smTeilen(cv, name, text) {
   const blob = await new Promise(r => cv.toBlob(r, "image/png"));
   const datei = blob ? new File([blob], name, { type: "image/png" }) : null;
-  try { if (datei && navigator.canShare && navigator.canShare({ files: [datei] })) { await navigator.share({ files: [datei], text: text + " " + smLink(), title: "Bibelbuch-Quest" }); return true; } } catch (e) { if (e && e.name === "AbortError") return false; }
+  try { if (datei && navigator.canShare && navigator.canShare({ files: [datei] })) { await navigator.share({ files: [datei], text: text + "\n" + smLink() }); return true; } } catch (e) { if (e && e.name === "AbortError") return false; }
   try { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); } catch (e) {}
-  try { await navigator.clipboard.writeText(text + " " + smLink()); toast("Bild gespeichert, Text mit Link kopiert – jetzt in WhatsApp einfügen."); } catch (e) { toast("Bild gespeichert."); }
+  try { await navigator.clipboard.writeText(text + "\n" + smLink()); toast("Bild gespeichert, Text mit Link kopiert – jetzt in WhatsApp einfügen."); } catch (e) { toast("Bild gespeichert."); }
   return true;
 }
 async function smTeilenAlbum() {
@@ -496,7 +496,7 @@ function smAnkuendigen() {
   }, 1500);
 }
 const SM_TOUR = [
-  { sel: ".sm-kasse", t: "Goldstaub", x: "Verdienst du mit jeder Runde, guten Runden, Schatztruhen und Level-Aufstiegen – bis zu 30 am Tag." },
+  { sel: ".sm-kasse", t: "Goldstaub", x: "Verdienst du mit jeder Runde, guten Runden, Schatztruhen und Level-Aufstiegen. Sammeln so viel du willst – öffnen kannst du 3 Krüge am Tag." },
   { sel: "#smKrugKn", t: "Krüge", x: "Ein Krug kostet 10 Goldstaub und enthält 5 Karten. Bis zu 3 Krüge am Tag. Jede 7. Schatztruhe schenkt dir einen Krug – dein erster wartet schon." },
   { sel: ".sm-beutel", t: "Tauschbeutel", x: "Doppelte Karten landen hier. 3 Bronze → 1 Silber, 4 Silber → 1 Gold, 5 Gold → 1 Glanz. Welche Karte aufsteigt, wählst du selbst." }
 ];
@@ -551,10 +551,9 @@ VIEWS.rueckblick = () => {
     `<div class="rb-k"><small>Gemeinsam</small><div class="rb-gross"><b>${rbGemeinde ? pkt(rbGemeinde) : "…"}</b><span>XP haben alle zusammen gesammelt</span></div><p>Danke, dass du Teil davon bist!</p></div>`,
     `<div class="rb-k rb-vers"><small>Dein Vers für ${D.jahr + 1}</small><blockquote>${esc(D.vers[0])}</blockquote><cite>${esc(D.vers[1])}</cite></div>`,
     `<div class="rb-k rb-teil"><small>Teilen</small><h3>Zeig deinen Freunden dein Bibeljahr</h3>
-      <div class="rk-var" role="group" aria-label="Format"><button data-f="status" aria-pressed="${rbFormat === "status"}">WhatsApp-Status</button><button data-f="quadrat" aria-pressed="${rbFormat === "quadrat"}">Chat</button></div>
-      <label class="rb-name"><input type="checkbox" id="rbName" ${m.rb.n ? "checked" : ""}> Meinen Namen aufs Bild schreiben</label>
       <div class="rb-vorschau" id="rbVorschau"><span class="muted small">Bild wird erstellt …</span></div>
-      <button class="btn primary" id="rbTeilen">${SM_GOLD_SVG} Bild teilen${m.rb.g === D.jahr ? "" : " · +5 Goldstaub"}</button></div>`
+      <p class="rb-link small">Mit dem Bild wird dieser Link geteilt:<br><b>${esc(smLink())}</b></p>
+      <button class="btn primary" id="rbTeilen">${svg("share") || ""} Teilen${m.rb.g === D.jahr ? "" : " · +5 Goldstaub"}</button></div>`
   ];
   rbSeite = Math.max(0, Math.min(seiten.length - 1, rbSeite));
   screen.innerHTML = `<div class="rb"><div class="rb-balken">${seiten.map((_, k) => `<i class="${k <= rbSeite ? "an" : ""}"></i>`).join("")}</div>
@@ -569,7 +568,7 @@ VIEWS.rueckblick = () => {
   if (rbSeite === seiten.length - 1) rbTeilenSeite(D);
 };
 async function rbBild(D, format) {
-  const m = smInit(), name = m.rb.n && S.lbName ? S.lbName : "";
+  const name = S.lbName || ""; /* 9.86: Name immer aufs Bild */
   return smZeichnen(format, `Mein Bibeljahr ${D.jahr}`, name ? `${name} · Bibelbuch-Quest` : "Bibelbuch-Quest", async (cx, W, y0, y1, q) => {
     const z = [[pkt(D.right), "richtige Antworten"], [D.serie + " Tage", "längste Serie"], [D.buecher + " / 66", "Bücher gelernt"], [D.album + " / 66", "Album-Karten"]];
     const bw = (W - 140 - 30) / 2, bh = q ? 170 : 230;
@@ -588,12 +587,10 @@ async function rbBild(D, format) {
 }
 async function rbTeilenSeite(D) {
   const m = smInit();
-  screen.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { rbFormat = b.dataset.f; SFX.tap(); VIEWS.rueckblick(); });
-  $("rbName").onchange = e => { m.rb.n = e.target.checked; save(); VIEWS.rueckblick(); };
   const cv = await rbBild(D, rbFormat); if (current !== "rueckblick") return;
   const v = $("rbVorschau"); if (v) { v.innerHTML = ""; cv.className = "rb-bild " + rbFormat; v.appendChild(cv); }
   $("rbTeilen").onclick = async () => { SFX.tap();
-    const ok = await smTeilen(cv, `mein-bibeljahr-${D.jahr}.png`, `Mein Bibeljahr ${D.jahr} mit Bibelbuch-Quest: ${pkt(D.right)} richtige Antworten und schon ${D.buecher} von 66 Bibelbüchern gelernt! Lern mit und spiel gegen mich:`);
+    const ok = await smTeilen(cv, `mein-bibeljahr-${D.jahr}.png`, `Mein Bibeljahr ${D.jahr} mit Bibelbuch-Quest: ${pkt(D.right)} richtige Antworten und schon ${D.buecher} von 66 Bibelbüchern gelernt! Lern mit und spiel gegen mich! 👇`);
     if (ok && m.rb.g !== D.jahr) { m.rb.g = D.jahr; save(); const x = smGoldGeben(5); if (x) toast(`Danke fürs Teilen! +${x} Goldstaub`); } };
 }
 /* Start: Banner und einmaliges Fenster */
