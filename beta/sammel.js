@@ -371,9 +371,11 @@ function smKrugBuehne(offen, wieder) {
     const n = zug.length, mi = (n - 1) / 2;
     zug.forEach((c, k) => {
       const el = document.createElement("div"); el.className = "sm-karte" + (c.d ? " doppelt" : "") + (rm ? " offen" : " wartet"); el.dataset.s = c.s; el.style.setProperty("--rc", SM_RC[c.s]);
-      const up = c.d ? "DOPPELT" : c.v > 0 ? SM_STUFE[c.v] + " → " + SM_STUFE[c.s] : "NEU";
-      el.innerHTML = `<div class="sm-strahl"></div><div class="sm-innen"><div class="sm-seite sm-ruecken"><b>66</b></div><div class="sm-seite sm-vorne">${smKarteHtml(c.i, c.s, `<span class="smk-up${c.d ? " dup" : ""}">${up}</span>`)}${c.d ? `<i class="sm-dup">→ Tauschbeutel</i>` : ""}</div></div>`;
-      const x = (k - mi) * 68, y = (k - mi) * (k - mi) * 5, rot = (k - mi) * 6;
+      /* 9.98: Markierung NEU / BESSER / DOPPELT außerhalb des Motivs (sm-mark, Geschwister der Karte) */
+      const typ = c.d ? "dup" : c.v > 0 ? "besser" : "neu", txt = { neu: "NEU", besser: "BESSER", dup: "DOPPELT" }[typ];
+      const sub = c.d ? (c.s < SM_MAX ? "→ Beutel" : "schon da") : c.v > 0 ? `→ ${SM_STUFE[c.s]}` : "";
+      el.innerHTML = `<div class="sm-strahl"></div><div class="sm-innen"><div class="sm-seite sm-ruecken"><b>66</b></div><div class="sm-seite sm-vorne">${smKarteHtml(c.i, c.s)}<span class="sm-mark ${typ}"><b>${typ === "besser" ? "▲ " : ""}${txt}</b>${sub ? `<small>${sub}</small>` : ""}</span></div></div>`;
+      const x = (k - mi) * 80, y = (k - mi) * (k - mi) * 5, rot = (k - mi) * 5; /* 9.98: etwas weiter auseinander – Platz für die Markierungen */
       el.style.transform = `translate(${x}px,${y}px) rotate(${rot}deg)`;
       fan.appendChild(el);
       if (!rm) el.animate([{ transform: "translate(0,60px) scale(.2)", opacity: 0 }, { transform: `translate(${x * .4}px,${y - 50}px) scale(1.05) rotate(${rot}deg)`, opacity: 1, offset: .7 }, { transform: el.style.transform, opacity: 1 }], { duration: 700, delay: 150 * k, easing: "cubic-bezier(.2,.9,.3,1)", fill: "backwards" });
