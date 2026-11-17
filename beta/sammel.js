@@ -175,10 +175,16 @@ hudNameAnpassen = function () {
   hud.classList.remove("eng"); t.classList.remove("zwei"); t.parentElement.classList.remove("zweizeilig"); t.style.fontSize = "";
   /* 9.90: Reihenfolge – 1. Name einzeilig bis 13 px verkleinern, 2. bei Leerzeichen/Bindestrich zweizeilig, 3. erst dann Laden-/Album-Symbol ausblenden */
   const start = parseFloat(getComputedStyle(t).fontSize) || 19;
-  for (let px = start; px >= 13; px -= 0.5) { t.style.fontSize = px.toFixed(1) + "px"; if (t.scrollWidth <= t.clientWidth + 1) return; }
+  const passt = () => { const r = document.createRange(); r.selectNodeContents(t); return r.getBoundingClientRect().width <= t.getBoundingClientRect().width - 0.5; }; /* 9.100: genau messen (Bruchteile eines Pixels → sonst „…“) */
+  for (let px = start; px >= 13; px -= 0.5) { t.style.fontSize = px.toFixed(1) + "px"; if (passt()) return; }
   t.style.fontSize = "";
-  if (/[\s-]/.test(t.textContent.trim())) { smNameOrig(); if (t.scrollWidth <= t.clientWidth + 1 && t.scrollHeight <= t.clientHeight + 1) return; }
-  hud.classList.add("eng"); smNameOrig();
+  const mehrteilig = /[\s-]/.test(t.textContent.trim());
+  if (mehrteilig) { smNameOrig(); if (t.scrollWidth <= t.clientWidth + 1 && t.scrollHeight <= t.clientHeight + 1) return; }
+  hud.classList.add("eng");
+  if (mehrteilig) { smNameOrig(); return; }
+  /* 9.100: Einwortige Namen nie mitten im Wort trennen – einzeilig bis 11 px, sonst „…“ */
+  t.classList.remove("zwei"); t.parentElement.classList.remove("zweizeilig");
+  for (let px = start; px >= 11; px -= 0.5) { t.style.fontSize = px.toFixed(1) + "px"; if (passt()) return; }
 };
 const smHudPlatz = () => hudNameAnpassen();
 addEventListener("resize", () => { try { smHudPlatz(); } catch (e) {} });
