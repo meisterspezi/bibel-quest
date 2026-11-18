@@ -3693,7 +3693,7 @@ VIEWS.rank = (tab) => {
       /* Waffenrüstung (bzw. Siegel bei „Bewährt“) auch auf dem Podest */
       const istAlb = rankTab === "album" || rankTab === "albumWoche";
       /* 10.9: bei Ausdauer keine Goldkarten – so bleibt das Podest so groß wie in den anderen Ranglisten */
-      const ohneGl = istAlb || katVon(rankTab).id === "ausdauer", gl = r => ohneGl ? "" : glanzHtml(r);
+      const gl = () => ""; /* 10.16: Goldkarten nur noch in der Rangliste „Album“ (dort am Namen) */
       const ext = r => (istAlb ? albumBalken(r) : rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)) + gl(r);
       const person = (r, sz) => `<button class="gk-p ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}">${avatarLv(r, sz)}<b>${esc(r.name)}</b>${ext(r)}</button>`;
       const gold = `<div class="gk-gold${g1.length === 1 ? " einzel" : ""}">${rankTab === "bibWoche" && typeof bwPreisHtml === "function" ? bwPreisHtml("band") : ""}<span class="pod-krone">${svg("crown")}</span>
@@ -3707,7 +3707,7 @@ VIEWS.rank = (tab) => {
       if (istAlb) albWMax = Math.max(1, ...rows.map(r => albumWoche(r)));
       const pod = istAlb ? albumPodest(g1, g2, g3, rankWert, me, albWo) : `<div class="gk">${gold}${g2.length ? `<div class="gk-zd">${klein(2, g2)}${klein(3, g3)}</div>` : ""}</div>`;
       const rest = rows.map((r, i) => [r, platz[i]]).filter(([, p]) => p > 3).slice(0, 80).map(([r, p], k, arr) => istAlb
-        ? `<button class="rrow ap-row ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}"><div class="rk">${k && arr[k - 1][1] === p ? "" : p}</div>${avatarLv(r, 38)}<div class="who"><span class="ap-nz"><b>${esc(r.name)}${r.id === me ? '<span class="you">DU</span>' : ""}</b>${albWo ? "" : `<small>${albumAnzahl(r)}/66</small>`}</span>${albumBalken(r, albWo)}</div><div class="val">${pkt(rankWert(r))}</div></button>`
+        ? `<button class="rrow ap-row ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}"><div class="rk">${k && arr[k - 1][1] === p ? "" : p}</div>${avatarLv(r, 38)}<div class="who"><span class="ap-nz"><b>${esc(r.name)}${glanzHtml(r)}${r.id === me ? '<span class="you">DU</span>' : ""}</b>${albWo ? "" : `<small>${albumAnzahl(r)}/66</small>`}</span>${albumBalken(r, albWo)}</div><div class="val">${pkt(rankWert(r))}</div></button>`
         : `<button class="rrow ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}"><div class="rk">${k && arr[k - 1][1] === p ? "" : p}</div>${avatarLv(r, 38)}<div class="who"><b>${esc(r.name)}${gl(r)}${r.id === me ? '<span class="you">DU</span>' : ""}</b><span>${esc(rangVon(r))}</span>${rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)}</div><div class="val">${pkt(rankWert(r))}</div></button>`).join("");
       if ($("rcount")) $("rcount").textContent = (rankTab === "woche" || rankTab === "bibWoche" || rankTab === "albumWoche" ? wk.split("-W")[1] + ". KW · " : istBibTab(rankTab) ? "Gemeinde · " : "") + rows.length + " Spieler";
       /* 10.8: Leiste der Wochenrunde/des Rekords unter dem Podest – so steht das Podest in allen Ranglisten an derselben Stelle */
