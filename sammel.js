@@ -177,11 +177,16 @@ function smTruheKarte() {
 const SM_GOLD_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="#fffbe8" stroke="#c9a24a" stroke-width=".9"><circle cx="8" cy="9" r="3.4"/><circle cx="15.8" cy="7.4" r="2.7"/><circle cx="12" cy="15.4" r="3.8"/><circle cx="18.4" cy="14.6" r="2.3"/><circle cx="6.2" cy="16.8" r="2"/></g><path d="M6.6 7.6a1.7 1.7 0 0 1 1.7-1M10.4 13.6a2.1 2.1 0 0 1 2-1.1" stroke="#fff" stroke-width="1" fill="none" stroke-linecap="round"/></svg>`;
 const SM_ALBUM_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="smAlbG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a9bff"/><stop offset="1" stop-color="#1d4bb0"/></linearGradient></defs><rect x="4.5" y="2.2" width="16" height="19.6" rx="2" fill="#fff4d6" stroke="#1b2a55" stroke-width="1.1"/><rect x="3.2" y="1.6" width="15.8" height="19.8" rx="2.2" fill="url(#smAlbG)" stroke="#f2c14e" stroke-width="1.5"/><path d="M5.2 1.8v19.4" stroke="#13306f" stroke-width="1.6"/><circle cx="12" cy="11.4" r="5" fill="#13306f" stroke="#f2c14e" stroke-width="1.2"/><text x="12" y="13.7" text-anchor="middle" font-size="6.4" font-weight="900" font-family="Lexend, Arial, sans-serif" fill="#f2c14e">66</text></svg>`;
 const SM_KRUG_SVG = `<svg class="sm-kr-ic" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="smKgK" x1="0" x2="1"><stop offset="0" stop-color="#8a5a12"/><stop offset=".45" stop-color="#fff0b0"/><stop offset="1" stop-color="#9a6614"/></linearGradient></defs><path d="M9.5 6.5h5c.2 1 .7 1.6 1.6 2.3 1.9 1.4 2.9 3.6 2.9 6.2 0 4.3-3 7-7 7.3-4-.3-7-3-7-7.3 0-2.6 1-4.8 2.9-6.2.9-.7 1.4-1.3 1.6-2.3z" fill="url(#smKgK)" stroke="#5a3a08" stroke-width="1.1" stroke-linejoin="round"/><path d="M8.6 6.5c.4-1.9 1.9-2.9 3.4-2.9s3 1 3.4 2.9z" fill="url(#smKgK)" stroke="#5a3a08" stroke-width="1"/><circle cx="12" cy="2.6" r="1.1" fill="#ffe48a" stroke="#5a3a08" stroke-width=".7"/><path d="M6.4 14.2c3.7 1.2 7.5 1.2 11.2 0" fill="none" stroke="#fffbe8" stroke-width="1.2"/></svg>`;
+/* 10.4: NEU-Fähnchen an der Album-Kapsel bis zum Start der Weihnachts-Ausgabe von Biblionär (1. Advent 2026 = 29.11.);
+   das Funkeln bleibt dauerhaft. edTag() kennt das Testdatum (localhost/Beta, Testlabor). */
+const SM_NEU_BIS = "2026-11-29";
+const smNeuZeigen = () => { try { return (typeof edTag === "function" ? edTag() : dayNum(today())) < dayNum(SM_NEU_BIS); } catch (e) { return false; } };
 function smHud(neu) {
   const b = $("hGoldBtn"); if (!b) return;
   $("hGold").textContent = typeof hudZahl === "function" ? hudZahl(smGold()) : smGold(); b.title = smGold().toLocaleString("de-DE") + " Manna";
   const kann = smHeuteKruege() < SM_KRUG_TAG && (smGold() >= SM_KRUG_PREIS || smGeschenke() > 0);
   const p = $("tbKrug"); if (p) p.hidden = !kann;
+  const nf = $("smNeu"); if (nf) nf.hidden = !smNeuZeigen();
   if (neu > 0) { b.classList.remove("sm-plus"); void b.offsetWidth; b.classList.add("sm-plus"); try { const r = b.getBoundingClientRect(); floatText("+" + neu + " Manna", r.left + r.width / 2, r.top + r.height + 18); } catch (e) {} }
 }
 /* Passt der Name nicht mehr neben die beiden Währungen, werden Laden- und Album-Symbol ausgeblendet (die Anzeigen bleiben antippbar).
@@ -212,7 +217,8 @@ try { document.fonts.ready.then(() => { try { smHudPlatz(); } catch (e) {} }); d
   if (!smFrei()) { setTimeout(() => { try { smHudBauen(); renderHud(); } catch (e) {} }, Math.min(2147000000, SM_START - Date.now() + 1500)); return; } /* 10.0: erscheint um 08:00 auch bei offener App */
   const tal = $("hTalBtn"); if (!tal || $("hGoldBtn")) return;
   const b = document.createElement("button"); b.className = "pill hud-gold"; b.id = "hGoldBtn"; b.setAttribute("aria-label", "Manna – zum Sammelalbum");
-  b.innerHTML = `${SM_GOLD_SVG}<span id="hGold">0</span><span class="hud-album" aria-hidden="true">${SM_ALBUM_SVG}</span><span class="tb-punkt" id="tbKrug" hidden aria-label="Ein Krug kann geöffnet werden"></span>`;
+  b.innerHTML = `${SM_GOLD_SVG}<span id="hGold">0</span><span class="hud-album" aria-hidden="true">${SM_ALBUM_SVG}</span><span class="tb-punkt" id="tbKrug" hidden aria-label="Ein Krug kann geöffnet werden"></span>`
+    + `<span class="sm-funk f1" aria-hidden="true">✦</span><span class="sm-funk f2" aria-hidden="true">✦</span><span class="sm-neu" id="smNeu" hidden>NEU</span>`; /* 10.4: Funkeln immer, NEU bis zum 1. Advent */
   tal.insertAdjacentElement("afterend", b); /* 9.90: nebeneinander in #hKasse */
   b.onclick = () => { SFX.tap(); go("album"); };
   smHud(0); setTimeout(() => { try { smHudPlatz(); } catch (e) {} }, 300);
