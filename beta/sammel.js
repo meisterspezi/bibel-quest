@@ -588,14 +588,65 @@ async function smTeilenAlbum() {
 /* ---------- 9.85/9.92: Goldkarten für die Rangliste (Feld gl, Sammlung album) ----------
    Eigene kleine Sammlung album/{pid} = { gl, updated } – die Ranglisten-Regel für „spieler“ ist an der Grenze von 1000 Rechenschritten.
    Geschrieben wird nur, wenn sich die Zahl ändert (höchstens 66-mal je Spieler). Der Sammel-Job trägt gl in die Rangliste ein. */
-let smGlLaeuft = false;
-function smGlanzSenden(L) {
+let smGlLaeuft = false, smStAlt = false;
+/* 10.2: Album-Stand. Auf dem Gerät als 66 Ziffern (0 = fehlt, 1 Bronze, 2 Silber, 3 Gold), in der Datenbank kompakt als sk = 22 Zeichen
+   (je Zeichen 3 Bücher à 2 Bit, Alphabet A–Z a–z 0–9 - _) – ein Drittel der Größe. */
+const SM_SK_ABC = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+const smStText = () => smInit().album.map(x => Math.max(0, Math.min(SM_MAX, x | 0))).join("");
+const smPack = st => { let o = ""; for (let i = 0; i < 66; i += 3) o += SM_SK_ABC[(+st[i] << 4) | (+st[i + 1] << 2) | +st[i + 2]]; return o; };
+const smUnpack = sk => { if (typeof sk !== "string" || !/^[A-Za-z0-9_-]{22}$/.test(sk)) return ""; let o = ""; for (const c of sk) { const v = SM_SK_ABC.indexOf(c); o += ((v >> 4) & 3) + "" + ((v >> 2) & 3) + (v & 3); } return o; };
+/* 10.2 Datenbank schonen: das Album geht gebündelt raus – sofort nur beim allerersten Mal, sonst höchstens alle 6 Stunden
+   und beim Verlassen der App (sofortSenden). Andere sehen Änderungen deshalb mit Verzögerung – gewollt. */
+const SM_SENDE_ABSTAND = 6 * 36e5;
+function smGlanzSenden(L, jetzt) {
   if (!smFrei()) return;
   if (BETA) return; /* 9.93: Beta-Album nicht in die Rangliste */
-  const m = smInit(), n = smGlanz();
-  if (!S.pid || !L || !L.albumSetzen || smGlLaeuft || (m.gls | 0) === n || (!n && !m.gls)) return;
+  const m = smInit(), n = smGlanz(), st = smStText(), sk = smPack(st), leer = !/[1-3]/.test(st);
+  const skNeu = !smStAlt && m.sts !== sk && !(leer && !m.sts), glNeu = (m.gls | 0) !== n && !(!n && !m.gls);
+  if (!S.pid || !L || !L.albumSetzen || smGlLaeuft || (!skNeu && !glNeu)) return;
+  if (!jetzt && m.sz && Date.now() - m.sz < SM_SENDE_ABSTAND) return;
   smGlLaeuft = true;
-  L.albumSetzen(S.pid, n).then(() => { m.gls = n; save(); }).catch(() => {}).finally(() => { smGlLaeuft = false; });
+  L.albumSetzen(S.pid, n, smStAlt ? null : sk).then(w => { m.gls = n; m.sz = Date.now(); if (w === "alt") smStAlt = true; else m.sts = sk; save(); }).catch(() => {}).finally(() => { smGlLaeuft = false; });
+}
+/* ---------- 10.2: Album in der Rangliste (Kachel „Album“) und im Spielerprofil (Reiter „Album“) ----------
+   Rangliste: Feld ab = "Gold.Silber.Bronze" in der Sammel-Rangliste (kein zusätzlicher Lesevorgang).
+   Schaufenster: ganzes Album aus albumliste/alle (1 Lesevorgang, 12 Std. auf dem Gerät gemerkt) – erst, wenn jemand den Reiter öffnet. */
+const smIch = r => r && r.id === S.pid && smFrei();
+function albumZahlen(r) { /* [Gold, Silber, Bronze] oder null */
+  if (smIch(r)) { const st = smStText(); return [3, 2, 1].map(s => st.split("").filter(c => +c === s).length); }
+  if (r && typeof r.ab === "string" && /^\d+\.\d+\.\d+$/.test(r.ab)) return r.ab.split(".").map(Number);
+  return null;
+}
+function albumPunkte(r) {
+  const z = albumZahlen(r); if (z) return z[0] * 3 + z[1] * 2 + z[2];
+  return r && +r.gl > 0 ? Math.min(66, r.gl | 0) * 3 : 0; /* ältere App-Version: Goldkarten × 3 als Untergrenze */
+}
+function albumWoche(r) {
+  if (!r || r.awk !== weekKey() || r.aw === "" || r.aw == null || !(+r.aw >= 0)) return 0;
+  return Math.max(0, albumPunkte(r) - (r.aw | 0));
+}
+function albumBalken(r) {
+  const z = albumZahlen(r); if (!z) return "";
+  const [g, s, b] = z, w = n => (n / 66 * 100).toFixed(1) + "%";
+  return `<span class="alb-bar" title="${g} Gold · ${s} Silber · ${b} Bronze"><i class="b3" style="width:${w(g)}"></i><i class="b2" style="width:${w(s)}"></i><i class="b1" style="width:${w(b)}"></i></span>`;
+}
+/* Schaufenster: Mini-Album mit 66 Plätzen. st = 66 Ziffern (eigenes Album vom Gerät, sonst aus der Albumliste) */
+function albumSchaufenster(r, istIch, st) {
+  if (smIch(r)) st = smStText();
+  if (!st || !/[1-3]/.test(st)) return `<p class="small muted" style="margin:8px 0 0">${istIch ? "Dein Album ist noch leer." : `${esc(r.name)} hat noch keine Karten im Album – oder sie sind noch nicht übertragen (bis zu ein paar Stunden).`}</p>`;
+  const z = [3, 2, 1].map(s => st.split("").filter(c => +c === s).length), [g, s, b] = z, ich = istIch ? "" : smStText();
+  const plaetze = st.split("").map((c, i) => `<i class="alb-p s${c}" style="--gl:${SM_GLAS[ALL[i].gi]}" title="${esc(ALL[i].b)} · ${c > 0 ? SM_STUFE[c] : "fehlt"}"></i>`).join("");
+  const meister = GROUPS.map((gr, gi) => ALL.map((x, i) => [x, i]).filter(([x]) => x.gi === gi).every(([, i]) => st[i] === "3") ? gr.name : "").filter(Boolean);
+  const nurEr = ich ? st.split("").map((c, i) => c === "3" && ich[i] !== "3" ? ALL[i].b : "").filter(Boolean) : [];
+  return `<div class="alb-sf"><div class="alb-raster">${plaetze}</div>
+    <div class="alb-zahl"><span class="z3">${g} Gold</span><span class="z2">${s} Silber</span><span class="z1">${b} Bronze</span><span>${66 - b - s - g} fehlen</span></div>
+    ${meister.length ? `<p class="small" style="margin:6px 0 0"><b>Ganz in Gold:</b> ${esc(meister.join(", "))}</p>` : ""}
+    ${nurEr.length ? `<p class="small muted" style="margin:4px 0 0">In Gold, was dir noch fehlt: ${esc(nurEr.slice(0, 6).join(", "))}${nurEr.length > 6 ? ` und ${nurEr.length - 6} weitere` : ""}</p>` : ""}</div>`;
+}
+async function albumVonSpieler(r) { /* 66 Ziffern oder "" */
+  if (smIch(r)) return smStText();
+  const L = window.LB; if (!L || !L.albumListe) return "";
+  try { const m = await L.albumListe(); return smUnpack(m && m[r.id]); } catch (e) { return ""; }
 }
 
 /* ---------- 9.85: Ankündigung (einmal) und kurze Tour beim ersten Öffnen ---------- */

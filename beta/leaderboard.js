@@ -40,9 +40,26 @@ if (!configured) {
     };
 
     // 9.85 Sammelalbum: Anzahl der Glanz-Karten (eigene kleine Sammlung – die Regel für „spieler“ ist an ihrer Rechengrenze)
-    LB.albumSetzen = async (pid, gl) => {
+    /* 10.2: zusätzlich sk = Album-Stand kompakt (22 Zeichen) für Album-Rangliste und Schaufenster.
+       Lehnen die Regeln sk noch ab (alte Regeln), wird nur gl gespeichert und "alt" zurückgegeben. */
+    LB.albumSetzen = async (pid, gl, sk) => {
       await LB.signIn();
-      await fs.setDoc(ref("album", pid), { gl: Math.max(0, Math.min(66, gl | 0)), updated: fs.serverTimestamp() });
+      const d = { gl: Math.max(0, Math.min(66, gl | 0)), updated: fs.serverTimestamp() };
+      if (typeof sk === "string" && /^[A-Za-z0-9_-]{22}$/.test(sk)) {
+        try { await fs.setDoc(ref("album", pid), Object.assign({ sk }, d)); return "neu"; }
+        catch (e) { if (!/permission/i.test(String(e && (e.code || e.message)))) throw e; }
+        await fs.setDoc(ref("album", pid), d); return "alt";
+      }
+      await fs.setDoc(ref("album", pid), d); return "alt";
+    };
+    /* 10.2: alle Alben (vom Sammel-Job) für das Schaufenster – 1 Lesevorgang, 12 Std. auf dem Gerät gemerkt, nur auf Abruf */
+    const ALB_KEY = "bq-albumliste", ALB_TTL = 12 * 36e5;
+    LB.albumListe = async () => {
+      try { const c = JSON.parse(localStorage.getItem(ALB_KEY) || "null"); if (c && Date.now() - c.t < ALB_TTL && c.d) return c.d; } catch (e) {}
+      const d = await fs.getDoc(ref("albumliste", "alle")); let m = {};
+      try { m = d.exists() ? JSON.parse(d.data().daten || "{}") : {}; } catch (e) { m = {}; }
+      try { localStorage.setItem(ALB_KEY, JSON.stringify({ t: Date.now(), d: m })); } catch (e) {}
+      return m;
     };
 
     // Dieses Gerät einem bestehenden Profil zuordnen (per Kopplungscode oder Zusammenführung)
@@ -391,7 +408,7 @@ if (!configured) {
           if (kind === "bibWoche") rows = (await fs.getDocs(fs.query(bibliothek, fs.where("wk", "==", week), fs.limit(200)))).docs.map(bibZeile);
           else { /* aus der gemeinsamen Spielerliste (eine Abfrage für alle Ranglisten) – wie die Datenbank-Sortierung: nur Einträge mit dem Feld */
             const f = FELD[kind] || "xp", alle = await LB.alleSpieler();
-            rows = kind === "woche" ? alle.filter(r => r.week === week) : alle.filter(r => r[f] !== undefined).sort((a, b) => (b[f] || 0) - (a[f] || 0)).slice(0, 100);
+            rows = kind === "woche" ? alle.filter(r => r.week === week) : kind === "album" || kind === "albumWoche" ? alle.filter(r => r.ab || r.gl) /* 10.2: sortiert die App */ : alle.filter(r => r[f] !== undefined).sort((a, b) => (b[f] || 0) - (a[f] || 0)).slice(0, 100);
           }
           if (kind === "bibWoche") zsMerken(k, rows); geben(rows);
         } catch (e) { if (!weg && onErr) onErr(e); }

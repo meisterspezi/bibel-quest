@@ -2931,6 +2931,7 @@ function sofortSenden() {
   if (lbTimer) lbSync(true);
   if (cloudTimer) cloudJetzt();
   try { xqLogSenden(true); } catch (e) {}
+  try { if (typeof smGlanzSenden === "function" && window.LB && LB.ok) smGlanzSenden(LB, true); } catch (e) {} /* 10.2: Album gebündelt */
 }
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") sofortSenden(); });
 addEventListener("pagehide", sofortSenden);
@@ -3165,7 +3166,10 @@ const RANK_TABS = {
   duSpiele: { label: "Gespielt", val: r => r.duG || 0, unit: "Duelle", titel: "Duelle in der Arena" },
   bibSpiele: { label: "Gespielt", val: r => (r.bwK === BIB_GESAMT ? r.p || 0 : 0), unit: "Spiele", titel: "Biblionär-Spiele" },
   bibWoche: { label: "Woche", val: r => (r.bwK === weekKey() ? r.bwP || 0 : 0), unit: "Punkte", titel: "Biblionär der Woche" },
-  bibRekord: { label: "Rekord", val: r => r.bib || 0, unit: "Punkte", titel: "Biblionär-Rekord" }
+  bibRekord: { label: "Rekord", val: r => r.bib || 0, unit: "Punkte", titel: "Biblionär-Rekord" },
+  /* 10.2: Sammelalbum – Bronze 1, Silber 2, Gold 3 Punkte (höchstens 198); Woche = Zuwachs seit Montag (Stand vom Sammel-Job) */
+  album: { label: "Punkte", val: r => (typeof albumPunkte === "function" ? albumPunkte(r) : 0), unit: "Punkte", titel: "Sammelalbum" },
+  albumWoche: { label: "Diese Woche", val: r => (typeof albumWoche === "function" ? albumWoche(r) : 0), unit: "Punkte", titel: "Album diese Woche" }
 };
 /* ---------- 9.7: Gemeinden – Beitritt mit Passwort (= der Ort der Gemeinde). Neue Spieler sind Gast und treten per Passwort bei;
    bisherige Spieler gehören zu „fbg“ (Freie Baptisten Eichstätt). Gemeinden legt nur der Verwalter an (mit Passwort und Logo). ---------- */
@@ -3589,11 +3593,15 @@ const RANK_KAT = [
   { id: "blitz", name: "Blitz", icon: "bolt", tabs: ["blitz"] },
   { id: "biblionaer", name: "Biblionär", icon: "biblionaer", tabs: ["bibSpiele", "bibWoche", "bibRekord"] },
   { id: "duell", name: "Arena", icon: "duell", tabs: ["duSiege", "duSpiele"] },
-  { id: "ausdauer", name: "Ausdauer", icon: "fire", tabs: ["treue", "bewaehrt", "abzeichen"] }
+  { id: "ausdauer", name: "Ausdauer", icon: "fire", tabs: ["treue", "bewaehrt", "abzeichen"] },
+  { id: "album", name: "Album", icon: "album", tabs: ["album", "albumWoche"] } /* 10.2 */
 ];
+const albumKatFrei = () => typeof smFrei === "function" && smFrei();
+const rankKats = () => RANK_KAT.filter(k => k.id !== "album" || albumKatFrei());
+const katSvg = ic => (ic === "album" && typeof SM_ALBUM_SVG === "string" ? SM_ALBUM_SVG : svg(ic));
 const katVon = tab => RANK_KAT.find(k => k.tabs.includes(tab)) || RANK_KAT[0];
 const letzterTab = {};
-const TAB_LABEL = { woche: "Woche", gesamt: "Gesamt", kette: "Kette", blitz: "Blitz", treue: "Spieltage", bewaehrt: "Bewährt", abzeichen: "Abzeichen", duSiege: "Siege", duSpiele: "Gespielt", bibSpiele: "Gespielt", bibWoche: "Diese Woche", bibRekord: "Rekord" };
+const TAB_LABEL = { woche: "Woche", gesamt: "Gesamt", kette: "Kette", blitz: "Blitz", treue: "Spieltage", bewaehrt: "Bewährt", abzeichen: "Abzeichen", duSiege: "Siege", duSpiele: "Gespielt", bibSpiele: "Gespielt", bibWoche: "Diese Woche", bibRekord: "Rekord", album: "Punkte", albumWoche: "Diese Woche" };
 const BLITZ_SUB = { richtige: ["Richtige", "blitz", "Richtige", "Blitz-Rekord"], folge: ["In Folge", "combo", "in Folge", "Richtige in Folge (60 Sek.)"] };
 let blitzSub = "richtige";
 const KETTE_SUB = { bibel: ["Bibel", "bestChain", 66], at: ["AT", "chainAT", 39], nt: ["NT", "chainNT", 27], rueck: ["Rückwärts", "chainRueck", 66] };
@@ -3612,6 +3620,7 @@ const istBibTab = t => t === "bibSpiele" || t === "bibWoche" || t === "bibRekord
 function rankKind() { if (rankTab === "bibSpiele") return "bibWoche"; return rankTab === "kette" ? "kette_" + ketteSub : rankTab === "blitz" ? (blitzSub === "folge" ? "combo" : "blitz") : rankTab; }
 VIEWS.rank = (tab) => {
   if (tab && RANK_TABS[tab]) rankTab = tab;
+  if (katVon(rankTab).id === "album" && !albumKatFrei()) rankTab = "woche";
   const L = window.LB;
   /* 6.58: Kopf im Arena-Stil – Ring = eigener Platz in der gewählten Liste, Tafel Level/Abzeichen/Spieler (nach dem Laden nachgetragen) */
   let html = bereichKopf("gemeinde", { ic: "trophy", t: "Rangliste", sub: meineGem() === "gast" ? "Alle Spieler" : gemName(meineGem()), ring: ["–", "Platz"], ringId: "bkPlatz",
@@ -3632,9 +3641,9 @@ VIEWS.rank = (tab) => {
   const titel = rankTab === "kette" ? T.titel : rankTab === "blitz" ? "Blitz-Rekord" : T.titel;
   screen.innerHTML = html + `<div class="stack rk">
     ${rkSchalterHtml(scope)}
-    <nav class="kb-tabs rk-nav" aria-label="Ranglisten" style="grid-template-columns:repeat(${RANK_KAT.length},1fr)">${RANK_KAT.map(k => `<button data-kat="${k.id}" aria-pressed="${k.id === kat.id}" aria-selected="${k.id === kat.id}">${svg(k.icon)}<span>${k.name}</span></button>`).join("")}</nav>
+    <nav class="kb-tabs rk-nav${rankKats().length > 6 ? " sieben" : ""}" aria-label="Ranglisten" style="grid-template-columns:repeat(${rankKats().length},minmax(0,1fr))">${rankKats().map(k => `<button data-kat="${k.id}" aria-pressed="${k.id === kat.id}" aria-selected="${k.id === kat.id}">${katSvg(k.icon)}<span>${k.name}</span></button>`).join("")}</nav>
     <div class="card rk-liste">
-      <div class="rk-kopf ${istBibTab(rankTab) ? "rk-bib" : ""}"><div><b>${esc(titel)}</b><span class="small muted" id="rcount">${rankTab === "woche" || rankTab === "bibWoche" ? weekKey().split("-W")[1] + ". Kalenderwoche" : istBibTab(rankTab) ? "Gemeinde" : ""}</span></div>${varianten ? `<div class="rk-var" role="group" aria-label="Variante">${varianten}</div>` : ""}</div>
+      <div class="rk-kopf ${istBibTab(rankTab) ? "rk-bib" : ""}"><div><b>${esc(titel)}</b><span class="small muted" id="rcount">${rankTab === "woche" || rankTab === "bibWoche" || rankTab === "albumWoche" ? weekKey().split("-W")[1] + ". Kalenderwoche" : istBibTab(rankTab) ? "Gemeinde" : ""}</span></div>${varianten ? `<div class="rk-var" role="group" aria-label="Variante">${varianten}</div>` : ""}</div>
       ${istBibTab(rankTab) ? `<div id="bwBox">${bibInfoLeiste()}</div>` : ""}
       <div id="rbody"><p class="muted" style="margin:0">Lade Rangliste …</p></div>
     </div>
@@ -3670,7 +3679,8 @@ VIEWS.rank = (tab) => {
       const voll = rankTab === "kette" && wert1 >= KETTE_SUB[ketteSub][2];
       const vollText = { bibel: "Alle 66 Bücher geschafft!", at: "Das ganze Alte Testament geschafft!", nt: "Das ganze Neue Testament geschafft!", rueck: "Alle 66 Bücher rückwärts geschafft!" }[ketteSub];
       /* Waffenrüstung (bzw. Siegel bei „Bewährt“) auch auf dem Podest */
-      const ext = r => (rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)) + glanzHtml(r);
+      const istAlb = rankTab === "album" || rankTab === "albumWoche";
+      const ext = r => (istAlb ? albumBalken(r) : rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)) + (istAlb ? "" : glanzHtml(r));
       const person = (r, sz) => `<button class="gk-p ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}">${avatarLv(r, sz)}<b>${esc(r.name)}</b>${ext(r)}</button>`;
       const gold = `<div class="gk-gold"><span class="pod-krone">${svg("crown")}</span>
         <div class="gk-t">${voll ? vollText : `Platz 1 · ${pkt(wert1)} ${esc(unit)}`}${g1.length > 1 ? `<small>${g1.length} Spieler teilen sich Platz 1</small>` : voll ? `<small>${wert1} ${esc(unit)}</small>` : ""}</div>
@@ -3679,13 +3689,13 @@ VIEWS.rank = (tab) => {
         <div class="gk-stapel">${g.slice(0, 5).map(r => `<button data-pid="${esc(r.id)}" class="${r.id === me ? "me" : ""}">${avatarLv(r, 36)}</button>`).join("")}${g.length > 5 ? `<span class="gk-mehr">+${g.length - 5}</span>` : ""}</div>
         <div class="gk-wer">${g.slice(0, 3).map(r => `<div class="${r.id === me ? "me" : ""}"><b>${esc(r.name)}</b>${ext(r)}</div>`).join("")}${g.length > 3 ? `<div class="small muted">+${g.length - 3} weitere</div>` : ""}</div></div>` : "";
       const pod = `<div class="gk">${gold}${g2.length ? `<div class="gk-zd">${klein(2, g2)}${klein(3, g3)}</div>` : ""}</div>`;
-      const rest = rows.map((r, i) => [r, platz[i]]).filter(([, p]) => p > 3).slice(0, 80).map(([r, p], k, arr) => `<button class="rrow ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}"><div class="rk">${k && arr[k - 1][1] === p ? "" : p}</div>${avatarLv(r, 38)}<div class="who"><b>${esc(r.name)}${glanzHtml(r)}${r.id === me ? '<span class="you">DU</span>' : ""}</b><span>${esc(rangVon(r))}</span>${rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)}</div><div class="val">${pkt(rankWert(r))}</div></button>`).join("");
-      if ($("rcount")) $("rcount").textContent = (rankTab === "woche" || rankTab === "bibWoche" ? wk.split("-W")[1] + ". KW · " : istBibTab(rankTab) ? "Gemeinde · " : "") + rows.length + " Spieler";
+      const rest = rows.map((r, i) => [r, platz[i]]).filter(([, p]) => p > 3).slice(0, 80).map(([r, p], k, arr) => `<button class="rrow ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}"><div class="rk">${k && arr[k - 1][1] === p ? "" : p}</div>${avatarLv(r, 38)}<div class="who"><b>${esc(r.name)}${glanzHtml(r)}${r.id === me ? '<span class="you">DU</span>' : ""}</b><span>${esc(rangVon(r))}</span>${istAlb ? albumBalken(r) : rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)}</div><div class="val">${pkt(rankWert(r))}</div></button>`).join("");
+      if ($("rcount")) $("rcount").textContent = (rankTab === "woche" || rankTab === "bibWoche" || rankTab === "albumWoche" ? wk.split("-W")[1] + ". KW · " : istBibTab(rankTab) ? "Gemeinde · " : "") + rows.length + " Spieler";
       body.innerHTML = `${pod}${rest ? `<div class="rlist">${rest}</div>` : ""}`;
       body.querySelectorAll("[data-pid]").forEach(b => b.onclick = () => { SFX.tap(); const r = rows.find(x => x.id === b.dataset.pid);
-        /* Wochenrunde: Zeilen kommen aus der eigenen Sammlung – für den Vergleich den vollen Eintrag holen */
-        /* 9.56: die Sammel-Rangliste enthält keine Abzeichen-Liste – das volle Profil wird beim Antippen einzeln geholt (1 Lesezugriff) */
-        if ((rankTab === "bibWoche" || rankTab === "bibSpiele" || !Array.isArray(r.badgeIds)) && L.holeSpieler) L.holeSpieler(r.id).then(v => profilVergleich(v || r)).catch(() => profilVergleich(r)); else profilVergleich(r); });
+        /* 10.2: kein Lesevorgang beim Antippen – die Werte stehen in der Sammel-Rangliste (zwischengespeichert).
+           Biblionär-Woche: Zeilen kommen aus der eigenen Sammlung → mit der Sammel-Zeile ergänzen. Abzeichen lädt erst der Reiter „Abzeichen“. */
+        if ((rankTab === "bibWoche" || rankTab === "bibSpiele") && L.alleSpieler) L.alleSpieler().then(a => profilVergleich(Object.assign({}, r, a.find(x => x.id === r.id) || {}))).catch(() => profilVergleich(r)); else profilVergleich(r); });
     }
     const mv = myIdx > -1 ? rankWert(rows[myIdx]) : 0;
     const vor = myIdx > -1 && meinPlatz > 1 ? rows.filter((_, i) => platz[i] === meinPlatz - 1) : [];
@@ -3838,21 +3848,78 @@ function siegelReihe(r) {
   const h = dayNum(today());
   return `<span class="siegel-reihe">${["Bibel", "AT", "NT", "Rück"].map((n, k) => `<span>${siegelHtml(r.sg[2 * k], h - r.sg[2 * k + 1] <= SIEGEL_FRISCH)}<i>${n}</i></span>`).join("")}</span>`;
 }
+/* 10.2: Spielerprofil mit Themen-Reitern (Überblick · Spielen · Album · Abzeichen), Spalten „Name | Du“, wer vorn liegt, ist hervorgehoben.
+   Öffnen kostet keinen Lesevorgang; Album (1 Lesevorgang, 12 Std. gemerkt) und Abzeichen (1 Lesevorgang je Spieler und Sitzung) laden erst im Reiter.
+   Entfallen: Level, XP gesamt, Titel AT/NT, Waffenrüstung (stehen im Kopf), Serie, Frische Siegel als Zahl, die große Abzeichen-Wand (nur auf Wunsch). */
+let pvReiter = "ueber";
+const pvAbzCache = {};
+const pvZahl = v => (typeof v === "number" ? pkt(v) : esc(v));
+function pvTabelle(r, ich, zeilen, istIch) {
+  return `<table class="werte vg pv-t"><thead><tr><th></th><th>${esc(r.name)}</th>${istIch ? "" : "<th>Du</th>"}</tr></thead><tbody>${zeilen.map(([k, a, b, mehr]) => {
+    const na = typeof a === "number" ? a : mehr ? mehr[0] : null, nb = typeof b === "number" ? b : mehr ? mehr[1] : null;
+    const va = !istIch && na != null && nb != null && na > nb, vb = !istIch && na != null && nb != null && nb > na;
+    return `<tr><th>${k}</th><td class="${va ? "vorn" : ""}">${pvZahl(a)}</td>${istIch ? "" : `<td class="${vb ? "vorn" : ""}">${pvZahl(b)}</td>`}</tr>`; }).join("")}</tbody></table>`;
+}
+function pvInhalt(r, ich, istIch, reiter) {
+  const k = (v, n) => [(v ? v + 1 : 0) + "/" + n, ""];
+  const kette = (p, f, n) => (p[f] ? p[f] + 1 : 0);
+  const tage = p => (Array.isArray(p.tl) ? tage28(p.tl) : 0);
+  const albumOk = typeof albumPunkte === "function" && typeof smFrei === "function" && smFrei();
+  if (reiter === "ueber") return pvTabelle(r, ich, [
+    ["XP diese Woche", r.week === weekKey() ? r.weekXp || 0 : 0, ich.week === weekKey() ? ich.weekXp || 0 : 0],
+    ["Spieltage (4 Wochen)", tage(r), tage(ich)],
+    ["Arena-Siege", r.duS | 0, ich.duS | 0],
+    ["Arena-Duelle", r.duG | 0, ich.duG | 0]]
+    .concat(albumOk ? [["Album-Punkte", albumPunkte(r), albumPunkte(ich)]] : [])
+    .concat([["Abzeichen", r.badges | 0, S.badges.length]]), istIch);
+  if (reiter === "spielen") return pvTabelle(r, ich, [
+    ["Kette Bibel", `${kette(r, "bestChain")}/66`, `${kette(ich, "bestChain")}/66`, [kette(r, "bestChain"), kette(ich, "bestChain")]],
+    ["Kette AT", `${kette(r, "chainAT")}/39`, `${kette(ich, "chainAT")}/39`, [kette(r, "chainAT"), kette(ich, "chainAT")]],
+    ["Kette NT", `${kette(r, "chainNT")}/27`, `${kette(ich, "chainNT")}/27`, [kette(r, "chainNT"), kette(ich, "chainNT")]],
+    ["Kette rückwärts", `${kette(r, "chainRueck")}/66`, `${kette(ich, "chainRueck")}/66`, [kette(r, "chainRueck"), kette(ich, "chainRueck")]],
+    ["Blitz-Rekord", r.blitz | 0, ich.blitz | 0],
+    ["Blitz in Folge", folgeNeu(r) ? r.combo | 0 : 0, ich.combo | 0],
+    ["Biblionär-Rekord", r.bib | 0, ich.bib | 0]], istIch)
+    + (Array.isArray(r.sg) ? `<div class="pv-sg"><span class="small muted">Siegel${istIch ? "" : " von " + esc(r.name)}</span>${siegelReihe(r)}</div>` : "");
+  if (reiter === "album") return `<div class="small" style="margin:2px 0 6px"><b>${albumPunkte(r)} Punkte</b>${istIch ? "" : ` <span class="muted">· du ${albumPunkte(ich)}</span>`}</div><div id="pvAlbum">${typeof smIch === "function" && smIch(r) ? albumSchaufenster(r, true) : `<p class="small muted">Album wird geladen …</p>`}</div>`;
+  /* Abzeichen */
+  const ids = istIch ? S.badges : Array.isArray(r.badgeIds) ? r.badgeIds : pvAbzCache[r.id];
+  if (!ids) return `<p class="small muted" id="pvAbzLaden">Abzeichen werden geladen …</p>`;
+  const fehlt = istIch ? [] : BADGES.filter(b => ids.includes(b.id) && !S.badges.includes(b.id));
+  return `<p class="small" style="margin:2px 0 8px"><b>${ids.length} von ${BADGES.length}</b>${istIch ? "" : ` <span class="muted">· du ${S.badges.length}</span>`}</p>
+    ${fehlt.length ? `<div class="label" style="margin:0 0 6px">Hat ${esc(r.name)}, dir fehlen</div><div class="pv-chips">${fehlt.slice(0, 8).map(b => `<span class="pv-chip">${svg(b.ic)}${esc(b.name)}</span>`).join("")}${fehlt.length > 8 ? `<span class="pv-chip">+${fehlt.length - 8}</span>` : ""}</div>` : istIch ? "" : `<p class="small muted">Du hast alle Abzeichen, die ${esc(r.name)} hat.</p>`}
+    <button class="btn ghost mini" id="pvAlle" style="margin-top:8px">Alle Abzeichen zeigen</button><div id="pvWand"></div>`;
+}
 function profilVergleich(r) {
   if (!r) return;
   const ich = Object.assign(lbPayload(), { id: S.pid });
   const istIch = r.id === S.pid;
-  const zeilenR = statsZeilen(r), zeilenI = statsZeilen(ich);
-  const hatIds = Array.isArray(r.badgeIds);
-  const m = modal(`<div class="vergleich">
-    <div class="vg-kopf">${avatarLv(r, 72)}<div><h2 style="margin:0">${esc(r.name)}</h2><div class="muted small">${esc(ENTW_PID && r.id === ENTW_PID ? "Level " + (r.level || 1) + " · " + ENTW_RANG : titelName(r.title) || "Level " + (r.level || 1) + " · " + titleOf(r.level || 1))}</div><div class="small"><span class="tag at">AT</span> ${esc(AT_TITEL[titelIndex(AT_TITEL, r.atP || 0)][1])} · <span class="tag nt">NT</span> ${esc(NT_TITEL[titelIndex(NT_TITEL, r.ntP || 0)][1])}</div>${ruestungHtml(r.armor, false)}</div></div>
-    <table class="werte vg"><thead><tr><th></th><th>${esc(r.name)}</th>${istIch ? "" : "<th>Du</th>"}</tr></thead><tbody>
-      ${zeilenR.map(([k, v], j) => `<tr><th>${k}</th><td>${esc(v)}</td>${istIch ? "" : `<td>${esc(zeilenI[j][1])}</td>`}</tr>`).join("")}</tbody></table>
-    ${Array.isArray(r.sg) ? `<div class="label" style="margin:12px 0 6px">Siegel</div>${siegelReihe(r)}` : ""}
-    ${hatIds ? `<div class="small muted" style="margin-top:8px">${istIch ? "" : `Spalten bei den Abzeichen: links ${esc(r.name)}, rechts du.`}</div>${badgeGrid(r.badgeIds, istIch ? null : S.badges)}` : `<p class="small muted">Die Abzeichen sind sichtbar, sobald ${esc(r.name)} die neue App-Version öffnet.</p>`}
+  const albumOk = typeof smFrei === "function" && smFrei() && typeof albumPunkte === "function";
+  const REITER = [["ueber", "Überblick", "star"], ["spielen", "Spielen", "bolt"]].concat(albumOk ? [["album", "Album", "album"]] : []).concat([["abz", "Abzeichen", "medal"]]);
+  if (!REITER.some(x => x[0] === pvReiter)) pvReiter = "ueber";
+  const ic = k => (k === "album" && typeof SM_ALBUM_SVG === "string" ? SM_ALBUM_SVG : svg(k));
+  const m = modal(`<div class="vergleich pv">
+    <div class="vg-kopf">${avatarLv(r, 64)}<div><h2 style="margin:0">${esc(r.name)}</h2><div class="muted small">${esc(ENTW_PID && r.id === ENTW_PID ? "Level " + (r.level || 1) + " · " + ENTW_RANG : titelName(r.title) || "Level " + (r.level || 1) + " · " + titleOf(r.level || 1))}</div><div class="small"><span class="tag at">AT</span> ${esc(AT_TITEL[titelIndex(AT_TITEL, r.atP || 0)][1])} · <span class="tag nt">NT</span> ${esc(NT_TITEL[titelIndex(NT_TITEL, r.ntP || 0)][1])}</div>${ruestungHtml(r.armor, false)}</div></div>
+    <nav class="kb-tabs pv-tabs" role="tablist" style="grid-template-columns:repeat(${REITER.length},minmax(0,1fr))">${REITER.map(([k, t, i]) => `<button data-pv="${k}" role="tab" aria-pressed="${k === pvReiter}" aria-selected="${k === pvReiter}">${ic(i)}<span>${t}</span></button>`).join("")}</nav>
+    <div id="pvInhalt" class="pv-inhalt"></div>
     </div>${!istIch && duOk() ? `<button class="btn du-fordern" data-close="duell">${svg("bolt")} In die Arena fordern</button>` : ""}<button class="btn primary" data-close>Schließen</button>`,
     x => { if (x === "duell") duTypWahl({ id: r.id, name: r.name }, null); });
   m.dataset.frei = "1"; m.classList.add("weit");
+  const box = m.querySelector("#pvInhalt");
+  const zeigen = () => {
+    box.innerHTML = pvInhalt(r, ich, istIch, pvReiter);
+    m.querySelectorAll("[data-pv]").forEach(b => { const an = b.dataset.pv === pvReiter; b.setAttribute("aria-pressed", an); b.setAttribute("aria-selected", an); });
+    const reiter = pvReiter;
+    if (reiter === "album" && !(typeof smIch === "function" && smIch(r))) albumVonSpieler(r).then(st => { const z = m.querySelector("#pvAlbum"); if (z && pvReiter === "album") z.innerHTML = albumSchaufenster(r, istIch, st); });
+    if (reiter === "abz") {
+      const alle = m.querySelector("#pvAlle"); if (alle) alle.onclick = () => { SFX.tap(); const ids = istIch ? S.badges : r.badgeIds || pvAbzCache[r.id] || []; m.querySelector("#pvWand").innerHTML = badgeGrid(ids, istIch ? null : S.badges); alle.remove(); };
+      if (m.querySelector("#pvAbzLaden")) { const L = window.LB;
+        (L && L.holeSpieler ? L.holeSpieler(r.id) : Promise.resolve(null)).then(v => { pvAbzCache[r.id] = v && Array.isArray(v.badgeIds) ? v.badgeIds : []; if (pvReiter === "abz" && document.body.contains(box)) zeigen(); })
+          .catch(() => { const z = m.querySelector("#pvAbzLaden"); if (z) z.textContent = "Abzeichen konnten nicht geladen werden."; }); }
+    }
+  };
+  m.querySelectorAll("[data-pv]").forEach(b => b.onclick = () => { SFX.tap(); pvReiter = b.dataset.pv; zeigen(); });
+  zeigen();
 }
 
 /* ---------- Duelle (asynchron) ----------
