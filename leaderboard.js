@@ -54,8 +54,9 @@ if (!configured) {
     };
     /* 10.2: alle Alben (vom Sammel-Job) für das Schaufenster – 1 Lesevorgang, 12 Std. auf dem Gerät gemerkt, nur auf Abruf */
     const ALB_KEY = "bq-albumliste", ALB_TTL = 12 * 36e5;
-    LB.albumListe = async () => {
-      try { const c = JSON.parse(localStorage.getItem(ALB_KEY) || "null"); if (c && Date.now() - c.t < ALB_TTL && c.d) return c.d; } catch (e) {}
+    /* 10.17: frisch = true lädt neu, wenn die gemerkte Liste älter als 30 Min. ist (z. B. Spieler mit Album-Punkten fehlt darin) */
+    LB.albumListe = async (frisch) => {
+      try { const c = JSON.parse(localStorage.getItem(ALB_KEY) || "null"); if (c && c.d && Date.now() - c.t < (frisch ? 30 * 6e4 : ALB_TTL)) return c.d; } catch (e) {}
       const d = await fs.getDoc(ref("albumliste", "alle")); let m = {};
       try { m = d.exists() ? JSON.parse(d.data().daten || "{}") : {}; } catch (e) { m = {}; }
       try { localStorage.setItem(ALB_KEY, JSON.stringify({ t: Date.now(), d: m })); } catch (e) {}
