@@ -3262,6 +3262,14 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .ap-zl.gross .ap-nz b{font-size:.88rem}.ap-zl.gross .alb-bar{height:6px}.ap-zl.gross small{color:#f6e7b8}
 .ap-row .who{gap:4px}.ap-row .ap-nz b{font-size:.95rem}.ap-row .ap-nz small{font-size:.74rem}
 .ap-row .alb-bar{width:100%!important;height:7px}
+/* 10.8: Podest in allen Ranglisten gleich groß (je ein Spieler auf Platz 1/2/3) – kein Springen beim Umschalten */
+.gk-gold{display:flex;flex-direction:column;justify-content:center;min-height:var(--gk1h,232px);box-sizing:border-box}
+.gk-gold.einzel{height:var(--gk1h,232px)}.gk-gold>.pod-krone{align-self:center}
+.gk-k{min-height:var(--gk2h,182px);box-sizing:border-box}.gk-k.einzel{height:var(--gk2h,182px)}
+.gk-k.einzel>.gk-stapel{margin-top:auto}.gk-k.einzel>.gk-wer{margin-bottom:auto}
+.gk-k.einzel.ap-k>.ap-einzeln{flex:1;justify-content:space-between}
+.ap-gold .gk-t{margin-bottom:6px}.ap-eins{gap:4px}.ap-n1{font-size:.95rem}
+.rk-bw{margin-top:10px}.rk-bw .bi-leiste{margin:0}
 </style>
 </head>
 <body>

@@ -713,18 +713,18 @@ function albumPodest(g1, g2, g3, wert, me, woche) {
   const mehr = g => g.length > 1 ? ` · ${g.length}×` : "";
   let eins;
   if (g1.length === 1) { const r = g1[0], z = albumZahlen(r), n = albumAnzahl(r);
-    eins = `<button class="ap-eins ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}">${avatarLv(r, 58)}<b class="ap-n1">${name(r)}</b>
+    eins = `<button class="ap-eins ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}">${avatarLv(r, 50)}<b class="ap-n1">${name(r)}</b>
       <span class="ap-lz"><span>${woche ? "Diese Woche" : "Album"}</span><span>${woche ? `+${albumWoche(r)} Punkte` : `${n} / 66 · ${Math.round(n / 66 * 100)} %`}</span></span>
       <span class="ap-gb">${albumBalken(r, woche)}</span>${albumPunkteHtml(r, woche, true)}</button>`; }
   else if (g1.length <= 3) eins = `<div class="ap-neben">${g1.map(r => `<button class="ap-p ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}">${avatarLv(r, 44)}<b>${name(r)}</b><small>${zahl(r)}</small>${albumBalken(r, woche)}</button>`).join("")}</div>`;
   else eins = liste(g1, true);
-  const gold = `<div class="gk-gold ap-gold"><span class="pod-krone">${svg("crown")}</span>
+  const gold = `<div class="gk-gold ap-gold${g1.length === 1 ? " einzel" : ""}"><span class="pod-krone">${svg("crown")}</span>
     <div class="gk-t">Platz 1 · ${pkt(wert(g1[0]))} Punkte${g1.length > 1 ? `<small>${g1.length} Spieler teilen sich Platz 1</small>` : ""}</div>${eins}</div>`;
   const klein = (n, g) => { if (!g.length) return "";
     const kopf = `<div class="gk-h"><span class="gk-med">${n}</span><span>${pkt(wert(g[0]))} Punkte${mehr(g)}</span></div>`;
     if (g.length > 1) return `<div class="gk-k gk-k${n} gk-licht ap-k">${kopf}${liste(g)}</div>`;
     const r = g[0];
-    return `<div class="gk-k gk-k${n} gk-licht ap-k"><button class="ap-einzeln ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}">${kopf}${avatarLv(r, 42)}<b>${name(r)}</b>
+    return `<div class="gk-k gk-k${n} gk-licht ap-k einzel"><button class="ap-einzeln ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}">${kopf}${avatarLv(r, 42)}<b>${name(r)}</b>
       <span class="ap-lz"><span>${woche ? "Woche" : "Album"}</span><span>${zahl(r)}</span></span>${albumBalken(r, woche)}${albumPunkteHtml(r, woche)}</button></div>`; };
   return `<div class="gk ap">${gold}${g2.length ? `<div class="gk-zd">${klein(2, g2)}${klein(3, g3)}</div>` : ""}</div>`;
 }
