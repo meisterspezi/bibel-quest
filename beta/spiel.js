@@ -3700,10 +3700,16 @@ VIEWS.rank = (tab) => {
       const klein = (n, g) => g.length ? `<div class="gk-k gk-k${n} gk-licht"><div class="gk-h"><span class="gk-med">${n}</span><span>${pkt(rankWert(g[0]))} ${esc(unit)}</span></div>
         <div class="gk-stapel">${g.slice(0, 5).map(r => `<button data-pid="${esc(r.id)}" class="${r.id === me ? "me" : ""}">${avatarLv(r, 36)}</button>`).join("")}${g.length > 5 ? `<span class="gk-mehr">+${g.length - 5}</span>` : ""}</div>
         <div class="gk-wer">${g.slice(0, 3).map(r => `<div class="${r.id === me ? "me" : ""}"><b>${esc(r.name)}</b>${ext(r)}</div>`).join("")}${g.length > 3 ? `<div class="small muted">+${g.length - 3} weitere</div>` : ""}</div></div>` : "";
-      const pod = `<div class="gk">${gold}${g2.length ? `<div class="gk-zd">${klein(2, g2)}${klein(3, g3)}</div>` : ""}</div>`;
-      const rest = rows.map((r, i) => [r, platz[i]]).filter(([, p]) => p > 3).slice(0, 80).map(([r, p], k, arr) => `<button class="rrow ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}"><div class="rk">${k && arr[k - 1][1] === p ? "" : p}</div>${avatarLv(r, 38)}<div class="who"><b>${esc(r.name)}${glanzHtml(r)}${r.id === me ? '<span class="you">DU</span>' : ""}</b><span>${esc(rangVon(r))}</span>${istAlb ? albumBalken(r) : rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)}</div><div class="val">${pkt(rankWert(r))}</div></button>`).join("");
+      /* 10.7: Album-Rangliste mit eigenem Podest (Stufen-Leiste, geteilte Plätze laufen durch), ohne Titel unter dem Namen */
+      const albWo = rankTab === "albumWoche";
+      if (istAlb) albWMax = Math.max(1, ...rows.map(r => albumWoche(r)));
+      const pod = istAlb ? albumPodest(g1, g2, g3, rankWert, me, albWo) : `<div class="gk">${gold}${g2.length ? `<div class="gk-zd">${klein(2, g2)}${klein(3, g3)}</div>` : ""}</div>`;
+      const rest = rows.map((r, i) => [r, platz[i]]).filter(([, p]) => p > 3).slice(0, 80).map(([r, p], k, arr) => istAlb
+        ? `<button class="rrow ap-row ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}"><div class="rk">${k && arr[k - 1][1] === p ? "" : p}</div>${avatarLv(r, 38)}<div class="who"><span class="ap-nz"><b>${esc(r.name)}${r.id === me ? '<span class="you">DU</span>' : ""}</b>${albWo ? "" : `<small>${albumAnzahl(r)}/66</small>`}</span>${albumBalken(r, albWo)}</div><div class="val">${pkt(rankWert(r))}</div></button>`
+        : `<button class="rrow ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}"><div class="rk">${k && arr[k - 1][1] === p ? "" : p}</div>${avatarLv(r, 38)}<div class="who"><b>${esc(r.name)}${glanzHtml(r)}${r.id === me ? '<span class="you">DU</span>' : ""}</b><span>${esc(rangVon(r))}</span>${rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)}</div><div class="val">${pkt(rankWert(r))}</div></button>`).join("");
       if ($("rcount")) $("rcount").textContent = (rankTab === "woche" || rankTab === "bibWoche" || rankTab === "albumWoche" ? wk.split("-W")[1] + ". KW · " : istBibTab(rankTab) ? "Gemeinde · " : "") + rows.length + " Spieler";
       body.innerHTML = `${pod}${rest ? `<div class="rlist">${rest}</div>` : ""}`;
+      if (istAlb) albumRotieren(body); else if (typeof albumRotieren === "function") clearInterval(albRotTimer);
       body.querySelectorAll("[data-pid]").forEach(b => b.onclick = () => { SFX.tap(); const r = rows.find(x => x.id === b.dataset.pid);
         /* 10.2: kein Lesevorgang beim Antippen – die Werte stehen in der Sammel-Rangliste (zwischengespeichert).
            Biblionär-Woche: Zeilen kommen aus der eigenen Sammlung → mit der Sammel-Zeile ergänzen. Abzeichen lädt erst der Reiter „Abzeichen“. */

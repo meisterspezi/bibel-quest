@@ -171,7 +171,7 @@ if (!configured) {
     const SAMMEL_ALT = 3 * 3600e3;
     // 10.6 Notlösung: Ist die Sammel-Rangliste zu alt, bleiben ihre Album-Werte trotzdem nutzbar (bis 14 Tage) – sonst hätten
     //      beim direkten Lesen alle anderen 0 Album-Punkte (die Album-Werte stehen nur in der Sammel-Rangliste). Kein Lesezugriff mehr.
-    const SAMMEL_ALBUM_ALT = 14 * 864e5, ALBUM_FELDER = ["gl", "ab", "aw", "awk"];
+    const SAMMEL_ALBUM_ALT = 14 * 864e5, ALBUM_FELDER = ["gl", "ab", "aw", "awk", "awb"];
     let sammelAltAlbum = null;
     const sammelLesen = async () => {
       sammelAltAlbum = null;
