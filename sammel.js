@@ -227,6 +227,9 @@ const SM_KRUG_SVG = `<svg class="sm-kr-ic" viewBox="0 0 24 24" aria-hidden="true
 /* 10.4: NEU-Fähnchen an der Album-Kapsel bis zum Start der Weihnachts-Ausgabe von Biblionär (1. Advent 2026 = 29.11.);
    das Funkeln bleibt dauerhaft. edTag() kennt das Testdatum (localhost/Beta, Testlabor). */
 const SM_NEU_BIS = "2026-11-29";
+/* 10.19: Wird eine Karte durch einen Krug besser, wandert die alte (schlechtere) Karte in ihr Tauschsäckchen – ab Do 19.11.2026 08:00 (= Krug-Tag) */
+const SM_ALT_AB = Date.UTC(2026, 10, 19, 7, 0, 0);
+function smAltInBeutel() { try { const t = (typeof BETA !== "undefined" && BETA) || /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? sessionStorage.getItem("bq-alt-test") : null; if (t === "aus") return false; if (t === "an") return true; } catch (e) {} return Date.now() >= SM_ALT_AB; }
 const smNeuZeigen = () => { try { return (typeof edTag === "function" ? edTag() : dayNum(today())) < dayNum(SM_NEU_BIS); } catch (e) { return false; } };
 function smHud(neu) {
   const b = $("hGoldBtn"); if (!b) return;
@@ -300,6 +303,7 @@ function smKrugKaufen(wahl) {
   m.kz++;
   const vor = m.album.slice(), zug = smZiehen(m.album, m.kz, smGewichte(art, m.kz % SM_TREUE === 0), art === "ggold" ? SM_MAX : art === "geschenk" ? 2 : 0); /* 10.14: nur der Silberkrug hat 1 Silber sicher */
   zug.forEach(c => { if (c.d && c.s < SM_MAX) m.be[c.s] = (m.be[c.s] | 0) + 1; });
+  if (smAltInBeutel()) zug.forEach(c => { if (!c.d && c.v > 0 && c.v < SM_MAX) { m.be[c.v] = (m.be[c.v] | 0) + 1; c.a = 1; } }); /* 10.19: alte Karte → Säckchen */
   m.offen = { z: zug, vor, nr: m.kz, art }; /* Ergebnis wird VOR der Animation gespeichert – Schließen der App würfelt nichts neu */
   save(); smHud(0); lbSync();
   return m.offen;
@@ -310,7 +314,7 @@ const SM_KURZ = { "Klagelieder": "Klagel.", "Apostelgeschichte": "Apg.", "1. The
   "1. Korinther": "1. Kor.", "2. Korinther": "2. Kor.", "1. Chronik": "1. Chron.", "2. Chronik": "2. Chron.", "1. Timotheus": "1. Tim.", "2. Timotheus": "2. Tim.",
   "Philipper": "Philipper", "Hoheslied": "Hoheslied", "1. Johannes": "1. Joh.", "2. Johannes": "2. Joh.", "3. Johannes": "3. Joh.", "Zephanja": "Zephanja", "Habakuk": "Habakuk" };
 const smZugText = zug => { const neu = zug.filter(c => !c.d && !c.v).length, besser = zug.filter(c => !c.d && c.v).length, d = zug.filter(c => c.d).length;
-  return [neu ? `<b>${neu} neu</b>` : "", besser ? `${besser} verbessert` : "", d ? `${d} doppelt` : ""].filter(Boolean).join(" · "); };
+  return [neu ? `<b>${neu} neu</b>` : "", besser ? `${besser} verbessert` : "", d ? `${d} doppelt` : "", zug.some(c => c.a) ? `${zug.filter(c => c.a).length} alte ins Säckchen` : ""].filter(Boolean).join(" · "); };
 const smKurz = n => SM_KURZ[n] || (n.length > 10 ? n.replace(/^(\d\.\s?)?(.{4}).*$/, "$1$2.") : n);
 /* ---------- Gruppen komplett → Talente (einmal je Gruppe und Stufe) ---------- */
 function smGruppenPruefen() {
@@ -413,7 +417,7 @@ function smKarteZeigen(i) {
 function smTauschStart(r) {
   SFX.tap();
   const n = smBeutel(r), N = SM_TAUSCH[r];
-  if (n < N) { modal(`<div class="smt-info"><h2>${SM_STUFE[r]}-Säckchen · ${n}/${N}</h2><p>Doppelte ${SM_STUFE[r]}karten landen hier. Mit <b>${N} doppelten</b> machst du eine deiner ${SM_STUFE[r]}karten zu <b>${SM_STUFE[r + 1]}</b> – welche, wählst du selbst.</p><p>Noch <b>${N - n}</b> bis zum Tausch.</p></div><button class="btn primary" data-close>Verstanden</button>`).dataset.frei = "1"; return; }
+  if (n < N) { modal(`<div class="smt-info"><h2>${SM_STUFE[r]}-Säckchen · ${n}/${N}</h2><p>Doppelte ${SM_STUFE[r]}karten landen hier – und deine alte ${SM_STUFE[r]}karte, wenn ein Krug dir dieselbe Karte besser schenkt. Mit <b>${N} doppelten</b> machst du eine deiner ${SM_STUFE[r]}karten zu <b>${SM_STUFE[r + 1]}</b> – welche, wählst du selbst.</p><p>Noch <b>${N - n}</b> bis zum Tausch.</p></div><button class="btn primary" data-close>Verstanden</button>`).dataset.frei = "1"; return; }
   const m = smInit(), wahl = m.album.map((s, i) => s === r ? i : -1).filter(i => i >= 0);
   if (!wahl.length) { /* keine Karte genau dieser Stufe: in das nächste Säckchen */
     m.ba[r] += N; if (r + 1 < SM_MAX) m.be[r + 1] = (m.be[r + 1] | 0) + 1; else { m.ba[r] -= N; toast("Alle Karten sind schon Gold."); save(); return; } save(); toast(`${N} ${SM_STUFE[r]} → 1 ${SM_STUFE[r + 1]} im Säckchen`); go("album"); return;
@@ -506,7 +510,7 @@ function smKrugBuehne(offen, wieder) {
       const el = document.createElement("div"); el.className = "sm-karte" + (c.d ? " doppelt" : "") + (rm ? " offen" : " wartet"); el.dataset.s = c.s; el.style.setProperty("--rc", SM_RC[c.s]);
       /* 9.98: Markierung NEU / BESSER / DOPPELT außerhalb des Motivs (sm-mark, Geschwister der Karte) */
       const typ = c.d ? "dup" : c.v > 0 ? "besser" : "neu", txt = { neu: "NEU", besser: "BESSER", dup: "DOPPELT" }[typ];
-      const sub = c.d ? (c.s < SM_MAX ? "→ Beutel" : "schon da") : c.v > 0 ? `→ ${SM_STUFE[c.s]}` : "";
+      const sub = c.d ? (c.s < SM_MAX ? "→ Beutel" : "schon da") : c.v > 0 ? (c.a ? `alte → Beutel` : `→ ${SM_STUFE[c.s]}`) : "";
       el.innerHTML = `<div class="sm-strahl"></div><div class="sm-innen"><div class="sm-seite sm-ruecken"><b>66</b></div><div class="sm-seite sm-vorne">${smKarteHtml(c.i, c.s)}<span class="sm-mark ${typ}"><b>${typ === "besser" ? "▲ " : ""}${txt}</b>${sub ? `<small>${sub}</small>` : ""}</span></div></div>`;
       const x = (k - mi) * 80, y = (k - mi) * (k - mi) * 5, rot = (k - mi) * 5; /* 9.98: etwas weiter auseinander – Platz für die Markierungen */
       el.style.transform = `translate(${x}px,${y}px) rotate(${rot}deg)`;
@@ -602,7 +606,7 @@ function smEinfliegen(zug, vor, fertig) {
   smFliegt = true;
   const platz = i => screen.querySelector(`.sm-raster .smk[data-i="${i}"]`);
   zug.forEach(c => { const el = platz(c.i); if (el && !c.d) el.outerHTML = smKarteHtml(c.i, vor[c.i]); }); /* alter Stand */
-  const be = { 1: smBeutel(1), 2: smBeutel(2) }; zug.forEach(c => { if (c.d && c.s < SM_MAX) be[c.s] = Math.max(0, be[c.s] - 1); });
+  const be = { 1: smBeutel(1), 2: smBeutel(2) }; zug.forEach(c => { if (c.d && c.s < SM_MAX) be[c.s] = Math.max(0, be[c.s] - 1); if (c.a) be[c.v] = Math.max(0, be[c.v] - 1); });
   const beutelZeigen = r => { const b = screen.querySelector(`[data-tausch="${r}"]`); if (!b) return; const n = Math.min(be[r], SM_TAUSCH[r]);
     b.querySelectorAll(".pk i").forEach((x, k) => x.classList.toggle("an", k < n)); const z = b.querySelector("b, .bz-n"); if (z && /^\d+$/.test(z.textContent.trim())) z.textContent = be[r]; };
   [1, 2].forEach(beutelZeigen);
@@ -620,7 +624,7 @@ function smEinfliegen(zug, vor, fertig) {
   const naechste = () => {
     if (ende) return; if (k >= zug.length) return setTimeout(abschluss, rm ? 200 : 700);
     const c = zug[k++], ziel = c.d && c.s < SM_MAX ? screen.querySelector(`[data-tausch="${c.s}"]`) : platz(c.i);
-    schicht.querySelector(".sm-flug-z").innerHTML = `${k} / ${zug.length} · <b>${esc(ALL[c.i].b)}</b> ${c.d ? "doppelt → Tauschbeutel" : c.v ? `${SM_STUFE[c.v]} → ${SM_STUFE[c.s]}` : "neu"}`;
+    schicht.querySelector(".sm-flug-z").innerHTML = `${k} / ${zug.length} · <b>${esc(ALL[c.i].b)}</b> ${c.d ? "doppelt → Tauschbeutel" : c.v ? `${SM_STUFE[c.v]} → ${SM_STUFE[c.s]}${c.a ? ` · alte → Säckchen` : ""}` : "neu"}`;
     if (!ziel) return naechste();
     ziel.scrollIntoView({ block: "center", behavior: rm ? "auto" : "smooth" });
     /* 9.99: erst fliegen, wenn das Scrollen wirklich steht; Ziel in jedem Bild neu messen → landet genau einmal exakt auf dem Platz */
@@ -638,7 +642,8 @@ function smEinfliegen(zug, vor, fertig) {
         if (c.d && c.s < SM_MAX) { be[c.s]++; beutelZeigen(c.s); if (z) { z.classList.remove("sm-plopp"); void z.offsetWidth; z.classList.add("sm-plopp"); } fl.remove(); }
         else if (z) { const tmp = document.createElement("span"); tmp.innerHTML = smKarteHtml(c.i, c.s); const el = tmp.firstElementChild; el.classList.add("sm-gelandet");
           z.replaceWith(el); fl.remove(); /* erst austauschen, dann Flieger weg – kein Flackern, kein zweites Einsetzen */
-          if (c.s === 3) smKlang("gold"); else if (c.s === 2) smKlang("silber"); }
+          if (c.s === 3) smKlang("gold"); else if (c.s === 2) smKlang("silber");
+          if (c.a) return smAltFliegen(c, el, () => setTimeout(naechste, rm ? 80 : 300)); }
         else fl.remove();
         setTimeout(naechste, rm ? 80 : 420);
       };
@@ -655,6 +660,29 @@ function smEinfliegen(zug, vor, fertig) {
     });
   };
   setTimeout(naechste, rm ? 50 : 350);
+  /* 10.19: die alte Karte löst sich vom Platz und fliegt klein in ihr Säckchen */
+  function smAltFliegen(c, vonEl, weiter) {
+    const zielB = () => screen.querySelector(`[data-tausch="${c.v}"]`);
+    const zeigen = () => { be[c.v]++; beutelZeigen(c.v); const z = zielB(); if (z) { z.classList.remove("sm-plopp"); void z.offsetWidth; z.classList.add("sm-plopp"); } };
+    if (rm || !zielB() || !vonEl) { zeigen(); return weiter(); }
+    setTimeout(() => {
+      if (ende) return;
+      const a = vonEl.getBoundingClientRect(), w = a.width, h = a.height;
+      const fl = document.createElement("div"); fl.className = "sm-flieger"; fl.innerHTML = smKarteHtml(c.i, c.v);
+      Object.assign(fl.style, { width: w + "px", height: h + "px", left: "0px", top: "0px" }); schicht.appendChild(fl);
+      zielB().scrollIntoView({ block: "center", behavior: "smooth" });
+      const t0 = performance.now(), dauer = 900, ease = x => x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+      const bild = jetzt => {
+        if (ende) { fl.remove(); return; }
+        const z = zielB(), q = vonEl.isConnected ? vonEl.getBoundingClientRect() : a; if (!z) { fl.remove(); zeigen(); return weiter(); }
+        const r = z.getBoundingClientRect(), p = Math.min(1, (jetzt - t0) / dauer), e = ease(p);
+        const x = q.left + (r.left + r.width / 2 - w / 2 - q.left) * e, y = q.top + (r.top + r.height / 2 - h / 2 - q.top) * e - Math.sin(Math.PI * e) * 40, sc = 1 - .55 * e;
+        fl.style.transform = `translate(${x}px,${y}px) scale(${sc}) rotate(${8 * e}deg)`; fl.style.opacity = String(1 - .3 * e);
+        if (p < 1) requestAnimationFrame(bild); else { fl.remove(); smKlang("flip"); zeigen(); weiter(); }
+      };
+      requestAnimationFrame(bild);
+    }, 350);
+  }
 }
 function smNeuBanner(neu) {
   (neu || []).forEach((x, k) => setTimeout(() => { try { SFX.badge(); toast(`<b>${esc(GROUPS[x.gi].name)} komplett in ${SM_STUFE[x.s]}!</b> +${SM_GRUPPEN_LOHN[x.s]} Manna${x.s >= SM_MAX ? ` · neuer Avatar „${esc((AVATARE.find(a => a.id === SM_AV_REIHE[x.gi]) || {}).name || "")}“ im Laden` : ""}${x.s >= SM_MAX && smInit().album.every(v => v >= SM_MAX) ? " · und „Das ganze Wort“ (Avatar und Rahmen)!" : x.s < SM_MAX && smInit().album.every(v => v >= x.s) ? ` · und Rahmen „Das ganze Wort (${SM_STUFE[x.s]})“!` : ""}`); } catch (e) {} }, 600 + k * 2800));
@@ -859,7 +887,7 @@ function smAnkuendigen() {
 }
 const SM_TOUR = [
   { sel: ".smt-karte", t: "Krüge und Manna", x: "Ein goldener Krug kostet 10 Manna und enthält 4 Karten – bis zu 3 am Tag, neue jeden Morgen um 8 Uhr. Manna gibt es fürs Spielen. Dein erster Krug ist ein Geschenk." },
-  { sel: ".smt-leiste", t: "Ziele und Tauschbeutel", x: "Treue-Siegel: jeder 7. Krug hat sicher Gold. Geschenk: jede 7. Schatztruhe schenkt einen Krug. In den Säckchen sammeln sich doppelte Karten – 4 gleiche machen eine Karte eine Stufe besser. Antippen erklärt alles." }
+  { sel: ".smt-leiste", t: "Ziele und Tauschbeutel", x: "Treue-Siegel: jeder 7. Krug hat sicher Gold. Geschenk: jede 7. Schatztruhe schenkt einen Krug. In den Säckchen sammeln sich doppelte Karten und alte Karten, die durch eine bessere ersetzt wurden – 4 davon machen eine Karte eine Stufe besser. Antippen erklärt alles." }
 ];
 function smTour() {
   const m = smInit(); if (m.tour || current !== "album" || document.querySelector(".modal, .sm-ov, .sm-tour")) return;
