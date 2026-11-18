@@ -111,7 +111,7 @@ function smInit() {
 }
 const smGold = () => { const m = smInit(); return Math.max(0, m.gv - m.ga); };
 const smBeutel = r => { const m = smInit(); return Math.max(0, (m.be[r] | 0) - (m.ba[r] | 0)); };
-const SM_TRUHE_MANNA = 4; /* 10.1: Manna je Schatztruhe – auch sichtbar auf Truhe und Tagesaufgaben */
+const SM_TRUHE_MANNA = 5; /* 10.1: Manna je Schatztruhe – auch sichtbar auf Truhe und Tagesaufgaben */
 const SM_TRUHEN_GESCHENK = 7; /* jede 7. Schatztruhe (insgesamt) = ein Geschenk-Krug */
 const smGeschenkeGesamt = () => 1 + Math.floor(smInit().tz / SM_TRUHEN_GESCHENK); /* 1 = Startkrug für alle */
 const smGeschenke = () => { const m = smInit(); return Math.max(0, smGeschenkeGesamt() - m.kga); };
@@ -306,7 +306,7 @@ VIEWS.album = () => {
     ${smBeutelHtml()}
     <p class="sm-hinw sm-wahl" id="smWahl" hidden></p>
     ${gruppen}
-    <div class="sm-fuss"><button class="btn" id="smTeilen">${SM_ALBUM_SVG} Mein Album teilen</button><p class="small muted">Manna gibt es für jede beendete Runde ab 30 Sekunden (+1 bei guter Runde), jede Duell-Herausforderung (1), jede Schatztruhe (4), Biblionär der Woche (2) und jeden Level-Aufstieg (3). Sparen ohne Grenze – öffnen kannst du bis zu ${SM_KRUG_TAG} Krüge am Tag. Jede ${SM_TRUHEN_GESCHENK}. Schatztruhe bringt einen Geschenk-Krug. Seltenheit: Bronze 75 %, Silber 20 %, Gold 5 % – jeder Krug mit mindestens 1 Silber, jeder 7. Krug mit sicherer Goldkarte. Tausch: 4 Bronze → 1 Silber, 4 Silber → 1 Gold.</p></div>`;
+    <div class="sm-fuss"><button class="btn" id="smTeilen">${SM_ALBUM_SVG} Mein Album teilen</button><p class="small muted">Manna gibt es für jede beendete Runde ab 30 Sekunden (+1 bei guter Runde), jede Duell-Herausforderung (1), jede Schatztruhe (${SM_TRUHE_MANNA}), Biblionär der Woche (2) und jeden Level-Aufstieg (3). Sparen ohne Grenze – öffnen kannst du bis zu ${SM_KRUG_TAG} Krüge am Tag. Jede ${SM_TRUHEN_GESCHENK}. Schatztruhe bringt einen Geschenk-Krug. Seltenheit: Bronze 75 %, Silber 20 %, Gold 5 % – jeder Krug mit mindestens 1 Silber, jeder 7. Krug mit sicherer Goldkarte. Tausch: 4 Bronze → 1 Silber, 4 Silber → 1 Gold.</p></div>`;
   { const med = screen.querySelector(".bk-med"); if (med) med.innerHTML = SM_ALBUM_SVG; } /* 9.88: Album-Buch mit „66“ */
   wireGo();
   const kk = $("smKrugKn"); if (kk) kk.onclick = () => { if (kk.classList.contains("aus")) { SFX.tap(); return; } SFX.tap(); const o = smKrugKaufen(); if (o) smKrugBuehne(o, false); };
