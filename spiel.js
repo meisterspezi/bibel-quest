@@ -2744,8 +2744,7 @@ VIEWS.profil = () => {
       ${!S.pid && !S.offlineOnly ? `<div class="small muted pf3-hinw">Erscheint in der Rangliste, sobald Internet da ist.</div>` : ""}
     </section>
     ${gemKarteHtml()}
-    ${zeile("errung", "medal", "Errungenschaften", `${S.badges.length}/${BADGES.length}`)}
-    ${zeile("stat", "fire", "Statistik", `${tageN} ${tageN === 1 ? "Tag" : "Tage"} in Folge`)}
+    <section class="pv pv-eigen" id="pvEigen">${pvTeilHtml(true)}</section>
     ${zeile("share", "share", "Mit Freunden teilen", "QR-Code")}
     ${deferredInstall && !S.appBonus ? `<button class="pf2-zeile pf2-k pf3-z" id="pfInstall"><span class="pf2-ic">${svg("down")}</span><span class="pf2-tx"><b>App installieren</b></span><small class="pf3-w">+${APP_BONUS} Talente</small>${PF_IC.pfeil}</button>` : ""}
     ${entwickler ? `<button class="pf2-zeile pf2-k pf3-z" id="edVorschauBtn"><span class="pf2-ic">${svg("biblionaer")}</span><span class="pf2-tx"><b>Sondereditionen</b></span><small class="pf3-w">${ED_REIHE.filter(edVorschau).length ? `${ED_REIHE.filter(edVorschau).length} Vorschau` : "vorab testen"}</small>${PF_IC.pfeil}</button>` : ""}
@@ -2756,6 +2755,8 @@ VIEWS.profil = () => {
     <p class="small muted pf3-fuss">Bibelverse: ${VERS_QUELLE} © Genfer Bibelgesellschaft.</p>
     <button class="fb-karte" id="fbLink2" aria-label="Feedback an den Entwickler"><span class="fb-bild">${FB_BILD}</span><span class="fb-tx"><b>Feedback an den Entwickler</b><small>Idee, Lob oder Fehler? Schreib mir!</small></span></button></div>`;
   wireGo(); pfGemVerdrahten();
+  /* 10.3: eigenes Profil mit denselben Reitern wie bei anderen Spielern (ersetzt „Errungenschaften“ und „Statistik“) */
+  pvVerdrahten($("pvEigen"), Object.assign(lbPayload(), { id: S.pid }), true);
   gemLaden().then(ch => { if (ch && current === "profil" && !document.querySelector(".modal")) { const k = $("pfGem"); if (k) { k.outerHTML = gemKarteHtml(); pfGemVerdrahten(); } } });
   if ($("betaSchalter")) $("betaSchalter").onclick = () => { SFX.tap(); kanalFrage(); };
   /* 9.60: Freigabe für die Beta-Version nur hier prüfen (höchstens 1× je Stunde) – erscheint/verschwindet der Schalter, Profil neu zeichnen */
@@ -3879,9 +3880,10 @@ function pvInhalt(r, ich, istIch, reiter) {
     ["Kette rückwärts", `${kette(r, "chainRueck")}/66`, `${kette(ich, "chainRueck")}/66`, [kette(r, "chainRueck"), kette(ich, "chainRueck")]],
     ["Blitz-Rekord", r.blitz | 0, ich.blitz | 0],
     ["Blitz in Folge", folgeNeu(r) ? r.combo | 0 : 0, ich.combo | 0],
-    ["Biblionär-Rekord", r.bib | 0, ich.bib | 0]], istIch)
+    ["Biblionär-Rekord", r.bib | 0, ich.bib | 0]].concat(istIch ? [ /* 10.3: Themen-Ketten stehen nur im eigenen Spielstand */
+    ["Zehn Gebote", `${S.chainGebote ? Math.min(10, S.chainGebote + 1) : 0}/10`, ""], ["Schöpfungstage", `${S.chainSchoepfung ? Math.min(7, S.chainSchoepfung + 1) : 0}/7`, ""]] : []), istIch)
     + (Array.isArray(r.sg) ? `<div class="pv-sg"><span class="small muted">Siegel${istIch ? "" : " von " + esc(r.name)}</span>${siegelReihe(r)}</div>` : "");
-  if (reiter === "album") return `<div class="small" style="margin:2px 0 6px"><b>${albumPunkte(r)} Punkte</b>${istIch ? "" : ` <span class="muted">· du ${albumPunkte(ich)}</span>`}</div><div id="pvAlbum">${typeof smIch === "function" && smIch(r) ? albumSchaufenster(r, true) : `<p class="small muted">Album wird geladen …</p>`}</div>`;
+  if (reiter === "album") return `<div class="small" style="margin:2px 0 6px"><b>${albumPunkte(r)} Punkte</b>${istIch ? "" : ` <span class="muted">· du ${albumPunkte(ich)}</span>`}</div><div id="pvAlbum">${typeof smIch === "function" && smIch(r) ? albumSchaufenster(r, true) : `<p class="small muted">Album wird geladen …</p>`}</div>${istIch ? `<button class="btn ghost mini" data-go="album" style="margin-top:8px">Zum Sammelalbum</button>` : ""}`;
   /* Abzeichen */
   const ids = istIch ? S.badges : Array.isArray(r.badgeIds) ? r.badgeIds : pvAbzCache[r.id];
   if (!ids) return `<p class="small muted" id="pvAbzLaden">Abzeichen werden geladen …</p>`;
@@ -3890,36 +3892,43 @@ function pvInhalt(r, ich, istIch, reiter) {
     ${fehlt.length ? `<div class="label" style="margin:0 0 6px">Hat ${esc(r.name)}, dir fehlen</div><div class="pv-chips">${fehlt.slice(0, 8).map(b => `<span class="pv-chip">${svg(b.ic)}${esc(b.name)}</span>`).join("")}${fehlt.length > 8 ? `<span class="pv-chip">+${fehlt.length - 8}</span>` : ""}</div>` : istIch ? "" : `<p class="small muted">Du hast alle Abzeichen, die ${esc(r.name)} hat.</p>`}
     <button class="btn ghost mini" id="pvAlle" style="margin-top:8px">Alle Abzeichen zeigen</button><div id="pvWand"></div>`;
 }
-function profilVergleich(r) {
-  if (!r) return;
-  const ich = Object.assign(lbPayload(), { id: S.pid });
-  const istIch = r.id === S.pid;
-  const albumOk = typeof smFrei === "function" && smFrei() && typeof albumPunkte === "function";
-  const REITER = [["ueber", "Überblick", "star"], ["spielen", "Spielen", "bolt"]].concat(albumOk ? [["album", "Album", "album"]] : []).concat([["abz", "Abzeichen", "medal"]]);
-  if (!REITER.some(x => x[0] === pvReiter)) pvReiter = "ueber";
+let pvReiterIch = "ueber";
+const pvKopfHtml = r => `<div class="vg-kopf">${avatarLv(r, 64)}<div><h2 style="margin:0">${esc(r.name)}</h2><div class="muted small">${esc(ENTW_PID && r.id === ENTW_PID ? "Level " + (r.level || 1) + " · " + ENTW_RANG : titelName(r.title) || "Level " + (r.level || 1) + " · " + titleOf(r.level || 1))}</div><div class="small"><span class="tag at">AT</span> ${esc(AT_TITEL[titelIndex(AT_TITEL, r.atP || 0)][1])} · <span class="tag nt">NT</span> ${esc(NT_TITEL[titelIndex(NT_TITEL, r.ntP || 0)][1])}</div>${ruestungHtml(r.armor, false)}</div></div>`;
+const pvReiterListe = () => [["ueber", "Überblick", "star"], ["spielen", "Spielen", "bolt"]].concat(typeof smFrei === "function" && smFrei() && typeof albumPunkte === "function" ? [["album", "Album", "album"]] : []).concat([["abz", "Abzeichen", "medal"]]);
+/* Reiter + Inhalt als HTML (gleich für das Fenster eines anderen Spielers und die eigene Profilseite) */
+function pvTeilHtml(istIch) {
+  const REITER = pvReiterListe(), akt = istIch ? pvReiterIch : pvReiter;
   const ic = k => (k === "album" && typeof SM_ALBUM_SVG === "string" ? SM_ALBUM_SVG : svg(k));
-  const m = modal(`<div class="vergleich pv">
-    <div class="vg-kopf">${avatarLv(r, 64)}<div><h2 style="margin:0">${esc(r.name)}</h2><div class="muted small">${esc(ENTW_PID && r.id === ENTW_PID ? "Level " + (r.level || 1) + " · " + ENTW_RANG : titelName(r.title) || "Level " + (r.level || 1) + " · " + titleOf(r.level || 1))}</div><div class="small"><span class="tag at">AT</span> ${esc(AT_TITEL[titelIndex(AT_TITEL, r.atP || 0)][1])} · <span class="tag nt">NT</span> ${esc(NT_TITEL[titelIndex(NT_TITEL, r.ntP || 0)][1])}</div>${ruestungHtml(r.armor, false)}</div></div>
-    <nav class="kb-tabs pv-tabs" role="tablist" style="grid-template-columns:repeat(${REITER.length},minmax(0,1fr))">${REITER.map(([k, t, i]) => `<button data-pv="${k}" role="tab" aria-pressed="${k === pvReiter}" aria-selected="${k === pvReiter}">${ic(i)}<span>${t}</span></button>`).join("")}</nav>
-    <div id="pvInhalt" class="pv-inhalt"></div>
-    </div>${!istIch && duOk() ? `<button class="btn du-fordern" data-close="duell">${svg("bolt")} In die Arena fordern</button>` : ""}<button class="btn primary" data-close>Schließen</button>`,
-    x => { if (x === "duell") duTypWahl({ id: r.id, name: r.name }, null); });
-  m.dataset.frei = "1"; m.classList.add("weit");
-  const box = m.querySelector("#pvInhalt");
+  return `<nav class="kb-tabs pv-tabs" role="tablist" style="grid-template-columns:repeat(${REITER.length},minmax(0,1fr))">${REITER.map(([k, t, i]) => `<button data-pv="${k}" role="tab" aria-pressed="${k === akt}" aria-selected="${k === akt}">${ic(i)}<span>${t}</span></button>`).join("")}</nav>
+    <div class="pv-inhalt"></div>`;
+}
+function pvVerdrahten(m, r, istIch) {
+  const ich = Object.assign(lbPayload(), { id: S.pid });
+  if (!pvReiterListe().some(x => x[0] === (istIch ? pvReiterIch : pvReiter))) { if (istIch) pvReiterIch = "ueber"; else pvReiter = "ueber"; }
+  const box = m.querySelector(".pv-inhalt"), akt = () => (istIch ? pvReiterIch : pvReiter);
   const zeigen = () => {
-    box.innerHTML = pvInhalt(r, ich, istIch, pvReiter);
-    m.querySelectorAll("[data-pv]").forEach(b => { const an = b.dataset.pv === pvReiter; b.setAttribute("aria-pressed", an); b.setAttribute("aria-selected", an); });
-    const reiter = pvReiter;
-    if (reiter === "album" && !(typeof smIch === "function" && smIch(r))) albumVonSpieler(r).then(st => { const z = m.querySelector("#pvAlbum"); if (z && pvReiter === "album") z.innerHTML = albumSchaufenster(r, istIch, st); });
+    const reiter = akt();
+    box.innerHTML = pvInhalt(r, ich, istIch, reiter);
+    m.querySelectorAll("[data-pv]").forEach(b => { const an = b.dataset.pv === reiter; b.setAttribute("aria-pressed", an); b.setAttribute("aria-selected", an); });
+    box.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { SFX.tap(); document.querySelectorAll(".modal").forEach(x => x.remove()); go(b.dataset.go); });
+    if (reiter === "album" && !(typeof smIch === "function" && smIch(r))) albumVonSpieler(r).then(st => { const z = box.querySelector("#pvAlbum"); if (z && akt() === "album") z.innerHTML = albumSchaufenster(r, istIch, st); });
     if (reiter === "abz") {
-      const alle = m.querySelector("#pvAlle"); if (alle) alle.onclick = () => { SFX.tap(); const ids = istIch ? S.badges : r.badgeIds || pvAbzCache[r.id] || []; m.querySelector("#pvWand").innerHTML = badgeGrid(ids, istIch ? null : S.badges); alle.remove(); };
-      if (m.querySelector("#pvAbzLaden")) { const L = window.LB;
-        (L && L.holeSpieler ? L.holeSpieler(r.id) : Promise.resolve(null)).then(v => { pvAbzCache[r.id] = v && Array.isArray(v.badgeIds) ? v.badgeIds : []; if (pvReiter === "abz" && document.body.contains(box)) zeigen(); })
-          .catch(() => { const z = m.querySelector("#pvAbzLaden"); if (z) z.textContent = "Abzeichen konnten nicht geladen werden."; }); }
+      const alle = box.querySelector("#pvAlle"); if (alle) alle.onclick = () => { SFX.tap(); const ids = istIch ? S.badges : r.badgeIds || pvAbzCache[r.id] || []; box.querySelector("#pvWand").innerHTML = badgeGrid(ids, istIch ? null : S.badges); alle.remove(); };
+      if (box.querySelector("#pvAbzLaden")) { const L = window.LB;
+        (L && L.holeSpieler ? L.holeSpieler(r.id) : Promise.resolve(null)).then(v => { pvAbzCache[r.id] = v && Array.isArray(v.badgeIds) ? v.badgeIds : []; if (akt() === "abz" && document.body.contains(box)) zeigen(); })
+          .catch(() => { const z = box.querySelector("#pvAbzLaden"); if (z) z.textContent = "Abzeichen konnten nicht geladen werden."; }); }
     }
   };
-  m.querySelectorAll("[data-pv]").forEach(b => b.onclick = () => { SFX.tap(); pvReiter = b.dataset.pv; zeigen(); });
+  m.querySelectorAll("[data-pv]").forEach(b => b.onclick = () => { SFX.tap(); if (istIch) pvReiterIch = b.dataset.pv; else pvReiter = b.dataset.pv; zeigen(); });
   zeigen();
+}
+function profilVergleich(r) {
+  if (!r) return;
+  const istIch = r.id === S.pid;
+  const m = modal(`<div class="vergleich pv">${pvKopfHtml(r)}${pvTeilHtml(istIch)}</div>${!istIch && duOk() ? `<button class="btn du-fordern" data-close="duell">${svg("bolt")} In die Arena fordern</button>` : ""}<button class="btn primary" data-close>Schließen</button>`,
+    x => { if (x === "duell") duTypWahl({ id: r.id, name: r.name }, null); });
+  m.dataset.frei = "1"; m.classList.add("weit");
+  pvVerdrahten(m, r, istIch);
 }
 
 /* ---------- Duelle (asynchron) ----------
