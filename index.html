@@ -3378,10 +3378,31 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .sm-ov:has(.sm-jar.k-silber) .sm-ov-kopf b{background:linear-gradient(180deg,#ffffff,#cfd8e6 60%,#7d8796);-webkit-background-clip:text;background-clip:text;color:transparent}
 .sm-ov:has(.sm-jar.k-silber) .sm-kegel{background:linear-gradient(180deg,#eef6ff00,#eef6ff33 60%,#eef6ff00)}
 .sm-ov:has(.sm-jar.k-bronze) .sm-ov-kopf b{color:#e9a66a}
-.sm-selten.geschenk::before{content:"Silberkrug: doppelte Silber-Chance";color:#dcebff}
+.sm-selten.geschenk::before{content:"✦ 1 Silber sicher + doppelte Silber-Chance ✦";color:#eef6ff}
 .sm-selten.treue::before{content:"★ Gold sicher + doppelte Gold-Chance ★"}
 .sm-selten.treue.beide::before{content:"★ Doppelte Silber- und Gold-Chance ★"}
 .smt-krug.treue .sm-kr-ic{filter:drop-shadow(0 0 6px #ffd27a)}.smt-krug.treue small{color:#ffe08a}
+/* 10.14: Silberkrug – Mondlicht-Bühne mit Strahlen, Funken und Glanzstreifen */
+.sm-ov.silber .sm-buehne{background:radial-gradient(ellipse at 50% 36%,#4a5a80 0,#222a58 45%,#0b0e26 100%)!important;box-shadow:inset 0 0 0 1px #dcebffaa,inset 0 0 40px #cfe6ff33,0 0 30px #cfe6ff33!important}
+.sm-ov.silber .sm-tr-strahlen{background:repeating-conic-gradient(from 0deg,#eef6ff2e 0deg 6deg,transparent 6deg 18deg)}
+.sm-ov.silber .sm-tr-halo{background:radial-gradient(circle,#ffffff55,#cfe6ff33 40%,transparent 70%)}
+.sm-ov.silber .sm-tr-orbit i{background:#ffffff;filter:drop-shadow(0 0 4px #cfe6ff)}
+.sm-ov.silber .sm-tr-blitz{background:radial-gradient(circle at 50% 40%,#ffffff,#dcebffcc 30%,transparent 70%)}
+.sm-ov.silber .sm-tr-welle{border-color:#eef6ff;box-shadow:0 0 24px #cfe6ff}
+.sm-ov.silber .sm-ov-kopf span{color:#eef6ff;font-weight:800}
+.sm-ov.silber .sm-tipp{color:#eef6ff;font-weight:800}
+.sm-jar.k-silber svg{filter:drop-shadow(0 12px 14px #000a) drop-shadow(0 0 26px #e6f2ffcc)!important}
+.smj-shine{transform:skewX(-18deg) translateX(-40px);opacity:0}
+@media (prefers-reduced-motion:no-preference){.smj-shine{animation:smSiGlanz 3.4s ease-in-out infinite}}
+@keyframes smSiGlanz{0%{transform:skewX(-18deg) translateX(-40px);opacity:0}10%{opacity:1}45%{transform:skewX(-18deg) translateX(150px);opacity:1}55%,100%{transform:skewX(-18deg) translateX(150px);opacity:0}}
+.smj-shine{mix-blend-mode:screen}
+.smj-glint path{transform-box:fill-box;transform-origin:50% 50%;opacity:0;filter:drop-shadow(0 0 2px #bfe3ff)}
+@media (prefers-reduced-motion:no-preference){.smj-glint .g1{animation:smGlint 2.6s ease-in-out infinite}.smj-glint .g2{animation:smGlint 2.6s ease-in-out .9s infinite}.smj-glint .g3{animation:smGlint 2.6s ease-in-out 1.7s infinite}}
+@keyframes smGlint{0%,60%,100%{opacity:0;transform:scale(.2) rotate(0)}75%{opacity:1;transform:scale(1.3) rotate(45deg)}}
+.sm-medaille{position:absolute;left:50%;top:80px;width:50px;height:50px;margin-left:-25px;z-index:2;filter:drop-shadow(0 3px 4px #000a) drop-shadow(0 0 8px #9fd3ff);transition:transform .7s cubic-bezier(.2,.8,.2,1),opacity .6s}
+.sm-medaille svg{width:100%;height:100%}
+@media (prefers-reduced-motion:no-preference){.sm-jar:not(.medaille-weg) .sm-medaille{animation:smTrSiegel 1.8s ease-in-out infinite}}
+.sm-jar.medaille-weg .sm-medaille{transform:translateY(-70px) scale(1.6) rotate(20deg);opacity:0}
 </style>
 </head>
 <body>

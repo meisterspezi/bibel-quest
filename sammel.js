@@ -254,15 +254,15 @@ try { document.fonts.ready.then(() => { try { smHudPlatz(); } catch (e) {} }); d
 })();
 
 /* ---------- Krug ziehen: nie doppelt, fehlende zuerst ----------
-   1. Seltenheit würfeln (Garantie: mind. 1 Silber, jeder 7. Krug Gold – mit der letzten Karte).
+   1. Seltenheit würfeln (Garantie seit 10.14: Silberkrug mind. 1 Silber, jeder 7. Krug 1 Gold, Bronze-Krug ohne Garantie – mit der letzten Karte).
    2. Gibt es Bücher unter dieser Stufe, wird eines aufgewertet (bevorzugt genau eine Stufe darunter → fehlende Bronze zuerst).
    3. Sonst eine doppelte Karte dieser Stufe → Tauschbeutel. 4. Jedes Buch höchstens einmal pro Krug. */
 function smWuerfeln(min, w) { w = w || SM_W; const o = []; let t = 0; for (let r = Math.max(1, min); r <= SM_MAX; r++) { o.push(r); t += w[r]; } let x = Math.random() * t; for (const r of o) { x -= w[r]; if (x <= 0) return r; } return o[o.length - 1]; }
-function smZiehen(album, nr, w) {
-  const res = [], used = {}, min = nr % SM_TREUE === 0 ? SM_MAX : 2, z = l => l[Math.floor(Math.random() * l.length)];
+function smZiehen(album, nr, w, sicher) {
+  const res = [], used = {}, min = nr % SM_TREUE === 0 ? SM_MAX : sicher == null ? 2 : sicher, z = l => l[Math.floor(Math.random() * l.length)];
   for (let k = 0; k < SM_KRUG_KARTEN; k++) {
     if (album.every(s => s >= SM_MAX)) break;
-    const r = (k === SM_KRUG_KARTEN - 1 && !res.some(c => c.s >= min)) ? smWuerfeln(min, w) : smWuerfeln(1, w);
+    const r = (min > 1 && k === SM_KRUG_KARTEN - 1 && !res.some(c => c.s >= min)) ? smWuerfeln(min, w) : smWuerfeln(1, w);
     const idx = album.map((s, i) => i).filter(i => !used[i]), frei = idx.filter(i => album[i] < r);
     if (frei.length) { const g = frei.filter(i => album[i] === r - 1), i = z(g.length ? g : frei); used[i] = 1; res.push({ i, s: r, v: album[i] }); album[i] = r; }
     else { const d = idx.filter(i => album[i] >= r); if (!d.length) continue; const i = z(d); used[i] = 1; res.push({ i, s: r, v: album[i], d: 1 }); }
@@ -278,7 +278,7 @@ function smKrugKaufen(wahl) {
   if (m.kt !== t) { m.kt = t; m.kn = 0; }
   if (art === "geschenk") m.kga++; else { m.ga += SM_KRUG_PREIS; m.kn++; } /* 10.5: Geschenk-Krug zählt nicht zu den 3 am Tag */
   m.kz++;
-  const vor = m.album.slice(), zug = smZiehen(m.album, m.kz, smGewichte(art, m.kz % SM_TREUE === 0));
+  const vor = m.album.slice(), zug = smZiehen(m.album, m.kz, smGewichte(art, m.kz % SM_TREUE === 0), art === "geschenk" ? 2 : 0); /* 10.14: nur der Silberkrug hat 1 Silber sicher */
   zug.forEach(c => { if (c.d && c.s < SM_MAX) m.be[c.s] = (m.be[c.s] | 0) + 1; });
   m.offen = { z: zug, vor, nr: m.kz, art }; /* Ergebnis wird VOR der Animation gespeichert – Schließen der App würfelt nichts neu */
   save(); smHud(0); lbSync();
@@ -371,7 +371,7 @@ VIEWS.album = () => {
   if ($("smMannaLos")) $("smMannaLos").onclick = () => { SFX.tap(); go("spielen"); };
   $("smMannaInfo") && ($("smMannaInfo").onclick = () => info(`${SM_GOLD_SVG} ${gold} Manna`, `<p>Mit ${SM_KRUG_PREIS} Manna öffnest du einen goldenen Krug mit ${SM_KRUG_KARTEN} Karten – bis zu ${SM_KRUG_TAG} Krüge am Tag. Neue Krüge gibt es jeden Morgen um ${SM_KRUG_STUNDE} Uhr.</p><p>Manna bekommst du für jede Runde ab 30 Sekunden (+1 bei guter Runde), jede Duell-Herausforderung, jede Schatztruhe (${SM_TRUHE_MANNA}), den Biblionär der Woche (2) und jeden Level-Aufstieg (3). Wer den Biblionär der Woche gewinnt, bekommt einen Gratiskrug. Sparen geht ohne Grenze.</p>`));
   $("smTreueInfo").onclick = () => info("Treue-Siegel", `<p>Jeder <b>${SM_TREUE}. Krug</b> ist ein goldener Treue-Krug: eine Goldkarte ist sicher dabei, und die Chance auf weitere Goldkarten ist <b>doppelt so hoch</b> (Gold 10 %).</p><p>${bisGold === 1 ? "Der <b>nächste Krug</b> ist es!" : `Noch <b>${bisGold} Krüge</b> bis dahin.`}</p>`);
-  $("smGeschenkInfo").onclick = () => info("Geschenk-Krug", `<p>Jede <b>${SM_TRUHEN_GESCHENK}. Schatztruhe</b> (alle 3 Tagesaufgaben geschafft) schenkt dir einen silbernen Geschenk-Krug – ohne Manna und <b>zusätzlich</b> zu den 3 Krügen am Tag. Im Silberkrug ist die Chance auf Silber <b>doppelt so hoch</b> (Silber 40 %). Normale Krüge sind aus Bronze, jeder ${SM_TREUE}. Krug ist ein goldener Treue-Krug.</p><p>Noch <b>${nochT} Schatztruhen</b> bis zum nächsten Geschenk.</p>`);
+  $("smGeschenkInfo").onclick = () => info("Geschenk-Krug", `<p>Jede <b>${SM_TRUHEN_GESCHENK}. Schatztruhe</b> (alle 3 Tagesaufgaben geschafft) schenkt dir einen silbernen Geschenk-Krug – ohne Manna und <b>zusätzlich</b> zu den 3 Krügen am Tag. Im Silberkrug ist <b>1 Silberkarte sicher</b>, und die Chance auf Silber ist <b>doppelt so hoch</b> (Silber 40 %). Normale Krüge sind aus Bronze, jeder ${SM_TREUE}. Krug ist ein goldener Treue-Krug.</p><p>Noch <b>${nochT} Schatztruhen</b> bis zum nächsten Geschenk.</p>`);
   screen.querySelectorAll("[data-tausch]").forEach(b => b.onclick = () => smTauschStart(+b.dataset.tausch));
   screen.querySelectorAll(".smk").forEach(k => k.onclick = () => { if (smWahl) return smTauschWahl(+k.dataset.i); smKarteZeigen(+k.dataset.i); });
   if ($("smTeilen")) $("smTeilen").onclick = () => { SFX.tap(); smTeilenAlbum(); };
@@ -430,12 +430,18 @@ const SM_KRUG_GROSS = `<svg viewBox="0 0 120 150" aria-hidden="true"><defs><radi
   <g class="smj-deckel"><path d="M38 27c2-9 12-13 22-13s20 4 22 13z" fill="url(#smGd)" stroke="#5a3a08" stroke-width="1.8" stroke-linejoin="round"/><circle cx="60" cy="10" r="5" fill="url(#smGd)" stroke="#5a3a08" stroke-width="1.5"/><path d="M60 4.5l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1z" fill="#fff"/></g></svg>`;
 /* 10.14: Krug in Bronze / Silber / Gold – Farben und Verlaufs-IDs werden aus dem goldenen Krug umgesetzt */
 const SM_KRUG_FARBEN = {
-  silber: { "#8a5a12": "#5f6a7a", "#e9b94a": "#c3cedb", "#fff0b0": "#ffffff", "#f2c14e": "#dfe7f1", "#7a4c0e": "#4f5866", "#9a6614": "#7a8596", "#fff2bf": "#f6faff", "#5a3a08": "#2f3642", "#ffe48a": "#eaf3ff", "#fffbe8": "#ffffff", "#a8781a": "#8a95a6", "#ffe9a0": "#dcebff" },
+  silber: { "#8a5a12": "#4a5464", "#e9b94a": "#a9b5c5", "#fff0b0": "#eef3f9", "#f2c14e": "#bfcad8", "#7a4c0e": "#3a424f", "#9a6614": "#6f7a8b", "#fff2bf": "#f6faff", "#5a3a08": "#262c36", "#ffe48a": "#dcebff", "#fffbe8": "#9fd3ff", "#a8781a": "#2f5f99", "#ffe9a0": "#dcebff" },
   bronze: { "#8a5a12": "#6a3414", "#e9b94a": "#bd743a", "#fff0b0": "#f7cfa4", "#f2c14e": "#d6874a", "#7a4c0e": "#552710", "#9a6614": "#7c4119", "#fff2bf": "#f9d6b0", "#5a3a08": "#3b1b07", "#ffe48a": "#f2b37c", "#fffbe8": "#fff0e0", "#a8781a": "#8a5226", "#ffe9a0": "#ffcf9e" } };
 const smUmfaerben = (svg, stil) => { const f = SM_KRUG_FARBEN[stil]; if (!f) return svg;
   return svg.replace(/#[0-9a-f]{6}/gi, c => f[c.toLowerCase()] || c).replace(/id="(sm\w+)"/g, `id="$1_${stil}"`).replace(/url\(#(sm\w+)\)/g, `url(#$1_${stil})`); };
 const smKrugGrossCache = {}, smKrugIcCache = {};
-const smKrugGross = stil => smKrugGrossCache[stil] || (smKrugGrossCache[stil] = smUmfaerben(SM_KRUG_GROSS, stil));
+/* 10.14: Silber-Medaillon (blaue Emaille mit Stern) – fliegt beim Öffnen nach oben weg */
+const SM_SI_MEDAILLE = `<div class="sm-medaille" aria-hidden="true"><svg viewBox="0 0 64 64"><defs><radialGradient id="smMdE" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#8fd0ff"/><stop offset=".55" stop-color="#2f6fc0"/><stop offset="1" stop-color="#12305e"/></radialGradient><linearGradient id="smMdS" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#b9c4d3"/><stop offset="1" stop-color="#5b6575"/></linearGradient></defs>
+  <circle cx="32" cy="32" r="27" fill="url(#smMdS)" stroke="#262c36" stroke-width="1.4"/><circle cx="32" cy="32" r="21" fill="url(#smMdE)" stroke="#e8eef6" stroke-width="1.6"/>
+  <path d="M32 15l4.6 10.6 11.4 1-8.7 7.5 2.7 11.2L32 39.4l-10 5.9 2.7-11.2-8.7-7.5 11.4-1z" fill="url(#smMdS)" stroke="#262c36" stroke-width="1"/>
+  <path d="M19 22c3-4 8-7 13-7" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" opacity=".7"/></svg></div>`;
+const SM_SI_GLANZ = `<defs><clipPath id="smSiClipX"><path d="M44 34h32c1 5 3 8 8 12 10 8 16 20 16 36 0 30-18 52-40 54-22-2-40-24-40-54 0-16 6-28 16-36 5-4 7-7 8-12z"/></clipPath><linearGradient id="smSiShineX" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".85"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><g clip-path="url(#smSiClipX)"><rect class="smj-shine" x="0" y="-10" width="22" height="170" fill="url(#smSiShineX)"/></g><g class="smj-glint" fill="#fff"><path class="g1" d="M38 52l1.6 4.4 4.4 1.6-4.4 1.6-1.6 4.4-1.6-4.4-4.4-1.6 4.4-1.6z"/><path class="g2" d="M84 70l1.3 3.4 3.4 1.3-3.4 1.3-1.3 3.4-1.3-3.4-3.4-1.3 3.4-1.3z"/><path class="g3" d="M52 118l1.2 3 3 1.2-3 1.2-1.2 3-1.2-3-3-1.2 3-1.2z"/></g>`;
+const smKrugGross = stil => smKrugGrossCache[stil] || (smKrugGrossCache[stil] = stil === "silber" ? smUmfaerben(SM_KRUG_GROSS, stil).replace('<g class="smj-deckel">', SM_SI_GLANZ + '<g class="smj-deckel">') : smUmfaerben(SM_KRUG_GROSS, stil));
 const smKrugIc = stil => smKrugIcCache[stil] || (smKrugIcCache[stil] = smUmfaerben(SM_KRUG_SVG, stil).replace('class="sm-kr-ic"', `class="sm-kr-ic k-${stil}"`));
 const smRm = () => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } };
 function smVibr(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
@@ -459,12 +465,12 @@ function smKrugBuehne(offen, wieder) {
   if (document.querySelector(".sm-ov")) return;
   const rm = smRm(), zug = offen.z, ov = document.createElement("div");
   /* 10.13: Treue-Krug (jeder 7., sicher Gold) – eigener Auftritt: Wachssiegel mit „7“, goldene Strahlen, kreisende Funken; beim Antippen bricht das Siegel */
-  const treue = offen.nr % SM_TREUE === 0;
-  ov.className = "sm-ov" + (treue ? " treue" : ""); ov.setAttribute("role", "dialog"); ov.setAttribute("aria-label", treue ? "Treue-Krug öffnen" : "Krug öffnen");
-  ov.innerHTML = `<div class="sm-ov-in"><div class="sm-ov-kopf"><b>${treue ? (offen.art === "geschenk" ? "Geschenk · Treue" : "Treue-Krug") : offen.art === "geschenk" ? "Silber-Geschenk" : "Bronze-Krug"}</b><span>${wieder ? "Dein Krug wartet noch" : treue ? SM_TREUE + ". Krug · sicher Gold" : SM_KRUG_KARTEN + " Karten"}</span></div>
-    <div class="sm-buehne">${treue ? `<div class="sm-tr-strahlen"></div><div class="sm-tr-halo"></div><div class="sm-tr-blitz"></div><div class="sm-tr-welle"></div>` : ""}<div class="sm-kegel"></div><div class="sm-beam"></div><div class="sm-sockel"></div>
-      ${treue ? `<div class="sm-tr-orbit">${Array.from({ length: 10 }, (_, i) => `<i style="--i:${i}"></i>`).join("")}</div>` : ""}
-      <div class="sm-jar ${rm ? "" : treue ? "treue-schweb" : zug.some(c => c.s >= 3) ? "stark" : "wackel"}${offen.art === "geschenk" && !treue ? " geschenk" : ""}${treue ? " treue" : ""} k-${smKrugStil(offen.art, treue)}" role="button" tabindex="0" aria-label="Krug antippen">${smKrugGross(smKrugStil(offen.art, treue))}${treue ? SM_SIEGEL_HTML : ""}</div>
+  const treue = offen.nr % SM_TREUE === 0, silber = !treue && offen.art === "geschenk", edel = treue || silber;
+  ov.className = "sm-ov" + (treue ? " treue" : silber ? " silber" : ""); ov.setAttribute("role", "dialog"); ov.setAttribute("aria-label", treue ? "Treue-Krug öffnen" : "Krug öffnen");
+  ov.innerHTML = `<div class="sm-ov-in"><div class="sm-ov-kopf"><b>${treue ? (offen.art === "geschenk" ? "Geschenk · Treue" : "Treue-Krug") : offen.art === "geschenk" ? "Silber-Geschenk" : "Bronze-Krug"}</b><span>${wieder ? "Dein Krug wartet noch" : treue ? SM_TREUE + ". Krug · sicher Gold" : silber ? "1 Silber sicher" : SM_KRUG_KARTEN + " Karten"}</span></div>
+    <div class="sm-buehne">${edel ? `<div class="sm-tr-strahlen"></div><div class="sm-tr-halo"></div><div class="sm-tr-blitz"></div><div class="sm-tr-welle"></div>` : ""}<div class="sm-kegel"></div><div class="sm-beam"></div><div class="sm-sockel"></div>
+      ${edel ? `<div class="sm-tr-orbit">${Array.from({ length: 10 }, (_, i) => `<i style="--i:${i}"></i>`).join("")}</div>` : ""}
+      <div class="sm-jar ${rm ? "" : edel ? "treue-schweb" : zug.some(c => c.s >= 3) ? "stark" : "wackel"}${offen.art === "geschenk" && !treue ? " geschenk" : ""}${treue ? " treue" : ""} k-${smKrugStil(offen.art, treue)}" role="button" tabindex="0" aria-label="Krug antippen">${smKrugGross(smKrugStil(offen.art, treue))}${treue ? SM_SIEGEL_HTML : silber ? SM_SI_MEDAILLE : ""}</div>
       <p class="sm-tipp">${treue ? "Tippe auf das Siegel – es bricht auf" : `Tippe auf den ${offen.art === "geschenk" ? "silbernen Geschenk-Krug" : "Krug"}`}</p>
       ${(pz => `<div class="sm-selten${treue ? (offen.art === "geschenk" ? " treue beide" : " treue") : offen.art === "geschenk" ? " geschenk" : ""}"><span style="--c:#d58b4f"><b>${pz[0]}</b>Bronze</span><span style="--c:#bfe3ff"><b>${pz[1]}</b>Silber</span><span style="--c:#f2c14e"><b>${pz[2]}</b>Gold</span></div>`)(smProz(smGewichte(offen.art, treue)))}
       <div class="sm-fan"></div><p class="sm-zus"></p><canvas class="sm-fx"></canvas></div>
@@ -532,7 +538,13 @@ function smKrugBuehne(offen, wieder) {
       setTimeout(() => staub(sx, sy - 40, 60, ["#fff3b8", "#f2c14e", "#d8323f"], 4), 620);
       setTimeout(oeffnen, 900); return;
     }
-    smKlang("klopf"); smVibr(30); jar.classList.remove("wackel", "stark"); jar.classList.add("glueht");
+    if (silber && !jar.dataset.blitz) { /* 10.14: Silberkrug – Mondlicht-Blitz, Druckwelle, Silberfunken */
+      jar.dataset.blitz = "1"; jar.classList.remove("treue-schweb"); jar.classList.add("medaille-weg");
+      const [sx, sy] = mitte(jar); buehne.classList.add("tr-auf"); smKlang("silber"); smVibr([30, 30, 60]);
+      staub(sx, sy, 70, ["#ffffff", "#e6f4ff", "#bfe3ff", "#dfe7f1"], 5);
+      setTimeout(oeffnen, 420); return;
+    }
+    smKlang("klopf"); smVibr(30); jar.classList.remove("wackel", "stark", "treue-schweb"); jar.classList.add("glueht");
     const [mx, my] = mitte(jar), oben = my - 70, manna = treue ? ["#fff3b8", "#ffe08a", "#f2c14e", "#ffffff"] : offen.art === "geschenk" ? ["#ffffff", "#e6f4ff", "#bfe3ff", "#f6faff"] : ["#fffbee", "#ffe2c4", "#ffffff", "#f7c79a"];
     setTimeout(() => { jar.classList.add("auf"); smKlang("auf"); q(".sm-beam").classList.add("an"); staub(mx, oben, 70, manna, 4.5); }, 380);
     setTimeout(() => staub(mx, oben, 50, manna, 3.5), 780);
