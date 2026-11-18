@@ -774,7 +774,7 @@ const albumAnzahl = r => { const z = albumZahlen(r); return z ? z[0] + z[1] + z[
 /* 10.7: Podest der Album-Rangliste. Platz 1 groß (bis 3 nebeneinander), Platz 2/3 als Karten; geteilte Plätze als
    schmale Zeilen – mehr als 4 laufen langsam durch (albumRotieren). */
 function albumPodest(g1, g2, g3, wert, me, woche) {
-  const name = r => `${esc(r.name)}${r.id === me ? '<span class="you">DU</span>' : ""}`;
+  const name = r => `${esc(r.name)}${glanzHtml(r)}${r.id === me ? '<span class="you">DU</span>' : ""}`; /* 10.16: Goldkarten nur hier */
   const zahl = r => woche ? `+${albumWoche(r)}` : `${albumAnzahl(r)}/66`;
   const zeile = (r, gross) => `<button class="ap-zl ${gross ? "gross" : ""} ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}">${gross ? avatarLv(r, 34) : avatarHtml(r, 24)}<span class="ap-zt"><span class="ap-nz"><b>${name(r)}</b><small>${zahl(r)}</small></span>${albumBalken(r, woche)}</span></button>`;
   const liste = (g, gross) => `<div class="ap-rot ${gross ? "gross" : ""} ${g.length > 4 ? "laeuft" : ""}" style="--n:${g.length}"><div class="ap-rot-in">${g.map(r => zeile(r, gross)).join("")}</div></div>`;
