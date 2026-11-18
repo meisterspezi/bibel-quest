@@ -588,14 +588,53 @@ async function smTeilenAlbum() {
 /* ---------- 9.85/9.92: Goldkarten für die Rangliste (Feld gl, Sammlung album) ----------
    Eigene kleine Sammlung album/{pid} = { gl, updated } – die Ranglisten-Regel für „spieler“ ist an der Grenze von 1000 Rechenschritten.
    Geschrieben wird nur, wenn sich die Zahl ändert (höchstens 66-mal je Spieler). Der Sammel-Job trägt gl in die Rangliste ein. */
-let smGlLaeuft = false;
+let smGlLaeuft = false, smStAlt = false;
+/* 10.2: kompletter Album-Stand als Text mit 66 Ziffern (0 = fehlt, 1 Bronze, 2 Silber, 3 Gold) – für Album-Rangliste und Schaufenster */
+const smStText = () => smInit().album.map(x => Math.max(0, Math.min(SM_MAX, x | 0))).join("");
 function smGlanzSenden(L) {
   if (!smFrei()) return;
   if (BETA) return; /* 9.93: Beta-Album nicht in die Rangliste */
-  const m = smInit(), n = smGlanz();
-  if (!S.pid || !L || !L.albumSetzen || smGlLaeuft || (m.gls | 0) === n || (!n && !m.gls)) return;
+  const m = smInit(), n = smGlanz(), st = smStText(), leer = !/[1-3]/.test(st);
+  const stNeu = !smStAlt && m.sts !== st && !(leer && !m.sts);
+  if (!S.pid || !L || !L.albumSetzen || smGlLaeuft || ((m.gls | 0) === n && !stNeu) || (!n && !m.gls && leer)) return;
   smGlLaeuft = true;
-  L.albumSetzen(S.pid, n).then(() => { m.gls = n; save(); }).catch(() => {}).finally(() => { smGlLaeuft = false; });
+  /* geschrieben wird nur bei einer Änderung (neue Karte, Aufstieg) – höchstens ein paar Mal am Tag */
+  L.albumSetzen(S.pid, n, smStAlt ? null : st).then(w => { m.gls = n; if (w === "alt") smStAlt = true; else m.sts = st; save(); }).catch(() => {}).finally(() => { smGlLaeuft = false; });
+}
+/* ---------- 10.2: Album in der Rangliste (Kachel „Album“) und im Spielerprofil (Schaufenster) ---------- */
+const smStVon = r => {
+  if (r && r.id === S.pid && smFrei()) return smStText(); /* eigener Stand immer frisch vom Gerät */
+  return r && typeof r.st === "string" && /^[0-3]{66}$/.test(r.st) ? r.st : "";
+};
+/* Punkte: Bronze 1, Silber 2, Gold 3 (höchstens 198). Ohne Album-Stand (ältere App-Version): Goldkarten × 3 als Untergrenze */
+function albumPunkte(r) {
+  const st = smStVon(r); if (st) { let p = 0; for (const c of st) p += +c; return p; }
+  return r && +r.gl > 0 ? Math.min(66, r.gl | 0) * 3 : 0;
+}
+/* Fortschritt dieser Woche: der Sammel-Job merkt sich den Stand zu Wochenbeginn (aw) bzw. beim ersten Sehen in der Woche */
+function albumWoche(r) {
+  if (!r || r.awk !== weekKey() || !(+r.aw >= 0) || r.aw === "") return 0;
+  return Math.max(0, albumPunkte(r) - (r.aw | 0));
+}
+const smZaehlen = st => [1, 2, 3].map(s => st.split("").filter(c => +c === s).length);
+/* dreifarbiger Balken (Bronze/Silber/Gold) für die Ranglisten-Zeilen */
+function albumBalken(r) {
+  const st = smStVon(r); if (!st) return "";
+  const [b, s, g] = smZaehlen(st), w = n => (n / 66 * 100).toFixed(1) + "%";
+  return `<span class="alb-bar" title="${g} Gold · ${s} Silber · ${b} Bronze"><i class="b3" style="width:${w(g)}"></i><i class="b2" style="width:${w(s)}"></i><i class="b1" style="width:${w(b)}"></i></span>`;
+}
+/* Schaufenster im Spielerprofil: Mini-Album mit 66 Plätzen, Gruppen in Gold und was der andere schon in Gold hat */
+function albumSchaufenster(r, istIch) {
+  const st = smStVon(r); if (!st || !/[1-3]/.test(st)) return "";
+  const [b, s, g] = smZaehlen(st), ich = istIch ? "" : smStText();
+  const plaetze = st.split("").map((c, i) => `<i class="alb-p s${c}" style="--gl:${SM_GLAS[ALL[i].gi]}" title="${esc(ALL[i].b)} · ${c > 0 ? SM_STUFE[c] : "fehlt"}"></i>`).join("");
+  const meister = GROUPS.map((gr, gi) => ALL.map((x, i) => [x, i]).filter(([x]) => x.gi === gi).every(([, i]) => st[i] === "3") ? gr.name : "").filter(Boolean);
+  const nurEr = ich ? st.split("").map((c, i) => c === "3" && ich[i] !== "3" ? ALL[i].b : "").filter(Boolean) : [];
+  return `<div class="alb-sf"><div class="label" style="margin:12px 0 6px">${SM_ALBUM_SVG} Sammelalbum · ${albumPunkte(r)} Punkte</div>
+    <div class="alb-raster">${plaetze}</div>
+    <div class="alb-zahl"><span class="z3">${g} Gold</span><span class="z2">${s} Silber</span><span class="z1">${b} Bronze</span><span>${66 - b - s - g} fehlen</span></div>
+    ${meister.length ? `<p class="small" style="margin:6px 0 0"><b>Ganz in Gold:</b> ${esc(meister.join(", "))}</p>` : ""}
+    ${nurEr.length ? `<p class="small muted" style="margin:4px 0 0">${istIch ? "" : `${esc(r.name)} hat in Gold, was dir noch fehlt: `}${esc(nurEr.slice(0, 6).join(", "))}${nurEr.length > 6 ? ` und ${nurEr.length - 6} weitere` : ""}</p>` : ""}</div>`;
 }
 
 /* ---------- 9.85: Ankündigung (einmal) und kurze Tour beim ersten Öffnen ---------- */

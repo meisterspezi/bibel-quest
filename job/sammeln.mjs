@@ -14,7 +14,7 @@ import { getFirestore, Timestamp, FieldPath } from "firebase-admin/firestore";
 export const TAG = 864e5;
 // Felder einer Zeile in fester Reihenfolge (spart Platz: die Namen stehen nur einmal im Dokument)
 export const FELDER = ["id", "name", "xp", "level", "bestChain", "chainAT", "chainNT", "chainRueck", "stars", "badges", "streak", "bestStreak", "blitz", "combo",
-  "week", "weekXp", "avatar", "frame", "title", "armor", "atP", "ntP", "t28", "sg", "bew", "duS", "duG", "bib", "gl", "u", "tb", "tm", "g"];
+  "week", "weekXp", "avatar", "frame", "title", "armor", "atP", "ntP", "t28", "sg", "bew", "duS", "duG", "bib", "gl", "u", "tb", "tm", "g", "st", "aw", "awk"];
 const ms = t => (t && typeof t.toMillis === "function" ? t.toMillis() : 0);
 // Spieltage (Liste von Tagesnummern) als Basis-Tag + Bitmaske der 31 Tage davor – die App macht daraus wieder die Liste
 export function tageMaske(tl) {
@@ -25,9 +25,20 @@ export function tageMaske(tl) {
 // Ein Spieler-Dokument → schlanke Zeile (ohne Geräteliste, Abzeichen-Liste … – die holt die App bei Bedarf einzeln)
 // 9.85 Glanz-Karten aus album/{pid} (0 = leer, spart Platz)
 const glanz = x => { const n = x && Number.isInteger(x.gl) ? Math.max(0, Math.min(66, x.gl)) : 0; return n || ""; };
+// 10.2 Album-Stand (66 Ziffern 0–3) aus album/{pid}, für Album-Rangliste und Schaufenster
+const albumSt = x => (x && typeof x.st === "string" && /^[0-3]{66}$/.test(x.st) ? x.st : "");
+const stPunkte = st => { let p = 0; for (const c of st || "") p += +c; return p; };
+// Kalenderwoche wie in der App (weekKey, deutsche Zeit): "2026-W47"
+export function wocheVon(ms0) {
+  const t = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(ms0));
+  const d = new Date(t + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + 3 - ((d.getUTCDay() + 6) % 7));
+  const w1 = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+  const w = 1 + Math.round(((d - w1) / 864e5 - 3 + ((w1.getUTCDay() + 6) % 7)) / 7);
+  return d.getUTCFullYear() + "-W" + String(w).padStart(2, "0");
+}
 export function zeile(id, d, g) {
   const [tb, tm] = tageMaske(d.tl), r = { ...d, id, u: ms(d.updated), tb, tm, g: g || "" };
-  return FELDER.map(f => { const v = r[f]; return v === undefined || v === null || (typeof v === "number" && !Number.isFinite(v)) ? "" : (typeof v === "string" ? v.slice(0, 40) : typeof v === "number" || typeof v === "boolean" ? v : ""); });
+  return FELDER.map(f => { const v = r[f]; return v === undefined || v === null || (typeof v === "number" && !Number.isFinite(v)) ? "" : (typeof v === "string" ? v.slice(0, f === "st" ? 66 : 40) : typeof v === "number" || typeof v === "boolean" ? v : ""); });
 }
 // Zeilen auf Dokumente verteilen (Firestore: höchstens 1 MiB je Dokument – wir bleiben deutlich darunter)
 export function teilen(zeilen, maxBytes = 700000) {
@@ -62,23 +73,32 @@ export async function sammeln(db, opt = {}) {
     karte.clear();
     const [sp, mi, al] = await Promise.all([db.collection("spieler").get(), db.collection("mitglied").get(), db.collection("album").get()]);
     gelesen = sp.size + mi.size + al.size;
-    const g = new Map(mi.docs.map(d => [d.id, String(d.data().g || "")])), gl = new Map(al.docs.map(d => [d.id, glanz(d.data())]));
-    sp.docs.forEach(d => { const x = d.data(); if (!x.zu) karte.set(d.id, zeile(d.id, { ...x, gl: gl.get(d.id) }, g.get(d.id))); });
+    const g = new Map(mi.docs.map(d => [d.id, String(d.data().g || "")])), gl = new Map(al.docs.map(d => [d.id, d.data()]));
+    sp.docs.forEach(d => { const x = d.data(), a = gl.get(d.id); if (!x.zu) karte.set(d.id, zeile(d.id, { ...x, gl: glanz(a), st: albumSt(a) }, g.get(d.id))); });
   } else {
     const seit = Timestamp.fromMillis(stand - 5 * 60000);  // 5 Minuten Überlappung
     const [sp, mi, al] = await Promise.all([db.collection("spieler").where("updated", ">", seit).get(), db.collection("mitglied").where("updated", ">", seit).get(),
       db.collection("album").where("updated", ">", seit).get()]);
     gelesen = sp.size + mi.size + al.size;
-    const iG = FELDER.indexOf("g"), iGl = FELDER.indexOf("gl");
-    sp.docs.forEach(d => { const x = d.data(), vor = karte.get(d.id); if (x.zu) karte.delete(d.id); else karte.set(d.id, zeile(d.id, { ...x, gl: vor ? vor[iGl] : "" }, vor ? vor[iG] : "")); });
+    const iG = FELDER.indexOf("g"), iGl = FELDER.indexOf("gl"), iSt = FELDER.indexOf("st");
+    sp.docs.forEach(d => { const x = d.data(), vor = karte.get(d.id); if (x.zu) karte.delete(d.id); else karte.set(d.id, zeile(d.id, { ...x, gl: vor ? vor[iGl] : "", st: vor ? vor[iSt] : "" }, vor ? vor[iG] : "")); });
     mi.docs.forEach(d => { const z = karte.get(d.id); if (z) z[iG] = String(d.data().g || ""); });
-    al.docs.forEach(d => { const z = karte.get(d.id); if (z) z[iGl] = glanz(d.data()); });
+    al.docs.forEach(d => { const z = karte.get(d.id); if (z) { z[iGl] = glanz(d.data()); z[iSt] = albumSt(d.data()); } });
+  }
+  // 10.2 Album-Woche: Punkte zu Wochenbeginn bzw. beim ersten Sehen in dieser Woche (Basis für „Album diese Woche“)
+  const wk = wocheVon(jetzt), iSt2 = FELDER.indexOf("st"), iAw = FELDER.indexOf("aw"), iAwk = FELDER.indexOf("awk");
+  const aw0 = job.albumWoche && job.albumWoche.wk === wk ? job.albumWoche : { wk, b: {} }, awB = { ...aw0.b };
+  let awNeu = aw0 !== job.albumWoche;
+  for (const [id, z] of karte) {
+    const st = z[iSt2]; if (!st) { z[iAw] = ""; z[iAwk] = ""; continue; }
+    if (!(id in awB)) { awB[id] = stPunkte(st); awNeu = true; }
+    z[iAw] = awB[id]; z[iAwk] = wk;
   }
   const zeilen = [...karte.values()].sort((a, b) => (a[0] < b[0] ? -1 : 1)), teile = teilen(zeilen);
   const b = db.batch(), ts = Timestamp.fromMillis(jetzt);
   teile.forEach((z, i) => b.set(R.doc("spieler-" + i), { stand: ts, teil: i, teile: teile.length, anzahl: zeilen.length, daten: JSON.stringify({ f: FELDER, z }) }));
   alt.filter(d => +d.id.slice(8) >= teile.length).forEach(d => b.delete(d.ref));
-  b.set(jobRef, { stand: jetzt, ...(voll ? { voll: jetzt } : {}) }, { merge: true });
+  b.set(jobRef, { stand: jetzt, ...(voll ? { voll: jetzt } : {}), ...(awNeu ? { albumWoche: { wk, b: awB } } : {}) }, { merge: true });
   await b.commit();
   return { art: voll ? "voll" : "Änderungen", spieler: zeilen.length, dokumente: teile.length, gelesen, bytes: teile.map(z => Buffer.byteLength(JSON.stringify(z))) };
 }

@@ -40,9 +40,17 @@ if (!configured) {
     };
 
     // 9.85 Sammelalbum: Anzahl der Glanz-Karten (eigene kleine Sammlung – die Regel für „spieler“ ist an ihrer Rechengrenze)
-    LB.albumSetzen = async (pid, gl) => {
+    /* 10.2: zusätzlich st = Album-Stand (66 Ziffern 0–3) für Album-Rangliste und Schaufenster.
+       Lehnen die Regeln st noch ab (alte Regeln), wird nur gl gespeichert und "alt" zurückgegeben. */
+    LB.albumSetzen = async (pid, gl, st) => {
       await LB.signIn();
-      await fs.setDoc(ref("album", pid), { gl: Math.max(0, Math.min(66, gl | 0)), updated: fs.serverTimestamp() });
+      const d = { gl: Math.max(0, Math.min(66, gl | 0)), updated: fs.serverTimestamp() };
+      if (typeof st === "string" && /^[0-3]{66}$/.test(st)) {
+        try { await fs.setDoc(ref("album", pid), Object.assign({ st }, d)); return "neu"; }
+        catch (e) { if (!/permission/i.test(String(e && (e.code || e.message)))) throw e; }
+        await fs.setDoc(ref("album", pid), d); return "alt";
+      }
+      await fs.setDoc(ref("album", pid), d); return "alt";
     };
 
     // Dieses Gerät einem bestehenden Profil zuordnen (per Kopplungscode oder Zusammenführung)
@@ -391,7 +399,7 @@ if (!configured) {
           if (kind === "bibWoche") rows = (await fs.getDocs(fs.query(bibliothek, fs.where("wk", "==", week), fs.limit(200)))).docs.map(bibZeile);
           else { /* aus der gemeinsamen Spielerliste (eine Abfrage für alle Ranglisten) – wie die Datenbank-Sortierung: nur Einträge mit dem Feld */
             const f = FELD[kind] || "xp", alle = await LB.alleSpieler();
-            rows = kind === "woche" ? alle.filter(r => r.week === week) : alle.filter(r => r[f] !== undefined).sort((a, b) => (b[f] || 0) - (a[f] || 0)).slice(0, 100);
+            rows = kind === "woche" ? alle.filter(r => r.week === week) : kind === "album" || kind === "albumWoche" ? alle.filter(r => r.st || r.gl) /* 10.2: sortiert die App */ : alle.filter(r => r[f] !== undefined).sort((a, b) => (b[f] || 0) - (a[f] || 0)).slice(0, 100);
           }
           if (kind === "bibWoche") zsMerken(k, rows); geben(rows);
         } catch (e) { if (!weg && onErr) onErr(e); }
