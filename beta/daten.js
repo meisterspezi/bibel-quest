@@ -1,4 +1,4 @@
-const APP_VERSION = "10.9";
+const APP_VERSION = "10.10";
 /* 9.60 Beta-Kanal: Die App liegt zweimal online – Live (…/bibel-quest/) und Beta (…/bibel-quest/beta/). Beide nutzen denselben Spielstand
    und dieselbe Datenbank. BETA ist wahr, wenn diese Kopie aus dem Ordner beta/ läuft; VERSION_TEXT steht in Feedback und Meldungen. */
 const BETA = location.pathname.includes("/beta/");
@@ -219,6 +219,9 @@ const RAHMEN = [
   { id: "saeule", name: "Wolken- und Feuersäule", price: -1, need: "lv40", bezug: "Der HERR zog vor ihnen her, bei Tag in einer Wolkensäule und bei Nacht in einer Feuersäule – vierzig Jahre lang durch die Wüste (2. Mose 13,21)." },
   { id: "feuergold", name: "Im Feuer erprobt", price: -1, need: "ruestGold", bezug: "Damit die Echtheit eures Glaubens, die viel kostbarer ist als das vergängliche Gold, das durchs Feuer erprobt wird, sich erweist (1. Petrus 1,7)." },
   { id: "jerusalem", name: "Neues Jerusalem", price: -1, need: "lv30", bezug: "Die Mauern der heiligen Stadt ruhen auf zwölf Edelsteinen, ihre zwölf Tore sind zwölf Perlen und die Straße ist reines Gold (Offenbarung 21,19-21)." },
+  /* 10.10: Sammelalbum – alle 66 Bücher mindestens in Bronze bzw. Silber */
+  { id: "alb-wort-b", name: "Das ganze Wort (Bronze)", price: -1, need: "alb-wort-b", bezug: "Alle 66 Bücher gefunden – das ganze Wort ist in deinem Album: Das Wort Gottes ist lebendig und wirksam (Hebräer 4,12)." },
+  { id: "alb-wort-s", name: "Das ganze Wort (Silber)", price: -1, need: "alb-wort-s", bezug: "Alle 66 Bücher in Silber: Die Worte des HERRN sind reine Worte, wie Silber, im Schmelztiegel geläutert (Psalm 12,7)." },
   /* 10.5: Sammelalbum – alle 66 Bücher in Gold */
   { id: "alb-wort", name: "Das ganze Wort", price: -1, need: "alb-wort", bezug: "66 Bücher, ein Wort: Dein Wort ist meines Fußes Leuchte und ein Licht auf meinem Weg (Psalm 119,105)." }
 ];
