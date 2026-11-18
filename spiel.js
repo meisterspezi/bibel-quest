@@ -1620,7 +1620,7 @@ function tabbarSetzen(name) {
   const aktiv = name in TAB_VON ? TAB_VON[name] : name;
   document.body.dataset.tab = name === "name" ? "" : (aktiv || "frei");
   if (!nav.dataset.fertig) {
-    nav.innerHTML = TABS.map(([k, t, i]) => `<button data-tab="${k}" aria-label="${t}"><span class="tb-ic">${i === "arena" ? DUELL_LOGO : svg(i)}</span><span>${t}</span>${k === "duelle" ? `<span class="tb-du" id="tbDu" hidden></span>` : k === "bib" ? `<span class="tb-du" id="tbBib" hidden></span><span class="tb-funk" id="tbEd" hidden aria-hidden="true"><i class="f1">✦</i><i class="f2">✦</i></span><span class="tb-neu" id="tbEdNeu" hidden>NEU</span>` : ""}</button>`).join("");
+    nav.innerHTML = TABS.map(([k, t, i]) => `<button data-tab="${k}" aria-label="${t}"><span class="tb-ic">${i === "arena" ? DUELL_LOGO : svg(i)}</span><span>${t}</span>${k === "duelle" ? `<span class="tb-du" id="tbDu" hidden></span>` : k === "bib" ? `<span class="tb-du" id="tbBib" hidden></span><span class="tb-funk" id="tbEd" hidden aria-hidden="true"><i class="f1">❄</i><i class="f2">❄</i></span><span class="tb-neu" id="tbEdNeu" hidden>NEU</span>` : ""}</button>`).join("");
     nav.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { SFX.tap(); go(b.dataset.tab); });
     nav.dataset.fertig = "1";
   }
