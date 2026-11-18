@@ -3403,6 +3403,32 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .sm-medaille svg{width:100%;height:100%}
 @media (prefers-reduced-motion:no-preference){.sm-jar:not(.medaille-weg) .sm-medaille{animation:smTrSiegel 1.8s ease-in-out infinite}}
 .sm-jar.medaille-weg .sm-medaille{transform:translateY(-70px) scale(1.6) rotate(20deg);opacity:0}
+/* 10.16: Preise Platz 1–3 (Gold-, Silber-, Bronzekrug) */
+.bw-marke{padding:3px 5px 2px}.bw-drei{display:flex;align-items:flex-end}.bw-drei .sm-kr-ic{width:15px!important;height:15px!important;margin:0 -2px}.bw-drei .k-gold{width:20px!important;height:20px!important;filter:drop-shadow(0 0 4px #ffd27a)}
+.bw-band.gold{color:#fff6dc;background:linear-gradient(90deg,#7a5a14,#3a2a0a);box-shadow:inset 0 0 0 1px #f2c14ecc,0 0 12px #f2c14e55}.bw-band.gold .sm-kr-ic{filter:drop-shadow(0 0 3px #ffd27a)}
+.bw-kl{display:inline-flex;margin-left:auto;margin-right:6px}.bw-kl .sm-kr-ic{width:20px;height:20px}.bw-kl.k-silber .sm-kr-ic{filter:drop-shadow(0 0 4px #cfe6ff)}.bw-kl.k-bronze .sm-kr-ic{filter:drop-shadow(0 0 4px #f0a65c)}
+.bw-preis.drei{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;background:radial-gradient(circle at 50% 40%,#f2c14e2a,transparent 60%),linear-gradient(160deg,#2c3654,#1b2146);box-shadow:inset 0 0 0 1px #f2c14e88,0 0 18px #f2c14e22}
+.bw-preis-kopf{font:800 .66rem var(--body);letter-spacing:.14em;text-transform:uppercase;color:#ffe08a}
+.bw-podest{display:grid;grid-template-columns:1fr 1.25fr 1fr;align-items:end;gap:6px;width:100%}
+.bw-pk{display:flex;flex-direction:column;align-items:center;gap:2px}
+.bw-pk .bw-preis-krug{width:52px;height:66px}.bw-pk.p1 .bw-preis-krug{width:72px;height:90px}
+.bw-pk .bw-preis-krug svg{filter:drop-shadow(0 5px 6px #000a)!important}
+.bw-pk.p1 .bw-preis-krug svg{filter:drop-shadow(0 5px 6px #000a) drop-shadow(0 0 12px #ffd27aaa)!important}.bw-pk.p2 .bw-preis-krug svg{filter:drop-shadow(0 5px 6px #000a) drop-shadow(0 0 8px #dcebff99)!important}
+.bw-pl{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font:800 .75rem var(--display);color:#1b2a55;box-shadow:inset 0 2px 0 #ffffff77}
+.bw-pk.p1 .bw-pl{background:linear-gradient(135deg,#fff3b8,#f2c14e 45%,#8a5a12)}.bw-pk.p2 .bw-pl{background:linear-gradient(135deg,#fff,#cfd6e4 40%,#7d879f)}.bw-pk.p3 .bw-pl{background:linear-gradient(135deg,#ffd7a8,#d88a3e 40%,#7a4416)}
+.bw-pk b{font:800 .78rem var(--display);color:#ffe9a8}.bw-pk.p2 b{color:#eef6ff}.bw-pk.p3 b{color:#f2b37c}
+.bw-preis.drei>small{font-size:.7rem;color:var(--muted)}
+.bwp-med{display:grid;place-items:center;width:58px;height:58px;border-radius:50%;font:800 1.8rem var(--display);color:#1b2a55;box-shadow:inset 0 3px 0 #ffffff88,0 4px 10px #000a}
+.bwp.p2 .bwp-med{background:linear-gradient(135deg,#fff,#cfd6e4 40%,#7d879f);box-shadow:inset 0 3px 0 #ffffff88,0 0 18px #dcebffaa}
+.bwp.p3 .bwp-med{background:linear-gradient(135deg,#ffd7a8,#d88a3e 40%,#7a4416);box-shadow:inset 0 3px 0 #ffffff88,0 0 18px #f0a65caa}
+.bwp.p1 .bwp-halo{background:radial-gradient(circle,#fff3b877,#f2c14e33 45%,transparent 70%)}.bwp.p1 .bwp-krug svg{filter:drop-shadow(0 14px 14px #000a) drop-shadow(0 0 26px #ffd27acc)}
+.bwp.p3 .bwp-halo{background:radial-gradient(circle,#ffcf9e66,#d6874a22 45%,transparent 70%)}.bwp.p3 .bwp-krug svg{filter:drop-shadow(0 14px 14px #000a) drop-shadow(0 0 20px #f0a65caa)}
+.smt-krug.geschenk.g-gold{border-color:#f2c14e;background:#f2c14e1f;color:#ffe9a8;box-shadow:0 0 14px #f2c14e66}.smt-krug.geschenk.g-gold svg{filter:drop-shadow(0 0 6px #ffd27a)}
+.smt-krug.geschenk.g-bronze{border-color:#d6874a;background:#d6874a1f;color:#f7cfa4;box-shadow:0 0 14px #d6874a66}.smt-krug.geschenk.g-bronze svg{filter:drop-shadow(0 0 6px #f0a65c)}
+.bq4-woche.mit-preis{gap:6px;padding-right:8px}
+.bq4-woche.mit-preis .bw-marke{padding:2px 3px 1px}.bw-drei .sm-kr-ic{width:12px!important;height:12px!important;margin:0 -2px}.bw-drei .k-gold{width:17px!important;height:17px!important}
+.bq4-woche.mit-preis b{letter-spacing:.03em}
+.gk-k .bw-kl{position:absolute;right:8px;bottom:8px;margin:0;z-index:2}.gk-k .bw-kl .sm-kr-ic{width:22px;height:22px}
 </style>
 </head>
 <body>
