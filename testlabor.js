@@ -43,7 +43,7 @@ if (typeof BETA !== "undefined" && BETA) addEventListener("DOMContentLoaded", ()
       <section class="tl-box"><h2>Sammelalbum (Beta)</h2>
         <p class="tl-ist">${smGefunden()} / 66 gefunden · ${smGlanz()} in Gold · <b>${smGold()} Manna</b> · Krüge heute ${smHeuteKruege()}/${SM_KRUG_TAG} · Geschenke ${smGeschenke()}</p>
         <div class="tl-reihe">${knopf("m10", "+10 Manna")}${knopf("m50", "+50 Manna")}${knopf("m0", "Manna auf 0")}</div>
-        <div class="tl-reihe">${knopf("tag", "Krüge heute auf 0")}${knopf("geschenk", "+1 Geschenk-Krug")}${knopf("treue", "Nächster Krug: sicher Gold")}${knopf("bwpreis", "Preisübergabe Biblionär zeigen", 1)}</div>
+        <div class="tl-reihe">${knopf("tag", "Krüge heute auf 0")}${knopf("geschenk", "+1 Silberkrug (Geschenk)")}${knopf("treue", "Nächster Krug: sicher Gold")}${knopf("bwpreis", "Preisübergabe Biblionär zeigen", 1)}</div>
         <div class="tl-reihe">${knopf("beutel", "Tauschbeutel füllen")}${knopf("beutel0", "Tauschbeutel leeren")}</div>
         <p class="tl-ist" style="margin-top:6px">Album-Stand setzen:</p>
         <div class="tl-reihe">${knopf("a:leer", "Leer", 1)}${knopf("a:anfang", "Anfang", 1)}${knopf("a:mitte", "Mitte", 1)}${knopf("a:fastsilber", "Fast alles Silber", 1)}${knopf("a:fastgold", "1 fehlt bis Gold", 1)}${knopf("a:gold", "Alles Gold", 1)}</div>
