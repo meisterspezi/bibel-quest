@@ -3656,7 +3656,6 @@ VIEWS.rank = (tab) => {
     <nav class="kb-tabs rk-nav${rankKats().length > 6 ? " sieben" : ""}" aria-label="Ranglisten" style="grid-template-columns:repeat(${rankKats().length},minmax(0,1fr))">${rankKats().map(k => `<button data-kat="${k.id}" aria-pressed="${k.id === kat.id}" aria-selected="${k.id === kat.id}">${katSvg(k.icon)}<span>${k.name}</span></button>`).join("")}</nav>
     <div class="card rk-liste">
       <div class="rk-kopf ${istBibTab(rankTab) ? "rk-bib" : ""}"><div><b>${esc(titel)}</b><span class="small muted" id="rcount">${rankTab === "woche" || rankTab === "bibWoche" || rankTab === "albumWoche" ? weekKey().split("-W")[1] + ". Kalenderwoche" : istBibTab(rankTab) ? "Gemeinde" : ""}</span></div>${varianten ? `<div class="rk-var" role="group" aria-label="Variante">${varianten}</div>` : ""}</div>
-      ${istBibTab(rankTab) ? `<div id="bwBox">${bibInfoLeiste()}</div>` : ""}
       <div id="rbody"><p class="muted" style="margin:0">Lade Rangliste …</p></div>
     </div>
     <div class="du-bar" id="rme"></div>
@@ -3694,10 +3693,10 @@ VIEWS.rank = (tab) => {
       const istAlb = rankTab === "album" || rankTab === "albumWoche";
       const ext = r => (istAlb ? albumBalken(r) : rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)) + (istAlb ? "" : glanzHtml(r));
       const person = (r, sz) => `<button class="gk-p ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}">${avatarLv(r, sz)}<b>${esc(r.name)}</b>${ext(r)}</button>`;
-      const gold = `<div class="gk-gold"><span class="pod-krone">${svg("crown")}</span>
+      const gold = `<div class="gk-gold${g1.length === 1 ? " einzel" : ""}"><span class="pod-krone">${svg("crown")}</span>
         <div class="gk-t">${voll ? vollText : `Platz 1 · ${pkt(wert1)} ${esc(unit)}`}${g1.length > 1 ? `<small>${g1.length} Spieler teilen sich Platz 1</small>` : voll ? `<small>${wert1} ${esc(unit)}</small>` : ""}</div>
         <div class="gk-leute">${g1.map(r => person(r, g1.length > 4 ? 44 : 50)).join("")}</div></div>`;
-      const klein = (n, g) => g.length ? `<div class="gk-k gk-k${n} gk-licht"><div class="gk-h"><span class="gk-med">${n}</span><span>${pkt(rankWert(g[0]))} ${esc(unit)}</span></div>
+      const klein = (n, g) => g.length ? `<div class="gk-k gk-k${n} gk-licht${g.length === 1 ? " einzel" : ""}"><div class="gk-h"><span class="gk-med">${n}</span><span>${pkt(rankWert(g[0]))} ${esc(unit)}</span></div>
         <div class="gk-stapel">${g.slice(0, 5).map(r => `<button data-pid="${esc(r.id)}" class="${r.id === me ? "me" : ""}">${avatarLv(r, 36)}</button>`).join("")}${g.length > 5 ? `<span class="gk-mehr">+${g.length - 5}</span>` : ""}</div>
         <div class="gk-wer">${g.slice(0, 3).map(r => `<div class="${r.id === me ? "me" : ""}"><b>${esc(r.name)}</b>${ext(r)}</div>`).join("")}${g.length > 3 ? `<div class="small muted">+${g.length - 3} weitere</div>` : ""}</div></div>` : "";
       /* 10.7: Album-Rangliste mit eigenem Podest (Stufen-Leiste, geteilte Plätze laufen durch), ohne Titel unter dem Namen */
@@ -3708,7 +3707,10 @@ VIEWS.rank = (tab) => {
         ? `<button class="rrow ap-row ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}"><div class="rk">${k && arr[k - 1][1] === p ? "" : p}</div>${avatarLv(r, 38)}<div class="who"><span class="ap-nz"><b>${esc(r.name)}${r.id === me ? '<span class="you">DU</span>' : ""}</b>${albWo ? "" : `<small>${albumAnzahl(r)}/66</small>`}</span>${albumBalken(r, albWo)}</div><div class="val">${pkt(rankWert(r))}</div></button>`
         : `<button class="rrow ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}"><div class="rk">${k && arr[k - 1][1] === p ? "" : p}</div>${avatarLv(r, 38)}<div class="who"><b>${esc(r.name)}${glanzHtml(r)}${r.id === me ? '<span class="you">DU</span>' : ""}</b><span>${esc(rangVon(r))}</span>${rankTab === "bewaehrt" ? siegelReihe(r) : ruestungHtml(r.armor)}</div><div class="val">${pkt(rankWert(r))}</div></button>`).join("");
       if ($("rcount")) $("rcount").textContent = (rankTab === "woche" || rankTab === "bibWoche" || rankTab === "albumWoche" ? wk.split("-W")[1] + ". KW · " : istBibTab(rankTab) ? "Gemeinde · " : "") + rows.length + " Spieler";
-      body.innerHTML = `${pod}${rest ? `<div class="rlist">${rest}</div>` : ""}`;
+      /* 10.8: Leiste der Wochenrunde/des Rekords unter dem Podest – so steht das Podest in allen Ranglisten an derselben Stelle */
+      const bw = istBibTab(rankTab) ? bibInfoLeiste() : "";
+      body.innerHTML = `${pod}${bw ? `<div id="bwBox" class="rk-bw">${bw}</div>` : ""}${rest ? `<div class="rlist">${rest}</div>` : ""}`;
+      if (rankTab === "bibWoche") bwVerdrahten();
       if (istAlb) albumRotieren(body); else if (typeof albumRotieren === "function") clearInterval(albRotTimer);
       body.querySelectorAll("[data-pid]").forEach(b => b.onclick = () => { SFX.tap(); const r = rows.find(x => x.id === b.dataset.pid);
         /* 10.2: kein Lesevorgang beim Antippen – die Werte stehen in der Sammel-Rangliste (zwischengespeichert).
@@ -5000,9 +5002,8 @@ function bibInfoLeiste() {
   const online = !!(S.lbName && !S.offlineOnly), n = bibWocheTage();
   const leiste = (ic, titel, unter, rechts) => `<div class="bi-leiste">${svg(ic)}<span class="bi-tx"><b>${titel}</b><small>${unter}</small></span>${rechts}</div>`;
   const wert = w => `<b class="bi-wert">${w}</b>`;
-  if (rankTab === "bibSpiele") return leiste("play", "Deine Spiele", "Solo, Wochenrunde und Duelle", wert(pkt(S.bibSpiele || 0)));
-  if (rankTab === "bibRekord") { const st = BIB_LEITER.filter(p => p <= (S.bibRekord || 0)).length;
-    return leiste("trophy", "Dein Rekord", st ? `Frage ${st} von 15 geschafft` : "Noch kein Spiel", wert(pkt(S.bibRekord || 0))); }
+  if (rankTab === "bibSpiele") return ""; /* 10.8: „Deine Spiele“ entfernt */
+  if (rankTab === "bibRekord") return ""; /* 10.8: „Dein Rekord“ entfernt (Michaels Wahl) */
   const v = bibVorwocheListe && bibVorwocheListe.wk === bibVorwoche() ? bibVorwocheListe.rows : null;
   const sieger = v && v.length ? v.filter(r => r.p === v[0].p) : [];
   const vor = sieger.length ? `Letzte Woche: ${sieger.slice(0, 2).map(r => esc(r.name)).join(", ")}${sieger.length > 2 ? " u. a." : ""} · ${pkt(sieger[0].p)}` : "";
