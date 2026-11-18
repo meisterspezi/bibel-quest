@@ -3273,6 +3273,64 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 /* 10.10: Voraussetzung im Laden nie abschneiden – darf umbrechen */
 .kb-buehne{height:auto;min-height:198px}.kb-info{height:auto}.kb-info b,.kb-text{display:block;-webkit-line-clamp:none;overflow:visible}
 .kb-status.zu{white-space:normal;text-align:left;line-height:1.25;border-radius:12px;max-width:100%;box-sizing:border-box;align-items:flex-start}.kb-status.zu svg{flex:none;margin-top:1px}
+/* 10.12: Preis „Biblionär der Woche“ – Gratiskrug */
+.bq4-woche.mit-preis{grid-template-columns:36px minmax(0,1fr) auto auto;gap:8px}
+.bw-marke{position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 6px 2px;border-radius:9px;background:radial-gradient(circle at 50% 35%,#7be04a44,transparent 70%),#1f3a2a;box-shadow:inset 0 0 0 1px #7be04a99,0 0 10px #7be04a44}
+.bw-marke .sm-kr-ic{width:22px;height:22px;filter:hue-rotate(65deg) saturate(1.3) drop-shadow(0 0 4px #7be04a)}
+.bw-marke small{font:900 .5rem var(--body)!important;letter-spacing:.1em;text-transform:uppercase;color:#c9f5b0!important}
+@media (prefers-reduced-motion:no-preference){.bw-marke .sm-kr-ic{animation:bwWipp 2.4s ease-in-out infinite}}
+@keyframes bwWipp{0%,100%{transform:rotate(0)}45%{transform:rotate(-8deg)}55%{transform:rotate(7deg)}}
+.bw-band{position:absolute;top:10px;right:10px;z-index:2;display:inline-flex;align-items:center;gap:4px;padding:3px 9px 3px 5px;border-radius:999px;font:800 .66rem var(--body);color:#eaffdc;background:linear-gradient(90deg,#2f6b3a,#1f3a2a);box-shadow:inset 0 0 0 1px #7be04aaa,0 0 12px #7be04a44}
+.bw-band .sm-kr-ic{width:18px;height:18px;filter:hue-rotate(65deg) saturate(1.3) drop-shadow(0 0 3px #7be04a)}
+.bw-preis{display:grid;grid-template-columns:88px minmax(0,1fr);align-items:center;gap:12px;margin:4px 0 12px;padding:10px 12px;border-radius:16px;background:radial-gradient(circle at 18% 50%,#7be04a33,transparent 60%),linear-gradient(160deg,#243a32,#1b2146);box-shadow:inset 0 0 0 1px #f2c14e88,0 0 18px #7be04a22}
+.bw-preis-krug{position:relative;width:80px;height:100px}
+.bw-preis-krug svg{width:100%;height:100%;overflow:visible;filter:hue-rotate(65deg) saturate(1.3) drop-shadow(0 6px 8px #000a) drop-shadow(0 0 12px #7be04a88)}
+.bw-preis-tx{display:flex;flex-direction:column;gap:2px;text-align:left}
+.bw-preis-tx span{font:800 .66rem var(--body);letter-spacing:.14em;text-transform:uppercase;color:#9fe58a}
+.bw-preis-tx b{font:800 1.2rem var(--display);color:#ffe9a8;letter-spacing:.03em}
+.bw-preis-tx small{font-size:.76rem;color:var(--muted)}
+.bw-st{position:absolute;width:10px;height:10px;background:#fff;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);opacity:0;pointer-events:none}
+.bw-preis-krug .s1{left:4px;top:18px}.bw-preis-krug .s2{right:2px;top:6px}.bw-preis-krug .s3{right:10px;bottom:22px}
+@media (prefers-reduced-motion:no-preference){.bw-st{animation:bwFunk 2.2s ease-in-out infinite}.bw-st.s2{animation-delay:.7s}.bw-st.s3{animation-delay:1.4s}.bw-st.s4{animation-delay:.35s}.bw-st.s5{animation-delay:1.05s}.bw-st.s6{animation-delay:1.75s}}
+@keyframes bwFunk{0%,100%{opacity:0;transform:scale(.3) rotate(0)}50%{opacity:1;transform:scale(1.15) rotate(45deg)}}
+/* Übergabe */
+.bwp{position:fixed;inset:0;z-index:9500;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at 50% 42%,#3a3270 0%,#141a3c 55%,#070a1c 100%);animation:bwpEin .35s ease both}
+.bwp.weg{opacity:0;transition:opacity .35s}
+@keyframes bwpEin{from{opacity:0}to{opacity:1}}
+.bwp-strahlen{position:absolute;left:50%;top:46%;width:900px;height:900px;margin:-450px 0 0 -450px;border-radius:50%;background:repeating-conic-gradient(from 0deg,#fff3b022 0deg 7deg,transparent 7deg 20deg);-webkit-mask:radial-gradient(closest-side,#000 25%,transparent);mask:radial-gradient(closest-side,#000 25%,transparent);animation:gkStrahlen 30s linear infinite}
+.bwp-in{position:relative;width:min(360px,92vw);display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px}
+.bwp-krone svg{width:64px;height:64px;filter:drop-shadow(0 0 14px #ffe9a0)}
+.bwp-t{font:800 1.5rem var(--display);letter-spacing:.08em;text-transform:uppercase;background:linear-gradient(180deg,#fff7d6,#f2c14e 60%,#b07a1c);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 2px 0 #0008)}
+.bwp-sub{font:700 .85rem var(--body);color:#f6e7b8}
+.bwp-buehne{position:relative;width:220px;height:230px;margin:4px 0 2px}
+.bwp-halo{position:absolute;left:50%;top:48%;width:230px;height:230px;margin:-115px 0 0 -115px;border-radius:50%;background:radial-gradient(circle,#b8ff9a66,#7be04a22 45%,transparent 70%)}
+.bwp-krug{position:absolute;left:50%;top:14px;width:156px;height:196px;margin-left:-78px}
+.bwp-krug svg{width:100%;height:100%;overflow:visible;filter:hue-rotate(65deg) saturate(1.3) drop-shadow(0 14px 14px #000a) drop-shadow(0 0 22px #7be04aaa)}
+.bwp-krug .smj-glut{opacity:1}
+.bwp-buehne .bw-st{width:14px;height:14px}
+.bwp-buehne .s1{left:14px;top:40px}.bwp-buehne .s2{right:18px;top:22px}.bwp-buehne .s3{right:6px;top:120px}.bwp-buehne .s4{left:4px;top:140px}.bwp-buehne .s5{left:60px;top:0}.bwp-buehne .s6{right:58px;bottom:30px}
+.bwp-band{position:absolute;left:50%;bottom:-2px;transform:translateX(-50%);filter:drop-shadow(0 4px 6px #0009)}
+.bwp-band span{display:block;padding:6px 22px;font:800 .9rem var(--display);letter-spacing:.14em;text-transform:uppercase;color:#fff6dc;background:linear-gradient(180deg,#d8323f,#9a1825);clip-path:polygon(0 0,100% 0,94% 50%,100% 100%,0 100%,6% 50%);box-shadow:inset 0 0 0 2px #f2c14e}
+.bwp-tx{display:flex;flex-direction:column;gap:4px;margin-top:4px}
+.bwp-tx b{font:800 1.15rem var(--display);color:#ffe9a8}.bwp-tx span{font-size:.85rem;color:#d8dcf0;line-height:1.4}
+.bwp-kn{display:flex;flex-direction:column;gap:8px;width:100%;margin-top:10px}
+.bwp-kn .sm-kr-ic{width:20px;height:20px;vertical-align:-4px}
+@media (prefers-reduced-motion:no-preference){
+  .bwp:not(.ruhig) .bwp-krone{animation:bwpKrone .8s cubic-bezier(.3,1.6,.5,1) .15s both}
+  .bwp:not(.ruhig) .bwp-t,.bwp:not(.ruhig) .bwp-sub{animation:bwpAuf .5s ease .45s both}
+  .bwp:not(.ruhig) .bwp-krug{animation:bwpKrug 1.1s cubic-bezier(.2,1.3,.4,1) .7s both,bwpSchweb 3s ease-in-out 2s infinite}
+  .bwp:not(.ruhig) .bwp-halo{animation:bwpHalo 2.4s ease-in-out 1.2s infinite both}
+  .bwp:not(.ruhig) .bwp-band{animation:bwpBand .5s cubic-bezier(.3,1.6,.5,1) 1.7s both}
+  .bwp:not(.ruhig) .bwp-tx{animation:bwpAuf .5s ease 2s both}
+  .bwp:not(.ruhig) .bwp-kn{animation:bwpAuf .5s ease 2.3s both}
+}
+@keyframes bwpKrone{from{opacity:0;transform:translateY(-60px) scale(.4) rotate(-20deg)}to{opacity:1;transform:none}}
+@keyframes bwpAuf{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes bwpKrug{0%{opacity:0;transform:translateY(160px) scale(.3) rotate(-14deg)}60%{opacity:1;transform:translateY(-14px) scale(1.1) rotate(4deg)}100%{transform:none}}
+@keyframes bwpSchweb{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes bwpHalo{0%,100%{opacity:.55;transform:scale(.92)}50%{opacity:1;transform:scale(1.08)}}
+@keyframes bwpBand{from{opacity:0;transform:translateX(-50%) scale(.3)}to{opacity:1;transform:translateX(-50%) scale(1)}}
+.sm-selten.geschenk::before{content:"Geschenk: doppelte Chance";grid-column:1/-1;text-align:center;font:800 .62rem var(--body);letter-spacing:.1em;text-transform:uppercase;color:#9fe58a;margin-bottom:4px}
 </style>
 </head>
 <body>
