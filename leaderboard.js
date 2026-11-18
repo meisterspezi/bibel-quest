@@ -54,12 +54,15 @@ if (!configured) {
     };
     /* 10.2: alle Alben (vom Sammel-Job) für das Schaufenster – 1 Lesevorgang, 12 Std. auf dem Gerät gemerkt, nur auf Abruf */
     const ALB_KEY = "bq-albumliste", ALB_TTL = 12 * 36e5;
-    /* 10.17: frisch = true lädt neu, wenn die gemerkte Liste älter als 30 Min. ist (z. B. Spieler mit Album-Punkten fehlt darin) */
+    /* 10.17: Neu geladen wird, sobald die Rangliste eine neuere Albumliste meldet (bq-albumstand > gemerkter Stand s) –
+       so passen Punkte und Karten zusammen, ohne Lesezugriff, wenn sich nichts geändert hat.
+       frisch = true (Spieler mit Punkten fehlt in der Liste) lädt außerdem neu, wenn die gemerkte Liste älter als 30 Min. ist. */
     LB.albumListe = async (frisch) => {
-      try { const c = JSON.parse(localStorage.getItem(ALB_KEY) || "null"); if (c && c.d && Date.now() - c.t < (frisch ? 30 * 6e4 : ALB_TTL)) return c.d; } catch (e) {}
-      const d = await fs.getDoc(ref("albumliste", "alle")); let m = {};
-      try { m = d.exists() ? JSON.parse(d.data().daten || "{}") : {}; } catch (e) { m = {}; }
-      try { localStorage.setItem(ALB_KEY, JSON.stringify({ t: Date.now(), d: m })); } catch (e) {}
+      try { const c = JSON.parse(localStorage.getItem(ALB_KEY) || "null"), neuSt = +localStorage.getItem("bq-albumstand") || 0;
+        if (c && c.d && Date.now() - c.t < (frisch ? 30 * 6e4 : ALB_TTL) && !(neuSt && (+c.s || 0) < neuSt)) return c.d; } catch (e) {}
+      const d = await fs.getDoc(ref("albumliste", "alle")); let m = {}, st = 0;
+      try { m = d.exists() ? JSON.parse(d.data().daten || "{}") : {}; st = d.exists() ? zeitMs(d.data().stand) : 0; } catch (e) { m = {}; }
+      try { localStorage.setItem(ALB_KEY, JSON.stringify({ t: Date.now(), s: st, d: m })); } catch (e) {}
       return m;
     };
 
@@ -178,6 +181,8 @@ if (!configured) {
       sammelAltAlbum = null;
       const teile = (await fs.getDocs(fs.collection(db, "rangliste"))).docs.filter(d => d.id.startsWith("spieler-")).map(d => d.data());
       if (!teile.length || teile.length < (teile[0].teile | 0)) return null;
+      /* 10.17: Wann wurde die Albumliste zuletzt geändert? (vom Job in jedes Teil geschrieben) – gemerkt auch für zwischengespeicherte Listen */
+      const alSt = Math.max(0, ...teile.map(t => +t.alStand || 0)); if (alSt) try { localStorage.setItem("bq-albumstand", String(alSt)); } catch (e) {}
       const alter = Math.max(...teile.map(t => Date.now() - zeitMs(t.stand)));
       if (alter > SAMMEL_ALT) {
         if (alter <= SAMMEL_ALBUM_ALT) try { sammelAltAlbum = new Map();

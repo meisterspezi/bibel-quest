@@ -125,9 +125,11 @@ export async function sammeln(db, opt = {}) {
     if (!(id in awS)) { awS[id] = ab; awNeu = true; }  // ältere Wochen-Basis ohne Stufen: ab jetzt gezählt
     z[iAw] = awB[id]; z[iAwk] = wk; z[iAwb] = awS[id];
   }
+  // 10.17: Stand der Albumliste in jedes Ranglisten-Teil (ms) – die App lädt ihre gemerkte Albumliste nur neu, wenn dieser Wert neuer ist
+  const alStand = skNeu ? jetzt : (ms(alDoc.exists ? alDoc.data().stand : null) || jetzt);
   const zeilen = [...karte.values()].sort((a, b) => (a[0] < b[0] ? -1 : 1)), teile = teilen(zeilen);
   const b = db.batch(), ts = Timestamp.fromMillis(jetzt);
-  teile.forEach((z, i) => b.set(R.doc("spieler-" + i), { stand: ts, teil: i, teile: teile.length, anzahl: zeilen.length, daten: JSON.stringify({ f: FELDER, z }) }));
+  teile.forEach((z, i) => b.set(R.doc("spieler-" + i), { stand: ts, teil: i, teile: teile.length, anzahl: zeilen.length, alStand, daten: JSON.stringify({ f: FELDER, z }) }));
   alt.filter(d => +d.id.slice(8) >= teile.length).forEach(d => b.delete(d.ref));
   if (skNeu) b.set(ALref, { stand: ts, anzahl: Object.keys(skMap).length, daten: JSON.stringify(skMap) });
   b.set(jobRef, { stand: jetzt, ...(voll ? { voll: jetzt } : {}), ...(awNeu ? { albumWoche: { wk, b: awB, s: awS } } : {}) }, { merge: true });
