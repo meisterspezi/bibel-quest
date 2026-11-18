@@ -1379,7 +1379,7 @@ async function truheNachholen() {
 }
 function truheGestern(truhenTag) {
   addXp(AUFGABE_BONUS_XP, null, "tagesbonus", { d: "Schatztruhe von gestern" }); xqBelohnung("gestern", AUFGABE_BONUS_XP, AUFGABE_BONUS, truhenTag); addTal(AUFGABE_BONUS);
-  toast(`${TAL_MUENZE}<div><b>Deine Schatztruhe von gestern</b><div class="small muted">wurde für dich geöffnet: +${AUFGABE_BONUS_XP} XP und +${AUFGABE_BONUS} Talente</div></div>`);
+  toast(`${TAL_MUENZE}<div><b>Deine Schatztruhe von gestern</b><div class="small muted">wurde für dich geöffnet: +${AUFGABE_BONUS_XP} XP, +${AUFGABE_BONUS} Talente${typeof smTruheManna === "function" && smTruheManna() ? ` und +${smTruheManna()} Manna` : ""}</div></div>`);
 }
 function aufgabenSicherstellen() {
   const t = today(); if (S.dq && S.dq.day === t && S.dq.items.every(it => AUFGABEN.some(a => a.id === it.id))) return;
@@ -1794,6 +1794,7 @@ function truheAnimation(von) {
       <div class="tf-titel">Schatz gefunden!</div>
       <div class="tf-karte tf-xp"><b>+${AUFGABE_BONUS_XP}</b><span>XP</span></div>
       <div class="tf-karte tf-tal">${TAL_MUENZE}<b>+${AUFGABE_BONUS}</b><span>Talente</span></div>
+      ${typeof smTruheKarte === "function" ? smTruheKarte() : ""}
       ${S.goalStreak > 1 ? `<div class="tf-serie">${svg("fire")} ${S.goalStreak} Tage in Folge alle Aufgaben!</div>` : ""}
       <button class="btn gold tf-ok">Super!</button>
     </div>`;
@@ -1847,10 +1848,10 @@ VIEWS.home = () => {
       <span class="tz-tx">${esc(a.text)}</span><span class="tz-z">${it.done ? SCHLUESSEL : `${pr}/${a.ziel}`}</span></button></li>`; }).join("");
   const bereit = !S.dq.bonus && (S.dq.geschafft || erledigt === 3);
   const truhe = S.dq.bonus
-    ? `<div class="tz-truhe erhalten" aria-label="Schatztruhe geöffnet: ${AUFGABE_BONUS_XP} XP und ${AUFGABE_BONUS} Talente erhalten">${TRUHE_AUF}<span class="tz-lohn">${svg("check")} Erhalten</span></div>`
+    ? `<div class="tz-truhe erhalten" aria-label="Schatztruhe geöffnet: ${AUFGABE_BONUS_XP} XP, ${AUFGABE_BONUS} Talente${typeof smTruheManna === "function" && smTruheManna() ? ` und ${smTruheManna()} Manna` : ""} erhalten">${TRUHE_AUF}<span class="tz-lohn">${svg("check")} Erhalten</span></div>`
     : bereit
     ? `<button class="tz-truhe bereit" id="truheBtn" aria-label="Schatztruhe mit drei Schlüsseln öffnen">${truheZu(3)}<span class="tz-lohn">Öffnen!</span></button>`
-    : `<div class="tz-truhe" aria-label="Schatztruhe – ${erledigt} von 3 Schlüsseln">${truheZu(erledigt)}<span class="tz-keys">${[0, 1, 2].map(i => `<i class="${i < erledigt ? "an" : ""}">${SCHLUESSEL}</i>`).join("")}</span><span class="tz-lohn">+${AUFGABE_BONUS_XP} XP · +${AUFGABE_BONUS}${TAL_MUENZE}</span></div>`;
+    : `<div class="tz-truhe" aria-label="Schatztruhe – ${erledigt} von 3 Schlüsseln">${truheZu(erledigt)}<span class="tz-keys">${[0, 1, 2].map(i => `<i class="${i < erledigt ? "an" : ""}">${SCHLUESSEL}</i>`).join("")}</span><span class="tz-lohn">+${AUFGABE_BONUS_XP} XP</span><span class="tz-lohn">+${AUFGABE_BONUS}${TAL_MUENZE}${typeof smTruheManna === "function" && smTruheManna() ? ` +${smTruheManna()}${SM_GOLD_SVG}` : ""}</span></div>`;
   const siegel = (() => { const f = Object.entries(KETTEN).map(([id, k]) => ({ id, k, t: S.meister[id] || [] })).filter(x => x.t.length && siegelRest(x.t) <= 5).sort((a, b) => siegelRest(a.t) - siegelRest(b.t))[0];
       return f ? `<button class="erinnerung" data-go="spielen">${siegelHtml(siegelStufe(f.t), siegelFrisch(f.t), true)}<span><b>${siegelFrisch(f.t) ? `Dein Siegel „${esc(f.k.name)}“ verblasst in ${siegelRest(f.t)} Tag(en)` : `Dein Siegel „${esc(f.k.name)}“ ist verblasst`}</b><span class="small muted">Jetzt die Kette wiederholen und auffrischen${siegelFrisch(f.t) ? "" : ` (+${AUFFRISCH_TAL} Talente)`}</span></span></button>` : ""; })();
   /* 9.15: Startseite – vier Kacheln 2×2, Logo ragt oben heraus */
@@ -1860,7 +1861,7 @@ VIEWS.home = () => {
      Antippen klappt die drei Aufgaben auf; ist die Truhe bereit, öffnet der Kopf direkt die Truhe. */
   const keysH = `<span class="ez-keys${S.dq.bonus ? " verbraucht" : ""}" aria-hidden="true">${[0, 1, 2].map(i => `<i class="${i < erledigt ? "an" : ""}">${SCHLUESSEL}</i>`).join("")}</span>`;
   const kopfTitel = S.dq.bonus ? "Geöffnet!" : bereit ? "Öffnen!" : `Heute ${erledigt}/3`;
-  const kopfSub = S.dq.bonus ? "Belohnung abgeholt" : bereit ? "Truhe antippen zum Öffnen" : "3 Aufgaben = 1 Schatztruhe";
+  const kopfSub = S.dq.bonus ? "Belohnung abgeholt" : bereit ? "Truhe antippen zum Öffnen" : typeof smTruheManna === "function" && smTruheManna() ? `3 Aufgaben = Truhe + ${smTruheManna()} Manna` : "3 Aufgaben = 1 Schatztruhe";
   const kopfInnen = `<span class="bk-med truhe${S.dq.bonus ? " offen" : ""}">${S.dq.bonus ? TRUHE_AUF + `<i class="truhe-haken">${svg("check")}</i>` : truheZu(bereit ? 3 : erledigt)}</span><div class="bk-t"><h1>${kopfTitel}</h1><span>${kopfSub}</span></div>${keysH}`;
   const kopf = bereit
     ? `<div class="bkopf start-aufg" style="--bk:#f2c14e"><button class="bk-kopf bk-aufg bereit" id="truheKopf" aria-label="Schatztruhe mit drei Schlüsseln öffnen">${kopfInnen}</button></div>`

@@ -111,6 +111,7 @@ function smInit() {
 }
 const smGold = () => { const m = smInit(); return Math.max(0, m.gv - m.ga); };
 const smBeutel = r => { const m = smInit(); return Math.max(0, (m.be[r] | 0) - (m.ba[r] | 0)); };
+const SM_TRUHE_MANNA = 4; /* 10.1: Manna je Schatztruhe – auch sichtbar auf Truhe und Tagesaufgaben */
 const SM_TRUHEN_GESCHENK = 7; /* jede 7. Schatztruhe (insgesamt) = ein Geschenk-Krug */
 const smGeschenkeGesamt = () => 1 + Math.floor(smInit().tz / SM_TRUHEN_GESCHENK); /* 1 = Startkrug für alle */
 const smGeschenke = () => { const m = smInit(); return Math.max(0, smGeschenkeGesamt() - m.kga); };
@@ -150,7 +151,7 @@ function sammelNachXp(n, quelle, info, vorher, nachher) {
     if (dauer >= 30000) { g = 1; if (info.fm && info.f / info.fm >= 0.8) g++; if (quelle === "bib" && /^Wochenrunde/.test(info.d || "")) g += 2; }
   }
   if (quelle === "tagesbonus" && /Schatztruhe/.test(info.d || "")) {
-    g += 4;
+    g += SM_TRUHE_MANNA;
     m.tz++;
     if (m.tz % SM_TRUHEN_GESCHENK === 0) smGeschenk(SM_TRUHEN_GESCHENK + " Schatztruhen gesammelt");
   }
@@ -161,6 +162,16 @@ function sammelNachXp(n, quelle, info, vorher, nachher) {
 function smHerausforderung(ziele) {
   if (!smFrei()) return;
   const x = smGoldGeben(1); if (x) setTimeout(() => toast(`Herausforderung gesendet: +${x} Manna`), 1200);
+}
+/* 10.1: Manna der Schatztruhe sichtbar machen (Truhen-Fenster, Tagesaufgaben, Truhe von gestern) */
+const smTruheManna = () => smFrei() ? SM_TRUHE_MANNA : 0;
+function smTruheKarte() {
+  if (!smFrei()) return "";
+  const nach = smInit().tz + 1, rest = SM_TRUHEN_GESCHENK - (nach % SM_TRUHEN_GESCHENK);
+  const zeile = nach % SM_TRUHEN_GESCHENK === 0
+    ? `<div class="tf-krug">${SM_KRUG_SVG} <b>+1 Geschenk-Krug!</b></div>`
+    : `<div class="tf-krug leise">${SM_KRUG_SVG} Noch ${rest} ${rest === 1 ? "Truhe" : "Truhen"} bis zum Geschenk-Krug</div>`;
+  return `<div class="tf-karte tf-tal tf-manna">${SM_GOLD_SVG}<b>+${SM_TRUHE_MANNA}</b><span>Manna</span></div>${zeile}`;
 }
 /* ---------- Kopfleiste: Manna neben den Talenten ---------- */
 const SM_GOLD_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="#fffbe8" stroke="#c9a24a" stroke-width=".9"><circle cx="8" cy="9" r="3.4"/><circle cx="15.8" cy="7.4" r="2.7"/><circle cx="12" cy="15.4" r="3.8"/><circle cx="18.4" cy="14.6" r="2.3"/><circle cx="6.2" cy="16.8" r="2"/></g><path d="M6.6 7.6a1.7 1.7 0 0 1 1.7-1M10.4 13.6a2.1 2.1 0 0 1 2-1.1" stroke="#fff" stroke-width="1" fill="none" stroke-linecap="round"/></svg>`;
