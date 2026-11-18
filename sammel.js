@@ -406,6 +406,13 @@ function smTauschWahl(i) {
 }
 
 /* ---------- Krug-Bühne (Auspack-Animation) ---------- */
+/* 10.13: Wachssiegel des Treue-Krugs (zwei Hälften, die beim Öffnen auseinanderfliegen) */
+const SM_SIEGEL_HTML = `<div class="sm-siegel" aria-hidden="true"><svg viewBox="0 0 64 74"><defs><radialGradient id="smSgW" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#ff6b6b"/><stop offset=".55" stop-color="#c21f2c"/><stop offset="1" stop-color="#6e0d15"/></radialGradient><linearGradient id="smSgG" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#fff3b8"/><stop offset=".5" stop-color="#f2c14e"/><stop offset="1" stop-color="#8a5a12"/></linearGradient></defs>
+  <g class="sg-band"><path d="M22 50l-8 22 9-5 5 7 4-22z" fill="#b01c28" stroke="#5a0a10" stroke-width="1"/><path d="M42 50l8 22-9-5-5 7-4-22z" fill="#b01c28" stroke="#5a0a10" stroke-width="1"/></g>
+  <g class="sg-l"><path d="M32 6C18 6 6 17 6 31s12 25 26 25l-4-8 6-8-7-8 6-9-4-7z" fill="url(#smSgW)" stroke="url(#smSgG)" stroke-width="2.4" stroke-linejoin="round"/></g>
+  <g class="sg-r"><path d="M32 6c14 0 26 11 26 25S46 56 32 56l-4-8 6-8-7-8 6-9-4-7z" fill="url(#smSgW)" stroke="url(#smSgG)" stroke-width="2.4" stroke-linejoin="round"/></g>
+  <g class="sg-z"><circle cx="32" cy="31" r="17" fill="none" stroke="url(#smSgG)" stroke-width="1.6" stroke-dasharray="2 2.2"/><text x="32" y="40" text-anchor="middle" font-size="25" font-weight="900" font-family="Georgia,serif" fill="url(#smSgG)" stroke="#5a0a10" stroke-width=".6">7</text></g>
+  <path d="M20 18c3-4 8-6 12-6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" opacity=".55"/></svg></div>`;
 const SM_KRUG_GROSS = `<svg viewBox="0 0 120 150" aria-hidden="true"><defs><radialGradient id="smGlut" cx="50%" cy="55%" r="55%"><stop offset="0" stop-color="#ffe9a0" stop-opacity=".55"/><stop offset="1" stop-color="#ffe9a0" stop-opacity="0"/></radialGradient><linearGradient id="smGk" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8a5a12"/><stop offset=".22" stop-color="#e9b94a"/><stop offset=".42" stop-color="#fff0b0"/><stop offset=".6" stop-color="#f2c14e"/><stop offset="1" stop-color="#7a4c0e"/></linearGradient><linearGradient id="smGd" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#9a6614"/><stop offset=".45" stop-color="#fff2bf"/><stop offset="1" stop-color="#8a5a12"/></linearGradient></defs>
   <ellipse class="smj-glut" cx="60" cy="88" rx="64" ry="72" fill="url(#smGlut)"/>
   <path d="M44 34h32c1 5 3 8 8 12 10 8 16 20 16 36 0 30-18 52-40 54-22-2-40-24-40-54 0-16 6-28 16-36 5-4 7-7 8-12z" fill="url(#smGk)" stroke="#5a3a08" stroke-width="2" stroke-linejoin="round"/>
@@ -436,12 +443,15 @@ function smStaub(cv) {
 function smKrugBuehne(offen, wieder) {
   if (document.querySelector(".sm-ov")) return;
   const rm = smRm(), zug = offen.z, ov = document.createElement("div");
-  ov.className = "sm-ov"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-label", "Krug öffnen");
-  ov.innerHTML = `<div class="sm-ov-in"><div class="sm-ov-kopf"><b>${offen.art === "geschenk" ? "Geschenk-Krug" : "Krug"}</b><span>${wieder ? "Dein Krug wartet noch" : offen.nr % SM_TREUE === 0 ? "Treue-Siegel: sicher Gold" : SM_KRUG_KARTEN + " Karten"}</span></div>
-    <div class="sm-buehne"><div class="sm-kegel"></div><div class="sm-beam"></div><div class="sm-sockel"></div>
-      <div class="sm-jar ${rm ? "" : zug.some(c => c.s >= 3) ? "stark" : "wackel"}${offen.art === "geschenk" ? " geschenk" : ""}" role="button" tabindex="0" aria-label="Krug antippen">${SM_KRUG_GROSS}</div>
-      <p class="sm-tipp">Tippe auf den ${offen.art === "geschenk" ? "Geschenk-Krug" : "goldenen Krug"}</p>
-      ${(pz => `<div class="sm-selten${offen.art === "geschenk" ? " geschenk" : ""}"><span style="--c:#d58b4f"><b>${pz[0]}</b>Bronze</span><span style="--c:#bfe3ff"><b>${pz[1]}</b>Silber</span><span style="--c:#f2c14e"><b>${pz[2]}</b>Gold</span></div>`)(smProz(offen.art === "geschenk" ? SM_W_GESCHENK : SM_W))}
+  /* 10.13: Treue-Krug (jeder 7., sicher Gold) – eigener Auftritt: Wachssiegel mit „7“, goldene Strahlen, kreisende Funken; beim Antippen bricht das Siegel */
+  const treue = offen.nr % SM_TREUE === 0;
+  ov.className = "sm-ov" + (treue ? " treue" : ""); ov.setAttribute("role", "dialog"); ov.setAttribute("aria-label", treue ? "Treue-Krug öffnen" : "Krug öffnen");
+  ov.innerHTML = `<div class="sm-ov-in"><div class="sm-ov-kopf"><b>${treue ? (offen.art === "geschenk" ? "Geschenk · Treue" : "Treue-Krug") : offen.art === "geschenk" ? "Geschenk-Krug" : "Krug"}</b><span>${wieder ? "Dein Krug wartet noch" : treue ? SM_TREUE + ". Krug · sicher Gold" : SM_KRUG_KARTEN + " Karten"}</span></div>
+    <div class="sm-buehne">${treue ? `<div class="sm-tr-strahlen"></div><div class="sm-tr-halo"></div><div class="sm-tr-blitz"></div><div class="sm-tr-welle"></div>` : ""}<div class="sm-kegel"></div><div class="sm-beam"></div><div class="sm-sockel"></div>
+      ${treue ? `<div class="sm-tr-orbit">${Array.from({ length: 10 }, (_, i) => `<i style="--i:${i}"></i>`).join("")}</div>` : ""}
+      <div class="sm-jar ${rm ? "" : treue ? "treue-schweb" : zug.some(c => c.s >= 3) ? "stark" : "wackel"}${offen.art === "geschenk" ? " geschenk" : ""}${treue ? " treue" : ""}" role="button" tabindex="0" aria-label="Krug antippen">${SM_KRUG_GROSS}${treue ? SM_SIEGEL_HTML : ""}</div>
+      <p class="sm-tipp">${treue ? "Tippe auf das Siegel – es bricht auf" : `Tippe auf den ${offen.art === "geschenk" ? "Geschenk-Krug" : "goldenen Krug"}`}</p>
+      ${(pz => `<div class="sm-selten${treue ? " treue" : offen.art === "geschenk" ? " geschenk" : ""}"><span style="--c:#d58b4f"><b>${pz[0]}</b>Bronze</span><span style="--c:#bfe3ff"><b>${pz[1]}</b>Silber</span><span style="--c:#f2c14e"><b>${pz[2]}</b>Gold</span></div>`)(smProz(offen.art === "geschenk" ? SM_W_GESCHENK : SM_W))}
       <div class="sm-fan"></div><p class="sm-zus"></p><canvas class="sm-fx"></canvas></div>
     <div class="sm-ov-kn"><button class="btn" data-k="alle" hidden>Alle aufdecken</button><button class="btn primary" data-k="fertig" hidden>Ins Album</button></div></div>`;
   document.body.appendChild(ov); document.body.classList.add("spiel-laeuft");
@@ -499,8 +509,16 @@ function smKrugBuehne(offen, wieder) {
   };
   jar.onclick = tippen; jar.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tippen(); } };
   function oeffnen() {
+    if (treue && !jar.dataset.gebrochen) { /* 10.13: zuerst bricht das Siegel – Goldblitz, Druckwelle, Goldfunken */
+      jar.dataset.gebrochen = "1"; jar.classList.remove("treue-schweb"); jar.classList.add("bricht");
+      const [sx, sy] = mitte(jar.querySelector(".sm-siegel") || jar);
+      smKlang("gold"); smVibr([50, 40, 120]);
+      setTimeout(() => { buehne.classList.add("tr-auf"); staub(sx, sy, 90, ["#fff3b8", "#ffe08a", "#f2c14e", "#ffffff"], 6); smKlang("silber"); }, 260);
+      setTimeout(() => staub(sx, sy - 40, 60, ["#fff3b8", "#f2c14e", "#d8323f"], 4), 620);
+      setTimeout(oeffnen, 900); return;
+    }
     smKlang("klopf"); smVibr(30); jar.classList.remove("wackel", "stark"); jar.classList.add("glueht");
-    const [mx, my] = mitte(jar), oben = my - 70, manna = ["#fffbee", "#fff3c4", "#ffffff", "#ffe9a0"];
+    const [mx, my] = mitte(jar), oben = my - 70, manna = treue ? ["#fff3b8", "#ffe08a", "#f2c14e", "#ffffff"] : ["#fffbee", "#fff3c4", "#ffffff", "#ffe9a0"];
     setTimeout(() => { jar.classList.add("auf"); smKlang("auf"); q(".sm-beam").classList.add("an"); staub(mx, oben, 70, manna, 4.5); }, 380);
     setTimeout(() => staub(mx, oben, 50, manna, 3.5), 780);
     setTimeout(() => staub(mx, oben, 40, manna, 3), 1150);
