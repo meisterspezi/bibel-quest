@@ -120,8 +120,14 @@ function smInit() {
   const m = S[SM_KEY];
   if (!Array.isArray(m.album) || m.album.length !== 66) m.album = Array(66).fill(0);
   if (m.album.some(x => x > SM_MAX)) m.album = m.album.map(x => Math.min(SM_MAX, x | 0)); /* 9.92: Glanz-Karten werden Gold */
-  ["gv", "ga", "gn", "kz", "kn", "kga", "kgg", "kgb", "tz", "ah", "tour", "gls"].forEach(k => { m[k] = Math.max(0, +m[k] || 0); });
+  ["gv", "ga", "gn", "kz", "kn", "kga", "kgg", "kgb", "kgx", "tz", "ah", "tour", "gls"].forEach(k => { m[k] = Math.max(0, +m[k] || 0); });
   ["gt", "kt"].forEach(k => { if (typeof m[k] !== "string") m[k] = ""; });
+  /* 10.18: Bis 10.4 zählte der Startkrug als einer der 3 Tageskrüge. Wer ihn so geöffnet hat, erkennt man daran, dass am letzten Krug-Tag
+     (bis 18.11.2026) mehr Tageskrüge gezählt sind als normale Krüge überhaupt geöffnet wurden → einmalig ein silberner Geschenk-Krug (kgx) */
+  if (!m.kgx && m.kga > 0 && m.kt && m.kt <= "2026-11-18" && m.kn > m.kz - m.kga - m.kgg - m.kgb) {
+    m.kgx = 1;
+    setTimeout(() => { try { toast(`${smKrugIc("silber")}<div><b>Geschenk-Krug als Ausgleich</b><div class="small muted">Dein Startkrug hat einen Tageskrug verbraucht – hier ist er zurück.</div></div>`); } catch (e) {} }, 2500);
+  }
   ["be", "ba"].forEach(k => { if (!m[k] || typeof m[k] !== "object") m[k] = { 1: 0, 2: 0, 3: 0 }; });
   if (!Array.isArray(m.lohn)) m.lohn = [];
   if (!m.rb || typeof m.rb !== "object") m.rb = {};
@@ -142,7 +148,7 @@ function smPreisZahl(platz) {
   return w.size;
 }
 const smBibKruege = () => smPreisZahl(1);
-const smGeschenkeGesamt = () => 1 + Math.floor(smInit().tz / SM_TRUHEN_GESCHENK) + smPreisZahl(2); /* Silberkrüge: 1 = Startkrug für alle */
+const smGeschenkeGesamt = () => 1 + smInit().kgx + Math.floor(smInit().tz / SM_TRUHEN_GESCHENK) + smPreisZahl(2); /* Silberkrüge: 1 = Startkrug für alle */
 function smGeschenkArten() { const m = smInit();
   return { ggold: Math.max(0, smPreisZahl(1) - m.kgg), geschenk: Math.max(0, smGeschenkeGesamt() - m.kga), gbronze: Math.max(0, smPreisZahl(3) - m.kgb) }; }
 const smGeschenke = () => { const a = smGeschenkArten(); return a.ggold + a.geschenk + a.gbronze; };
@@ -160,7 +166,7 @@ function smMischen(r) {
   if (!r || !r[SM_KEY] || typeof r[SM_KEY] !== "object") return;
   const m = smInit(), o = r[SM_KEY];
   if (Array.isArray(o.album)) o.album.forEach((s, i) => { if (i < 66) m.album[i] = Math.max(m.album[i] | 0, Math.min(SM_MAX, s | 0)); });
-  ["gv", "ga", "kz", "kga", "kgg", "kgb", "tz", "ah", "tour"].forEach(k => { m[k] = Math.max(m[k] | 0, +o[k] || 0); });
+  ["gv", "ga", "kz", "kga", "kgg", "kgb", "kgx", "tz", "ah", "tour"].forEach(k => { m[k] = Math.max(m[k] | 0, +o[k] || 0); });
   [["gt", "gn"], ["kt", "kn"]].forEach(([t, n]) => { if ((o[t] || "") > m[t]) { m[t] = o[t]; m[n] = +o[n] || 0; } else if (o[t] === m[t]) m[n] = Math.max(m[n], +o[n] || 0); });
   ["be", "ba"].forEach(k => { [1, 2].forEach(x => { m[k][x] = Math.max(m[k][x] | 0, ((o[k] || {})[x]) | 0); }); });
   m.lohn = [...new Set([...m.lohn, ...(Array.isArray(o.lohn) ? o.lohn : [])])];
