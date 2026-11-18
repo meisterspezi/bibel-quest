@@ -14,7 +14,7 @@ import { getFirestore, Timestamp, FieldPath } from "firebase-admin/firestore";
 export const TAG = 864e5;
 // Felder einer Zeile in fester Reihenfolge (spart Platz: die Namen stehen nur einmal im Dokument)
 export const FELDER = ["id", "name", "xp", "level", "bestChain", "chainAT", "chainNT", "chainRueck", "stars", "badges", "streak", "bestStreak", "blitz", "combo",
-  "week", "weekXp", "avatar", "frame", "title", "armor", "atP", "ntP", "t28", "sg", "bew", "duS", "duG", "bib", "gl", "u", "tb", "tm", "g", "st", "aw", "awk"];
+  "week", "weekXp", "avatar", "frame", "title", "armor", "atP", "ntP", "t28", "sg", "bew", "duS", "duG", "bib", "gl", "u", "tb", "tm", "g", "ab", "aw", "awk"];
 const ms = t => (t && typeof t.toMillis === "function" ? t.toMillis() : 0);
 // Spieltage (Liste von Tagesnummern) als Basis-Tag + Bitmaske der 31 Tage davor – die App macht daraus wieder die Liste
 export function tageMaske(tl) {
@@ -25,9 +25,16 @@ export function tageMaske(tl) {
 // Ein Spieler-Dokument → schlanke Zeile (ohne Geräteliste, Abzeichen-Liste … – die holt die App bei Bedarf einzeln)
 // 9.85 Glanz-Karten aus album/{pid} (0 = leer, spart Platz)
 const glanz = x => { const n = x && Number.isInteger(x.gl) ? Math.max(0, Math.min(66, x.gl)) : 0; return n || ""; };
-// 10.2 Album-Stand (66 Ziffern 0–3) aus album/{pid}, für Album-Rangliste und Schaufenster
-const albumSt = x => (x && typeof x.st === "string" && /^[0-3]{66}$/.test(x.st) ? x.st : "");
-const stPunkte = st => { let p = 0; for (const c of st || "") p += +c; return p; };
+// 10.2 Album-Stand aus album/{pid}: sk = 22 Zeichen (je Zeichen 3 Bücher à 2 Bit, Alphabet A–Z a–z 0–9 - _)
+const SK_ABC = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+export const albumSk = x => (x && typeof x.sk === "string" && /^[A-Za-z0-9_-]{22}$/.test(x.sk) ? x.sk : "");
+export function skZahlen(sk) {  // [Gold, Silber, Bronze]
+  const z = [0, 0, 0, 0]; for (const c of sk || "") { const v = SK_ABC.indexOf(c); z[(v >> 4) & 3]++; z[(v >> 2) & 3]++; z[v & 3]++; }
+  return [z[3], z[2], z[1]];
+}
+// Kurzform für die Haupt-Rangliste: "Gold.Silber.Bronze" (das ganze Album steht nur in albumliste/alle)
+export const abVon = sk => (sk ? skZahlen(sk).join(".") : "");
+const abPunkte = ab => { const [g, s0, b] = String(ab || "").split(".").map(Number); return (g || 0) * 3 + (s0 || 0) * 2 + (b || 0); };
 // Kalenderwoche wie in der App (weekKey, deutsche Zeit): "2026-W47"
 export function wocheVon(ms0) {
   const t = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(ms0));
@@ -69,38 +76,49 @@ export async function sammeln(db, opt = {}) {
     stand = stand ? Math.min(stand, ms(x.stand)) : ms(x.stand); }
   const voll = opt.voll || !lesbar || !stand || jetzt - (+job.voll || 0) > 23 * 36e5;
   let gelesen = 0;
+  const iG = FELDER.indexOf("g"), iGl = FELDER.indexOf("gl"), iAb = FELDER.indexOf("ab");
+  // 10.2 ganze Alben (für das Schaufenster) in EINEM Dokument albumliste/alle = { stand, daten: JSON {pid: sk} }
+  const ALref = db.collection("albumliste").doc("alle"), alDoc = await ALref.get(); gelesen++;
+  let skMap = {}, alOk = false; try { if (alDoc.exists) { skMap = JSON.parse(alDoc.data().daten || "{}"); alOk = true; } } catch (e) { skMap = {}; }
+  const skVor = JSON.stringify(skMap);
+  // Album-Dokumente: nur geänderte lesen – alles nur, wenn Rangliste oder Albumliste fehlt/unlesbar ist (spart den täglichen Voll-Lauf)
+  const albumAlle = !lesbar || !alOk || !stand || opt.albumVoll;
+  const seit = Timestamp.fromMillis((stand || jetzt) - 5 * 60000);  // 5 Minuten Überlappung
+  const alQ = albumAlle ? db.collection("album").get() : db.collection("album").where("updated", ">", seit).get();
   if (voll) {
-    karte.clear();
-    const [sp, mi, al] = await Promise.all([db.collection("spieler").get(), db.collection("mitglied").get(), db.collection("album").get()]);
-    gelesen = sp.size + mi.size + al.size;
-    const g = new Map(mi.docs.map(d => [d.id, String(d.data().g || "")])), gl = new Map(al.docs.map(d => [d.id, d.data()]));
-    sp.docs.forEach(d => { const x = d.data(), a = gl.get(d.id); if (!x.zu) karte.set(d.id, zeile(d.id, { ...x, gl: glanz(a), st: albumSt(a) }, g.get(d.id))); });
+    const alt0 = new Map(karte); karte.clear();
+    const [sp, mi, al] = await Promise.all([db.collection("spieler").get(), db.collection("mitglied").get(), alQ]);
+    gelesen += sp.size + mi.size + al.size;
+    const g = new Map(mi.docs.map(d => [d.id, String(d.data().g || "")]));
+    sp.docs.forEach(d => { const x = d.data(), vor = alt0.get(d.id); if (!x.zu) karte.set(d.id, zeile(d.id, { ...x, gl: vor && !albumAlle ? vor[iGl] : "", ab: vor && !albumAlle ? vor[iAb] : "" }, g.get(d.id))); });
+    if (albumAlle) skMap = {};
+    al.docs.forEach(d => { const a = d.data(), sk = albumSk(a), z = karte.get(d.id); if (sk) skMap[d.id] = sk; if (z) { z[iGl] = glanz(a); if (sk) z[iAb] = abVon(sk); } });
   } else {
-    const seit = Timestamp.fromMillis(stand - 5 * 60000);  // 5 Minuten Überlappung
-    const [sp, mi, al] = await Promise.all([db.collection("spieler").where("updated", ">", seit).get(), db.collection("mitglied").where("updated", ">", seit).get(),
-      db.collection("album").where("updated", ">", seit).get()]);
-    gelesen = sp.size + mi.size + al.size;
-    const iG = FELDER.indexOf("g"), iGl = FELDER.indexOf("gl"), iSt = FELDER.indexOf("st");
-    sp.docs.forEach(d => { const x = d.data(), vor = karte.get(d.id); if (x.zu) karte.delete(d.id); else karte.set(d.id, zeile(d.id, { ...x, gl: vor ? vor[iGl] : "", st: vor ? vor[iSt] : "" }, vor ? vor[iG] : "")); });
+    const [sp, mi, al] = await Promise.all([db.collection("spieler").where("updated", ">", seit).get(), db.collection("mitglied").where("updated", ">", seit).get(), alQ]);
+    gelesen += sp.size + mi.size + al.size;
+    sp.docs.forEach(d => { const x = d.data(), vor = karte.get(d.id); if (x.zu) karte.delete(d.id); else karte.set(d.id, zeile(d.id, { ...x, gl: vor ? vor[iGl] : "", ab: vor ? vor[iAb] : "" }, vor ? vor[iG] : "")); });
     mi.docs.forEach(d => { const z = karte.get(d.id); if (z) z[iG] = String(d.data().g || ""); });
-    al.docs.forEach(d => { const z = karte.get(d.id); if (z) { z[iGl] = glanz(d.data()); z[iSt] = albumSt(d.data()); } });
+    al.docs.forEach(d => { const a = d.data(), sk = albumSk(a), z = karte.get(d.id); if (sk) skMap[d.id] = sk; if (z) { z[iGl] = glanz(a); if (sk) z[iAb] = abVon(sk); } });
   }
+  for (const id of Object.keys(skMap)) if (!karte.has(id)) delete skMap[id];  // gelöschte/zusammengeführte Spieler
+  const skNeu = JSON.stringify(skMap) !== skVor || !alOk;
   // 10.2 Album-Woche: Punkte zu Wochenbeginn bzw. beim ersten Sehen in dieser Woche (Basis für „Album diese Woche“)
-  const wk = wocheVon(jetzt), iSt2 = FELDER.indexOf("st"), iAw = FELDER.indexOf("aw"), iAwk = FELDER.indexOf("awk");
+  const wk = wocheVon(jetzt), iAw = FELDER.indexOf("aw"), iAwk = FELDER.indexOf("awk");
   const aw0 = job.albumWoche && job.albumWoche.wk === wk ? job.albumWoche : { wk, b: {} }, awB = { ...aw0.b };
   let awNeu = aw0 !== job.albumWoche;
   for (const [id, z] of karte) {
-    const st = z[iSt2]; if (!st) { z[iAw] = ""; z[iAwk] = ""; continue; }
-    if (!(id in awB)) { awB[id] = stPunkte(st); awNeu = true; }
+    const ab = z[iAb]; if (!ab) { z[iAw] = ""; z[iAwk] = ""; continue; }
+    if (!(id in awB)) { awB[id] = abPunkte(ab); awNeu = true; }
     z[iAw] = awB[id]; z[iAwk] = wk;
   }
   const zeilen = [...karte.values()].sort((a, b) => (a[0] < b[0] ? -1 : 1)), teile = teilen(zeilen);
   const b = db.batch(), ts = Timestamp.fromMillis(jetzt);
   teile.forEach((z, i) => b.set(R.doc("spieler-" + i), { stand: ts, teil: i, teile: teile.length, anzahl: zeilen.length, daten: JSON.stringify({ f: FELDER, z }) }));
   alt.filter(d => +d.id.slice(8) >= teile.length).forEach(d => b.delete(d.ref));
+  if (skNeu) b.set(ALref, { stand: ts, anzahl: Object.keys(skMap).length, daten: JSON.stringify(skMap) });
   b.set(jobRef, { stand: jetzt, ...(voll ? { voll: jetzt } : {}), ...(awNeu ? { albumWoche: { wk, b: awB } } : {}) }, { merge: true });
   await b.commit();
-  return { art: voll ? "voll" : "Änderungen", spieler: zeilen.length, dokumente: teile.length, gelesen, bytes: teile.map(z => Buffer.byteLength(JSON.stringify(z))) };
+  return { art: (voll ? "voll" : "Änderungen") + (albumAlle ? " + alle Alben" : ""), alben: Object.keys(skMap).length, spieler: zeilen.length, dokumente: teile.length, gelesen, bytes: teile.map(z => Buffer.byteLength(JSON.stringify(z))) };
 }
 
 // Was aufgeräumt wird: [Sammlung, Feld, Grenze, Beschreibung]
