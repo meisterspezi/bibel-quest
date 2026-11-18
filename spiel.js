@@ -5003,8 +5003,7 @@ function bibInfoLeiste() {
   const leiste = (ic, titel, unter, rechts) => `<div class="bi-leiste">${svg(ic)}<span class="bi-tx"><b>${titel}</b><small>${unter}</small></span>${rechts}</div>`;
   const wert = w => `<b class="bi-wert">${w}</b>`;
   if (rankTab === "bibSpiele") return ""; /* 10.8: „Deine Spiele“ entfernt */
-  if (rankTab === "bibRekord") { const st = BIB_LEITER.filter(p => p <= (S.bibRekord || 0)).length;
-    return leiste("trophy", "Dein Rekord", st ? `Frage ${st} von 15 geschafft` : "Noch kein Spiel", wert(pkt(S.bibRekord || 0))); }
+  if (rankTab === "bibRekord") return ""; /* 10.8: „Dein Rekord“ entfernt (Michaels Wahl) */
   const v = bibVorwocheListe && bibVorwocheListe.wk === bibVorwoche() ? bibVorwocheListe.rows : null;
   const sieger = v && v.length ? v.filter(r => r.p === v[0].p) : [];
   const vor = sieger.length ? `Letzte Woche: ${sieger.slice(0, 2).map(r => esc(r.name)).join(", ")}${sieger.length > 2 ? " u. a." : ""} · ${pkt(sieger[0].p)}` : "";
