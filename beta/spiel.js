@@ -1561,7 +1561,7 @@ function go(name, arg) {
   current = name; window.scrollTo(0, 0); document.body.classList.remove("spiel-laeuft");
   try { weihDeko(false); } catch (e) {} /* 9.61: Schnee nur dort, wo die Ansicht ihn einschaltet */
   tabbarSetzen(name); (VIEWS[name] || VIEWS.home)(arg);
-  try { staemmeErstatten(); appBonusPruefen(); appHinweisZeigen(); nachPruefen(); edNeuPruefen(); edTabSetzen(); } catch (e) {} /* beim allerersten go() sind die Konstanten unten noch nicht bereit */
+  try { staemmeErstatten(); appBonusPruefen(); appHinweisZeigen(); nachPruefen(); edNeuPruefen(); edTabSetzen(); edKachelWinter(); } catch (e) {} /* beim allerersten go() sind die Konstanten unten noch nicht bereit */
   if (typeof duAufloesQ !== "undefined" && duAufloesQ.length) setTimeout(duAufloesVersuch, 400);
   /* 9.54: Duelle beim Öffnen der Duell-Seiten nachladen – neue Herausforderungen und Ergebnisse kommen auch ohne Neustart an */
   if (typeof duAuffrischen === "function") { if (["duelle", "bib", "zusammen"].includes(name)) duAuffrischen(DU_FRISCH_REITER); else if (name === "home") duAuffrischen(DU_FRISCH_START); }
@@ -1595,9 +1595,20 @@ function edMerken(feld, key) { try { const o = edMerkLesen(), l = (o[feld] || []
 function edStartSub() {
   const L = edLaufend(); if (!L) return null;
   const m = L.rest <= ED_REST_TAGE ? (L.rest <= 1 ? "Letzter Tag" : `Noch ${L.rest} Tage`) : L.seit < ED_NEU_TAGE ? "NEU" : "";
-  return { html: m ? `${ED_STERN}<em>${m}</em>${m === "NEU" ? ` · ${esc(L.E.name)}` : ""}` : `${esc(L.E.adj)}-Ausgabe`, attr: ` class="kt-ed${m ? " an" : ""}" style="--edc:${L.E.farbe}"` };
+  const w = L.id === "weihnachten"; /* 10.4: Winterlook – Schneeflocke statt Stern, Weihnachtsrot */
+  return { html: m ? `${w ? `<span class="kt-flocke" aria-hidden="true">❄</span>` : ED_STERN}<em>${m}</em>${m === "NEU" ? ` · ${esc(L.E.name)}` : ""}` : `${esc(L.E.adj)}-Ausgabe`, attr: ` class="kt-ed${m ? " an" : ""}${w ? " winter" : ""}" style="--edc:${L.E.farbe}"` };
 }
-function edTabSetzen() { const t = $("tbEd"); if (!t) return; const L = edLaufend(); t.hidden = !(L && !edGemerkt("b", L.key)); }
+/* 10.4: Startkachel Biblionär während der Weihnachts-Ausgabe – leises Schneegestöber, Schneeflocke am Logo, eisblauer Schein */
+function edKachelWinter() {
+  const k = document.querySelector('.kt[data-go="bib"]'); if (!k || k.classList.contains("kt-winter")) return;
+  const L = edLaufend(); if (!L || L.id !== "weihnachten") return;
+  k.classList.add("kt-winter");
+  let h = ""; for (let i = 0; i < 22; i++) { const d = 2 + (i % 3); h += `<i style="left:${(i * 37) % 100}%;top:${(i * 53) % 100}%;width:${d}px;height:${d}px;animation-duration:${7 + (i * 7) % 6}s;animation-delay:-${(i * 13) % 9}s"></i>`; }
+  k.insertAdjacentHTML("beforeend", `<span class="kt-schnee" aria-hidden="true">${h}</span>`);
+  const lg = k.querySelector(".kt-logo"); if (lg) lg.insertAdjacentHTML("beforeend", `<span class="kt-logo-flocke" aria-hidden="true">❄</span>`);
+}
+/* 10.4: Fußleiste – Funkeln die ganze Ausgabe über, NEU-Fähnchen in den ersten 14 Tagen (ED_NEU_TAGE), wie an der Album-Kapsel */
+function edTabSetzen() { const L = edLaufend(), t = $("tbEd"), n = $("tbEdNeu"); if (t) t.hidden = !L; if (n) n.hidden = !(L && L.seit < ED_NEU_TAGE); }
 function edNeuPruefen() {
   const L = edLaufend(); if (!L || !S.lbName || gesperrt || edGemerkt("f", L.key)) return;
   setTimeout(() => {
@@ -1619,7 +1630,7 @@ function tabbarSetzen(name) {
   const aktiv = name in TAB_VON ? TAB_VON[name] : name;
   document.body.dataset.tab = name === "name" ? "" : (aktiv || "frei");
   if (!nav.dataset.fertig) {
-    nav.innerHTML = TABS.map(([k, t, i]) => `<button data-tab="${k}" aria-label="${t}"><span class="tb-ic">${i === "arena" ? DUELL_LOGO : svg(i)}</span><span>${t}</span>${k === "duelle" ? `<span class="tb-du" id="tbDu" hidden></span>` : k === "bib" ? `<span class="tb-du" id="tbBib" hidden></span><span class="tb-ed" id="tbEd" hidden>${ED_STERN}</span>` : ""}</button>`).join("");
+    nav.innerHTML = TABS.map(([k, t, i]) => `<button data-tab="${k}" aria-label="${t}"><span class="tb-ic">${i === "arena" ? DUELL_LOGO : svg(i)}</span><span>${t}</span>${k === "duelle" ? `<span class="tb-du" id="tbDu" hidden></span>` : k === "bib" ? `<span class="tb-du" id="tbBib" hidden></span><span class="tb-funk" id="tbEd" hidden aria-hidden="true"><i class="f1">❄</i><i class="f2">❄</i></span><span class="tb-neu" id="tbEdNeu" hidden>NEU</span>` : ""}</button>`).join("");
     nav.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { SFX.tap(); go(b.dataset.tab); });
     nav.dataset.fertig = "1";
   }
