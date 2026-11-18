@@ -4654,7 +4654,7 @@ const BIB_LEITER = [50, 100, 200, 300, 500, 1000, 2000, 4000, 8000, 16000, 32000
 const BIB_SICHER = [4, 9];               // Sicherheitsstufen: Frage 5 (500) und Frage 10 (16.000)
 const BIB_SEK = 30;                      // Bedenkzeit je Frage
 const BIB_WOCHE_TAL = 5;                 // Teilnahme an der Wochenrunde
-const BIB_SIEG_TAL = 20;                 // Platz 1 der Vorwoche (mind. 3 Teilnehmer)
+const BIB_SIEG_MANNA = 10;               // 10.11: Platz 1 der Vorwoche (mind. 3 Teilnehmer) – Manna statt Talente
 const pkt = n => (+n || 0).toLocaleString("de-DE");
 /* Punkte, die nach „erreicht“ richtigen Antworten sicher sind */
 const bibGesichert = erreicht => { let s = 0; BIB_SICHER.forEach(i => { if (erreicht > i) s = BIB_LEITER[i]; }); return s; };
@@ -4977,7 +4977,7 @@ async function bibWocheAnfang() {
     countdown(() => bibStart(G), cdSolo("quiz", { modus: "Wochenrunde" }));
   } finally { bibWocheLaeuft = false; }
 }
-/* Sieger der Vorwoche: Platz 1 bekommt Krone (Abzeichen) und Talente – einmal pro Woche geprüft */
+/* Sieger der Vorwoche: Platz 1 bekommt Krone (Abzeichen) und 10 Manna (seit 10.11, vorher Talente) – einmal pro Woche geprüft */
 let bibVorwocheListe = null;
 async function bibVorwocheLaden() {
   const L = window.LB; if (!L || !L.ok || !L.bibWoche) return null;
@@ -4992,8 +4992,8 @@ async function bibSiegerPruefen() {
   S.bwGeprueft = vw;
   const top = v.rows.length ? v.rows[0].p : 0;
   if (v.rows.length >= 3 && top > 0 && v.rows.some(r => r.id === S.pid && r.p === top) && !(S.bwSiege || []).includes(vw)) {
-    S.bwSiege = [...(S.bwSiege || []), vw].slice(-60); S.tal += BIB_SIEG_TAL; renderHud();
-    setTimeout(() => { SFX.badge(); rain(90); toast(`${svg("crown", "#f2c14e")}<div><b>Biblionär der Woche!</b><div class="small muted">Platz 1 in der ${vw.split("-W")[1]}. KW mit ${pkt(top)} Punkten · +${BIB_SIEG_TAL} Talente</div></div>`); }, 800);
+    S.bwSiege = [...(S.bwSiege || []), vw].slice(-60); if (typeof smGoldGeben === "function") smGoldGeben(BIB_SIEG_MANNA); renderHud();
+    setTimeout(() => { SFX.badge(); rain(90); toast(`${svg("crown", "#f2c14e")}<div><b>Biblionär der Woche!</b><div class="small muted">Platz 1 in der ${vw.split("-W")[1]}. KW mit ${pkt(top)} Punkten · +${BIB_SIEG_MANNA} Manna</div></div>`); }, 800);
     checkBadges(); lbSync();
   }
   save();
