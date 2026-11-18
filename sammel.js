@@ -672,10 +672,77 @@ function albumWoche(r) {
   if (!r || r.awk !== weekKey() || r.aw === "" || r.aw == null || !(+r.aw >= 0)) return 0;
   return Math.max(0, albumPunkte(r) - (r.aw | 0));
 }
-function albumBalken(r) {
+function albumBalken(r, woche) {
+  if (woche) return albumWocheBalken(r);
   const z = albumZahlen(r); if (!z) return "";
   const [g, s, b] = z, w = n => (n / 66 * 100).toFixed(1) + "%";
   return `<span class="alb-bar" title="${g} Gold · ${s} Silber · ${b} Bronze"><i class="b3" style="width:${w(g)}"></i><i class="b2" style="width:${w(s)}"></i><i class="b1" style="width:${w(b)}"></i></span>`;
+}
+/* 10.7: „Album diese Woche“ – nur was in dieser Woche dazukam. Aus dem Stand zu Wochenbeginn (awb = "Gold.Silber.Bronze",
+   Sammel-Job) und dem jetzigen Stand: neu gefunden (Bronze), neu auf Silber, neu auf Gold. Summe = Wochenpunkte. */
+function albumWocheZahlen(r) { /* [neu Gold, neu Silber, neu gefunden] oder null */
+  const z = albumZahlen(r);
+  if (!z || !r || r.awk !== weekKey() || typeof r.awb !== "string" || !/^\d+\.\d+\.\d+$/.test(r.awb)) return null;
+  const [g0, s0, b0] = r.awb.split(".").map(Number), [g, s, b] = z;
+  return [Math.max(0, g - g0), Math.max(0, g + s - g0 - s0), Math.max(0, g + s + b - g0 - s0 - b0)];
+}
+let albWMax = 1; /* höchster Wochenwert der Liste – volle Leiste */
+function albumWocheBalken(r) {
+  const p = albumWoche(r); if (!p) return `<span class="alb-bar"></span>`;
+  const z = albumWocheZahlen(r), w = n => (n / Math.max(1, albWMax) * 100).toFixed(1) + "%";
+  if (!z) return `<span class="alb-bar" title="+${p} Punkte diese Woche"><i class="b0" style="width:${w(p)}"></i></span>`;
+  const [g, s, b] = z;
+  return `<span class="alb-bar" title="${albumWocheText(z)}"><i class="b3" style="width:${w(g)}"></i><i class="b2" style="width:${w(s)}"></i><i class="b1" style="width:${w(b)}"></i></span>`;
+}
+const albumWocheText = z => [z[2] && `${z[2]} neu`, z[1] && `${z[1]} auf Silber`, z[0] && `${z[0]} auf Gold`].filter(Boolean).join(" · ") || "noch nichts Neues";
+/* Zahlen als Farbpunkte (lang = mit Wörtern, fürs Podest Platz 1) */
+function albumPunkteHtml(r, woche, lang) {
+  const z = woche ? albumWocheZahlen(r) : albumZahlen(r);
+  if (!z) return woche && albumWoche(r) ? `<span class="ap-z"><span>+${albumWoche(r)} Punkte</span></span>` : "";
+  const nm = woche ? ["auf Gold", "auf Silber", "neu"] : ["Gold", "Silber", "Bronze"];
+  return `<span class="ap-z">${[2, 1, 0].map(i => `<span class="${z[i] ? "" : "aus"}"><i class="d${3 - i}"></i>${z[i]}${lang ? " " + nm[i] : ""}</span>`).join("")}</span>`;
+}
+const albumAnzahl = r => { const z = albumZahlen(r); return z ? z[0] + z[1] + z[2] : 0; };
+/* 10.7: Podest der Album-Rangliste. Platz 1 groß (bis 3 nebeneinander), Platz 2/3 als Karten; geteilte Plätze als
+   schmale Zeilen – mehr als 4 laufen langsam durch (albumRotieren). */
+function albumPodest(g1, g2, g3, wert, me, woche) {
+  const name = r => `${esc(r.name)}${r.id === me ? '<span class="you">DU</span>' : ""}`;
+  const zahl = r => woche ? `+${albumWoche(r)}` : `${albumAnzahl(r)}/66`;
+  const zeile = (r, gross) => `<button class="ap-zl ${gross ? "gross" : ""} ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}">${gross ? avatarLv(r, 34) : avatarHtml(r, 24)}<span class="ap-zt"><span class="ap-nz"><b>${name(r)}</b><small>${zahl(r)}</small></span>${albumBalken(r, woche)}</span></button>`;
+  const liste = (g, gross) => `<div class="ap-rot ${gross ? "gross" : ""} ${g.length > 4 ? "laeuft" : ""}" style="--n:${g.length}"><div class="ap-rot-in">${g.map(r => zeile(r, gross)).join("")}</div></div>`;
+  const mehr = g => g.length > 1 ? ` · ${g.length}×` : "";
+  let eins;
+  if (g1.length === 1) { const r = g1[0], z = albumZahlen(r), n = albumAnzahl(r);
+    eins = `<button class="ap-eins ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}">${avatarLv(r, 58)}<b class="ap-n1">${name(r)}</b>
+      <span class="ap-lz"><span>${woche ? "Diese Woche" : "Album"}</span><span>${woche ? `+${albumWoche(r)} Punkte` : `${n} / 66 · ${Math.round(n / 66 * 100)} %`}</span></span>
+      <span class="ap-gb">${albumBalken(r, woche)}</span>${albumPunkteHtml(r, woche, true)}</button>`; }
+  else if (g1.length <= 3) eins = `<div class="ap-neben">${g1.map(r => `<button class="ap-p ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}">${avatarLv(r, 44)}<b>${name(r)}</b><small>${zahl(r)}</small>${albumBalken(r, woche)}</button>`).join("")}</div>`;
+  else eins = liste(g1, true);
+  const gold = `<div class="gk-gold ap-gold"><span class="pod-krone">${svg("crown")}</span>
+    <div class="gk-t">Platz 1 · ${pkt(wert(g1[0]))} Punkte${g1.length > 1 ? `<small>${g1.length} Spieler teilen sich Platz 1</small>` : ""}</div>${eins}</div>`;
+  const klein = (n, g) => { if (!g.length) return "";
+    const kopf = `<div class="gk-h"><span class="gk-med">${n}</span><span>${pkt(wert(g[0]))} Punkte${mehr(g)}</span></div>`;
+    if (g.length > 1) return `<div class="gk-k gk-k${n} gk-licht ap-k">${kopf}${liste(g)}</div>`;
+    const r = g[0];
+    return `<div class="gk-k gk-k${n} gk-licht ap-k"><button class="ap-einzeln ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}">${kopf}${avatarLv(r, 42)}<b>${name(r)}</b>
+      <span class="ap-lz"><span>${woche ? "Woche" : "Album"}</span><span>${zahl(r)}</span></span>${albumBalken(r, woche)}${albumPunkteHtml(r, woche)}</button></div>`; };
+  return `<div class="gk ap">${gold}${g2.length ? `<div class="gk-zd">${klein(2, g2)}${klein(3, g3)}</div>` : ""}</div>`;
+}
+let albRotTimer = 0;
+function albumRotieren(box) {
+  clearInterval(albRotTimer); albRotTimer = 0;
+  const listen = [...box.querySelectorAll(".ap-rot.laeuft")]; if (!listen.length) return;
+  let ruhig = false; try { ruhig = matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+  albRotTimer = setInterval(() => {
+    if (!document.body.contains(box)) { clearInterval(albRotTimer); albRotTimer = 0; return; }
+    if (document.hidden) return;
+    listen.forEach(l => { const inn = l.firstElementChild, erst = inn && inn.firstElementChild; if (!erst || inn.dataset.lauf) return;
+      const h = erst.getBoundingClientRect().height + (parseFloat(getComputedStyle(erst).marginBottom) || 0);
+      const fertig = () => { inn.style.transition = "none"; inn.appendChild(erst); inn.style.transform = ""; delete inn.dataset.lauf; };
+      if (ruhig) { fertig(); return; }
+      inn.dataset.lauf = "1"; inn.style.transition = "transform .7s ease"; inn.style.transform = `translateY(${-h}px)`;
+      setTimeout(fertig, 750); });
+  }, 3200);
 }
 /* Schaufenster: Mini-Album mit 66 Plätzen. st = 66 Ziffern (eigenes Album vom Gerät, sonst aus der Albumliste) */
 function albumSchaufenster(r, istIch, st) {
