@@ -3214,7 +3214,7 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .smt-ziel,.smt-sack{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:52px;padding:6px 4px;border-radius:14px;background:#ffffff08;border:1px solid #ffffff18;color:#fff;cursor:pointer}
 .smt-ic{width:24px;height:24px}
 .smt-pk{display:flex;gap:2px}.smt-pk i{width:6px;height:6px;border-radius:50%;background:#ffffff22}.smt-pk i.an{background:#f2c14e;box-shadow:0 0 4px #f2c14e}
-.smt-ziel.gr .smt-pk i.an{background:#7be04a;box-shadow:0 0 4px #7be04a}
+.smt-ziel.gr .smt-pk i.an{background:#dcebff;box-shadow:0 0 4px #cfe6ff}
 .smt-sack{flex-direction:row;gap:4px}
 .smt-sack .sack{width:30px;height:30px;overflow:visible}
 .smt-sack b{font:900 .8rem var(--body);color:var(--c)}
@@ -3224,10 +3224,10 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .smt-info h2{display:flex;align-items:center;gap:8px;margin:0 0 6px}.smt-info h2 svg{width:26px;height:26px}.smt-info p{margin:6px 0}
 /* 10.5: Geschenk-Krug in Grün, zusätzlich zu den 3 Krügen am Tag */
 .smt-kruege.vier{grid-template-columns:repeat(4,minmax(0,1fr))}
-.smt-krug.geschenk{cursor:pointer;border-color:#7be04a;background:#7be04a1f;color:#c9ffb0;box-shadow:0 0 14px #7be04a66;font:800 .66rem var(--body)}
-.smt-krug.geschenk svg,.sm-jar.geschenk svg{filter:hue-rotate(65deg) saturate(1.3) drop-shadow(0 0 8px #7be04a)}
-@media (prefers-reduced-motion:no-preference){.smt-krug.geschenk{animation:smGeschPuls 1.8s ease-in-out infinite}@keyframes smGeschPuls{50%{box-shadow:0 0 22px #7be04aaa}}}
-.smt-gesch{margin:8px 0 0;text-align:center;font:800 .78rem var(--body);color:#c9ffb0}
+.smt-krug.geschenk{cursor:pointer;border-color:#cfe6ff;background:#cfe6ff1f;color:#eef6ff;box-shadow:0 0 14px #cfe6ff66;font:800 .66rem var(--body)}
+.smt-krug.geschenk svg{filter:drop-shadow(0 0 6px #cfe6ff)}
+@media (prefers-reduced-motion:no-preference){.smt-krug.geschenk{animation:smGeschPuls 1.8s ease-in-out infinite}@keyframes smGeschPuls{50%{box-shadow:0 0 22px #dcebffaa}}}
+.smt-gesch{margin:8px 0 0;text-align:center;font:800 .78rem var(--body);color:#dcebff}
 /* 10.7 Album-Rangliste: Podest mit Stufen-Leiste, geteilte Plätze als Zeilen (mehr als 4 laufen durch) */
 .alb-bar .b0{background:linear-gradient(90deg,#c8a46a,#f2dcaa)}
 .ap button{background:none;border:0;color:inherit;font:inherit;cursor:pointer;padding:0;text-align:inherit}
@@ -3276,15 +3276,15 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 /* 10.12: Preis „Biblionär der Woche“ – Gratiskrug */
 .bq4-woche.mit-preis{grid-template-columns:36px minmax(0,1fr) auto auto;gap:8px}
 .bw-marke{position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 6px 2px;border-radius:9px;background:radial-gradient(circle at 50% 35%,#7be04a44,transparent 70%),#1f3a2a;box-shadow:inset 0 0 0 1px #7be04a99,0 0 10px #7be04a44}
-.bw-marke .sm-kr-ic{width:22px;height:22px;filter:hue-rotate(65deg) saturate(1.3) drop-shadow(0 0 4px #7be04a)}
+.bw-marke .sm-kr-ic{width:22px;height:22px;filter:drop-shadow(0 0 4px #cfe6ff)}
 .bw-marke small{font:900 .5rem var(--body)!important;letter-spacing:.1em;text-transform:uppercase;color:#c9f5b0!important}
 @media (prefers-reduced-motion:no-preference){.bw-marke .sm-kr-ic{animation:bwWipp 2.4s ease-in-out infinite}}
 @keyframes bwWipp{0%,100%{transform:rotate(0)}45%{transform:rotate(-8deg)}55%{transform:rotate(7deg)}}
 .bw-band{position:absolute;top:10px;right:10px;z-index:2;display:inline-flex;align-items:center;gap:4px;padding:3px 9px 3px 5px;border-radius:999px;font:800 .66rem var(--body);color:#eaffdc;background:linear-gradient(90deg,#2f6b3a,#1f3a2a);box-shadow:inset 0 0 0 1px #7be04aaa,0 0 12px #7be04a44}
-.bw-band .sm-kr-ic{width:18px;height:18px;filter:hue-rotate(65deg) saturate(1.3) drop-shadow(0 0 3px #7be04a)}
+.bw-band .sm-kr-ic{width:18px;height:18px;filter:drop-shadow(0 0 3px #cfe6ff)}
 .bw-preis{display:grid;grid-template-columns:88px minmax(0,1fr);align-items:center;gap:12px;margin:4px 0 12px;padding:10px 12px;border-radius:16px;background:radial-gradient(circle at 18% 50%,#7be04a33,transparent 60%),linear-gradient(160deg,#243a32,#1b2146);box-shadow:inset 0 0 0 1px #f2c14e88,0 0 18px #7be04a22}
 .bw-preis-krug{position:relative;width:80px;height:100px}
-.bw-preis-krug svg{width:100%;height:100%;overflow:visible;filter:hue-rotate(65deg) saturate(1.3) drop-shadow(0 6px 8px #000a) drop-shadow(0 0 12px #7be04a88)}
+.bw-preis-krug svg{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 6px 8px #000a) drop-shadow(0 0 12px #cfe6ffaa)}
 .bw-preis-tx{display:flex;flex-direction:column;gap:2px;text-align:left}
 .bw-preis-tx span{font:800 .66rem var(--body);letter-spacing:.14em;text-transform:uppercase;color:#9fe58a}
 .bw-preis-tx b{font:800 1.2rem var(--display);color:#ffe9a8;letter-spacing:.03em}
@@ -3305,7 +3305,7 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .bwp-buehne{position:relative;width:220px;height:230px;margin:4px 0 2px}
 .bwp-halo{position:absolute;left:50%;top:48%;width:230px;height:230px;margin:-115px 0 0 -115px;border-radius:50%;background:radial-gradient(circle,#b8ff9a66,#7be04a22 45%,transparent 70%)}
 .bwp-krug{position:absolute;left:50%;top:14px;width:156px;height:196px;margin-left:-78px}
-.bwp-krug svg{width:100%;height:100%;overflow:visible;filter:hue-rotate(65deg) saturate(1.3) drop-shadow(0 14px 14px #000a) drop-shadow(0 0 22px #7be04aaa)}
+.bwp-krug svg{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 14px 14px #000a) drop-shadow(0 0 22px #dcebffcc)}
 .bwp-krug .smj-glut{opacity:1}
 .bwp-buehne .bw-st{width:14px;height:14px}
 .bwp-buehne .s1{left:14px;top:40px}.bwp-buehne .s2{right:18px;top:22px}.bwp-buehne .s3{right:6px;top:120px}.bwp-buehne .s4{left:4px;top:140px}.bwp-buehne .s5{left:60px;top:0}.bwp-buehne .s6{right:58px;bottom:30px}
@@ -3371,6 +3371,38 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 @keyframes smTrSiegel{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
 @keyframes smTrBlitz{0%{opacity:0}15%{opacity:.95}100%{opacity:0}}
 @keyframes smTrWelle{0%{opacity:1;transform:scale(.5)}100%{opacity:0;transform:scale(9)}}
+/* 10.14: Krug-Arten – Bronze (normal), Silber (Geschenk), Gold (Treue, jeder 7.) */
+.sm-jar.k-bronze svg{filter:drop-shadow(0 12px 14px #000a) drop-shadow(0 0 16px #f0a65c44)}
+.sm-jar.k-silber svg{filter:drop-shadow(0 12px 14px #000a) drop-shadow(0 0 22px #dcebffaa)}
+.sm-ov:has(.sm-jar.k-silber) .sm-buehne{background:radial-gradient(ellipse at 50% 38%,#3a4a6a 0,#1a2048 50%,#0a0d22 100%);box-shadow:inset 0 0 0 1px #cfe6ff88,inset 0 0 36px #cfe6ff22}
+.sm-ov:has(.sm-jar.k-silber) .sm-ov-kopf b{background:linear-gradient(180deg,#ffffff,#cfd8e6 60%,#7d8796);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sm-ov:has(.sm-jar.k-silber) .sm-kegel{background:linear-gradient(180deg,#eef6ff00,#eef6ff33 60%,#eef6ff00)}
+.sm-ov:has(.sm-jar.k-bronze) .sm-ov-kopf b{color:#e9a66a}
+.sm-selten.geschenk::before{content:"✦ 1 Silber sicher + doppelte Silber-Chance ✦";color:#eef6ff}
+.sm-selten.treue::before{content:"★ Gold sicher + doppelte Gold-Chance ★"}
+.sm-selten.treue.beide::before{content:"★ Doppelte Silber- und Gold-Chance ★"}
+.smt-krug.treue .sm-kr-ic{filter:drop-shadow(0 0 6px #ffd27a)}.smt-krug.treue small{color:#ffe08a}
+/* 10.14: Silberkrug – Mondlicht-Bühne mit Strahlen, Funken und Glanzstreifen */
+.sm-ov.silber .sm-buehne{background:radial-gradient(ellipse at 50% 36%,#4a5a80 0,#222a58 45%,#0b0e26 100%)!important;box-shadow:inset 0 0 0 1px #dcebffaa,inset 0 0 40px #cfe6ff33,0 0 30px #cfe6ff33!important}
+.sm-ov.silber .sm-tr-strahlen{background:repeating-conic-gradient(from 0deg,#eef6ff2e 0deg 6deg,transparent 6deg 18deg)}
+.sm-ov.silber .sm-tr-halo{background:radial-gradient(circle,#ffffff55,#cfe6ff33 40%,transparent 70%)}
+.sm-ov.silber .sm-tr-orbit i{background:#ffffff;filter:drop-shadow(0 0 4px #cfe6ff)}
+.sm-ov.silber .sm-tr-blitz{background:radial-gradient(circle at 50% 40%,#ffffff,#dcebffcc 30%,transparent 70%)}
+.sm-ov.silber .sm-tr-welle{border-color:#eef6ff;box-shadow:0 0 24px #cfe6ff}
+.sm-ov.silber .sm-ov-kopf span{color:#eef6ff;font-weight:800}
+.sm-ov.silber .sm-tipp{color:#eef6ff;font-weight:800}
+.sm-jar.k-silber svg{filter:drop-shadow(0 12px 14px #000a) drop-shadow(0 0 26px #e6f2ffcc)!important}
+.smj-shine{transform:skewX(-18deg) translateX(-40px);opacity:0}
+@media (prefers-reduced-motion:no-preference){.smj-shine{animation:smSiGlanz 3.4s ease-in-out infinite}}
+@keyframes smSiGlanz{0%{transform:skewX(-18deg) translateX(-40px);opacity:0}10%{opacity:1}45%{transform:skewX(-18deg) translateX(150px);opacity:1}55%,100%{transform:skewX(-18deg) translateX(150px);opacity:0}}
+.smj-shine{mix-blend-mode:screen}
+.smj-glint path{transform-box:fill-box;transform-origin:50% 50%;opacity:0;filter:drop-shadow(0 0 2px #bfe3ff)}
+@media (prefers-reduced-motion:no-preference){.smj-glint .g1{animation:smGlint 2.6s ease-in-out infinite}.smj-glint .g2{animation:smGlint 2.6s ease-in-out .9s infinite}.smj-glint .g3{animation:smGlint 2.6s ease-in-out 1.7s infinite}}
+@keyframes smGlint{0%,60%,100%{opacity:0;transform:scale(.2) rotate(0)}75%{opacity:1;transform:scale(1.3) rotate(45deg)}}
+.sm-medaille{position:absolute;left:50%;top:80px;width:50px;height:50px;margin-left:-25px;z-index:2;filter:drop-shadow(0 3px 4px #000a) drop-shadow(0 0 8px #9fd3ff);transition:transform .7s cubic-bezier(.2,.8,.2,1),opacity .6s}
+.sm-medaille svg{width:100%;height:100%}
+@media (prefers-reduced-motion:no-preference){.sm-jar:not(.medaille-weg) .sm-medaille{animation:smTrSiegel 1.8s ease-in-out infinite}}
+.sm-jar.medaille-weg .sm-medaille{transform:translateY(-70px) scale(1.6) rotate(20deg);opacity:0}
 </style>
 </head>
 <body>
