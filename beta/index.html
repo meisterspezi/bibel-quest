@@ -3297,7 +3297,7 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .bwp{position:fixed;inset:0;z-index:9500;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at 50% 42%,#3a3270 0%,#141a3c 55%,#070a1c 100%);animation:bwpEin .35s ease both}
 .bwp.weg{opacity:0;transition:opacity .35s}
 @keyframes bwpEin{from{opacity:0}to{opacity:1}}
-.bwp-strahlen{position:absolute;left:50%;top:46%;width:900px;height:900px;margin:-450px 0 0 -450px;border-radius:50%;background:repeating-conic-gradient(from 0deg,#fff3b022 0deg 7deg,transparent 7deg 20deg);-webkit-mask:radial-gradient(closest-side,#000 25%,transparent);mask:radial-gradient(closest-side,#000 25%,transparent);animation:gkStrahlen 30s linear infinite}
+.bwp-strahlen{position:absolute;left:50%;top:46%;width:900px;height:900px;margin:-450px 0 0 -450px;border-radius:50%;background:repeating-conic-gradient(from 0deg,#fff3b022 0deg 7deg,transparent 7deg 20deg);-webkit-mask:radial-gradient(closest-side,#000 25%,transparent);mask:radial-gradient(closest-side,#000 25%,transparent);animation:smTrDreh 30s linear infinite}
 .bwp-in{position:relative;width:min(360px,92vw);display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px}
 .bwp-krone svg{width:64px;height:64px;filter:drop-shadow(0 0 14px #ffe9a0)}
 .bwp-t{font:800 1.5rem var(--display);letter-spacing:.08em;text-transform:uppercase;background:linear-gradient(180deg,#fff7d6,#f2c14e 60%,#b07a1c);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 2px 0 #0008)}
@@ -3331,6 +3331,46 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 @keyframes bwpHalo{0%,100%{opacity:.55;transform:scale(.92)}50%{opacity:1;transform:scale(1.08)}}
 @keyframes bwpBand{from{opacity:0;transform:translateX(-50%) scale(.3)}to{opacity:1;transform:translateX(-50%) scale(1)}}
 .sm-selten.geschenk::before{content:"Geschenk: doppelte Chance";grid-column:1/-1;text-align:center;font:800 .62rem var(--body);letter-spacing:.1em;text-transform:uppercase;color:#9fe58a;margin-bottom:4px}
+/* 10.13: Treue-Krug – jeder 7. Krug, sicher Gold */
+.sm-ov.treue .sm-ov-kopf b{background:linear-gradient(180deg,#fff7d6,#f2c14e 60%,#b07a1c);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sm-ov.treue .sm-ov-kopf span{color:#ffe08a;font-weight:800}
+.sm-ov.treue .sm-buehne{background:radial-gradient(ellipse at 50% 36%,#5a4a1e 0,#2a2350 45%,#0c0e26 100%);box-shadow:inset 0 0 0 1px #f2c14eaa,inset 0 0 40px #f2c14e33,0 0 30px #f2c14e33}
+.sm-tr-strahlen{position:absolute;left:50%;top:calc(14% + 95px);width:620px;height:620px;margin:-310px 0 0 -310px;border-radius:50%;background:repeating-conic-gradient(from 0deg,#ffe08a30 0deg 6deg,transparent 6deg 18deg);-webkit-mask:radial-gradient(closest-side,#000 18%,transparent);mask:radial-gradient(closest-side,#000 18%,transparent);pointer-events:none}
+.sm-tr-halo{position:absolute;left:50%;top:calc(14% + 95px);width:260px;height:260px;margin:-130px 0 0 -130px;border-radius:50%;background:radial-gradient(circle,#fff3b866,#f2c14e33 40%,transparent 70%);pointer-events:none}
+.sm-tr-orbit{position:absolute;left:50%;top:calc(14% + 95px);width:0;height:0;z-index:4;pointer-events:none}
+.sm-tr-orbit i{position:absolute;left:-5px;top:-5px;width:10px;height:10px;background:#fff6d0;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);transform:rotate(calc(var(--i) * 36deg)) translateY(-118px);filter:drop-shadow(0 0 4px #ffe08a)}
+.sm-tr-blitz{position:absolute;inset:0;background:radial-gradient(circle at 50% 40%,#fffbe8,#ffe08acc 30%,transparent 70%);opacity:0;pointer-events:none;z-index:6}
+.sm-tr-welle{position:absolute;left:50%;top:calc(14% + 110px);width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;border:4px solid #ffe08a;opacity:0;pointer-events:none;z-index:5;box-shadow:0 0 24px #f2c14e}
+.sm-jar.treue svg{filter:drop-shadow(0 12px 14px #000a) drop-shadow(0 0 26px #ffd27aaa)}
+.sm-siegel{position:absolute;left:50%;top:78px;width:58px;height:67px;margin-left:-29px;z-index:2;filter:drop-shadow(0 4px 5px #000a)}
+.sm-siegel svg{width:100%;height:100%;overflow:visible}
+.sm-siegel g{transform-box:fill-box;transition:transform .6s cubic-bezier(.2,.8,.2,1),opacity .6s}
+.sm-jar.bricht .sg-l{transform:translate(-36px,-14px) rotate(-38deg);opacity:0}
+.sm-jar.bricht .sg-r{transform:translate(36px,-10px) rotate(34deg);opacity:0}
+.sm-jar.bricht .sg-z{transform:scale(1.8);opacity:0}
+.sm-jar.bricht .sg-band{transform:translateY(30px);opacity:0}
+.sm-selten.treue::before{content:"★ Treue-Siegel: 1 Gold-Karte garantiert ★";grid-column:1/-1;text-align:center;font:800 .64rem var(--body);letter-spacing:.08em;text-transform:uppercase;color:#ffe08a;margin-bottom:4px}
+.sm-ov.treue .sm-tipp{color:#ffe08a;font-weight:800}
+@media (prefers-reduced-motion:no-preference){
+  .sm-tr-strahlen{animation:smTrDreh 26s linear infinite}
+  .sm-tr-halo{animation:bwpHalo 2.4s ease-in-out infinite}
+  .sm-tr-orbit{animation:smTrDreh 9s linear infinite}
+  .sm-tr-orbit i{animation:smTrFunk 1.8s ease-in-out infinite;animation-delay:calc(var(--i) * -.18s)}
+  .sm-jar.treue-schweb{animation:smTrSchweb 2.6s ease-in-out infinite}
+  .sm-ov.treue .sm-ov-in{animation:smTrEin .7s cubic-bezier(.2,1.2,.4,1) both}
+  .sm-siegel{animation:smTrSiegel 1.6s ease-in-out infinite}
+  .sm-jar.bricht .sm-siegel{animation:none}
+  .sm-buehne.tr-auf .sm-tr-blitz{animation:smTrBlitz .9s ease-out}
+  .sm-buehne.tr-auf .sm-tr-welle{animation:smTrWelle 1s ease-out}
+  .sm-buehne.tr-auf .sm-tr-strahlen{animation:smTrDreh 6s linear infinite}
+}
+@keyframes smTrDreh{to{transform:rotate(360deg)}}
+@keyframes smTrFunk{0%,100%{opacity:.25}50%{opacity:1}}
+@keyframes smTrSchweb{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-8px)}}
+@keyframes smTrEin{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+@keyframes smTrSiegel{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+@keyframes smTrBlitz{0%{opacity:0}15%{opacity:.95}100%{opacity:0}}
+@keyframes smTrWelle{0%{opacity:1;transform:scale(.5)}100%{opacity:0;transform:scale(9)}}
 </style>
 </head>
 <body>
