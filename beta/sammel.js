@@ -782,5 +782,5 @@ async function rbTeilenSeite(D) {
     }, 1200);
   };
   const altP = VIEWS.profil;
-  if (altP) VIEWS.profil = function (a) { altP(a); const j = rbSichtbar(); if (!j && !smFrei()) return; const b = document.createElement("button"); b.className = "btn"; b.style.marginTop = "10px"; b.innerHTML = `${SM_ALBUM_SVG} ${j ? "Dein Bibeljahr " + j : "Sammelalbum"}`; b.onclick = () => { SFX.tap(); rbSeite = 0; go(j ? "rueckblick" : "album"); }; screen.appendChild(b); };
+  if (altP) VIEWS.profil = function (a) { altP(a); const j = rbSichtbar(); if (!j) return; /* 10.3: Album steht im Profil-Reiter „Album“ */ const b = document.createElement("button"); b.className = "btn"; b.style.marginTop = "10px"; b.innerHTML = `${SM_ALBUM_SVG} ${j ? "Dein Bibeljahr " + j : "Sammelalbum"}`; b.onclick = () => { SFX.tap(); rbSeite = 0; go(j ? "rueckblick" : "album"); }; screen.appendChild(b); };
 })();
