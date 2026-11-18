@@ -24,7 +24,7 @@ const bytes = t => new TextEncoder().encode(t).length;
 export const TAG = 864e5;
 // Felder einer Zeile in fester Reihenfolge (spart Platz: die Namen stehen nur einmal im Dokument)
 export const FELDER = ["id", "name", "xp", "level", "bestChain", "chainAT", "chainNT", "chainRueck", "stars", "badges", "streak", "bestStreak", "blitz", "combo",
-  "week", "weekXp", "avatar", "frame", "title", "armor", "atP", "ntP", "t28", "sg", "bew", "duS", "duG", "bib", "gl", "u", "tb", "tm", "g", "ab", "aw", "awk"];
+  "week", "weekXp", "avatar", "frame", "title", "armor", "atP", "ntP", "t28", "sg", "bew", "duS", "duG", "bib", "gl", "u", "tb", "tm", "g", "ab", "aw", "awk", "awb"];
 const ms = t => (t && typeof t.toMillis === "function" ? t.toMillis() : 0);
 // Spieltage (Liste von Tagesnummern) als Basis-Tag + Bitmaske der 31 Tage davor – die App macht daraus wieder die Liste
 export function tageMaske(tl) {
@@ -115,20 +115,22 @@ export async function sammeln(db, opt = {}) {
   for (const id of Object.keys(skMap)) if (!karte.has(id)) delete skMap[id];  // gelöschte/zusammengeführte Spieler
   const skNeu = JSON.stringify(skMap) !== skVor || !alOk;
   // 10.2 Album-Woche: Punkte zu Wochenbeginn bzw. beim ersten Sehen in dieser Woche (Basis für „Album diese Woche“)
-  const wk = wocheVon(jetzt), iAw = FELDER.indexOf("aw"), iAwk = FELDER.indexOf("awk");
-  const aw0 = job.albumWoche && job.albumWoche.wk === wk ? job.albumWoche : { wk, b: {} }, awB = { ...aw0.b };
+  // 10.7: zusätzlich der Stand je Stufe zu Wochenbeginn (awb = "Gold.Silber.Bronze") – für „neue Karten diese Woche“
+  const wk = wocheVon(jetzt), iAw = FELDER.indexOf("aw"), iAwk = FELDER.indexOf("awk"), iAwb = FELDER.indexOf("awb");
+  const aw0 = job.albumWoche && job.albumWoche.wk === wk ? job.albumWoche : { wk, b: {}, s: {} }, awB = { ...aw0.b }, awS = { ...(aw0.s || {}) };
   let awNeu = aw0 !== job.albumWoche;
   for (const [id, z] of karte) {
-    const ab = z[iAb]; if (!ab) { z[iAw] = ""; z[iAwk] = ""; continue; }
+    const ab = z[iAb]; if (!ab) { z[iAw] = ""; z[iAwk] = ""; z[iAwb] = ""; continue; }
     if (!(id in awB)) { awB[id] = abPunkte(ab); awNeu = true; }
-    z[iAw] = awB[id]; z[iAwk] = wk;
+    if (!(id in awS)) { awS[id] = ab; awNeu = true; }  // ältere Wochen-Basis ohne Stufen: ab jetzt gezählt
+    z[iAw] = awB[id]; z[iAwk] = wk; z[iAwb] = awS[id];
   }
   const zeilen = [...karte.values()].sort((a, b) => (a[0] < b[0] ? -1 : 1)), teile = teilen(zeilen);
   const b = db.batch(), ts = Timestamp.fromMillis(jetzt);
   teile.forEach((z, i) => b.set(R.doc("spieler-" + i), { stand: ts, teil: i, teile: teile.length, anzahl: zeilen.length, daten: JSON.stringify({ f: FELDER, z }) }));
   alt.filter(d => +d.id.slice(8) >= teile.length).forEach(d => b.delete(d.ref));
   if (skNeu) b.set(ALref, { stand: ts, anzahl: Object.keys(skMap).length, daten: JSON.stringify(skMap) });
-  b.set(jobRef, { stand: jetzt, ...(voll ? { voll: jetzt } : {}), ...(awNeu ? { albumWoche: { wk, b: awB } } : {}) }, { merge: true });
+  b.set(jobRef, { stand: jetzt, ...(voll ? { voll: jetzt } : {}), ...(awNeu ? { albumWoche: { wk, b: awB, s: awS } } : {}) }, { merge: true });
   await b.commit();
   return { art: (voll ? "voll" : "Änderungen") + (albumAlle ? " + alle Alben" : ""), alben: Object.keys(skMap).length, spieler: zeilen.length, dokumente: teile.length, gelesen, bytes: teile.map(z => bytes(JSON.stringify(z))) };
 }
