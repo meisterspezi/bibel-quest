@@ -1,4 +1,5 @@
 # Sammel-Rangliste und Aufräumen für Bibelbuch-Quest (siehe job/sammeln.mjs).
+# 10.6: Das Sammeln macht normalerweise der Cloudflare-Worker (worker/worker.mjs, alle 30 Min.); hier nur noch Ersatz + Aufräumen.
 # Braucht das Secret FIREBASE_SERVICE_ACCOUNT. Optional die Variable AUFRAEUMEN=ja (sonst wird beim Aufräumen nur gezählt).
 name: Sammel-Rangliste
 on:
@@ -38,6 +39,8 @@ jobs:
           AUFRAEUMEN: ${{ vars.AUFRAEUMEN }}
           VOLL: ${{ inputs.voll && 'ja' || '' }}
           AUFRAEUMEN_JETZT: ${{ inputs.aufraeumen_jetzt && 'ja' || '' }}
+          # 10.6: geplante Läufe sammeln nur als Ersatz (Worker länger als 45 Min. still), manueller Start sammelt immer
+          IMMER: ${{ github.event_name == 'workflow_dispatch' && 'ja' || '' }}
         run: node sammeln.mjs
       - name: Fehler melden (Slack #alerts-crashes)
         if: failure()

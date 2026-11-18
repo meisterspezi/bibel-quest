@@ -4,7 +4,7 @@ name: Slack-Brücke veröffentlichen
 on:
   push:
     branches: [main]
-    paths: ["worker/**", ".github/workflows/worker.yml"]
+    paths: ["worker/**", "job/sammeln.mjs", ".github/workflows/worker.yml"]
   workflow_dispatch:
 permissions:
   contents: read
@@ -18,6 +18,7 @@ jobs:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
       SLACK_SIGNING_SECRET: ${{ secrets.SLACK_SIGNING_SECRET }}
       FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      GH_DISPATCH_TOKEN: ${{ secrets.GH_DISPATCH_TOKEN }}
     steps:
       - name: Zugänge prüfen
         id: pruef
@@ -46,3 +47,5 @@ jobs:
           for n in SLACK_BOT_TOKEN SLACK_SIGNING_SECRET FIREBASE_SERVICE_ACCOUNT; do
             printf '%s' "${!n}" | npx --yes wrangler@4 secret put "$n"
           done
+          # 10.6 freiwillig: GitHub-Schlüssel, mit dem der Worker alle 30 Min. den Sammel-Lauf anstößt
+          if [ -n "$GH_DISPATCH_TOKEN" ]; then printf '%s' "$GH_DISPATCH_TOKEN" | npx --yes wrangler@4 secret put GH_DISPATCH_TOKEN; fi

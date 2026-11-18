@@ -8,8 +8,18 @@
 //    Gelöscht wird NUR mit AUFRAEUMEN=ja (Repository-Variable). Sonst wird nur gezählt und im Protokoll des Laufs angezeigt.
 //
 // Zugang: FIREBASE_SERVICE_ACCOUNT = Inhalt der Dienstschlüssel-Datei (GitHub-Secret – NIE ins Repository legen!).
-import { initializeApp, cert } from "firebase-admin/app";
-import { getFirestore, Timestamp, FieldPath } from "firebase-admin/firestore";
+//
+// 10.6: Das Sammeln läuft zusätzlich im Cloudflare-Worker der Slack-Brücke (alle 30 Minuten, zuverlässig – GitHub startet
+//       geplante Läufe oft nur alle paar Stunden). Darum lädt diese Datei firebase-admin erst bei Bedarf: Der Worker gibt ein
+//       kleines Ersatz-„db“ über die REST-Schnittstelle mit (worker/fs-rest.mjs, mit db.Timestamp). GitHub sammelt nur noch,
+//       wenn der letzte Lauf älter als 45 Minuten ist (Ersatz, falls der Worker ausfällt), und räumt wie bisher auf.
+let Timestamp = null;
+const ADMIN = "firebase-admin";  // Name zusammengesetzt, damit der Worker-Bündler firebase-admin nicht einpackt
+async function ladeAdmin() {
+  const app = await import(ADMIN + "/app"), fsm = await import(ADMIN + "/firestore");
+  Timestamp = fsm.Timestamp; return { ...app, ...fsm };
+}
+const bytes = t => new TextEncoder().encode(t).length;
 
 export const TAG = 864e5;
 // Felder einer Zeile in fester Reihenfolge (spart Platz: die Namen stehen nur einmal im Dokument)
@@ -50,12 +60,13 @@ export function zeile(id, d, g) {
 // Zeilen auf Dokumente verteilen (Firestore: höchstens 1 MiB je Dokument – wir bleiben deutlich darunter)
 export function teilen(zeilen, maxBytes = 700000) {
   const teile = []; let akt = [], n = 2;
-  for (const z of zeilen) { const b = Buffer.byteLength(JSON.stringify(z)) + 1; if (akt.length && n + b > maxBytes) { teile.push(akt); akt = []; n = 2; } akt.push(z); n += b; }
+  for (const z of zeilen) { const b = bytes(JSON.stringify(z)) + 1; if (akt.length && n + b > maxBytes) { teile.push(akt); akt = []; n = 2; } akt.push(z); n += b; }
   if (akt.length || !teile.length) teile.push(akt);
   return teile;
 }
 
-function start() {
+async function start() {
+  const { initializeApp, cert, getFirestore } = await ladeAdmin();
   const emu = !!process.env.FIRESTORE_EMULATOR_HOST;
   if (emu) initializeApp({ projectId: process.env.GCLOUD_PROJECT || "demo-bibel-quest" });
   else {
@@ -68,6 +79,7 @@ function start() {
 }
 
 export async function sammeln(db, opt = {}) {
+  const Timestamp = db.Timestamp || (await ladeAdmin()).Timestamp;
   const jetzt = Date.now(), R = db.collection("rangliste"), jobRef = db.collection("jobstand").doc("sammeln");
   const job = (await jobRef.get()).data() || {};
   const alt = (await R.get()).docs.filter(d => d.id.startsWith("spieler-"));
@@ -118,7 +130,7 @@ export async function sammeln(db, opt = {}) {
   if (skNeu) b.set(ALref, { stand: ts, anzahl: Object.keys(skMap).length, daten: JSON.stringify(skMap) });
   b.set(jobRef, { stand: jetzt, ...(voll ? { voll: jetzt } : {}), ...(awNeu ? { albumWoche: { wk, b: awB } } : {}) }, { merge: true });
   await b.commit();
-  return { art: (voll ? "voll" : "Änderungen") + (albumAlle ? " + alle Alben" : ""), alben: Object.keys(skMap).length, spieler: zeilen.length, dokumente: teile.length, gelesen, bytes: teile.map(z => Buffer.byteLength(JSON.stringify(z))) };
+  return { art: (voll ? "voll" : "Änderungen") + (albumAlle ? " + alle Alben" : ""), alben: Object.keys(skMap).length, spieler: zeilen.length, dokumente: teile.length, gelesen, bytes: teile.map(z => bytes(JSON.stringify(z))) };
 }
 
 // Was aufgeräumt wird: [Sammlung, Feld, Grenze, Beschreibung]
@@ -134,6 +146,7 @@ export function aufraeumPlan(jetzt) {
   ];
 }
 export async function aufraeumen(db, opt = {}) {
+  if (!Timestamp) await ladeAdmin();
   const jetzt = Date.now(), jobRef = db.collection("jobstand").doc("sammeln"), job = (await jobRef.get()).data() || {};
   if (!opt.erzwingen && jetzt - (+job.aufgeraeumt || 0) < 23 * 36e5) return null;
   const max = opt.max || 3000, aus = [];
@@ -155,10 +168,18 @@ export async function aufraeumen(db, opt = {}) {
 }
 
 const ja = v => /^(ja|true|1|yes)$/i.test(String(v || "").trim());
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const db = start();
-  const r = await sammeln(db, { voll: ja(process.env.VOLL) });
-  console.log(`Sammel-Rangliste (${r.art}): ${r.spieler} Spieler in ${r.dokumente} Dokument(en), ${r.gelesen} Dokumente gelesen, Größe ${r.bytes.map(b => Math.round(b / 1024) + " KB").join(" + ")}`);
+// 10.6: Hat der Worker vor kurzem gesammelt, lässt GitHub das Sammeln aus (manueller Start mit „Alle Spieler neu einlesen“ sammelt immer)
+export const ERSATZ_AB = 45 * 60000;
+export async function sammelnNoetig(db, opt = {}) {
+  if (opt.immer) return true;
+  const j = (await db.collection("jobstand").doc("sammeln").get()).data() || {};
+  return !(+j.stand > 0 && Date.now() - +j.stand < ERSATZ_AB);
+}
+export const sammelText = r => `Sammel-Rangliste (${r.art}): ${r.spieler} Spieler in ${r.dokumente} Dokument(en), ${r.gelesen} Dokumente gelesen, Größe ${r.bytes.map(b => Math.round(b / 1024) + " KB").join(" + ")}`;
+if (typeof process !== "undefined" && process.argv && import.meta.url === `file://${process.argv[1]}`) {
+  const db = await start();
+  if (await sammelnNoetig(db, { immer: ja(process.env.VOLL) || ja(process.env.IMMER) })) console.log(sammelText(await sammeln(db, { voll: ja(process.env.VOLL) })));
+  else console.log("Sammel-Rangliste: der Worker hat vor weniger als 45 Minuten gesammelt – hier nichts zu tun.");
   const loeschen = ja(process.env.AUFRAEUMEN), a = await aufraeumen(db, { loeschen, erzwingen: ja(process.env.AUFRAEUMEN_JETZT) });
   if (!a) console.log("Aufräumen: heute schon gelaufen.");
   else { console.log(loeschen ? "Aufräumen (es wird gelöscht):" : "Aufräumen – NUR GEZÄHLT, nichts gelöscht (zum Einschalten die Repository-Variable AUFRAEUMEN auf „ja“ setzen):");

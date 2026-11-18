@@ -7,9 +7,14 @@
 //               Abstürze, Status) nach #alerts-crashes. Alle 15 Minuten wird nachgesendet, was kein Stupser erreicht hat.
 // Slack → App:  Antwort im Faden eines Spielers → Nachricht im Dialog der App. „An <Name>: <Text>“ in #user-feedback → neuer Dialog.
 //               Nachricht in #patchnotes → Neuigkeit für alle Spieler (erste Zeile = Titel).
+// Alle 30 Min.: Sammel-Rangliste (job/sammeln.mjs) – seit 10.6 hier statt nur über GitHub, weil GitHub geplante Läufe oft
+//               nur alle paar Stunden startet und die App eine Sammel-Rangliste älter als 3 Stunden nicht mehr nutzt.
 // Täglich:      Tageszahlen nach #metrics (aus der Sammel-Rangliste, kostet 1–2 Lesezugriffe).
 //
 // Zugänge kommen als Geheimnisse aus GitHub (siehe .github/workflows/worker.yml) – nie in diese Datei schreiben.
+
+import { sammeln, sammelText } from "../job/sammeln.mjs";
+import { restDb } from "./fs-rest.mjs";
 
 const TAG = 864e5;
 const esc = t => String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -252,7 +257,31 @@ export default {
     } catch (e) { console.log("fehler", e.message); return antwort({ ok: false }, 500); }
   },
   async scheduled(ereignis, env, ctx) {
+    if (ereignis.cron === SAMMEL_CRON) {  /* 10.6 – ohne Slack-Beitritt, damit der Lauf schlank bleibt */
+      ctx.waitUntil(sammelLauf(env).catch(e => { console.log("sammeln", e.message); return sagen(env, env.K_ALARM, ":rotating_light: *Sammel-Rangliste (Worker)*: " + esc(e.message).slice(0, 300) + " – GitHub springt nach 45 Min. als Ersatz ein.").catch(() => {}); }));
+      return;
+    }
     ctx.waitUntil(beitreten(env).then(() => ereignis.cron === "0 18 * * *" ? tageszahlen(env) : nachsenden(env)).catch(e => { console.log("zeitplan", e.message); return sagen(env, env.K_ALARM, ":rotating_light: *Slack-Brücke*: " + esc(e.message).slice(0, 300)).catch(() => {}); }));
   }
 };
-export { nachsenden, tageszahlen, slackEreignis };
+/* ---------- 10.6: Sammel-Rangliste (alle 30 Minuten) ---------- */
+const SAMMEL_CRON = "7,37 * * * *";
+// Mit Secret GH_DISPATCH_TOKEN (GitHub-Schlüssel nur mit Recht „Actions: Read and write“ für bibel-quest) stößt der Worker nur
+// den GitHub-Lauf an – das braucht kaum Rechenzeit (kostenloser Cloudflare-Tarif: wenige Millisekunden je Aufruf), und
+// angestoßene Läufe startet GitHub sofort. Ohne Schlüssel (oder wenn GitHub ablehnt) sammelt der Worker selbst.
+async function githubAnstossen(env) {
+  if (!env.GH_DISPATCH_TOKEN) return false;
+  const r = await fetch(`https://api.github.com/repos/${env.GH_REPO || "meisterspezi/bibel-quest"}/actions/workflows/sammeln.yml/dispatches`, { method: "POST",
+    headers: { authorization: "Bearer " + env.GH_DISPATCH_TOKEN, accept: "application/vnd.github+json", "user-agent": "bibel-quest-worker", "x-github-api-version": "2022-11-28", "content-type": "application/json" },
+    body: JSON.stringify({ ref: "main" }) });
+  if (r.status === 204) { console.log("Sammel-Lauf bei GitHub angestoßen"); return true; }
+  console.log("GitHub lehnt ab:", r.status, (await r.text()).slice(0, 200)); return false;
+}
+async function sammelLauf(env) {
+  if (await githubAnstossen(env).catch(e => { console.log("GitHub", e.message); return false; })) return { art: "GitHub angestoßen" };
+  const db = restDb({ basis: env.FIRESTORE_EMULATOR || "https://firestore.googleapis.com", projekt: env.PROJEKT, token: () => googleToken(env) });
+  const r = await sammeln(db);
+  console.log(sammelText(r) + ` · ${db.anfragen} Anfragen`);
+  return r;
+}
+export { nachsenden, tageszahlen, slackEreignis, sammelLauf, SAMMEL_CRON };
