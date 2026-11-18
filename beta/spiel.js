@@ -2959,6 +2959,7 @@ function zusammenfuehren(r) {
   else if (r.bwK && r.bwK === S.bwK) { S.bwP = Math.max(S.bwP | 0, r.bwP | 0); S.bwFertig = !!(S.bwFertig || r.bwFertig); }
   if ((r.bwVK || "") > (S.bwVK || "") && r.bwVK !== S.bwK) { S.bwVK = r.bwVK; S.bwVP = r.bwVP | 0; }
   S.bwSiege = [...new Set([...(S.bwSiege || []), ...(Array.isArray(r.bwSiege) ? r.bwSiege : [])])].slice(-60);
+  S.bwPreise = [...new Set([...(S.bwPreise || []), ...(Array.isArray(r.bwPreise) ? r.bwPreise : [])])].slice(-80); /* 10.16 */
   S.duArten = [...new Set([...(S.duArten || []), ...(Array.isArray(r.duArten) ? r.duArten : [])])]; S.duKetteVoll = !!(S.duKetteVoll || r.duKetteVoll);
   S.duGes = [...new Set([...(S.duGes || []), ...(Array.isArray(r.duGes) ? r.duGes : [])])].slice(-150);
   ["aufgefrischt", "eingeladen", "fischerDabei", "menschenfischer"].forEach(k => { S[k] = !!(S[k] || r[k]); });
@@ -3698,7 +3699,7 @@ VIEWS.rank = (tab) => {
       const gold = `<div class="gk-gold${g1.length === 1 ? " einzel" : ""}">${rankTab === "bibWoche" && typeof bwPreisHtml === "function" ? bwPreisHtml("band") : ""}<span class="pod-krone">${svg("crown")}</span>
         <div class="gk-t">${voll ? vollText : `Platz 1 · ${pkt(wert1)} ${esc(unit)}`}${g1.length > 1 ? `<small>${g1.length} Spieler teilen sich Platz 1</small>` : voll ? `<small>${wert1} ${esc(unit)}</small>` : ""}</div>
         <div class="gk-leute">${g1.map(r => person(r, g1.length > 4 ? 44 : 50)).join("")}</div></div>`;
-      const klein = (n, g) => g.length ? `<div class="gk-k gk-k${n} gk-licht${g.length === 1 ? " einzel" : ""}"><div class="gk-h"><span class="gk-med">${n}</span><span>${pkt(rankWert(g[0]))} ${esc(unit)}</span></div>
+      const klein = (n, g) => g.length ? `<div class="gk-k gk-k${n} gk-licht${g.length === 1 ? " einzel" : ""}"><div class="gk-h"><span class="gk-med">${n}</span>${rankTab === "bibWoche" && typeof bwPreisHtml === "function" ? bwPreisHtml("klein" + n) : ""}<span>${pkt(rankWert(g[0]))} ${esc(unit)}</span></div>
         <div class="gk-stapel">${g.slice(0, 5).map(r => `<button data-pid="${esc(r.id)}" class="${r.id === me ? "me" : ""}">${avatarLv(r, 36)}</button>`).join("")}${g.length > 5 ? `<span class="gk-mehr">+${g.length - 5}</span>` : ""}</div>
         <div class="gk-wer">${g.slice(0, 3).map(r => `<div class="${r.id === me ? "me" : ""}"><b>${esc(r.name)}</b>${ext(r)}</div>`).join("")}${g.length > 3 ? `<div class="small muted">+${g.length - 3} weitere</div>` : ""}</div></div>` : "";
       /* 10.7: Album-Rangliste mit eigenem Podest (Stufen-Leiste, geteilte Plätze laufen durch), ohne Titel unter dem Namen */
@@ -4654,7 +4655,7 @@ const BIB_LEITER = [50, 100, 200, 300, 500, 1000, 2000, 4000, 8000, 16000, 32000
 const BIB_SICHER = [4, 9];               // Sicherheitsstufen: Frage 5 (500) und Frage 10 (16.000)
 const BIB_SEK = 30;                      // Bedenkzeit je Frage
 const BIB_WOCHE_TAL = 5;                 // Teilnahme an der Wochenrunde
-/* 10.12: Platz 1 der Vorwoche (mind. 3 Teilnehmer) bekommt Krone + 1 Gratiskrug (zählt über S.bwSiege, siehe sammel.js smBibKruege) */
+/* 10.16: Platz 1/2/3 der Vorwoche (mind. 3 Teilnehmer): Gold-/Silber-/Bronzekrug (S.bwPreise, siehe sammel.js smPreisZahl); Platz 1 zusätzlich Krone */
 const pkt = n => (+n || 0).toLocaleString("de-DE");
 /* Punkte, die nach „erreicht“ richtigen Antworten sicher sind */
 const bibGesichert = erreicht => { let s = 0; BIB_SICHER.forEach(i => { if (erreicht > i) s = BIB_LEITER[i]; }); return s; };
@@ -4955,7 +4956,7 @@ function bibWocheStarten() {
   if (bibWocheGespielt()) { go("rank", "bibWoche"); return; }
   const wk = weekKey();
   modal(`<div class="label">Biblionär der Woche</div><h2 style="margin:0">${wk.split("-W")[1]}. Kalenderwoche</h2>
-    <p class="muted">Alle in der Gemeinde bekommen dieselben 15 Fragen. Du hast <b>einen Versuch</b> – wer abbricht, bekommt 0 Punkte. Am Montag kommt die Siegerin oder der Sieger aufs Podest${typeof bwPreisAn === "function" && bwPreisAn() ? " und bekommt den Preis" : ""}.</p>
+    <p class="muted">Alle in der Gemeinde bekommen dieselben 15 Fragen. Du hast <b>einen Versuch</b> – wer abbricht, bekommt 0 Punkte. Am Montag kommt die Siegerin oder der Sieger aufs Podest${typeof bwPreisAn === "function" && bwPreisAn() ? " – die besten drei bekommen einen Krug" : ""}.</p>
     ${typeof bwPreisHtml === "function" ? bwPreisHtml("gross") : ""}
     <button class="btn primary" data-close="los">${svg("biblionaer")} Los geht's</button><button class="btn ghost" data-close>Später</button>`, r => {
     if (r !== "los") return;
@@ -4991,10 +4992,14 @@ async function bibSiegerPruefen() {
   if (S.bwGeprueft === vw || !S.pid || !(S.bwK === vw || S.bwVK === vw)) return;
   const v = await bibVorwocheLaden(); if (!v) return;
   S.bwGeprueft = vw;
-  const top = v.rows.length ? v.rows[0].p : 0;
-  if (v.rows.length >= 3 && top > 0 && v.rows.some(r => r.id === S.pid && r.p === top) && !(S.bwSiege || []).includes(vw)) {
-    S.bwSiege = [...(S.bwSiege || []), vw].slice(-60); save(); renderHud(); if (typeof smHud === "function") smHud(0);
-    setTimeout(() => { if (typeof bibPreisUebergabe === "function" && bwPreisAn()) bibPreisUebergabe(vw, top); else { SFX.badge(); rain(90); toast(`${svg("crown", "#f2c14e")}<div><b>Biblionär der Woche!</b><div class="small muted">Platz 1 in der ${vw.split("-W")[1]}. KW mit ${pkt(top)} Punkten</div></div>`); } }, 800);
+  /* 10.16: Plätze wie in der Rangliste (gleiche Punkte = gleicher Platz, ohne Lücke): Platz 1 Goldkrug, 2 Silberkrug, 3 Bronzekrug */
+  const stufen = [...new Set(v.rows.map(r => r.p))].slice(0, 3), ich = v.rows.find(r => r.id === S.pid), platz = ich ? stufen.indexOf(ich.p) + 1 : 0;
+  if (!Array.isArray(S.bwPreise)) S.bwPreise = [];
+  const schon = S.bwPreise.some(x => String(x).startsWith(vw + ":")) || (platz === 1 && (S.bwSiege || []).includes(vw));
+  if (v.rows.length >= 3 && platz >= 1 && ich.p > 0 && !schon) {
+    if (platz === 1) S.bwSiege = [...(S.bwSiege || []), vw].slice(-60);
+    S.bwPreise = [...S.bwPreise, vw + ":" + platz].slice(-80); save(); renderHud(); if (typeof smHud === "function") smHud(0);
+    setTimeout(() => { if (typeof bibPreisUebergabe === "function" && bwPreisAn()) bibPreisUebergabe(vw, ich.p, false, 0, platz); else if (platz === 1) { SFX.badge(); rain(90); toast(`${svg("crown", "#f2c14e")}<div><b>Biblionär der Woche!</b><div class="small muted">Platz 1 in der ${vw.split("-W")[1]}. KW mit ${pkt(ich.p)} Punkten</div></div>`); } }, 800);
     checkBadges(); lbSync();
   }
   save();
