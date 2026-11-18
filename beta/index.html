@@ -3190,6 +3190,44 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 @media (prefers-reduced-motion:no-preference){.kt-schnee i{animation:ktSchnee 8s linear infinite}@keyframes ktSchnee{0%{transform:translate(0,-120%)}100%{transform:translate(10px,260%)}}.kt-logo-flocke{animation:smFunk 2.6s ease-in-out infinite}}
 .kt-tx small.kt-ed.winter.an{background:linear-gradient(180deg,#e8434a,#b81d2c);border-color:#fff;box-shadow:inset 0 2px 0 #fff,0 0 10px #e8434a88}
 .kt-tx small.kt-ed .kt-flocke{color:#fff;line-height:1;flex:none}
+/* 10.5: Sammelalbum – Krug-Karte und kompakte Leiste */
+.smt-karte{margin:2px 0 10px;padding:12px;border-radius:20px;background:linear-gradient(180deg,#1f2858,#151a3d);border:1px solid #f2c14e55;box-shadow:0 6px 16px #0006,inset 0 1px 0 #ffffff1a}
+.smt-karte.fertig{border-color:#7be04a88;background:linear-gradient(180deg,#1d3a3a,#151a3d)}
+.smt-kopf{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.smt-kopf b{font:800 1.02rem var(--display);color:#f2c14e;letter-spacing:.04em}
+.smt-karte.fertig .smt-kopf b{color:#9df07a}
+.smt-manna{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:99px;background:#ffffff10;border:1px solid #ffffff22;font:900 .9rem var(--body);color:#ffe9a0;cursor:pointer}
+.smt-manna svg{width:18px;height:18px}
+.smt-kruege{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.smt-krug{position:relative;display:grid;place-items:center;gap:1px;padding:6px 0 4px;border-radius:14px;background:#ffffff08;border:1px solid #ffffff18;font:800 .66rem var(--body);color:var(--muted)}
+.smt-krug svg{width:38px;height:38px;filter:grayscale(.6) brightness(.85)}
+.smt-krug small{font:inherit}
+.smt-krug.auf{opacity:.8}.smt-krug.auf svg{filter:grayscale(1) brightness(.65)}
+.smt-krug.auf::after{content:"✓";position:absolute;top:5px;right:7px;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:#7be04a;color:#0e1226;font:900 .72rem var(--body)}
+.smt-krug.bereit{border-color:#f2c14e;background:#f2c14e18;color:#ffe9a0;box-shadow:0 0 14px #f2c14e55}
+.smt-krug.bereit svg{filter:drop-shadow(0 0 8px #ffe27a)}
+.smt-fertig{margin:8px 0 0;text-align:center;font:800 .84rem var(--body);color:#d9ffc9}
+.smt-los{margin-top:10px;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;border:0;border-radius:16px;background:linear-gradient(180deg,#ffe27a,#e0a52c);color:#2a1d00;font:900 .98rem var(--display);box-shadow:0 4px 0 #8a5a12,0 0 18px #f2c14e77;cursor:pointer}
+.smt-los svg{width:22px;height:22px}
+.smt-los.arm{background:#ffffff10;color:#ffe9a0;border:1px dashed #f2c14e88;box-shadow:none;font:800 .86rem var(--body)}
+.smt-leiste{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0 0 12px}
+.smt-ziel,.smt-sack{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:52px;padding:6px 4px;border-radius:14px;background:#ffffff08;border:1px solid #ffffff18;color:#fff;cursor:pointer}
+.smt-ic{width:24px;height:24px}
+.smt-pk{display:flex;gap:2px}.smt-pk i{width:6px;height:6px;border-radius:50%;background:#ffffff22}.smt-pk i.an{background:#f2c14e;box-shadow:0 0 4px #f2c14e}
+.smt-ziel.gr .smt-pk i.an{background:#7be04a;box-shadow:0 0 4px #7be04a}
+.smt-sack{flex-direction:row;gap:4px}
+.smt-sack .sack{width:30px;height:30px;overflow:visible}
+.smt-sack b{font:900 .8rem var(--body);color:var(--c)}
+.smt-sack[data-tausch="2"] .sk-k{fill:color-mix(in srgb,var(--c) 45%,#56607a)}.smt-sack[data-tausch="2"] .sk-k2{fill:color-mix(in srgb,var(--c) 35%,#424a63)}
+.smt-sack.voll{border-color:var(--c);box-shadow:0 0 12px color-mix(in srgb,var(--c) 50%,transparent)}
+.smt-sack.voll::after{content:"Tauschen!";position:absolute;top:-8px;left:50%;transform:translateX(-50%);padding:0 6px;border-radius:8px;background:var(--c);color:#1b1430;font:900 .56rem/1.5 var(--body);white-space:nowrap}
+.smt-info h2{display:flex;align-items:center;gap:8px;margin:0 0 6px}.smt-info h2 svg{width:26px;height:26px}.smt-info p{margin:6px 0}
+/* 10.5: Geschenk-Krug in Grün, zusätzlich zu den 3 Krügen am Tag */
+.smt-kruege.vier{grid-template-columns:repeat(4,minmax(0,1fr))}
+.smt-krug.geschenk{cursor:pointer;border-color:#7be04a;background:#7be04a1f;color:#c9ffb0;box-shadow:0 0 14px #7be04a66;font:800 .66rem var(--body)}
+.smt-krug.geschenk svg,.sm-jar.geschenk svg{filter:hue-rotate(65deg) saturate(1.3) drop-shadow(0 0 8px #7be04a)}
+@media (prefers-reduced-motion:no-preference){.smt-krug.geschenk{animation:smGeschPuls 1.8s ease-in-out infinite}@keyframes smGeschPuls{50%{box-shadow:0 0 22px #7be04aaa}}}
+.smt-gesch{margin:8px 0 0;text-align:center;font:800 .78rem var(--body);color:#c9ffb0}
 </style>
 </head>
 <body>

@@ -1,4 +1,4 @@
-const APP_VERSION = "10.4";
+const APP_VERSION = "10.5";
 /* 9.60 Beta-Kanal: Die App liegt zweimal online – Live (…/bibel-quest/) und Beta (…/bibel-quest/beta/). Beide nutzen denselben Spielstand
    und dieselbe Datenbank. BETA ist wahr, wenn diese Kopie aus dem Ordner beta/ läuft; VERSION_TEXT steht in Feedback und Meldungen. */
 const BETA = location.pathname.includes("/beta/");
@@ -194,6 +194,16 @@ const AVATARE = [
   { id: "palme", name: "Siegespalme", price: 700, ab: 60, bezug: "Eine große Schar aus allen Völkern stand vor dem Thron, bekleidet mit weißen Kleidern und mit Palmzweigen in ihren Händen (Offenbarung 7,9)." },
   { id: "stern", name: "Stern von Bethlehem", price: -1, need: "lv15", bezug: "Der Stern ging den Weisen voraus, bis er über dem Ort stehen blieb, wo das Kind war. Da freuten sie sich sehr (Matthäus 2,9-10)." },
   { id: "dornbusch", name: "Brennender Dornbusch", price: -1, need: "lv35", bezug: "Der Engel des HERRN erschien Mose in einer Feuerflamme mitten aus dem Dornbusch, und der Busch brannte und wurde doch nicht verzehrt (2. Mose 3,2)." },
+  /* 10.5: Sammelalbum – je Buchreihe ganz in Gold ein Avatar, alle 66 in Gold „Das ganze Wort“ */
+  { id: "alb-gesetz", name: "Tafeln im Feuer", price: -1, need: "alb-gesetz", bezug: "Der HERR redete mit euch mitten aus dem Feuer und schrieb seine Worte auf zwei steinerne Tafeln (5. Mose 4,12-13)." },
+  { id: "alb-geschichte", name: "Mauern Jerusalems", price: -1, need: "alb-geschichte", bezug: "So wurde die Mauer vollendet – denn dieses Werk war von unserem Gott gewirkt (Nehemia 6,15-16)." },
+  { id: "alb-weisheit", name: "Harfe des Königs", price: -1, need: "alb-weisheit", bezug: "Lobt den HERRN mit der Harfe, spielt ihm ein neues Lied (Psalm 33,2-3)." },
+  { id: "alb-grossprop", name: "Feuer der Propheten", price: -1, need: "alb-grossprop", bezug: "Sein Wort wurde in meinem Herzen wie ein brennendes Feuer (Jeremia 20,9)." },
+  { id: "alb-kleinprop", name: "Großer Fisch", price: -1, need: "alb-kleinprop", bezug: "Der HERR bestellte einen großen Fisch, Jona zu verschlingen – und Jona betete zu Gott (Jona 2,1-2)." },
+  { id: "alb-evangelien", name: "Kreuz und Netz", price: -1, need: "alb-evangelien", bezug: "Folgt mir nach, so will ich euch zu Menschenfischern machen (Matthäus 4,19)." },
+  { id: "alb-paulus", name: "Brief des Apostels", price: -1, need: "alb-paulus", bezug: "Ihr seid ein Brief Christi, geschrieben nicht mit Tinte, sondern mit dem Geist des lebendigen Gottes (2. Korinther 3,3)." },
+  { id: "alb-briefe", name: "Lamm und Leuchter", price: -1, need: "alb-briefe", bezug: "Das Lamm, das geschlachtet ist, ist würdig, zu empfangen Kraft und Ehre (Offenbarung 5,12)." },
+  { id: "alb-wort", name: "Das ganze Wort", price: -1, need: "alb-wort", bezug: "Alle Schrift ist von Gott eingegeben und nützlich zur Lehre (2. Timotheus 3,16). Du hast alle 66 Bücher in Gold!" },
   { id: "adler", name: "Adler", price: -1, need: "lv25", bezug: "Wer auf den HERRN hofft, bekommt neue Kraft und steigt auf mit Flügeln wie ein Adler (Jesaja 40,31)." }
 ];
 const RAHMEN = [
@@ -208,7 +218,9 @@ const RAHMEN = [
   { id: "oelzweig", name: "Ölzweig", price: -1, need: "lv20", bezug: "Am Abend kam die Taube zu Noah zurück, mit einem frischen Ölblatt im Schnabel. Da wusste er: Das Wasser ist gesunken (1. Mose 8,11)." },
   { id: "saeule", name: "Wolken- und Feuersäule", price: -1, need: "lv40", bezug: "Der HERR zog vor ihnen her, bei Tag in einer Wolkensäule und bei Nacht in einer Feuersäule – vierzig Jahre lang durch die Wüste (2. Mose 13,21)." },
   { id: "feuergold", name: "Im Feuer erprobt", price: -1, need: "ruestGold", bezug: "Damit die Echtheit eures Glaubens, die viel kostbarer ist als das vergängliche Gold, das durchs Feuer erprobt wird, sich erweist (1. Petrus 1,7)." },
-  { id: "jerusalem", name: "Neues Jerusalem", price: -1, need: "lv30", bezug: "Die Mauern der heiligen Stadt ruhen auf zwölf Edelsteinen, ihre zwölf Tore sind zwölf Perlen und die Straße ist reines Gold (Offenbarung 21,19-21)." }
+  { id: "jerusalem", name: "Neues Jerusalem", price: -1, need: "lv30", bezug: "Die Mauern der heiligen Stadt ruhen auf zwölf Edelsteinen, ihre zwölf Tore sind zwölf Perlen und die Straße ist reines Gold (Offenbarung 21,19-21)." },
+  /* 10.5: Sammelalbum – alle 66 Bücher in Gold */
+  { id: "alb-wort", name: "Das ganze Wort", price: -1, need: "alb-wort", bezug: "66 Bücher, ein Wort: Dein Wort ist meines Fußes Leuchte und ein Licht auf meinem Weg (Psalm 119,105)." }
 ];
 const TITEL = [
   { id: "none", name: "Ohne Titel", price: 0 },

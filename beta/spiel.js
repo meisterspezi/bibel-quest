@@ -1536,8 +1536,8 @@ function ruestungHtml(n, klein = true) {
   return `<span class="ruest ${klein ? "klein" : ""}" title="Waffenrüstung Gottes: ${n} von 6">${RUESTUNG.slice(0, n).map(r => `<i class="rst-${ruestStufe(r.id)}">${svg("ar-" + r.id)}</i>`).join("")}</span>`;
 }
 /* Freischalt-Bedingung: "lvN" = ab Level N (Level-Belohnung), sonst ein Abzeichen */
-const needOk = need => /^lv\d+$/.test(need || "") ? levelOf(S.xp) >= +need.slice(2) : S.badges.includes(need);
-const needText = need => /^lv\d+$/.test(need || "") ? `ab Level ${need.slice(2)}` : `Abzeichen „${(BADGES.find(x => x.id === need) || {}).name || ""}“`;
+const needOk = need => /^lv\d+$/.test(need || "") ? levelOf(S.xp) >= +need.slice(2) : /^alb-/.test(need || "") ? (typeof smLohnFrei === "function" && smLohnFrei(need)) : S.badges.includes(need);
+const needText = need => /^alb-/.test(need || "") ? (need === "alb-wort" ? "Sammelalbum: alle 66 Bücher in Gold" : `Sammelalbum: ${typeof SM_AV_REIHE !== "undefined" && GROUPS[SM_AV_REIHE.indexOf(need)] ? GROUPS[SM_AV_REIHE.indexOf(need)].name : "Buchreihe"} ganz in Gold`) : /^lv\d+$/.test(need || "") ? `ab Level ${need.slice(2)}` : `Abzeichen „${(BADGES.find(x => x.id === need) || {}).name || ""}“`;
 function itemFrei(kat, it) {
   if (it.price === 0) return true;
   if (it.price < 0) return needOk(it.need);
