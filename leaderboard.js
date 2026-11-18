@@ -169,10 +169,22 @@ if (!configured) {
     //      Die App liest nur diese (1–2 Lesezugriffe statt eines je Spieler). Fehlt die Sammlung oder ist sie älter als 3 Stunden
     //      (Job steht, Regeln noch nicht veröffentlicht), wird wie bisher direkt gelesen. Die Gemeinde (g) steht gleich mit in der Zeile.
     const SAMMEL_ALT = 3 * 3600e3;
+    // 10.6 Notlösung: Ist die Sammel-Rangliste zu alt, bleiben ihre Album-Werte trotzdem nutzbar (bis 14 Tage) – sonst hätten
+    //      beim direkten Lesen alle anderen 0 Album-Punkte (die Album-Werte stehen nur in der Sammel-Rangliste). Kein Lesezugriff mehr.
+    const SAMMEL_ALBUM_ALT = 14 * 864e5, ALBUM_FELDER = ["gl", "ab", "aw", "awk"];
+    let sammelAltAlbum = null;
     const sammelLesen = async () => {
+      sammelAltAlbum = null;
       const teile = (await fs.getDocs(fs.collection(db, "rangliste"))).docs.filter(d => d.id.startsWith("spieler-")).map(d => d.data());
       if (!teile.length || teile.length < (teile[0].teile | 0)) return null;
-      if (teile.some(t => Date.now() - zeitMs(t.stand) > SAMMEL_ALT)) return null;
+      const alter = Math.max(...teile.map(t => Date.now() - zeitMs(t.stand)));
+      if (alter > SAMMEL_ALT) {
+        if (alter <= SAMMEL_ALBUM_ALT) try { sammelAltAlbum = new Map();
+          for (const t of teile) { const p = JSON.parse(t.daten), ix = ALBUM_FELDER.map(k => p.f.indexOf(k));
+            p.z.forEach(z => { const a = {}; ALBUM_FELDER.forEach((k, j) => { if (ix[j] >= 0 && z[ix[j]] !== "") a[k] = z[ix[j]]; }); if (Object.keys(a).length) sammelAltAlbum.set(z[0], a); }); }
+        } catch (e) { sammelAltAlbum = null; }
+        return null;
+      }
       const aus = [];
       for (const t of teile) { const p = JSON.parse(t.daten), f = p.f;
         p.z.forEach(z => { const r = {}; f.forEach((k, i) => { if (z[i] !== "") r[k] = z[i]; });
@@ -185,7 +197,10 @@ if (!configured) {
     LB.alleSpieler = async () => {
       try { const r = await sammelLesen(); if (r) { LB.sammel = true; return r; } } catch (e) {}
       LB.sammel = false;
-      return aktiv((await fs.getDocs(fs.query(spieler, fs.limit(1000)))).docs);
+      const direkt = aktiv((await fs.getDocs(fs.query(spieler, fs.limit(1000)))).docs);
+      if (sammelAltAlbum && sammelAltAlbum.size) { LB.albumAlt = true; return direkt.map(r => sammelAltAlbum.has(r.id) ? Object.assign({}, r, sammelAltAlbum.get(r.id)) : r); }
+      LB.albumAlt = false;
+      return direkt;
     };
     LB.verwalterZusammenfuehren = async (ziel, dups, werte) => {
       await LB.signIn();
