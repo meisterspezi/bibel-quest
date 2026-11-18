@@ -828,7 +828,12 @@ function albumSchaufenster(r, istIch, st) {
 async function albumVonSpieler(r) { /* 66 Ziffern oder "" */
   if (smIch(r)) return smStText();
   const L = window.LB; if (!L || !L.albumListe) return "";
-  try { const m = await L.albumListe(); return smUnpack(m && m[r.id]); } catch (e) { return ""; }
+  try {
+    let m = await L.albumListe(), st = smUnpack(m && m[r.id]);
+    /* 10.17: Rangliste kennt schon Karten, die gemerkte Albumliste aber noch nicht → einmal frisch holen (höchstens alle 30 Min.) */
+    if (!/[1-3]/.test(st) && albumZahlen(r) && albumPunkte(r) > 0) { m = await L.albumListe(true); st = smUnpack(m && m[r.id]); }
+    return st;
+  } catch (e) { return ""; }
 }
 
 /* ---------- 9.85: Ankündigung (einmal) und kurze Tour beim ersten Öffnen ---------- */
