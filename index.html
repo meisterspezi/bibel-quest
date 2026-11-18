@@ -3171,6 +3171,13 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .hud-gold .hud-album svg{filter:drop-shadow(0 0 3px #ffe27a99)}
 .hud.eng .hud-gold .sm-funk.f2{display:none}
 @media (prefers-reduced-motion:no-preference){.hud-gold .sm-funk{animation:smFunk 2.6s ease-in-out infinite}.hud-gold .sm-funk.f2{animation-delay:1.3s}@keyframes smFunk{0%,100%{opacity:.35;transform:scale(.75)}50%{opacity:1;transform:scale(1.15) rotate(20deg)}}}
+/* 10.4: Weihnachts-Ausgabe – NEU-Fähnchen und Funkeln am Reiter Biblionär */
+.tabbar .tb-neu{position:absolute;top:0;left:calc(50% + 8px);z-index:3;padding:1px 4px;border-radius:6px;background:linear-gradient(180deg,#ff9a6b,#ff6f61);color:#fff;font:900 .5rem/1.2 var(--body);letter-spacing:.04em;box-shadow:0 0 0 2px #151a3d,0 2px 6px #0006;pointer-events:none}
+.tabbar .tb-neu[hidden],.tabbar .tb-funk[hidden]{display:none}
+.tabbar .tb-funk i{position:absolute;z-index:2;font-style:normal;color:#fff3b8;line-height:1;text-shadow:0 0 6px #ffe27a;pointer-events:none}
+.tabbar .tb-funk .f1{top:2px;left:calc(50% - 26px);font-size:11px}.tabbar .tb-funk .f2{top:26px;left:calc(50% + 19px);font-size:8px}
+@media (prefers-reduced-motion:no-preference){.tabbar .tb-funk i{animation:smFunk 2.6s ease-in-out infinite}.tabbar .tb-funk .f2{animation-delay:1.3s}}
+@keyframes smFunk{0%,100%{opacity:.35;transform:scale(.75)}50%{opacity:1;transform:scale(1.15) rotate(20deg)}}
 </style>
 </head>
 <body>

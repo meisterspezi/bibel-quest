@@ -312,13 +312,13 @@ VIEWS.album = () => {
     ${smBeutelHtml()}
     <p class="sm-hinw sm-wahl" id="smWahl" hidden></p>
     ${gruppen}
-    <div class="sm-fuss"><button class="btn" id="smTeilen">${SM_ALBUM_SVG} Mein Album teilen</button><p class="small muted">Manna gibt es für jede beendete Runde ab 30 Sekunden (+1 bei guter Runde), jede Duell-Herausforderung (1), jede Schatztruhe (${SM_TRUHE_MANNA}), Biblionär der Woche (2) und jeden Level-Aufstieg (3). Sparen ohne Grenze – öffnen kannst du bis zu ${SM_KRUG_TAG} Krüge am Tag. Jede ${SM_TRUHEN_GESCHENK}. Schatztruhe bringt einen Geschenk-Krug. Seltenheit: Bronze 75 %, Silber 20 %, Gold 5 % – jeder Krug mit mindestens 1 Silber, jeder 7. Krug mit sicherer Goldkarte. Tausch: 4 Bronze → 1 Silber, 4 Silber → 1 Gold.</p></div>`;
+`; /* 10.4: Teilen-Knopf und Erklärtext entfernt */
   { const med = screen.querySelector(".bk-med"); if (med) med.innerHTML = SM_ALBUM_SVG; } /* 9.88: Album-Buch mit „66“ */
   wireGo();
   const kk = $("smKrugKn"); if (kk) kk.onclick = () => { if (kk.classList.contains("aus")) { SFX.tap(); return; } SFX.tap(); const o = smKrugKaufen(); if (o) smKrugBuehne(o, false); };
   screen.querySelectorAll("[data-tausch]").forEach(b => b.onclick = () => smTauschStart(+b.dataset.tausch));
   screen.querySelectorAll(".smk").forEach(k => k.onclick = () => { if (smWahl) return smTauschWahl(+k.dataset.i); smKarteZeigen(+k.dataset.i); });
-  $("smTeilen").onclick = () => { SFX.tap(); smTeilenAlbum(); };
+  if ($("smTeilen")) $("smTeilen").onclick = () => { SFX.tap(); smTeilenAlbum(); };
   smWahl = 0;
   if (!m.tour && !m.offen) setTimeout(smTour, 450);
 };
