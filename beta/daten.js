@@ -1,4 +1,4 @@
-const APP_VERSION = "10.22";
+const APP_VERSION = "10.23";
 /* 9.60 Beta-Kanal: Die App liegt zweimal online – Live (…/bibel-quest/) und Beta (…/bibel-quest/beta/). Beide nutzen denselben Spielstand
    und dieselbe Datenbank. BETA ist wahr, wenn diese Kopie aus dem Ordner beta/ läuft; VERSION_TEXT steht in Feedback und Meldungen. */
 const BETA = location.pathname.includes("/beta/");
@@ -252,6 +252,8 @@ const LEVEL_SKIN = { 5: ["titel", "treu"], 10: ["farbe", "saphir"], 15: ["avatar
    Bis Level 45 bleibt alles wie bisher (am 05.11.2026 war das höchste Level 44) – niemand verliert ein Level.
    Bei Esthers Tempo (≈ 9.000 XP am Tag) dauert Level 60 so etwa 3 Monate. Level 50 ≈ 148.000 XP, Level 60 ≈ 855.000 XP. */
 const XP_KNICK = 45, XP_STEIGUNG = 7 / 3;
+/* 10.23: ab Level 52 nur noch +3 % je Level (vorher stieg der Abstand stark weiter, Level 60 dauerte über ein Jahr) – kein Level wird billiger als das vorige */
+const XP_SANFT_AB = 51, XP_SANFT_PLUS = 0.03;
 /* Ränge ab Level 31 (vorher „Lebendiges Register N“) */
 const RAENGE_HOCH = [[50, "Jubeljahr"], [46, "Richter in Israel"], [41, "Ältester"], [36, "Schriftgelehrter"], [31, "Levit"]];
 

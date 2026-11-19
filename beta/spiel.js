@@ -127,7 +127,11 @@ function weekKey(datum) { const d = datum ? new Date(datum) : new Date(); d.setH
 const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const cumAlt = n => 25 * (n - 1) * (n + 2);
 /* 6.69: ab Level 46 gleichmäßig steiler (siehe XP_KNICK/XP_STEIGUNG in daten.js) */
-const cum = n => { if (n <= XP_KNICK) return cumAlt(n); let t = cumAlt(XP_KNICK); for (let k = XP_KNICK + 1; k <= n; k++) t += Math.round(50 * k * (1 + XP_STEIGUNG * (k - XP_KNICK))); return t; };
+/* 10.23: Level 46–51 wie bisher, ab Level 52 kostet jedes Level 3 % mehr als das vorige (XP_SANFT_AB/XP_SANFT_PLUS) */
+const xpStufe = k => k <= XP_KNICK ? cumAlt(k) - cumAlt(k - 1) : k <= XP_SANFT_AB ? Math.round(50 * k * (1 + XP_STEIGUNG * (k - XP_KNICK)))
+  : Math.round(xpStufe(XP_SANFT_AB) * Math.pow(1 + XP_SANFT_PLUS, k - XP_SANFT_AB));
+const CUM_CACHE = [];
+const cum = n => { if (n <= XP_KNICK) return cumAlt(n); if (CUM_CACHE[n] != null) return CUM_CACHE[n]; let t = cumAlt(XP_KNICK); for (let k = XP_KNICK + 1; k <= n; k++) t += xpStufe(k); return (CUM_CACHE[n] = t); };
 function levelOf(xp) { let n = 1; while (cum(n + 1) <= xp) n++; return n; }
 const titleOf = n => { const h = RAENGE_HOCH.find(([ab]) => n >= ab); if (h) return h[1]; return TITLES[Math.min(n, TITLES.length) - 1] + (n > TITLES.length ? " " + (n - TITLES.length + 1) : ""); };
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1293,6 +1297,19 @@ function levelUp(n) {
     m.querySelector(".lvlbig").insertAdjacentHTML("afterend", `<div class="halljahr"><span class="hj-posaune">${svg("posaune")}</span><b>Halljahr!</b><small>„Ihr sollt das fünfzigste Jahr heiligen … Ein Jubeljahr soll es euch sein.“ (3. Mose 25,10)</small></div>`);
     [600, 1500, 2600].forEach(t => setTimeout(() => { SFX.level(); rain(160); }, t)); }
 }
+/* 10.23: Wer durch die sanftere Kurve ab Level 52 schon ein höheres Level hat, bekommt den Aufstieg samt Talenten
+   und Manna (+3 je Level) beim nächsten Öffnen der Startseite nachgereicht – einmal, über S.lvLohn */
+function levelNachholen() {
+  const n = levelOf(S.xp);
+  if (!S.lvLohn || n <= S.lvLohn) return;
+  setTimeout(function weiter() {
+    if (document.querySelector(".modal")) { setTimeout(weiter, 1500); return; }
+    const jetzt = levelOf(S.xp); if (!S.lvLohn || jetzt <= S.lvLohn) return;
+    const plus = jetzt - S.lvLohn;
+    try { if (typeof smFrei === "function" && smFrei() && typeof smGoldGeben === "function") smGoldGeben(3 * plus); } catch (e) {}
+    levelUp(jetzt);
+  }, 900);
+}
 /* Einmalig für alle, die schon vor 6.39 gespielt haben: alle Level-Talente nach dem neuen Plan (ohne Abzug des alten Bonus,
    der bei übersprungenen Leveln oft gar nicht gezahlt wurde) und alle erreichten Level-Skins */
 function levelNachreichen(bis) {
@@ -1898,7 +1915,7 @@ VIEWS.home = () => {
   const tk = $("truheKopf"); if (tk) tk.onclick = () => truheOeffnen(tk);
   const td = $("torDuell"); if (td) td.onclick = () => { SFX.tap(); go("duelle"); };
   lvVerdrahten(); { const sv = screen.querySelector(".start-vers"); if (sv && sv.querySelector("[data-lvk]")) lvStartVerdrahten(sv); }
-  if (S.lbName) levelNachreichen();
+  if (S.lbName && !levelNachreichen()) levelNachholen();
   const vz = $("versZeile"); if (vz) { vz.onclick = () => { const auf = vz.getAttribute("aria-expanded") !== "true"; vz.setAttribute("aria-expanded", auf); };
     requestAnimationFrame(() => { const bq = vz.querySelector("blockquote"); if (bq && bq.scrollHeight <= bq.clientHeight + 2) vz.classList.add("passt"); }); }
 };
