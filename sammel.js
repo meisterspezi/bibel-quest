@@ -770,7 +770,12 @@ function albumPunkte(r) {
   const z = albumZahlen(r); if (z) return z[0] * 3 + z[1] * 2 + z[2];
   return r && +r.gl > 0 ? Math.min(66, r.gl | 0) * 3 : 0; /* ältere App-Version: Goldkarten × 3 als Untergrenze */
 }
+/* 10.20: In der Startwoche des Albums (KW 47/2026) begannen alle bei 0 – die Basis des Sammel-Jobs (aw beim ersten Sehen,
+   awb erst ab 10.7 mitten in der Woche) war dort zu spät und passte nicht zusammen (z. B. 21 Punkte, aber nur 17 Karten aufgeschlüsselt). */
+const SM_START_WOCHE = weekKey(SM_START);
+const albumStartwoche = r => r && weekKey() === SM_START_WOCHE && (r.awk === SM_START_WOCHE || smIch(r));
 function albumWoche(r) {
+  if (albumStartwoche(r)) return albumPunkte(r);
   if (!r || r.awk !== weekKey() || r.aw === "" || r.aw == null || !(+r.aw >= 0)) return 0;
   return Math.max(0, albumPunkte(r) - (r.aw | 0));
 }
@@ -784,6 +789,7 @@ function albumBalken(r, woche) {
    Sammel-Job) und dem jetzigen Stand: neu gefunden (Bronze), neu auf Silber, neu auf Gold. Summe = Wochenpunkte. */
 function albumWocheZahlen(r) { /* [neu Gold, neu Silber, neu gefunden] oder null */
   const z = albumZahlen(r);
+  if (z && albumStartwoche(r)) return [z[0], z[0] + z[1], z[0] + z[1] + z[2]];
   if (!z || !r || r.awk !== weekKey() || typeof r.awb !== "string" || !/^\d+\.\d+\.\d+$/.test(r.awb)) return null;
   const [g0, s0, b0] = r.awb.split(".").map(Number), [g, s, b] = z;
   return [Math.max(0, g - g0), Math.max(0, g + s - g0 - s0), Math.max(0, g + s + b - g0 - s0 - b0)];

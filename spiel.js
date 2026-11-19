@@ -3181,7 +3181,7 @@ const RANK_TABS = {
   bibWoche: { label: "Woche", val: r => (r.bwK === weekKey() ? r.bwP || 0 : 0), unit: "Punkte", titel: "Biblionär der Woche" },
   bibRekord: { label: "Rekord", val: r => r.bib || 0, unit: "Punkte", titel: "Biblionär-Rekord" },
   /* 10.2: Sammelalbum – Bronze 1, Silber 2, Gold 3 Punkte (höchstens 198); Woche = Zuwachs seit Montag (Stand vom Sammel-Job) */
-  album: { label: "Punkte", val: r => (typeof albumPunkte === "function" ? albumPunkte(r) : 0), unit: "Punkte", titel: "Sammelalbum" },
+  album: { label: "Gesamt", val: r => (typeof albumPunkte === "function" ? albumPunkte(r) : 0), unit: "Punkte", titel: "Sammelalbum" },
   albumWoche: { label: "Diese Woche", val: r => (typeof albumWoche === "function" ? albumWoche(r) : 0), unit: "Punkte", titel: "Album diese Woche" }
 };
 /* ---------- 9.7: Gemeinden – Beitritt mit Passwort (= der Ort der Gemeinde). Neue Spieler sind Gast und treten per Passwort bei;
@@ -3607,14 +3607,14 @@ const RANK_KAT = [
   { id: "biblionaer", name: "Biblionär", icon: "biblionaer", tabs: ["bibSpiele", "bibWoche", "bibRekord"] },
   { id: "duell", name: "Arena", icon: "duell", tabs: ["duSiege", "duSpiele"] },
   { id: "ausdauer", name: "Ausdauer", icon: "fire", tabs: ["treue", "bewaehrt", "abzeichen"] },
-  { id: "album", name: "Album", icon: "album", tabs: ["album", "albumWoche"] } /* 10.2 */
+  { id: "album", name: "Album", icon: "album", tabs: ["albumWoche", "album"] } /* 10.2; 10.20: „Diese Woche“ links, „Gesamt“ rechts */
 ];
 const albumKatFrei = () => typeof smFrei === "function" && smFrei();
 const rankKats = () => RANK_KAT.filter(k => k.id !== "album" || albumKatFrei());
 const katSvg = ic => (ic === "album" && typeof SM_ALBUM_SVG === "string" ? SM_ALBUM_SVG : svg(ic));
 const katVon = tab => RANK_KAT.find(k => k.tabs.includes(tab)) || RANK_KAT[0];
 const letzterTab = {};
-const TAB_LABEL = { woche: "Woche", gesamt: "Gesamt", kette: "Kette", blitz: "Blitz", treue: "Spieltage", bewaehrt: "Bewährt", abzeichen: "Abzeichen", duSiege: "Siege", duSpiele: "Gespielt", bibSpiele: "Gespielt", bibWoche: "Diese Woche", bibRekord: "Rekord", album: "Punkte", albumWoche: "Diese Woche" };
+const TAB_LABEL = { woche: "Woche", gesamt: "Gesamt", kette: "Kette", blitz: "Blitz", treue: "Spieltage", bewaehrt: "Bewährt", abzeichen: "Abzeichen", duSiege: "Siege", duSpiele: "Gespielt", bibSpiele: "Gespielt", bibWoche: "Diese Woche", bibRekord: "Rekord", album: "Gesamt", albumWoche: "Diese Woche" };
 const BLITZ_SUB = { richtige: ["Richtige", "blitz", "Richtige", "Blitz-Rekord"], folge: ["In Folge", "combo", "in Folge", "Richtige in Folge (60 Sek.)"] };
 let blitzSub = "richtige";
 const KETTE_SUB = { bibel: ["Bibel", "bestChain", 66], at: ["AT", "chainAT", 39], nt: ["NT", "chainNT", 27], rueck: ["Rückwärts", "chainRueck", 66] };
