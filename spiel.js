@@ -127,7 +127,7 @@ function weekKey(datum) { const d = datum ? new Date(datum) : new Date(); d.setH
 const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const cumAlt = n => 25 * (n - 1) * (n + 2);
 /* 6.69: ab Level 46 gleichmäßig steiler (siehe XP_KNICK/XP_STEIGUNG in daten.js) */
-/* 10.23: Level 46–51 wie bisher, ab Level 52 kostet jedes Level 3 % mehr als das vorige (XP_SANFT_AB/XP_SANFT_PLUS) */
+/* 10.23/10.24: Level 46–50 wie bisher, ab Level 51 kostet jedes Level 3 % mehr als das vorige (XP_SANFT_AB/XP_SANFT_PLUS) */
 const xpStufe = k => k <= XP_KNICK ? cumAlt(k) - cumAlt(k - 1) : k <= XP_SANFT_AB ? Math.round(50 * k * (1 + XP_STEIGUNG * (k - XP_KNICK)))
   : Math.round(xpStufe(XP_SANFT_AB) * Math.pow(1 + XP_SANFT_PLUS, k - XP_SANFT_AB));
 const CUM_CACHE = [];
