@@ -43,7 +43,7 @@ if (typeof BETA !== "undefined" && BETA) addEventListener("DOMContentLoaded", ()
       <section class="tl-box"><h2>Sammelalbum (Beta)</h2>
         <p class="tl-ist">${smGefunden()} / 66 gefunden · ${smGlanz()} in Gold · <b>${smGold()} Manna</b> · Krüge heute ${smHeuteKruege()}/${SM_KRUG_TAG} · Geschenke ${smGeschenke()}</p>
         <div class="tl-reihe">${knopf("m10", "+10 Manna")}${knopf("m50", "+50 Manna")}${knopf("m0", "Manna auf 0")}</div>
-        <div class="tl-reihe">${knopf("tag", "Krüge heute auf 0")}${knopf("geschenk", "+1 Silberkrug (Geschenk)")}${knopf("treue", "Nächster Krug: sicher Gold")}${knopf("bwpreis", "Preisübergabe Platz 1", 1)}${knopf("bwpreis2", "Platz 2", 1)}${knopf("bwpreis3", "Platz 3", 1)}${knopf("ggold", "+1 Goldkrug (Preis)")}${knopf("gbronze", "+1 Bronzekrug (Preis)")}</div>
+        <div class="tl-reihe">${knopf("tag", "Krüge heute auf 0")}${knopf("geschenk", "+1 Silberkrug (Geschenk)")}${knopf("treue", smRegel2() ? "Nächster Krug: Silberkrug (7.)" : "Nächster Krug: sicher Gold")}${knopf("tgold", "+1 Goldkrug (Schatztruhe)")}${knopf("bwpreis", "Preisübergabe Platz 1", 1)}${knopf("bwpreis2", "Platz 2", 1)}${knopf("bwpreis3", "Platz 3", 1)}${knopf("ggold", "+1 Goldkrug (Preis)")}${knopf("gbronze", "+1 Bronzekrug (Preis)")}</div>
         <div class="tl-reihe">${knopf("beutel", "Tauschbeutel füllen")}${knopf("beutel0", "Tauschbeutel leeren")}</div>
         <p class="tl-ist" style="margin-top:6px">Album-Stand setzen:</p>
         <div class="tl-reihe">${knopf("a:leer", "Leer", 1)}${knopf("a:anfang", "Anfang", 1)}${knopf("a:mitte", "Mitte", 1)}${knopf("a:fastsilber", "Fast alles Silber", 1)}${knopf("a:fastgold", "1 fehlt bis Gold", 1)}${knopf("a:gold", "Alles Gold", 1)}</div>
@@ -62,6 +62,7 @@ if (typeof BETA !== "undefined" && BETA) addEventListener("DOMContentLoaded", ()
       if (a === "ggold") { m.kgg = Math.min(m.kgg, smPreisZahl(1)) - 1; msg = "Goldkrug bereit (nur Beta)"; }
       if (a === "gbronze") { m.kgb = Math.min(m.kgb, smPreisZahl(3)) - 1; msg = "Bronzekrug bereit (nur Beta)"; }
       if (a === "geschenk") { m.kga = Math.min(m.kga, smGeschenkeGesamt()) - 1; msg = "Geschenk-Krug bereit"; }
+      if (a === "tgold") { m.tz += SM_TRUHEN_GESCHENK; m.tzg++; msg = "Goldkrug aus Schatztruhe bereit"; }
       if (a === "treue") { m.kz = Math.ceil((m.kz + 1) / SM_TREUE) * SM_TREUE - 1; msg = "Der nächste Krug hat sicher Gold"; }
       if (a === "beutel") { [1, 2].forEach(r => { m.be[r] = smBeutel(r) + m.ba[r] + SM_TAUSCH[r]; }); msg = "Tauschbeutel voll"; }
       if (a === "beutel0") { [1, 2].forEach(r => { m.ba[r] = m.be[r]; }); msg = "Tauschbeutel leer"; }
