@@ -779,36 +779,38 @@ function albumWoche(r) {
   if (!r || r.awk !== weekKey() || r.aw === "" || r.aw == null || !(+r.aw >= 0)) return 0;
   return Math.max(0, albumPunkte(r) - (r.aw | 0));
 }
+/* 10.21: Gleiche Darstellung in „Diese Woche“ und „Gesamt“ (Michaels Wahl „Vorschlag 1“): gezählt wird stufenweise
+   Bronze = alle gefundenen Bücher, Silber = davon mindestens Silber, Gold = davon Gold. Die Summe der drei Zahlen
+   ergibt die Album-Punkte (Bronze 1, Silber 2, Gold 3). Leiste über 66 Bücher, Gold liegt über Silber über Bronze.
+   In „Diese Woche“ ist der Stand vom Montag blass, was dazukam leuchtet, dazu ein grünes +. */
+function albumStufen(r) { const z = albumZahlen(r); return z ? [z[2] + z[1] + z[0], z[1] + z[0], z[0]] : null; } /* [Bronze, Silber, Gold] */
+function albumStufenVor(r) { /* Stand zu Wochenbeginn [Bronze, Silber, Gold] oder null */
+  if (albumStartwoche(r)) return [0, 0, 0];
+  if (!r || r.awk !== weekKey() || typeof r.awb !== "string" || !/^\d+\.\d+\.\d+$/.test(r.awb)) return null;
+  const [g, s, b] = r.awb.split(".").map(Number); return [g + s + b, g + s, g];
+}
+const SM_STUFE_N = ["Bronze", "Silber", "Gold"];
 function albumBalken(r, woche) {
-  if (woche) return albumWocheBalken(r);
-  const z = albumZahlen(r); if (!z) return "";
-  const [g, s, b] = z, w = n => (n / 66 * 100).toFixed(1) + "%";
-  return `<span class="alb-bar" title="${g} Gold · ${s} Silber · ${b} Bronze"><i class="b3" style="width:${w(g)}"></i><i class="b2" style="width:${w(s)}"></i><i class="b1" style="width:${w(b)}"></i></span>`;
+  const n = albumStufen(r); if (!n) return woche ? `<span class="alb-bar alb-st"></span>` : "";
+  const v = woche ? albumStufenVor(r) : null, w = x => (Math.min(66, x) / 66 * 100).toFixed(1) + "%";
+  const teil = (k, von, bis, alt) => bis > von ? `<i class="b${k}${alt ? " alt" : ""}" style="left:${w(von)};width:${w(bis - von)}"></i>` : "";
+  const t = n.map((x, i) => `${x} ${SM_STUFE_N[i]}${v && x - v[i] > 0 ? ` (+${x - v[i]})` : ""}`).join(" · ");
+  return `<span class="alb-bar alb-st" title="${t}">${[0, 1, 2].map(i => { const a = v ? Math.min(v[i], n[i]) : n[i]; return teil(i + 1, 0, a, !!v) + teil(i + 1, a, n[i], false); }).join("")}</span>`;
 }
-/* 10.7: „Album diese Woche“ – nur was in dieser Woche dazukam. Aus dem Stand zu Wochenbeginn (awb = "Gold.Silber.Bronze",
-   Sammel-Job) und dem jetzigen Stand: neu gefunden (Bronze), neu auf Silber, neu auf Gold. Summe = Wochenpunkte. */
-function albumWocheZahlen(r) { /* [neu Gold, neu Silber, neu gefunden] oder null */
-  const z = albumZahlen(r);
-  if (z && albumStartwoche(r)) return [z[0], z[0] + z[1], z[0] + z[1] + z[2]];
-  if (!z || !r || r.awk !== weekKey() || typeof r.awb !== "string" || !/^\d+\.\d+\.\d+$/.test(r.awb)) return null;
-  const [g0, s0, b0] = r.awb.split(".").map(Number), [g, s, b] = z;
-  return [Math.max(0, g - g0), Math.max(0, g + s - g0 - s0), Math.max(0, g + s + b - g0 - s0 - b0)];
+/* „Diese Woche“: Zuwachs je Stufe [Gold, Silber, Bronze] (für Texte), Summe = Wochenpunkte */
+function albumWocheZahlen(r) {
+  const n = albumStufen(r), v = albumStufenVor(r); if (!n || !v) return null;
+  return [2, 1, 0].map(i => Math.max(0, n[i] - v[i]));
 }
-let albWMax = 1; /* höchster Wochenwert der Liste – volle Leiste */
-function albumWocheBalken(r) {
-  const p = albumWoche(r); if (!p) return `<span class="alb-bar"></span>`;
-  const z = albumWocheZahlen(r), w = n => (n / Math.max(1, albWMax) * 100).toFixed(1) + "%";
-  if (!z) return `<span class="alb-bar" title="+${p} Punkte diese Woche"><i class="b0" style="width:${w(p)}"></i></span>`;
-  const [g, s, b] = z;
-  return `<span class="alb-bar" title="${albumWocheText(z)}"><i class="b3" style="width:${w(g)}"></i><i class="b2" style="width:${w(s)}"></i><i class="b1" style="width:${w(b)}"></i></span>`;
-}
-const albumWocheText = z => [z[2] && `${z[2]} neu`, z[1] && `${z[1]} auf Silber`, z[0] && `${z[0]} auf Gold`].filter(Boolean).join(" · ") || "noch nichts Neues";
-/* Zahlen als Farbpunkte (lang = mit Wörtern, fürs Podest Platz 1) */
+let albWMax = 1; /* höchster Wochenwert der Liste (für ältere Aufrufer) */
+function albumWocheBalken(r) { return albumBalken(r, true); }
+const albumWocheText = z => [z[2] && `+${z[2]} Bronze`, z[1] && `+${z[1]} Silber`, z[0] && `+${z[0]} Gold`].filter(Boolean).join(" · ") || "noch nichts Neues";
+/* Zahlen als Farbpunkte – Bronze · Silber · Gold (lang = mit Wörtern, fürs Podest Platz 1); Woche mit grünem + */
 function albumPunkteHtml(r, woche, lang) {
-  const z = woche ? albumWocheZahlen(r) : albumZahlen(r);
-  if (!z) return woche && albumWoche(r) ? `<span class="ap-z"><span>+${albumWoche(r)} Punkte</span></span>` : "";
-  const nm = woche ? ["auf Gold", "auf Silber", "neu"] : ["Gold", "Silber", "Bronze"];
-  return `<span class="ap-z">${[2, 1, 0].map(i => `<span class="${z[i] ? "" : "aus"}"><i class="d${3 - i}"></i>${z[i]}${lang ? " " + nm[i] : ""}</span>`).join("")}</span>`;
+  const n = albumStufen(r), v = woche ? albumStufenVor(r) : null;
+  if (!n) return woche && albumWoche(r) ? `<span class="ap-z"><span>+${albumWoche(r)} Punkte</span></span>` : "";
+  return `<span class="ap-z">${[0, 1, 2].map(i => { const d = v ? n[i] - v[i] : 0;
+    return `<span class="${n[i] ? "" : "aus"}"><i class="d${i + 1}"></i>${n[i]}${lang ? " " + SM_STUFE_N[i] : ""}${d > 0 ? `<em>+${d}</em>` : ""}</span>`; }).join("")}</span>`;
 }
 const albumAnzahl = r => { const z = albumZahlen(r); return z ? z[0] + z[1] + z[2] : 0; };
 /* 10.7: Podest der Album-Rangliste. Platz 1 groß (bis 3 nebeneinander), Platz 2/3 als Karten; geteilte Plätze als
