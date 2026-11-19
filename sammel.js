@@ -809,8 +809,8 @@ const albumWocheText = z => [z[2] && `+${z[2]} Bronze`, z[1] && `+${z[1]} Silber
 function albumPunkteHtml(r, woche, lang) {
   const n = albumStufen(r), v = woche ? albumStufenVor(r) : null;
   if (!n) return woche && albumWoche(r) ? `<span class="ap-z"><span>+${albumWoche(r)} Punkte</span></span>` : "";
-  return `<span class="ap-z">${[0, 1, 2].map(i => { const d = v ? n[i] - v[i] : 0;
-    return `<span class="${n[i] ? "" : "aus"}"><i class="d${i + 1}"></i>${n[i]}${lang ? " " + SM_STUFE_N[i] : ""}${d > 0 ? `<em>+${d}</em>` : ""}</span>`; }).join("")}</span>`;
+  return `<span class="ap-z${v ? " wo" : ""}">${[0, 1, 2].map(i => { const d = v ? n[i] - v[i] : 0;
+    return `<span class="${n[i] ? "" : "aus"}${v && !d ? " d0" : ""}"><i class="d${i + 1}"></i><b class="n">${n[i]}</b>${lang ? " " + SM_STUFE_N[i] : ""}${v ? `<em>+${d}</em>` : ""}</span>`; }).join("")}</span>`;
 }
 const albumAnzahl = r => { const z = albumZahlen(r); return z ? z[0] + z[1] + z[2] : 0; };
 /* 10.7: Podest der Album-Rangliste. Platz 1 groß (bis 3 nebeneinander), Platz 2/3 als Karten; geteilte Plätze als
@@ -818,7 +818,7 @@ const albumAnzahl = r => { const z = albumZahlen(r); return z ? z[0] + z[1] + z[
 function albumPodest(g1, g2, g3, wert, me, woche) {
   const name = r => `${esc(r.name)}${glanzHtml(r)}${r.id === me ? '<span class="you">DU</span>' : ""}`; /* 10.16: Goldkarten nur hier */
   const zahl = r => woche ? `+${albumWoche(r)}` : `${albumAnzahl(r)}/66`;
-  const zeile = (r, gross) => `<button class="ap-zl ${gross ? "gross" : ""} ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}">${gross ? avatarLv(r, 34) : avatarHtml(r, 24)}<span class="ap-zt"><span class="ap-nz"><b>${name(r)}</b><small>${zahl(r)}</small></span>${albumBalken(r, woche)}</span></button>`;
+  const zeile = (r, gross) => `<button class="ap-zl ${gross ? "gross" : ""} ${r.id === me ? "me" : ""}" data-pid="${esc(r.id)}">${gross ? avatarLv(r, 34) : avatarHtml(r, 24)}<span class="ap-zt"><span class="ap-nz"><b>${name(r)}</b></span><span class="ap-bz">${albumBalken(r, woche)}<small class="ap-zz">${albumPunkteHtml(r, woche) || zahl(r)}</small></span></span></button>`; /* 10.21: Bronze · Silber · Gold neben der Leiste */
   const liste = (g, gross) => `<div class="ap-rot ${gross ? "gross" : ""} ${g.length > 4 ? "laeuft" : ""}" style="--n:${g.length}"><div class="ap-rot-in">${g.map(r => zeile(r, gross)).join("")}</div></div>`;
   const mehr = g => g.length > 1 ? ` · ${g.length}×` : "";
   let eins;
