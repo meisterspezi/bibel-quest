@@ -1482,6 +1482,8 @@ function hudZahl(n) {
   if (n < 1e6) return Math.floor(n / 1000) + "k";
   return (Math.floor(n / 1e5) / 10).toLocaleString("de-DE") + "M";
 }
+/* 10.37: Briefsymbol oben rechts, solange Post vom Entwickler ungelesen ist */
+const BRIEF_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="brG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffbea"/><stop offset="1" stop-color="#f2c14e"/></linearGradient></defs><rect x="2.5" y="5.5" width="19" height="13.5" rx="2.4" fill="url(#brG)" stroke="#1b2a55" stroke-width="1.5"/><path d="M3.6 7.2l8.4 6.3 8.4-6.3" fill="none" stroke="#1b2a55" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M5 8.2l4 3" stroke="#fff" stroke-width="1" opacity=".7" stroke-linecap="round"/></svg>`;
 function renderHud() {
   const n = levelOf(S.xp), lo = cum(n), hi = cum(n + 1);
   $("hLvl").textContent = n; if ($("hGem")) $("hGem").innerHTML = gemLogoHtml(meineGem() === "gast" ? null : gemInfo(meineGem()), 22); $("hAvatar").innerHTML = avatarHtml({ avatar: S.avatar, frame: S.frame, name: S.lbName || "?" }, 44);
@@ -1495,6 +1497,8 @@ function renderHud() {
   { const pz = Math.max(0, Math.min(100, (S.xp - lo) / (hi - lo) * 100)); const lt = $("hLvlT"); lt.style.setProperty("--lp", pz.toFixed(1) + "%"); lt.title = `Level ${n}: ${Math.round(S.xp) - lo} von ${hi - lo} XP (noch ${Math.max(0, hi - Math.round(S.xp))} bis Level ${n + 1})`; }
   hudNameAnpassen();
   try { if (typeof smHud === "function") { smHud(0); smHudPlatz(); } } catch (e) {}
+  { const br = $("briefBtn"); if (br) { let n = 0; try { n = typeof dlgNeuSpieler === "function" ? dlgNeuSpieler() : 0; } catch (e) {} br.hidden = !n;
+    br.innerHTML = `${BRIEF_SVG}${n > 1 ? `<span class="pk-zahl">${n > 9 ? "9+" : n}</span>` : ""}`; br.setAttribute("aria-label", n ? `Post vom Entwickler, ${n} neu` : "Post vom Entwickler"); } }
   const pk = $("pkBtn"); if (pk) { pk.hidden = !entwickler; pk.innerHTML = `${svg("post")}${pkOffenPruef ? `<i class="pk-ap" aria-hidden="true"></i>` : ""}${postfachNeu ? `<span class="pk-zahl">${postfachNeu > 99 ? "99+" : postfachNeu}</span>` : ""}`; pk.setAttribute("aria-label", `Postkasten${postfachNeu ? ", " + postfachNeu + " neu" : ""}`); }
 }
 /* Was ist im Laden gerade kaufbar? (je Kategorie, Reihenfolge-Regeln wie im Laden) */
@@ -3509,28 +3513,42 @@ function dlgBlasen(liste, ichBin) {
 const DLG_RUHIG = ["home", "lernen", "lernverse", "spielen", "zusammen", "gegner", "duelle", "bib", "rank", "album", "profil", "ich", "shop"];
 let dlgAbo = null;
 function dlgMerken() { dlgGezeigt = Date.now(); try { localStorage.setItem("bq-dlg-" + S.pid, String(dlgGezeigt)); } catch (e) {} }
+/* 10.37: letztes Gespräch auf dem Gerät merken, damit das Briefsymbol auch nach einem Neustart sofort stimmt (ohne Datenbank-Abfrage) */
+function dlgListeMerken(l) { DLG = l; try { localStorage.setItem("bq-dlgl-" + S.pid, JSON.stringify(l.slice(-30))); } catch (e) {} }
+function dlgListeLaden() { if (DLG || !S.pid) return; try { const l = JSON.parse(localStorage.getItem("bq-dlgl-" + S.pid) || "null"); if (Array.isArray(l)) DLG = l; } catch (e) {} }
+const dlgGelesen = () => { S.dlgGesehen = Math.max(0, S.dlgGesehen || 0, ...(DLG || []).map(m => m.zeit)); save(); renderHud(); };
+/* Neue Nachrichten vom Entwickler als Fenster: Antworten · Als gelesen markieren · Später (Brief bleibt oben rechts) */
+function dlgFenster() {
+  const neu = (DLG || []).filter(m => m.von === "dev" && m.zeit > (S.dlgGesehen || 0)); if (!neu.length) { go("dialog"); return; }
+  const n = neu.length, zeig = neu.slice(-3);
+  modal(`<div class="label">Post vom Entwickler</div><h2 style="margin:0">${n === 1 ? "Neue Nachricht" : n + " neue Nachrichten"}</h2>
+      ${zeig.map(m => `<div class="card" style="margin:0"><p style="margin:0">${esc(m.text).replace(/\n/g, "<br>")}</p><div class="small muted" style="margin-top:4px">${dlgZeit(m.zeit)}</div></div>`).join("")}
+      ${n > 3 ? `<p class="small muted" style="margin:0">… und ${n - 3} ältere im Gespräch.</p>` : ""}
+      <button class="btn primary" data-close="antwort">Antworten</button><button class="btn ghost" data-close="gelesen">${svg("check")} Als gelesen markieren</button><button class="btn ghost" data-close="">Später</button>`,
+    r => { if (r === "gelesen") { dlgGelesen(); SFX.tap && SFX.tap(); toast(`${svg("check", "var(--good)")}<div>Als gelesen markiert.</div>`); } else if (r === "antwort") go("dialog"); });
+}
 function dlgZeigen() {
-  const l = DLG || []; const n = dlgNeuSpieler(); if (!n || gesperrt) return;
+  const neu = (DLG || []).filter(m => m.von === "dev" && m.zeit > (S.dlgGesehen || 0)); if (!neu.length || gesperrt) return;
+  const z = Math.max(...neu.map(m => m.zeit)); let pop = 0; try { pop = +localStorage.getItem("bq-dlgpop-" + S.pid) || 0; } catch (e) {}
+  if (z <= pop) return; /* dieses Fenster kam schon einmal – danach erinnert nur noch der Brief oben rechts */
   if (!DLG_RUHIG.includes(current) || document.querySelector(".modal, .sm-ov, .sm-flug, .sm-tour, .truhe-fx, .sb-ov") || document.body.classList.contains("spiel-laeuft")) return;
-  const letzte = l.filter(m => m.von === "dev").pop(); if (!letzte) return;
-  modal(`<div class="label">Nachricht vom Entwickler</div><h2 style="margin:0">${n === 1 ? "Neue Nachricht" : n + " neue Nachrichten"}</h2>
-      <div class="card" style="margin:0"><p style="margin:0">${esc(letzte.text).replace(/\n/g, "<br>")}</p></div>
-      <button class="btn primary" data-close="antwort">Antworten</button><button class="btn ghost" data-close="">Später</button>`, r => { S.dlgGesehen = Math.max(...l.map(m => m.zeit), S.dlgGesehen || 0); save(); renderHud(); if (r === "antwort") go("dialog"); });
-  SFX.coin && SFX.coin();
+  try { localStorage.setItem("bq-dlgpop-" + S.pid, String(z)); } catch (e) {}
+  dlgFenster(); SFX.coin && SFX.coin();
 }
 function dlgPruefen() {
   const L = window.LB; if (!S.lbName || !S.pid || !S.ownersSet || !L || !L.ok || !L.dialogHolen || gesperrt) return;
+  dlgListeLaden(); renderHud();
   if (dlgAbo) { dlgZeigen(); return; }
   let dz = 0; try { dz = +localStorage.getItem("bq-dlg-" + S.pid) || 0; } catch (e) {}
   if (Date.now() - Math.max(dlgGezeigt, dz) < 30 * 60000) { dlgZeigen(); return; } dlgMerken(); /* 9.52: 30 Min. */
   if (L.dialogBeobachten) {
     try {
-      const stop = L.dialogBeobachten(S.pid, l => { const vorher = dlgNeuSpieler(); DLG = l; dlgMerken(); if (dlgNeuSpieler() !== vorher) renderHud(); dlgZeigen(); },
+      const stop = L.dialogBeobachten(S.pid, l => { const vorher = dlgNeuSpieler(); dlgListeMerken(l); dlgMerken(); if (dlgNeuSpieler() !== vorher) renderHud(); dlgZeigen(); },
         () => { try { stop && stop(); } catch (e) {} dlgAbo = null; });
       dlgAbo = { stop }; return;
     } catch (e) { dlgAbo = null; }
   }
-  L.dialogHolen(S.pid).then(l => { DLG = l; dlgZeigen(); }).catch(() => {});
+  L.dialogHolen(S.pid).then(l => { dlgListeMerken(l); renderHud(); dlgZeigen(); }).catch(() => {});
 }
 /* Gespräch (Spieler: sein eigenes; Verwalter: mit dem Spieler arg) */
 VIEWS.dialog = (arg) => {
@@ -3545,7 +3563,7 @@ VIEWS.dialog = (arg) => {
   const zeichne = l => {
     if (current !== "dialog") return; if (dev) { const m = l.find(x => x.von === "spieler"); name = (m && m.name) || (DLG_ALLE.find(x => x.pid === pid) || {}).name || name; if (name && $("dlgKopf")) $("dlgKopf").textContent = name; }
     $("dlgListe").innerHTML = `<div class="dlg-liste">${dlgBlasen(l, dev ? "dev" : "spieler")}</div>`;
-    const ende = Math.max(0, ...l.map(m => m.zeit)); if (dev) { S.dlgDev = Object.assign({}, S.dlgDev, { [pid]: ende }); } else { S.dlgGesehen = ende; DLG = l; } save(); renderHud();
+    const ende = Math.max(0, ...l.map(m => m.zeit)); if (dev) { S.dlgDev = Object.assign({}, S.dlgDev, { [pid]: ende }); } else { S.dlgGesehen = Math.max(ende, S.dlgGesehen || 0); dlgListeMerken(l); } save(); renderHud();
     window.scrollTo(0, document.body.scrollHeight);
   };
   const laden = () => L.dialogHolen(pid).then(l => { if (dev) DLG_ALLE = DLG_ALLE.filter(m => m.pid !== pid).concat(l); zeichne(l); }).catch(() => { if ($("dlgListe")) $("dlgListe").innerHTML = `<p class="muted">Das Gespräch konnte nicht geladen werden (Firebase-Regeln von 9.11 eingespielt?).</p>`; });
