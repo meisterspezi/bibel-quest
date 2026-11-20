@@ -3447,6 +3447,35 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 @media (prefers-reduced-motion:no-preference){.sok-k .pl-neu{animation:plNeu 2.4s ease-in-out infinite}@keyframes plNeu{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}}
 .pl-ank-f{display:flex;justify-content:center;gap:8px;margin:4px 0 8px}.pl-ank-b{width:84px;height:84px;border-radius:14px;overflow:hidden;box-shadow:0 0 0 2px #e8475f,0 6px 16px #0008}.pl-ank-b:nth-child(1){transform:rotate(-6deg) translateY(6px)}.pl-ank-b:nth-child(3){transform:rotate(6deg) translateY(6px)}.pl-ank-b svg{display:block;width:100%;height:100%}
 .pl-ank-m{display:flex;align-items:center;gap:8px;justify-content:center}.pl-ank-m svg{width:24px;height:24px;flex:none}
+/* 10.40: Adventskalender */
+.ad-seite{display:flex;flex-direction:column;gap:8px;align-items:center}
+.ad-titel{text-align:center}.ad-titel b{display:block;font:700 1.5rem Georgia,serif;color:#f2c14e;letter-spacing:.03em}.ad-titel small{color:#c8d0ee}
+.ad-test{font-size:.78rem;color:#ffd8a0;background:#ffffff10;border-radius:10px;padding:6px 8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center}
+.ad-buehne{width:100%;max-width:360px}.bl-svg{display:block;width:100%;height:auto;border-radius:22px;box-shadow:0 0 0 1.5px #f2c14e66,0 10px 30px #0009}
+.bl-t{cursor:pointer}.bl-t.jetzt path{animation:adPuls 1.6s ease-in-out infinite}@keyframes adPuls{50%{filter:drop-shadow(0 0 6px #fff3b0)}}
+.ad-lohnreihe{display:flex;gap:14px;justify-content:center;margin:6px 0 0}.ad-l{opacity:.35;filter:grayscale(1)}.ad-l.frei{opacity:1;filter:none}
+.ad-hinw{text-align:center;max-width:340px;margin:0}
+.ad-modal .card{background:linear-gradient(#141a44,#0b0f2e)}
+.ad-tuer{display:flex;flex-direction:column;gap:10px;align-items:stretch;text-align:center}
+.ad-tk{font:800 .82rem var(--body);letter-spacing:.12em;color:#f2c14e;text-transform:uppercase}.ad-tk small{display:block;letter-spacing:0;text-transform:none;color:#b8c0d8;font-weight:600}
+.ad-bild{border-radius:18px;overflow:hidden;box-shadow:0 0 0 3px #f2c14e,0 10px 26px #000a;aspect-ratio:1}.ad-bild svg{display:block;width:100%;height:100%}
+.ad-licht{height:46px;background:radial-gradient(closest-side,#fff3b0,#ffc85a55 50%,transparent);border-radius:50%}
+.ad-rolle{padding:12px 14px;border-radius:12px;background:linear-gradient(#fff6dc,#f2e2b8);color:#3a2410;box-shadow:inset 0 0 0 2px #c99a4a;text-align:center}
+.ad-rolle p{margin:0;font:italic 1rem/1.45 Georgia,serif}.ad-rolle small{display:block;margin-top:6px;font:700 .78rem var(--body);color:#7a5a2a}
+.ad-link{display:inline-block;margin-top:4px;font:700 .74rem var(--body);color:#8a4a10;text-decoration:underline}
+.ad-werte{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}.ad-werte span{display:inline-flex;align-items:center;gap:4px;padding:5px 9px;border-radius:12px;background:#ffffff14;font:800 .78rem var(--body)}.ad-werte .sm-kr-ic{width:18px;height:18px}
+.ad-banner{position:relative;display:flex;align-items:center;gap:8px;width:100%;margin:4px 0 2px;padding:5px 12px;border-radius:16px;border:1px solid #f2c14e55;background:linear-gradient(90deg,#1c2458,#141a44);color:#fff;text-align:left;cursor:pointer;font:inherit}
+.ad-banner b{font:700 .95rem Georgia,serif;color:#f2c14e}.ad-banner small{color:#c8d0ee;font-size:.78rem}.ad-banner>span:nth-child(2){flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ad-b-ic{display:flex}.ad-banner i{font-style:normal;color:#f2c14e;font-size:1.3rem}
+.ad-banner.wartet{box-shadow:0 0 0 2px #fff3b088,0 0 18px #ffc85a55}.ad-banner .pl-neu{position:absolute;top:-7px;right:10px;padding:2px 5px 1px;border-radius:7px 7px 6px 6px;background:linear-gradient(180deg,#e8434a,#b81d2c);color:#fff;font:900 .55rem/1.2 var(--body);box-shadow:inset 0 2px 0 #fff,0 0 0 2px #151a3d}
+.ad-ank-b{width:150px;height:150px;margin:0 auto 4px;border-radius:18px;overflow:hidden;box-shadow:0 0 0 3px #f2c14e,0 8px 22px #000a}.ad-ank-b svg{display:block;width:100%;height:100%}
+/* 10.42: Adventskalender – Weihnachtsgeschichte-Leiste */
+.ad-gesch-t{font:800 .78rem var(--body);letter-spacing:.12em;text-transform:uppercase;color:#f2c14e;margin-top:4px}
+.ad-gesch{display:flex;gap:8px;justify-content:center;width:100%;max-width:360px}
+.ad-g{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:none;padding:0;color:#c8d0ee;cursor:pointer;font:inherit}
+.ad-g-b{width:100%;aspect-ratio:1;border-radius:12px;overflow:hidden;display:grid;place-items:center;background:#141a44;box-shadow:0 0 0 2px #f2c14e55}
+.ad-g.auf .ad-g-b{box-shadow:0 0 0 2px #f2c14e,0 0 12px #ffc85a66}.ad-g-b svg{display:block;width:100%;height:100%}
+.ad-g-b i{font:700 1.2rem Georgia,serif;font-style:normal;color:#f2c14e88}.ad-g small{font-size:.62rem;font-weight:700;white-space:nowrap}
+.bl-t.so.jetzt>path:not([fill="transparent"]){animation:adPuls 1.4s ease-in-out infinite}
 </style>
 </head>
 <body>
@@ -3526,7 +3555,7 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 <script src="editionen-daten.js"></script>
 <script src="editionen.js"></script>
 <script src="tk-bilder.js"></script><script>window.SPL&&SPL.set(0.65)</script>
-<script src="spiel.js"></script><script src="karten-motive.js"></script><script src="sammel.js"></script><script src="testlabor.js"></script><script>window.SPL&&SPL.set(.9)</script>
+<script src="spiel.js"></script><script src="karten-motive.js"></script><script src="sammel.js"></script><script src="advent-daten.js"></script><script src="advent.js"></script><script src="testlabor.js"></script><script>window.SPL&&SPL.set(.9)</script>
 <script type="module" src="leaderboard.js"></script>
 </body>
 </html>

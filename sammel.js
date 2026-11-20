@@ -132,7 +132,7 @@ function smInit() {
   const m = S[SM_KEY];
   if (!Array.isArray(m.album) || m.album.length !== 66) m.album = Array(66).fill(0);
   if (m.album.some(x => x > SM_MAX)) m.album = m.album.map(x => Math.min(SM_MAX, x | 0)); /* 9.92: Glanz-Karten werden Gold */
-  ["gv", "ga", "gn", "kz", "kn", "kga", "kgg", "kgb", "kgx", "kgt", "tzg", "tz", "ah", "tour", "gls", "lr", "lg"].forEach(k => { m[k] = Math.max(0, +m[k] || 0); });
+  ["gv", "ga", "gn", "kz", "kn", "kga", "kgg", "kgb", "kgx", "kgt", "kgad", "tzg", "tz", "ah", "tour", "gls", "lr", "lg"].forEach(k => { m[k] = Math.max(0, +m[k] || 0); });
   ["gt", "kt"].forEach(k => { if (typeof m[k] !== "string") m[k] = ""; });
   /* 10.18: Bis 10.4 zählte der Startkrug als einer der 3 Tageskrüge. Wer ihn so geöffnet hat, erkennt man daran, dass am letzten Krug-Tag
      (bis 18.11.2026) mehr Tageskrüge gezählt sind als normale Krüge überhaupt geöffnet wurden → einmalig ein silberner Geschenk-Krug (kgx) */
@@ -161,11 +161,12 @@ function smPreisZahl(platz) {
 }
 const smBibKruege = () => smPreisZahl(1);
 /* Silberkrüge: 1 = Startkrug für alle; Schatztruhen nur bis 20.11.2026 (danach Goldkrug, gezählt in tzg) */
-const smGeschenkeGesamt = () => { const m = smInit(); return 1 + m.kgx + Math.max(0, Math.floor(m.tz / SM_TRUHEN_GESCHENK) - m.tzg) + smPreisZahl(2); };
+const smAdvKruege = art => (typeof adKruege === "function" && !(typeof BETA !== "undefined" && BETA) ? adKruege(art) : 0); /* 10.40: Adventskalender (Beta-Album bekommt keine) */
+const smGeschenkeGesamt = () => { const m = smInit(); return 1 + m.kgx + Math.max(0, Math.floor(m.tz / SM_TRUHEN_GESCHENK) - m.tzg) + smPreisZahl(2) + smAdvKruege("silber"); };
 /* 10.22: Goldkrüge aus Schatztruhen (tzg verdient, kgt geöffnet) */
 const smTruhenGold = () => { const m = smInit(); return Math.max(0, m.tzg - m.kgt); };
 function smGeschenkArten() { const m = smInit();
-  return { ggold: Math.max(0, smPreisZahl(1) - m.kgg) + smTruhenGold(), geschenk: Math.max(0, smGeschenkeGesamt() - m.kga), gbronze: Math.max(0, smPreisZahl(3) - m.kgb) }; }
+  return { ggold: Math.max(0, smPreisZahl(1) - m.kgg) + smTruhenGold() + Math.max(0, smAdvKruege("gold") - m.kgad), geschenk: Math.max(0, smGeschenkeGesamt() - m.kga), gbronze: Math.max(0, smPreisZahl(3) - m.kgb) }; }
 const smGeschenke = () => { const a = smGeschenkArten(); return a.ggold + a.geschenk + a.gbronze; };
 const smGeschenkBest = () => { const a = smGeschenkArten(); return SM_GESCH_ARTEN.find(k => a[k] > 0) || ""; };
 /* 10.5: Neue Krüge gibt es jeden Morgen – der „Krug-Tag“ beginnt zur vollen Stunde SM_KRUG_STUNDE (Gerätezeit).
@@ -211,7 +212,7 @@ function smMischen(r) {
   if (!r || !r[SM_KEY] || typeof r[SM_KEY] !== "object") return;
   const m = smInit(), o = r[SM_KEY];
   if (Array.isArray(o.album)) o.album.forEach((s, i) => { if (i < 66) m.album[i] = Math.max(m.album[i] | 0, Math.min(SM_MAX, s | 0)); });
-  ["gv", "ga", "kz", "kga", "kgg", "kgb", "kgx", "kgt", "tzg", "tz", "ah", "tour", "lr", "lg"].forEach(k => { m[k] = Math.max(m[k] | 0, +o[k] || 0); });
+  ["gv", "ga", "kz", "kga", "kgg", "kgb", "kgx", "kgt", "kgad", "tzg", "tz", "ah", "tour", "lr", "lg"].forEach(k => { m[k] = Math.max(m[k] | 0, +o[k] || 0); });
   [["gt", "gn"], ["kt", "kn"]].forEach(([t, n]) => { const a = smTagZahl(o[t]), b = smTagZahl(m[t]); /* 10.26: als Zahl vergleichen */
     if (a > b) { m[t] = o[t]; m[n] = +o[n] || 0; } else if (a && a === b) m[n] = Math.max(m[n], +o[n] || 0); });
   ["be", "ba"].forEach(k => { [1, 2].forEach(x => { m[k][x] = Math.max(m[k][x] | 0, ((o[k] || {})[x]) | 0); }); });
@@ -363,7 +364,7 @@ function smKrugKaufen(wahl) {
   const m = smInit(), st = smKrugStand();
   if (art === "gold") { if (!st.t || st.n >= SM_KRUG_TAG) return null; m.kt = st.t; m.kn = st.n; } /* 10.26: nur mit gesichertem Krug-Tag */
   let q = "";
-  if (art === "geschenk") m.kga++; else if (art === "ggold") { if (smPreisZahl(1) > m.kgg) { m.kgg++; q = "platz1"; } else { m.kgt++; q = "truhe"; } } else if (art === "gbronze") m.kgb++; else { m.ga += SM_KRUG_PREIS; m.kn++; } /* 10.5: Geschenk-Krug zählt nicht zu den 3 am Tag */
+  if (art === "geschenk") m.kga++; else if (art === "ggold") { if (smPreisZahl(1) > m.kgg) { m.kgg++; q = "platz1"; } else if (smAdvKruege("gold") > m.kgad) { m.kgad++; q = "advent"; } else { m.kgt++; q = "truhe"; } } else if (art === "gbronze") m.kgb++; else { m.ga += SM_KRUG_PREIS; m.kn++; } /* 10.5: Geschenk-Krug zählt nicht zu den 3 am Tag */
   m.kz++;
   const r2 = smRegel2(), sieben = m.kz % SM_TREUE === 0;
   /* sicher: Goldkrug 1 Gold; alter 7. Krug 1 Gold; Silberkrug und (ab 10.22) 7. Krug 1 Silber; Bronze-Krug nichts */
@@ -563,7 +564,7 @@ function smKrugBuehne(offen, wieder) {
   const r2 = !!offen.r2, sieben = offen.nr % SM_TREUE === 0, treue = (sieben && !r2) || offen.art === "ggold", silber = !treue && (offen.art === "geschenk" || sieben), edel = treue || silber;
   const s7 = sieben && r2 && silber; /* 10.22: 7. Krug als Silberkrug */
   ov.className = "sm-ov" + (treue ? " treue" : silber ? " silber" : ""); ov.setAttribute("role", "dialog"); ov.setAttribute("aria-label", treue ? "Treue-Krug öffnen" : "Krug öffnen");
-  ov.innerHTML = `<div class="sm-ov-in"><div class="sm-ov-kopf"><b>${offen.art === "ggold" ? (offen.q === "truhe" ? "Gold-Geschenk" : "Gold-Preis") : s7 ? (offen.art === "geschenk" ? "Silber-Geschenk · Treue" : "Silberkrug") : treue ? (offen.art === "geschenk" ? "Geschenk · Treue" : "Treue-Krug") : offen.art === "geschenk" ? "Silber-Geschenk" : offen.art === "gbronze" ? "Bronze-Preis" : "Bronze-Krug"}</b><span>${wieder ? "Dein Krug wartet noch" : offen.art === "ggold" ? (offen.q === "truhe" ? SM_TRUHEN_GESCHENK + ". Schatztruhe · sicher Gold" : "Platz 1 · sicher Gold") : s7 ? SM_TREUE + ". Krug · 1 Silber sicher" : treue ? SM_TREUE + ". Krug · sicher Gold" : silber ? "1 Silber sicher" : offen.art === "gbronze" ? "Platz 3 · " + SM_KRUG_KARTEN + " Karten" : SM_KRUG_KARTEN + " Karten"}</span></div>
+  ov.innerHTML = `<div class="sm-ov-in"><div class="sm-ov-kopf"><b>${offen.art === "ggold" ? (offen.q === "truhe" ? "Gold-Geschenk" : offen.q === "advent" ? "Advents-Geschenk" : "Gold-Preis") : s7 ? (offen.art === "geschenk" ? "Silber-Geschenk · Treue" : "Silberkrug") : treue ? (offen.art === "geschenk" ? "Geschenk · Treue" : "Treue-Krug") : offen.art === "geschenk" ? "Silber-Geschenk" : offen.art === "gbronze" ? "Bronze-Preis" : "Bronze-Krug"}</b><span>${wieder ? "Dein Krug wartet noch" : offen.art === "ggold" ? (offen.q === "truhe" ? SM_TRUHEN_GESCHENK + ". Schatztruhe · sicher Gold" : "Platz 1 · sicher Gold") : s7 ? SM_TREUE + ". Krug · 1 Silber sicher" : treue ? SM_TREUE + ". Krug · sicher Gold" : silber ? "1 Silber sicher" : offen.art === "gbronze" ? "Platz 3 · " + SM_KRUG_KARTEN + " Karten" : SM_KRUG_KARTEN + " Karten"}</span></div>
     <div class="sm-buehne">${edel ? `<div class="sm-tr-strahlen"></div><div class="sm-tr-halo"></div><div class="sm-tr-blitz"></div><div class="sm-tr-welle"></div>` : ""}<div class="sm-kegel"></div><div class="sm-beam"></div><div class="sm-sockel"></div>
       ${edel ? `<div class="sm-tr-orbit">${Array.from({ length: 10 }, (_, i) => `<i style="--i:${i}"></i>`).join("")}</div>` : ""}
       <div class="sm-jar ${rm ? "" : edel ? "treue-schweb" : zug.some(c => c.s >= 3) ? "stark" : "wackel"}${silber ? " geschenk" : ""}${treue ? " treue" : ""} k-${treue ? "gold" : silber ? "silber" : "bronze"}" role="button" tabindex="0" aria-label="Krug antippen">${smKrugGross(treue ? "gold" : silber ? "silber" : "bronze")}${treue ? (sieben || offen.q === "truhe" ? SM_SIEGEL_HTML : SM_SIEGEL_HTML.replace(">7</text>", ">1</text>")) : silber ? SM_SI_MEDAILLE : ""}</div>

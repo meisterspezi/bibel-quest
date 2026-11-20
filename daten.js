@@ -1,4 +1,4 @@
-const APP_VERSION = "10.41";
+const APP_VERSION = "10.42";
 /* 9.60 Beta-Kanal: Die App liegt zweimal online – Live (…/bibel-quest/) und Beta (…/bibel-quest/beta/). Beide nutzen denselben Spielstand
    und dieselbe Datenbank. BETA ist wahr, wenn diese Kopie aus dem Ordner beta/ läuft; VERSION_TEXT steht in Feedback und Meldungen. */
 const BETA = location.pathname.includes("/beta/");
