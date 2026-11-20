@@ -3502,20 +3502,35 @@ const dlgZeit = z => z ? new Date(z).toLocaleString("de-DE", { day: "2-digit", m
 function dlgBlasen(liste, ichBin) {
   return liste.length ? liste.map(m => `<div class="dlg-b ${m.von === ichBin ? "ich" : "du"}"><div class="dlg-t">${esc(m.text).replace(/\n/g, "<br>")}</div><div class="dlg-z small muted">${m.von === "dev" ? "Entwickler" : esc(m.name || "Spieler")} · ${dlgZeit(m.zeit)}</div></div>`).join("") : `<p class="muted small">Noch keine Nachrichten.</p>`;
 }
-/* Spieler: Gespräch laden; bei neuer Nachricht vom Entwickler ein Fenster zeigen (nur auf ruhigen Hauptseiten) */
+/* Spieler: Gespräch laden; bei neuer Nachricht vom Entwickler ein Fenster zeigen (auf allen Hauptreitern, nie im Spiel oder über einem Fenster).
+   10.36: Statt alle 30 Min. neu abzufragen, beobachtet die App das Gespräch live (onSnapshot). Geöffnet wird die Beobachtung wie bisher
+   höchstens alle 30 Min. (Merker bq-dlg-<pid> über Neustarts hinweg) – das kostet so viel wie der frühere Abruf; danach kommt jede neue
+   Nachricht sofort an und kostet nur 1 Lesezugriff. Keine zusätzlichen Datenbankzugriffe gegenüber 10.35. */
+const DLG_RUHIG = ["home", "lernen", "lernverse", "spielen", "zusammen", "gegner", "duelle", "bib", "rank", "album", "profil", "ich", "shop"];
+let dlgAbo = null;
+function dlgMerken() { dlgGezeigt = Date.now(); try { localStorage.setItem("bq-dlg-" + S.pid, String(dlgGezeigt)); } catch (e) {} }
+function dlgZeigen() {
+  const l = DLG || []; const n = dlgNeuSpieler(); if (!n || gesperrt) return;
+  if (!DLG_RUHIG.includes(current) || document.querySelector(".modal, .sm-ov, .sm-flug, .sm-tour, .truhe-fx, .sb-ov") || document.body.classList.contains("spiel-laeuft")) return;
+  const letzte = l.filter(m => m.von === "dev").pop(); if (!letzte) return;
+  modal(`<div class="label">Nachricht vom Entwickler</div><h2 style="margin:0">${n === 1 ? "Neue Nachricht" : n + " neue Nachrichten"}</h2>
+      <div class="card" style="margin:0"><p style="margin:0">${esc(letzte.text).replace(/\n/g, "<br>")}</p></div>
+      <button class="btn primary" data-close="antwort">Antworten</button><button class="btn ghost" data-close="">Später</button>`, r => { S.dlgGesehen = Math.max(...l.map(m => m.zeit), S.dlgGesehen || 0); save(); renderHud(); if (r === "antwort") go("dialog"); });
+  SFX.coin && SFX.coin();
+}
 function dlgPruefen() {
   const L = window.LB; if (!S.lbName || !S.pid || !S.ownersSet || !L || !L.ok || !L.dialogHolen || gesperrt) return;
-  const dk = "bq-dlg-" + S.pid; let dz = 0; try { dz = +localStorage.getItem(dk) || 0; } catch (e) {}
-  if (Date.now() - Math.max(dlgGezeigt, dz) < 30 * 60000) return; dlgGezeigt = Date.now(); try { localStorage.setItem(dk, String(dlgGezeigt)); } catch (e) {} /* 9.52: 30 Min. */
-  L.dialogHolen(S.pid).then(l => {
-    DLG = l; const n = dlgNeuSpieler(); if (!n) return;
-    if (!["home", "lernen", "spielen", "zusammen", "rank"].includes(current) || document.querySelector(".modal") || document.body.classList.contains("spiel-laeuft")) return;
-    const letzte = l.filter(m => m.von === "dev").pop();
-    modal(`<div class="label">Nachricht vom Entwickler</div><h2 style="margin:0">${n === 1 ? "Neue Nachricht" : n + " neue Nachrichten"}</h2>
-      <div class="card" style="margin:0"><p style="margin:0">${esc(letzte.text).replace(/\n/g, "<br>")}</p></div>
-      <button class="btn primary" data-close="antwort">Antworten</button><button class="btn ghost" data-close="">Später</button>`, r => { S.dlgGesehen = Math.max(...l.map(m => m.zeit), 0); save(); renderHud(); if (r === "antwort") go("dialog"); });
-    SFX.coin && SFX.coin();
-  }).catch(() => {});
+  if (dlgAbo) { dlgZeigen(); return; }
+  let dz = 0; try { dz = +localStorage.getItem("bq-dlg-" + S.pid) || 0; } catch (e) {}
+  if (Date.now() - Math.max(dlgGezeigt, dz) < 30 * 60000) { dlgZeigen(); return; } dlgMerken(); /* 9.52: 30 Min. */
+  if (L.dialogBeobachten) {
+    try {
+      const stop = L.dialogBeobachten(S.pid, l => { const vorher = dlgNeuSpieler(); DLG = l; dlgMerken(); if (dlgNeuSpieler() !== vorher) renderHud(); dlgZeigen(); },
+        () => { try { stop && stop(); } catch (e) {} dlgAbo = null; });
+      dlgAbo = { stop }; return;
+    } catch (e) { dlgAbo = null; }
+  }
+  L.dialogHolen(S.pid).then(l => { DLG = l; dlgZeigen(); }).catch(() => {});
 }
 /* Gespräch (Spieler: sein eigenes; Verwalter: mit dem Spieler arg) */
 VIEWS.dialog = (arg) => {
@@ -3542,7 +3557,7 @@ VIEWS.dialog = (arg) => {
   laden();
   $("dlgText").oninput = () => { $("dlgZahl").textContent = `${$("dlgText").value.length} / 1000 Zeichen`; };
   $("dlgSend").onclick = () => { const t = $("dlgText").value.trim(); if (!t) { SFX.wrong(); return; } const b = $("dlgSend"); b.disabled = true;
-    L.dialogSenden(pid, dev ? name : S.lbName, dev ? "dev" : "spieler", t).then(() => { SFX.coin(); if (ant) { pkAntwSetzen(ant.id); DLG_ANTWORT = null; toast(`${svg("check", "var(--good)")}<div><b>Antwort gesendet</b><div class="small muted">${esc(name || "Der Spieler")} sieht sie beim nächsten Öffnen der App.</div></div>`); } $("dlgText").value = ""; $("dlgZahl").textContent = "0 / 1000 Zeichen"; b.disabled = false; return laden(); })
+    L.dialogSenden(pid, dev ? name : S.lbName, dev ? "dev" : "spieler", t).then(() => { SFX.coin(); if (ant) { pkAntwSetzen(ant.id); DLG_ANTWORT = null; toast(`${svg("check", "var(--good)")}<div><b>Antwort gesendet</b><div class="small muted">${esc(name || "Der Spieler")} sieht sie, sobald die App offen ist (spätestens etwa 30 Min. nach dem letzten Start).</div></div>`); } $("dlgText").value = ""; $("dlgZahl").textContent = "0 / 1000 Zeichen"; b.disabled = false; return laden(); })
       .catch(() => { b.disabled = false; toast(`${svg("nein")}<div>Das hat nicht geklappt (Firebase-Regeln von 9.11 eingespielt?).</div>`); }); };
 };
 /* Verwalter: alle Gespräche + neue Nachricht an einen Spieler */

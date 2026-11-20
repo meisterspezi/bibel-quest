@@ -353,6 +353,9 @@ if (!configured) {
     LB.dialogHolen = async (pid) => (await fs.getDocs(fs.query(fs.collection(db, "dialoge"), fs.where("pid", "==", pid), fs.limit(200)))).docs.map(dlgZeile).sort((a, b) => a.zeit - b.zeit);
     LB.dialogAlle = async () => (await fs.getDocs(fs.query(fs.collection(db, "dialoge"), fs.limit(400)))).docs.map(dlgZeile).sort((a, b) => a.zeit - b.zeit);
     LB.dialogSenden = async (pid, name, von, text) => { await LB.signIn(); const r = await fs.addDoc(fs.collection(db, "dialoge"), { pid, name: String(name || "").slice(0, 20), von, text: String(text).slice(0, 1000), zeit: fs.serverTimestamp() }); if (von === "spieler") anstupsen("dialog", r.id); };
+    // 10.36 Live-Beobachtung des eigenen Gesprächs: kostet beim Öffnen so viel wie ein Abruf, danach nur 1 Lesezugriff je neuer Nachricht
+    LB.dialogBeobachten = (pid, cb, fehler) => fs.onSnapshot(fs.query(fs.collection(db, "dialoge"), fs.where("pid", "==", pid), fs.limit(200)),
+      snap => cb(snap.docs.map(dlgZeile).sort((a, b) => a.zeit - b.zeit)), e => { if (fehler) fehler(e); });
     LB.dialogLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("dialoge", id)); };
     LB.gemLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("gemeinden", id)); };
 
