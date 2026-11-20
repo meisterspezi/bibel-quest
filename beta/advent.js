@@ -52,11 +52,7 @@ function blStall(auf) {
   <path d="M100 470Q96 392 132 362Q180 330 228 362Q262 392 260 470" fill="none" stroke="#7a6a58" stroke-width="2" opacity=".6"/>
   ${Array.from({ length: 14 }, (_, i) => `<path d="M${110 + (i * 37) % 140} ${370 + (i * 23) % 90}l${6 + i % 4} ${2 + i % 3}" stroke="#2a2018" stroke-width="1.4" opacity=".5"/>`).join("")}
   <path d="M138 470V404Q138 372 180 368Q222 372 222 404V470z" fill="${auf ? "url(#blHoehle)" : "#1a120c"}"/>
-  ${auf ? `<ellipse cx="180" cy="440" rx="70" ry="44" fill="url(#blGlut)" filter="url(#blBlur)"/>
-  <path d="M150 470l6 -28h48l6 28" fill="#8a5a2a" opacity=".85"/><path d="M152 444h56" stroke="#5a3418" stroke-width="3"/>
-  <path d="M156 442q24 -12 48 0" fill="#e8c86a"/><ellipse cx="180" cy="438" rx="14" ry="5.4" fill="#fffaf0"/><circle cx="191" cy="435" r="3.6" fill="#f2c9a0"/><circle cx="191" cy="435" r="8" fill="none" stroke="#fff6c0" stroke-width="1.2" opacity=".8"/>
-  <path d="M150 438q-6 -18 4 -30q8 -4 12 6l-2 24z" fill="#3a2a50" opacity=".85"/><circle cx="158" cy="404" r="5" fill="#3a2a50" opacity=".85"/>
-  <path d="M212 440q6 -20 -4 -32q-8 -4 -12 6l2 26z" fill="#4a3a28" opacity=".85"/><circle cx="204" cy="402" r="5.4" fill="#4a3a28" opacity=".85"/>` : ""}
+  ${auf ? `<ellipse cx="180" cy="430" rx="80" ry="54" fill="url(#blGlut)" filter="url(#blBlur)"/><clipPath id="adStallC"><path d="M138 470V404Q138 372 180 368Q222 372 222 404V470z"/></clipPath><g clip-path="url(#adStallC)">${adBildIn("krippe", 120, 356, 120, 120)}</g><path d="M138 470V404Q138 372 180 368Q222 372 222 404V470z" fill="none" stroke="#f2c14e" stroke-width="2.4"/>` : ""}
   <path d="M126 470V398M234 470V398" stroke="url(#blHolz)" stroke-width="7"/><path d="M118 400L180 360L242 400" stroke="url(#blHolz)" stroke-width="7" fill="none" stroke-linejoin="round"/>
   <path d="M122 396L180 356L238 396" stroke="#a87a4a" stroke-width="1.4" fill="none"/>
   <path d="M112 402l68 -46 68 46" stroke="#5a3a22" stroke-width="3" fill="none" opacity=".5"/>
@@ -68,20 +64,34 @@ const BL_SO = { 0: "1. Advent", 6: "2. Advent", 13: "3. Advent", 20: "4. Advent"
 /* Häuser [x, y, w, h, opt, Türen [[nr, dx, dy]]] – hinten nach vorn */
 const BL_HAEUSER = [
   [14, 196, 40, 34, { d: 1 }, [[1, 8, 9]]], [58, 186, 36, 44, { br: 1 }, [[2, 8, 10]]], [262, 182, 38, 40, { d: 1, br: 1 }, [[3, 8, 9]]], [306, 192, 42, 36, {}, [[4, 10, 8]]],
-  [100, 200, 52, 46, { tr: 1 }, [[0, 12, 6]]], [212, 196, 46, 50, {}, [[5, 10, 12]]],
-  [6, 244, 50, 48, { br: 1 }, [[7, 8, 10]]], [60, 252, 58, 52, { d: 1 }, [[6, 14, 8]]], [244, 250, 56, 52, { tr: 1 }, [[8, 8, 12]]], [304, 240, 52, 50, { d: 1, br: 1 }, [[9, 12, 10]]],
+  [100, 200, 52, 46, { tr: 1 }, [[0, 8, 4]]], [212, 196, 46, 50, {}, [[5, 10, 12]]],
+  [6, 244, 50, 48, { br: 1 }, [[7, 8, 10]]], [60, 252, 58, 52, { d: 1 }, [[6, 11, 6]]], [244, 250, 56, 52, { tr: 1 }, [[8, 8, 12]]], [304, 240, 52, 50, { d: 1, br: 1 }, [[9, 12, 10]]],
   [128, 252, 44, 40, {}, [[10, 8, 8]]], [190, 254, 44, 38, { d: 1 }, [[11, 10, 7]]],
-  [2, 306, 54, 54, { d: 1 }, [[12, 8, 10]]], [304, 300, 56, 58, {}, [[13, 12, 8]]], [56, 316, 40, 46, { br: 1, tuer: 1 }, [[14, 14, 6]]], [262, 314, 40, 48, { tuer: 1 }, [[15, 8, 8]]],
+  [2, 306, 54, 54, { d: 1 }, [[12, 8, 10]]], [304, 300, 56, 58, {}, [[13, 10, 9]]], [56, 316, 40, 46, { br: 1, tuer: 1 }, [[14, 14, 6]]], [262, 314, 40, 48, { tuer: 1 }, [[15, 8, 8]]],
   [0, 370, 46, 52, {}, [[16, 8, 10]]], [314, 366, 46, 54, { d: 1 }, [[17, 12, 10]]], [44, 376, 46, 50, { d: 1 }, [[18, 8, 12]]], [268, 378, 46, 48, { br: 1 }, [[19, 10, 10]]],
-  [0, 430, 52, 70, { d: 1 }, [[20, 10, 12]]], [52, 440, 40, 60, {}, [[21, 8, 12]]], [268, 438, 42, 62, { d: 1 }, [[22, 8, 12]]], [310, 428, 50, 72, {}, [[23, 10, 14]]]];
+  [0, 430, 52, 70, { d: 1 }, [[20, 8, 14]]], [52, 440, 40, 60, {}, [[21, 8, 12]]], [268, 438, 42, 62, { d: 1 }, [[22, 8, 12]]], [310, 428, 50, 72, {}, [[23, 10, 14]]]];
+/* Sonntagsbild in ein Fenster/Tor einsetzen (zugeschnitten) */
+const adBildIn = (key, x, y, w, h) => tkBildSvg("adv", key).replace("<svg ", `<svg x="${x}" y="${y}" width="${w}" height="${h}" `);
 function blTuer(nr, x, y, st) {
-  const so = BL_SO[nr] !== undefined, w = so ? 24 : 18, h = so ? 26 : 18, auf = st.offen.includes(nr), zu = nr > st.heute, jetzt = nr === st.heute, nach = !auf && nr < st.heute;
-  const form = so ? `M${x} ${y + h}V${y + 10}a${w / 2} ${w / 2} 0 0 1 ${w} 0V${y + h}z` : `M${x} ${y + h}V${y + 5}a5 5 0 0 1 5 -5h${w - 10}a5 5 0 0 1 5 5V${y + h}z`;
+  const so = AD_SO[nr], w = so ? 36 : 18, h = so ? 40 : 18, auf = st.offen.includes(nr), zu = nr > st.heute, jetzt = nr === st.heute, nach = !auf && nr < st.heute && !adNachEnde();
+  const form = so ? `M${x} ${y + h}V${y + w / 2}a${w / 2} ${w / 2} 0 0 1 ${w} 0V${y + h}z` : `M${x} ${y + h}V${y + 5}a5 5 0 0 1 5 -5h${w - 10}a5 5 0 0 1 5 5V${y + h}z`;
+  if (so) { /* 10.42: Adventssonntag – großes goldenes Bogenfenster, darüber n Kerzen, geöffnet mit dem Bild der Geschichte */
+    const T = ADVENT_TUEREN[nr], cid = "adc" + nr + "_" + (++_tkZ);
+    const kerzen = Array.from({ length: so }, (_, k) => { const kx = x + w / 2 + (k - (so - 1) / 2) * 7; return `<rect x="${kx - 1.6}" y="${y - 9}" width="3.2" height="7" rx=".8" fill="#d8283a"/>${auf ? `<path d="M${kx} ${y - 14}q2.2 2.6 0 5q-2.2 -2.4 0 -5z" fill="#ffd24a"/><circle cx="${kx}" cy="${y - 11}" r="4" fill="#ffe9a0" opacity=".35"/>` : ""}`; }).join("");
+    return `<g class="bl-t so${jetzt ? " jetzt" : ""}${auf ? " auf" : ""}" data-tuer="${nr}">
+      <circle cx="${x + w / 2}" cy="${y + h / 2}" r="${w * .9}" fill="url(#blGlut)" opacity="${auf ? 1 : .45}" filter="url(#blBlur2)"/>
+      ${auf ? `<clipPath id="${cid}"><path d="${form}"/></clipPath><g clip-path="url(#${cid})"><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#141a44"/>${adBildIn(T.bild, x - 4, y, w + 8, h + 8)}</g>`
+        : `<path d="${form}" fill="${zu ? "#1a1430" : "#3a2410"}"/><path d="M${x + w / 2} ${y + 4}V${y + h}" stroke="#5a3a22" stroke-width="1.2" opacity=".8"/>`}
+      <path d="${form}" fill="none" stroke="${jetzt ? "#fff6c0" : "#f2c14e"}" stroke-width="${jetzt ? 3 : 2.2}"/>
+      ${kerzen}
+      ${auf ? "" : `<text x="${x + w / 2}" y="${y + h - 9}" text-anchor="middle" font-family="Georgia" font-weight="700" font-size="11" fill="${zu ? "#c8a86a" : "#ffe9a8"}">${nr === 0 ? "★" : nr}</text>`}
+      ${nach ? `<circle cx="${x + w}" cy="${y + 2}" r="4.4" fill="#e8475f"/>` : ""}</g>`;
+  }
   return `<g class="bl-t${jetzt ? " jetzt" : ""}" data-tuer="${nr}">
     ${auf ? `<circle cx="${x + w / 2}" cy="${y + h / 2}" r="${w}" fill="url(#blGlut)" filter="url(#blBlur2)"/>` : ""}
     <path d="${form}" fill="${auf ? "url(#blFen)" : zu ? "#1a1424" : "#3a2a1a"}" stroke="${jetzt ? "#fff6c0" : "#3a2a1a"}" stroke-width="${jetzt ? 2 : 1.4}"/>
     ${!auf ? `<path d="M${x + w / 2} ${y + 3}V${y + h}" stroke="#5a3a22" stroke-width="1" opacity="${zu ? .5 : .9}"/>` : ""}
-    <text x="${x + w / 2}" y="${y + h - (so ? 7 : 5)}" text-anchor="middle" font-family="Georgia" font-weight="700" font-size="${so ? 10 : 9}" fill="${auf ? "#5a2a08" : zu ? "#6a5a6a" : "#e8c890"}">${nr === 0 ? "★" : nr}</text>
+    <text x="${x + w / 2}" y="${y + h - 5}" text-anchor="middle" font-family="Georgia" font-weight="700" font-size="9" fill="${auf ? "#5a2a08" : zu ? "#6a5a6a" : "#e8c890"}">${nr}</text>
     ${nach ? `<circle cx="${x + w}" cy="${y}" r="4" fill="#e8475f"/>` : ""}</g>`;
 }
 function bethlehem(st) {
@@ -91,7 +101,7 @@ function bethlehem(st) {
     ${blOlive(118, 302, .9)}${blOlive(248, 300, .85)}
     ${haeuser}
     ${blStall(stallAuf)}
-    <g class="bl-t${stallJetzt ? " jetzt" : ""}" data-tuer="24"><rect x="160" y="476" width="40" height="16" rx="8" fill="${stallAuf ? "#f2c14e" : "#1a1424"}" stroke="${stallJetzt ? "#fff6c0" : "#f2c14e"}" stroke-width="1.4"/><text x="180" y="488" text-anchor="middle" font-family="Georgia" font-weight="700" font-size="11" fill="${stallAuf ? "#3a1e08" : "#f2c14e"}">24</text></g>
+    <g class="bl-t so${stallJetzt ? " jetzt" : ""}" data-tuer="24"><path d="M138 470V404Q138 372 180 368Q222 372 222 404V470z" fill="transparent"/><rect x="160" y="476" width="40" height="16" rx="8" fill="${stallAuf ? "#f2c14e" : "#1a1424"}" stroke="${stallJetzt ? "#fff6c0" : "#f2c14e"}" stroke-width="1.4"/><text x="180" y="488" text-anchor="middle" font-family="Georgia" font-weight="700" font-size="11" fill="${stallAuf ? "#3a1e08" : "#f2c14e"}">24</text></g>
   </svg>`;
 }
 const _schaf = blSchaf;
@@ -175,7 +185,7 @@ if (typeof TK_BILD !== "undefined") TK_BILD.adv = ADV_BILD;
    mit Testdatum ist alles Vorschau: Türen werden nur in dieser Sitzung geöffnet, keine Belohnungen.
    Stand im Spielstand S.adv = { o: { "<nr>": dayNum des Öffnens }, ank }; beim Zusammenführen je Tür der früheste Tag. */
 const AD_TAGE = ["2026-11-29", ...Array.from({ length: 24 }, (_, i) => `2026-12-${i + 1}`)];
-const AD_ENDE = "2027-01-06", AD_NEU_BIS = "2026-12-06";
+const AD_ENDE = "2027-01-06", AD_NEU_BIS = "2026-12-06", AD_ANSICHT_BIS = "2027-01-31"; /* bis 6.1. nachholen, bis 31.1. Bilder und Verse ansehen */
 const AD_SO = { 0: 1, 6: 2, 13: 3, 20: 4 }; /* Adventssonntag n */
 const AD_WT = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
 const adLokal = () => /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
@@ -184,8 +194,9 @@ const adTest = () => adHeuteStr() !== today();
 const adTag = nr => dayNum(AD_TAGE[nr]);
 const adJetzt = () => dayNum(adHeuteStr());
 const adLaeuft = () => adJetzt() >= adTag(0) && adJetzt() <= dayNum(AD_ENDE);
-const adSichtbar = () => adLaeuft() || (typeof BETA !== "undefined" && BETA) || adLokal();
-const adHeuteNr = () => { const d = adJetzt(); let n = -1; AD_TAGE.forEach((t, i) => { if (dayNum(t) <= d) n = i; }); return d > dayNum(AD_ENDE) ? -1 : n; };
+const adNachEnde = () => adJetzt() > dayNum(AD_ENDE);
+const adSichtbar = () => (adJetzt() >= adTag(0) && adJetzt() <= dayNum(AD_ANSICHT_BIS)) || (typeof BETA !== "undefined" && BETA) || adLokal();
+const adHeuteNr = () => { const d = adJetzt(); let n = -1; AD_TAGE.forEach((t, i) => { if (dayNum(t) <= d) n = i; }); return n; };
 const adDatumText = nr => { const d = datumVon(adTag(nr)); return `${AD_WT[d.getUTCDay()]} ${d.getUTCDate()}. ${d.getUTCMonth() === 10 ? "November" : "Dezember"}`; };
 function adEcht() { if (!S.adv || typeof S.adv !== "object") S.adv = {}; if (!S.adv.o || typeof S.adv.o !== "object") S.adv.o = {}; return S.adv; }
 function adStand() { if (!adTest()) return adEcht().o; try { const o = JSON.parse(sessionStorage.getItem("bq-adv-test") || "{}"); return o && typeof o === "object" ? o : {}; } catch (e) { return {}; } }
@@ -195,7 +206,7 @@ const adAmTag = () => Object.entries(adEcht().o).filter(([nr, t]) => +t === adTa
 /* Belohnungen je Tür */
 function adLohn(nr) {
   const so = AD_SO[nr], hl = nr === 24;
-  return { xp: hl ? 150 : so ? 100 : 50, manna: hl ? 10 : so ? 5 : 3, krug: hl || nr === 20 ? "gold" : so ? "silber" : null,
+  return { xp: hl ? 150 : so ? 100 : 50, manna: hl ? 10 : so ? 5 : 3, krug: hl ? "gold" : so ? "silber" : null,
     rahmen: hl ? "adv-kranz5" : so ? "adv-kranz" + so : null, avatar: hl ? "adv-krippe" : null };
 }
 /* Geschenk-Krüge aus dem Kalender (nur echter Stand) – zählt sammel.js mit */
@@ -263,21 +274,25 @@ VIEWS.advent = () => {
   if (!adSichtbar()) { go("home"); return; }
   const h = adHeuteNr(), offen = Object.keys(adStand()).map(Number), test = adTest();
   const vorStart = h < 0 && adJetzt() < adTag(0);
-  const kopf = vorStart ? `Startet am Sonntag, 29. November` : h >= 24 ? (adAnzahl() >= 25 || test ? "Frohe Weihnachten!" : "Frohe Weihnachten – verpasste Türen bis 6.1. nachholen") : `Noch ${24 - Math.max(0, h)} ${24 - Math.max(0, h) === 1 ? "Tag" : "Tage"} bis Heiligabend`;
+  const kopf = vorStart ? `Startet am Sonntag, 29. November` : adNachEnde() ? "Danke fürs Mitfeiern – frohes neues Jahr!" : h >= 24 ? (adAnzahl() >= 25 || test ? "Frohe Weihnachten!" : "Frohe Weihnachten – verpasste Türen bis 6.1. nachholen") : `Noch ${24 - Math.max(0, h)} ${24 - Math.max(0, h) === 1 ? "Tag" : "Tage"} bis Heiligabend`;
   screen.innerHTML = `${backBtn("home", "Start")}<div class="ad-seite">
     <div class="ad-titel"><b>Adventskalender</b><small>${kopf}</small></div>
     ${test ? `<div class="ad-test">Vorschau mit Testdatum ${esc(adHeuteStr())} – keine Belohnungen. <button class="btn ghost mini" id="adTagZ">◀</button><button class="btn ghost mini" id="adTagV">▶</button><button class="btn ghost mini" id="adReset">Zurücksetzen</button></div>`
       : vorStart && (BETA || adLokal()) ? `<div class="ad-test">Beta-Vorschau: Im Testlabor ein Datum ab 29.11. wählen, um Türen zu öffnen.</div>` : ""}
     <div class="ad-buehne">${bethlehem({ heute: h, offen })}</div>
+    <div class="ad-gesch-t">Die Weihnachtsgeschichte</div>
+    <div class="ad-gesch">${[0, 6, 13, 20, 24].map(nr => { const auf = adOffen(nr), T = ADVENT_TUEREN[nr]; return `<button class="ad-g${auf ? " auf" : ""}" data-gesch="${nr}"><span class="ad-g-b">${auf ? tkBildSvg("adv", T.bild) : `<i>${nr === 24 ? "★" : AD_SO[nr]}</i>`}</span><small>${nr === 24 ? "Heiligabend" : AD_SO[nr] + ". Advent"}</small></button>`; }).join("")}</div>
     <div class="ad-lohnreihe">${["adv-kranz1", "adv-kranz2", "adv-kranz3", "adv-kranz4", "adv-kranz5"].map((id, i) => `<span class="ad-l${adFrei(["adv-0", "adv-6", "adv-13", "adv-20", "adv-24"][i]) ? " frei" : ""}" title="${esc(RAHMEN.find(r => r.id === id).name)}">${avatarHtml({ name: S.lbName || "?", avatar: i === 4 ? "adv-krippe" : S.avatar, frame: id }, 30)}</span>`).join("")}</div>
-    <p class="small muted ad-hinw">Jede Tür: Bibelvers, XP und Manna. Adventssonntage: Bild der Weihnachtsgeschichte, Krug und eine Kerze mehr am Kranz-Rahmen. Heiligabend: Avatar „Christus in der Krippe“. Verpasste Türen kannst du bis 6. Januar nachholen.</p></div>`;
+    <p class="small muted ad-hinw">Jede Tür: Bibelvers, XP und Manna. Adventssonntage: Bild der Weihnachtsgeschichte, Silberkrug und eine Kerze mehr am Kranz-Rahmen. Heiligabend: Goldkrug und Avatar „Christus in der Krippe“. Geöffnete Türen kannst du jederzeit wieder ansehen, verpasste bis 6. Januar nachholen.</p></div>`;
   wireGo();
   screen.querySelectorAll("[data-tuer]").forEach(t => t.addEventListener("click", () => adTuerTippen(+t.dataset.tuer)));
+  screen.querySelectorAll("[data-gesch]").forEach(b => b.onclick = () => { const nr = +b.dataset.gesch; if (adOffen(nr)) { SFX.tap(); adZeigen(nr, null); } else adTuerTippen(nr); });
   const tagGehen = d => { const n = Math.max(adTag(0) - 1, Math.min(dayNum(AD_ENDE) + 1, adJetzt() + d)), x = datumVon(n); sessionStorage.setItem("bq-ed-datum", `${x.getUTCFullYear()}-${x.getUTCMonth() + 1}-${x.getUTCDate()}`); go("advent"); };
   if ($("adTagZ")) { $("adTagZ").onclick = () => tagGehen(-1); $("adTagV").onclick = () => tagGehen(1); $("adReset").onclick = () => { sessionStorage.removeItem("bq-adv-test"); go("advent"); }; }
 };
 function adTuerTippen(nr) {
   const h = adHeuteNr();
+  if (!adOffen(nr) && adNachEnde()) { SFX.wrong(); toast(`<div>Nachholen war bis 6. Januar möglich.</div>`); return; }
   if (nr > h) { SFX.wrong(); toast(`${svg("clock") || ""}<div>Tür ${nr === 0 ? "„1. Advent“" : nr} öffnet am <b>${adDatumText(nr)}</b>.</div>`); return; }
   if (adOffen(nr)) { SFX.tap(); adZeigen(nr, null); return; }
   if (!adTest() && typeof BQ_UHR !== "undefined" && !BQ_UHR.gesichert() && !BQ_UHR.lokal) { toast("<div>Für neue Türen kurz mit dem Internet verbinden.</div>"); return; }
@@ -316,7 +331,7 @@ function adZeigen(nr, lohn) {
 function adBanner() {
   if (!adSichtbar() || current !== "home" || screen.querySelector(".ad-banner")) return;
   const h = adHeuteNr(), wartet = h >= 0 && !adOffen(h), nach = Array.from({ length: Math.max(0, h) }, (_, i) => i).filter(i => !adOffen(i)).length;
-  const sub = h < 0 ? (adJetzt() < adTag(0) ? "Beta-Vorschau · Start So 29.11." : "Bis zum nächsten Advent!") : wartet ? `${h === 0 ? "Tür „1. Advent“" : h === 24 ? "Heiligabend" : "Tür " + h} wartet auf dich` : nach ? `${nach} ${nach === 1 ? "Tür" : "Türen"} zum Nachholen` : "Heute schon geöffnet ✓";
+  const sub = adNachEnde() ? "Bilder und Verse ansehen" : h < 0 ? (adJetzt() < adTag(0) ? "Beta-Vorschau · Start So 29.11." : "Bis zum nächsten Advent!") : wartet ? `${h === 0 ? "Tür „1. Advent“" : h === 24 ? "Heiligabend" : "Tür " + h} wartet auf dich` : nach ? `${nach} ${nach === 1 ? "Tür" : "Türen"} zum Nachholen` : "Heute schon geöffnet ✓";
   const b = document.createElement("button"); b.className = "ad-banner" + (wartet ? " wartet" : "");
   b.innerHTML = `<span class="ad-b-ic">${bethlehemMini()}</span><span><b>Adventskalender</b> <small>· ${esc(sub)}</small></span>${adJetzt() < dayNum(AD_NEU_BIS) ? `<span class="pl-neu">NEU</span>` : ""}<i>›</i>`;
   b.onclick = () => { SFX.tap(); go("advent"); };
