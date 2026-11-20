@@ -545,7 +545,7 @@ function vlEnde() {
   const tage = s.tage.includes(dayNum(today())) ? s.tage : [...s.tage, dayNum(today())].slice(-40);
   let titel = "Lektion geschafft!", zeile = "", tal = 0, siegel = false;
   if (modus === "pruefung") {
-    if (!VL.durchfall) { lvSetzen(k, { b: true, tage }); tal = LV_PRUEF_TAL; siegel = true; titel = "Vers gemeistert!"; zeile = "Du kennst den Lernvers auswendig – das Abzeichen gehört dir."; }
+    if (!VL.durchfall) { lvSetzen(k, { b: true, tage }); tal = LV_PRUEF_TAL; siegel = true; setTimeout(() => mannaPlus(5), 900); /* 10.30 */ titel = "Vers gemeistert!"; zeile = "Du kennst den Lernvers auswendig – das Abzeichen gehört dir."; }
     else { lvSetzen(k, { tage }); titel = "Fast geschafft!"; zeile = "Übe noch ein wenig – du kannst die Prüfung jederzeit wiederholen."; }
   } else if (modus === "lernen" && stufe > s.st) {
     lvSetzen(k, { st: stufe, tage, auf: today(), an: lvHeuteNeu(k) + 1, q: quote, qd: today() }); tal = LV_TAL[stufe - 1];
@@ -574,7 +574,7 @@ function vlEnde() {
     ${zurPruefung ? `<button class="btn primary breit" id="vlPruef">${svg("siegel")} Jetzt zur Prüfung</button><button class="btn ghost breit" id="vlFertig">Später</button>` : `<button class="btn primary breit" id="vlFertig">Weiter</button>`}</div>`;
   $("vlFertig").onclick = () => { SFX.tap(); go(heimAnsicht("home")); };
   if ($("vlPruef")) $("vlPruef").onclick = () => { SFX.tap(); go("verslektion", k + "|pruefung"); };
-  setTimeout(() => { addXp(xp, $("vlFertig"), "vers", xInfo); if (tal) addTal(tal); save(); checkBadges(); lbSync(); }, 350);
+  setTimeout(() => { xpOderOel(xp, $("vlFertig"), "vers", xInfo); if (tal) addTal(tal); save(); checkBadges(); lbSync(); }, 350);
 }
 
 /* ----- Karte auf der Startseite und im Archiv ----- */
@@ -942,8 +942,8 @@ function tagMerken() {
   if (!S.tage.includes(n)) { S.tage.push(n); S.tage = S.tage.filter(x => x > n - 35).sort((a, b) => a - b); }
   const wk = weekKey();
   if (tageDieseWoche() >= TREUE_TAGE && !S.treueWochen.includes(wk)) {
-    S.treueWochen.push(wk); S.treueWochen = S.treueWochen.slice(-60);
-    setTimeout(() => { SFX.badge(); toast(`${svg("people", accent())}<div><b>Treue Woche!</b><div class="small muted">Du hast an ${TREUE_TAGE} Tagen gespielt – eine treue Woche!</div></div>`); }, 1800);
+    S.treueWochen.push(wk); S.treueWochen = S.treueWochen.slice(-60); const mx = mannaPlus(3); /* 10.30 */
+    setTimeout(() => { SFX.badge(); toast(`${svg("people", accent())}<div><b>Treue Woche!</b><div class="small muted">Du hast an ${TREUE_TAGE} Tagen gespielt – eine treue Woche!${mannaText(mx)}</div></div>`); }, 1800);
   }
 }
 
@@ -970,6 +970,7 @@ function meisterErfolg(mode) {
   if (vorher > 0 && !warFrisch) { tal += AUFFRISCH_TAL; S.aufgefrischt = true; meldung = `Siegel aufgefrischt! +${AUFFRISCH_TAL} Talente`; }
   if (nachher > vorher) { tal += SIEGEL[nachher].tal; meldung = `${SIEGEL[nachher].name}-Siegel für „${KETTEN[mode].name}“!` + (SIEGEL[nachher].tal ? ` +${SIEGEL[nachher].tal} Talente` : ""); }
   if (tal) S.tal += tal;
+  if (meldung) meldung += mannaText(mannaPlus(2)); /* 10.30: Siegel neu oder aufgefrischt +2 Manna */
   if (meldung) setTimeout(() => { SFX.badge(); toast(`<span class="siegel gross" style="color:${SIEGEL[nachher].farbe}">${svg("siegel")}</span><div><b>${esc(meldung)}</b><div class="small muted">${nachher < 4 ? "Nächstes Siegel: " + SIEGEL[nachher + 1].text : "Höchste Stufe erreicht."}</div></div>`); }, 1600);
   return { vorher, nachher, tal };
 }
@@ -1222,6 +1223,9 @@ async function xqStartPruefung() {
   const fehlt = !srv || !srv.q || Object.entries(S.xq.q).some(([k, v]) => (+v || 0) > ((srv.q[k]) | 0));
   if (fehlt) await xqAbgleichMitMeldung("beim Start");
 }
+/* 10.30: Manna für Meilensteine (Tagesaufgabe, Abzeichen, Siegel, treue Woche, Lernvers gemeistert) – gibt die vergebene Menge zurück (0 vor dem Album-Start) */
+function mannaPlus(n) { if (gesperrt) return 0; try { return typeof smFrei === "function" && smFrei() && typeof smGoldGeben === "function" ? smGoldGeben(n) : 0; } catch (e) { return 0; } }
+const mannaText = x => x ? ` · +${x} Manna` : "";
 /* 9.89: Runde ohne XP (z. B. 0 richtig oder gekürzte Wiederholung) bringt trotzdem Öl fürs Sammelalbum */
 function xpOderOel(n, el, quelle, info) {
   if (n) return addXp(n, el, quelle, info);
@@ -1333,12 +1337,13 @@ function levelNachreichen(bis) {
   }
   return true;
 }
+const MANNA_FISCHER = ["netz", "fang", "menschenfischer"]; /* 10.30: Menschenfischer-Stufen +5 Manna, andere Abzeichen +2 */
 function checkBadges() {
   let neu = 0;
   BADGES.forEach(b => {
     if (!S.badges.includes(b.id) && b.ok(S)) {
-      S.badges.push(b.id); const t = b.tal || 5; S.tal += t; neu++;
-      setTimeout(() => { SFX.badge(); toast(`${svg(b.ic, accent())}<div><b>Abzeichen: ${esc(b.name)}</b><div class="small muted">${esc(b.d)} · +${t} Talente</div></div>`); burst(innerWidth / 2, innerHeight - 60, 40, { up: 6 }); }, 900 + neu * 700);
+      S.badges.push(b.id); const t = b.tal || 5; S.tal += t; neu++; const mx = mannaPlus(MANNA_FISCHER.includes(b.id) ? 5 : 2); /* 10.30 */
+      setTimeout(() => { SFX.badge(); toast(`${svg(b.ic, accent())}<div><b>Abzeichen: ${esc(b.name)}</b><div class="small muted">${esc(b.d)} · +${t} Talente${mannaText(mx)}</div></div>`); burst(innerWidth / 2, innerHeight - 60, 40, { up: 6 }); }, 900 + neu * 700);
     }
   });
   titelCheck();
@@ -1417,8 +1422,8 @@ function quest(ev, val = 1) {
     it.prog += val;
     geaendert = true;
     if (it.prog >= a.ziel) {
-      it.done = true; S.tal += AUFGABE_TAL;
-      setTimeout(() => { SFX.coin(); toast(`${svg("check", "var(--good)")}<div><b>Tagesaufgabe erledigt</b><div class="small muted">${esc(a.text)} · +${AUFGABE_TAL} Talente</div></div>`); }, 300);
+      it.done = true; S.tal += AUFGABE_TAL; const mx = mannaPlus(1); /* 10.30: +1 Manna je Tagesaufgabe */
+      setTimeout(() => { SFX.coin(); toast(`${svg("check", "var(--good)")}<div><b>Tagesaufgabe erledigt</b><div class="small muted">${esc(a.text)} · +${AUFGABE_TAL} Talente${mannaText(mx)}</div></div>`); }, 300);
     }
   });
   if (geaendert && !S.dq.geschafft && !S.dq.bonus && S.dq.items.every(i => i.done)) {
@@ -2133,7 +2138,7 @@ VIEWS.lektion = (arg) => {
     quest("station", 1); quest("runde", 1);
     SFX.win(); vibrate([20, 30, 20, 30, 60]); rain(70);
     setTimeout(() => {
-      addXp(xp, null, "lektion", { t0, f: g.books.length, fm: g.books.length, d: `Lektion ${gi + 1} · ${stars} ${stars === 1 ? "Stern" : "Sterne"} · ${err} Fehler${W.d}` }); addTal(ltal);
+      xpOderOel(xp, null, "lektion", { t0, f: Math.max(0, g.books.length - err), fm: g.books.length, d: `Lektion ${gi + 1} · ${stars} ${stars === 1 ? "Stern" : "Sterne"} · ${err} Fehler${W.d}` }); addTal(ltal);
       const next = gi + 1 < GROUPS.length;
       const m = modal(`<div class="label">Lektion geschafft</div><div class="stars" style="justify-content:center;gap:8px">${[1, 2, 3].map(k => `<span style="display:inline-block;width:44px;animation:pop .4s ${k * 0.15}s both">${STAR(stars >= k)}</span>`).join("")}</div>
       <h2>${err === 0 ? "Fehlerfrei!" : err + " Fehler"}</h2><div class="rewards">${xp ? `<span class="pill">+${xp} XP</span>` : ""}${ltal ? `<span class="pill">+${ltal} Talente</span>` : ""}</div>${W.hinweis}
@@ -3513,7 +3518,8 @@ function dlgPruefen() {
 VIEWS.dialog = (arg) => {
   const L = window.LB, dev = entwickler && !!arg, pid = dev ? arg : S.pid;
   if (!L || !L.ok || !pid || !L.dialogHolen) { go("home"); return; }
-  const zurueck = dev ? backBtn("dialoge", "Gespräche") : backBtn("home", "Start");
+  const ant = dev && DLG_ANTWORT && DLG_ANTWORT.pid === pid ? DLG_ANTWORT : null; if (!ant) DLG_ANTWORT = null; /* 10.30: Antwort auf ein Feedback aus dem Postkasten */
+  const zurueck = ant ? backBtn("postfach", "Postkasten") : dev ? backBtn("dialoge", "Gespräche") : backBtn("home", "Start");
   screen.innerHTML = `${zurueck}<h1 id="dlgKopf">${dev ? "Gespräch" : "Post vom Entwickler"}</h1><div class="stack" id="dlgListe"><p class="muted">Lade …</p></div>
     <div class="card stack dlg-neu"><label class="label" for="dlgText">${dev ? "Antwort an den Spieler" : "Deine Antwort"}</label><textarea class="field" id="dlgText" rows="4" maxlength="1000" placeholder="Nachricht schreiben …"></textarea>
     <div class="small muted" id="dlgZahl">0 / 1000 Zeichen</div><button class="btn primary" id="dlgSend">Senden</button></div>`;
@@ -3526,10 +3532,14 @@ VIEWS.dialog = (arg) => {
   };
   const laden = () => L.dialogHolen(pid).then(l => { if (dev) DLG_ALLE = DLG_ALLE.filter(m => m.pid !== pid).concat(l); zeichne(l); }).catch(() => { if ($("dlgListe")) $("dlgListe").innerHTML = `<p class="muted">Das Gespräch konnte nicht geladen werden (Firebase-Regeln von 9.11 eingespielt?).</p>`; });
   if (dev) { const m = DLG_ALLE.find(x => x.pid === pid); name = m ? m.name : ""; }
+  if (ant) { if (!name) name = ant.name; if ($("dlgKopf") && ant.name) $("dlgKopf").textContent = ant.name;
+    const kurz = ant.text.replace(/\s+/g, " ").trim(), z = kurz.length > 90 ? kurz.slice(0, 90) + " …" : kurz;
+    const ta = $("dlgText"); ta.value = `Zu deinem Feedback (${ant.art}) „${z}“:\n\n`; $("dlgZahl").textContent = `${ta.value.length} / 1000 Zeichen`;
+    setTimeout(() => { try { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {} }, 400); }
   laden();
   $("dlgText").oninput = () => { $("dlgZahl").textContent = `${$("dlgText").value.length} / 1000 Zeichen`; };
   $("dlgSend").onclick = () => { const t = $("dlgText").value.trim(); if (!t) { SFX.wrong(); return; } const b = $("dlgSend"); b.disabled = true;
-    L.dialogSenden(pid, dev ? name : S.lbName, dev ? "dev" : "spieler", t).then(() => { SFX.coin(); $("dlgText").value = ""; $("dlgZahl").textContent = "0 / 1000 Zeichen"; b.disabled = false; return laden(); })
+    L.dialogSenden(pid, dev ? name : S.lbName, dev ? "dev" : "spieler", t).then(() => { SFX.coin(); if (ant) { pkAntwSetzen(ant.id); DLG_ANTWORT = null; toast(`${svg("check", "var(--good)")}<div><b>Antwort gesendet</b><div class="small muted">${esc(name || "Der Spieler")} sieht sie beim nächsten Öffnen der App.</div></div>`); } $("dlgText").value = ""; $("dlgZahl").textContent = "0 / 1000 Zeichen"; b.disabled = false; return laden(); })
       .catch(() => { b.disabled = false; toast(`${svg("nein")}<div>Das hat nicht geklappt (Firebase-Regeln von 9.11 eingespielt?).</div>`); }); };
 };
 /* Verwalter: alle Gespräche + neue Nachricht an einen Spieler */
@@ -4614,6 +4624,7 @@ async function duEnde() {
     } else {
       if (!D.gesendet) { await L.duellErgebnis(D.id, erg, S.pid); D.gesendet = true; duListe = null; }
       angekommen();
+      try { if (!D.oelAn && typeof smAngenommen === "function") { D.oelAn = true; smAngenommen(); } } catch (e) {} /* 10.30: +1 Manna fürs Annehmen */
       const vgl = duVgl({ r: D.r, p: D.p }, D.gegnerErg, D.art); sieg = vgl > 0; remis = vgl === 0;
       /* Fairplay: wer eine Herausforderung annimmt, bekommt immer etwas – dazu Sieg/Remis */
       if (!D.talGegeben) { D.talGegeben = true; tal = Math.round((DU_FAIR_TAL + (sieg ? DU_SIEG_TAL : vgl === 0 ? DU_REMIS_TAL : 0)) * (D.gleichF != null ? D.gleichF : 1)); if (sieg) S.duSiege = (S.duSiege || 0) + 1; save(); }
@@ -4632,7 +4643,7 @@ async function duEnde() {
   const extra = D.art === "kette" && D.r === D.fragen.length ? " · ganze Kette!"
     : D.art === "quiz" ? (D.p >= BIB_LEITER[14] ? " · Biblionär!" : D.raus ? " · ausgestiegen" : "") : "";
   const gegnerSpalte = `<div class="du-vs-sp offen"><span>${esc(D.gegner)}</span><b>?</b><small>${viele ? "sind dran" : "ist dran"}</small></div>`;
-  function xpGeben(ms) { if (D.xpGegeben) return; D.xpGegeben = true; duXpTagZaehlen(); setTimeout(() => { addXp(xp, null, ziele.some(z => eigenePid(z.id)) ? "duelleigen" : "duell", { t0: D.t0, f: D.r, fm: (D.fragen || []).length, d: `${(DU_TYPEN[typ] && DU_TYPEN[typ].name) || D.art} · ${D.neu ? "Herausforderung" : "angenommen"}${D.gleichF < 1 ? " · gleicher Gegner ×" + (Math.round(D.gleichF * 100) / 100) : ""}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, ms); }
+  function xpGeben(ms) { if (D.xpGegeben) return; D.xpGegeben = true; duXpTagZaehlen(); setTimeout(() => { addXp(xp, null, ziele.some(z => eigenePid(z.id)) ? "duelleigen" : "duell", { t0: D.t0, f: D.r, fm: n, gs: D.art === "quiz" ? 10 / 15 : 0, d: `${(DU_TYPEN[typ] && DU_TYPEN[typ].name) || D.art} · ${D.neu ? "Herausforderung" : "angenommen"}${D.gleichF < 1 ? " · gleicher Gegner ×" + (Math.round(D.gleichF * 100) / 100) : ""}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, ms); }
   /* 6.62: Gegenspieler – Auflösung im Siegelbruch-Stil; Titel, Belohnung und Knöpfe erst danach */
   const aufl = !D.neu && !fehler && !weg;
   if (aufl) {
@@ -4943,7 +4954,7 @@ function bibEnde(G, punkte) {
   if ($("bibNochmal")) $("bibNochmal").onclick = () => { SFX.tap(); bibSolo(G.ed); };
   if ($("bibRang")) $("bibRang").onclick = () => { SFX.tap(); go("rank", "bibWoche"); };
   SFX.win(); if (million) rain(140); else if (punkte >= 16000) rain(60);
-  setTimeout(() => { xpOderOel(xp, null, "bib", { t0: G.t0, f: G.r, fm: 15, d: `${woche ? "Wochenrunde" : adv ? `${edAdj(G.ed)}-Woche` : G.ed ? `${edAdj(G.ed)}-Solo` : "Solo"} · ${pkt(punkte)} Punkte${W ? W.d : ""}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350);
+  setTimeout(() => { xpOderOel(xp, null, "bib", { t0: G.t0, f: G.r, fm: 15, gs: 10 / 15, d: `${woche ? "Wochenrunde" : adv ? `${edAdj(G.ed)}-Woche` : G.ed ? `${edAdj(G.ed)}-Solo` : "Solo"} · ${pkt(punkte)} Punkte${W ? W.d : ""}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, 350);
 }
 /* Solo-Übung (Spielen): zufällige Fragen */
 VIEWS.biblionaer = () => { screen.innerHTML = ""; };
@@ -5467,6 +5478,10 @@ function feedbackOeffnen() {
 let entwickler = false, postfachNeu = 0;
 /* 9.44: ToDo im Postkasten – Einträge, die der Verwalter später bearbeitet. Sie zählen nicht als neu (kein Punkt, keine Zahl) und bleiben dort,
    bis er sie auf „Erledigt“ setzt. Die Ids liegen im eigenen Spielstand (S.pkTodo), also ohne Änderung der Firebase-Regeln. */
+/* 10.30: Feedback beantworten – beantwortete Einträge merkt sich das Verwalter-Gerät im Spielstand */
+let DLG_ANTWORT = null;
+const pkAntwIds = () => (S.pkAntw && typeof S.pkAntw === "object" ? S.pkAntw : (S.pkAntw = {}));
+function pkAntwSetzen(id) { const t = pkAntwIds(); t[id] = Date.now(); const ks = Object.keys(t).sort((a, b) => t[a] - t[b]); while (ks.length > 200) delete t[ks.shift()]; save(); }
 const pkTodoIds = () => (S.pkTodo && typeof S.pkTodo === "object" ? S.pkTodo : (S.pkTodo = {}));
 const pkIstTodo = f => !f.erledigt && !!pkTodoIds()[f.id];
 const pkIstNeu = f => !f.erledigt && !pkIstTodo(f);
@@ -5702,13 +5717,16 @@ VIEWS.postfach = (kat) => {
     if ($("pkAlle")) $("pkAlle").checked = z.length > 0 && pkGew.size === z.length;
     $("pfListe").innerHTML = z.length ? z.map(f => { const kt = pkKat(f); const art = kt === "feedback" ? (ART_NAME[f.art] || f.art) : kt === "datenbank" ? "DB" : ART_NAME[kt]; const kurz = String(f.text || "").replace(/\s+/g, " ").trim();
       return `<details class="card pf pk-${kt} ${f.erledigt ? "erledigt" : ""}${pkIstTodo(f) ? " pk-ist-todo" : ""}" data-id="${esc(f.id)}">
-        <summary>${pkAuswahl ? `<input type="checkbox" class="pk-cb" data-cb="${esc(f.id)}" ${pkGew.has(f.id) ? "checked" : ""} aria-label="Auswählen">` : ""}<span class="pf-art art-${esc(kt === "feedback" ? f.art : kt)}">${esc(art)}</span><span class="pk-vorschau">${esc(kurz.length > 70 ? kurz.slice(0, 70) + " …" : kurz)}</span>${pkIstNeu(f) ? `<i class="pk-punkt" aria-label="neu"></i>` : pkIstTodo(f) ? `<span class="pk-todo-m">ToDo</span>` : ""}<span class="small muted pk-zeit">${esc(pkDatum(f.zeit))}</span></summary>
+        <summary>${pkAuswahl ? `<input type="checkbox" class="pk-cb" data-cb="${esc(f.id)}" ${pkGew.has(f.id) ? "checked" : ""} aria-label="Auswählen">` : ""}<span class="pf-art art-${esc(kt === "feedback" ? f.art : kt)}">${esc(art)}</span><span class="pk-vorschau">${esc(kurz.length > 70 ? kurz.slice(0, 70) + " …" : kurz)}</span>${pkIstNeu(f) ? `<i class="pk-punkt" aria-label="neu"></i>` : pkIstTodo(f) ? `<span class="pk-todo-m">ToDo</span>` : ""}${pkAntwIds()[f.id] ? `<span class="pk-antw-m" title="beantwortet">✓</span>` : ""}<span class="small muted pk-zeit">${esc(pkDatum(f.zeit))}</span></summary>
         <p class="pf-text">${esc(f.text)}</p>
         <div class="small muted">${kt === "feedback" ? (f.name ? `von <b>${esc(f.name)}</b>` : "anonym") : (f.name ? esc(f.name) : "automatisch")} · ${esc(f.ver || "?")} · ${esc(String(f.geraet || "").replace(/^(status|datenbank) · /, ""))}</div>
-        ${pkAuswahl ? "" : `<div class="row-btns" style="margin-top:8px">${pkIstNeu(f) ? `<button class="btn ghost mini" data-todo="${esc(f.id)}">ToDo</button>` : ""}<button class="btn ghost mini" data-erl="${esc(f.id)}">${f.erledigt ? "Wieder als neu" : "Erledigt"}</button>${pkIstTodo(f) ? `<button class="btn ghost mini" data-todo="${esc(f.id)}">Zu Neu</button>` : ""}<button class="btn ghost mini" data-del="${esc(f.id)}">Löschen</button></div>`}</details>`; }).join("")
+        ${pkAntwIds()[f.id] ? `<div class="pk-antw-z"><span class="pk-antw-m">beantwortet ✓</span> <span class="small muted">${esc(pkDatum(pkAntwIds()[f.id]))}</span></div>` : ""}
+        ${pkAuswahl ? "" : `<div class="row-btns" style="margin-top:8px">${kt === "feedback" && f.pid ? `<button class="btn primary mini" data-antw="${esc(f.id)}">${pkAntwIds()[f.id] ? "Nochmal antworten" : "Antworten"}</button>` : ""}${pkIstNeu(f) ? `<button class="btn ghost mini" data-todo="${esc(f.id)}">ToDo</button>` : ""}<button class="btn ghost mini" data-erl="${esc(f.id)}">${f.erledigt ? "Wieder als neu" : "Erledigt"}</button>${pkIstTodo(f) ? `<button class="btn ghost mini" data-todo="${esc(f.id)}">Zu Neu</button>` : ""}<button class="btn ghost mini" data-del="${esc(f.id)}">Löschen</button></div>`}</details>`; }).join("")
       : `<p class="muted" style="margin:6px 0">${pkSuche.trim() ? "Nichts gefunden." : postfachFilter === "neu" ? "Nichts Neues. 🙂" : "Keine Einträge."}</p>`;
     if (pkAuswahl) $("pfListe").querySelectorAll("details.pf > summary").forEach(s => s.onclick = e => { e.preventDefault(); const id = s.parentElement.dataset.id; if (pkGew.has(id)) pkGew.delete(id); else pkGew.add(id); zeichne(); });
     $("pfListe").querySelectorAll("[data-erl]").forEach(b => b.onclick = async () => { SFX.tap(); const f = liste.find(x => x.id === b.dataset.erl); try { await L.feedbackErledigt(f.id, !f.erledigt); f.erledigt = !f.erledigt; pkTodoSetzen(f.id, false); zeichne(); } catch (e) { toast("<div>Das hat nicht geklappt.</div>"); } });
+    $("pfListe").querySelectorAll("[data-antw]").forEach(b => b.onclick = () => { SFX.tap(); const f = liste.find(x => x.id === b.dataset.antw); if (!f || !f.pid) return;
+      DLG_ANTWORT = { pid: f.pid, id: f.id, name: f.name || "", art: ART_NAME[f.art] || "Feedback", text: String(f.text || "") }; go("dialog", f.pid); });
     $("pfListe").querySelectorAll("[data-todo]").forEach(b => b.onclick = () => { SFX.tap(); const f = liste.find(x => x.id === b.dataset.todo); if (!f) return; pkTodoSetzen(f.id, !pkIstTodo(f)); zeichne(); });
     $("pfListe").querySelectorAll("[data-del]").forEach(b => b.onclick = () => { SFX.tap();
       modal(`<h2>Eintrag löschen?</h2><p class="muted small">Das lässt sich nicht rückgängig machen.</p><button class="btn primary" data-close="ja">Löschen</button><button class="btn ghost" data-close>Abbrechen</button>`, async a => {
