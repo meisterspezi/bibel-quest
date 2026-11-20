@@ -212,13 +212,16 @@ function adLohn(nr) {
 /* Geschenk-Krüge aus dem Kalender (nur echter Stand) – zählt sammel.js mit */
 const adKruege = art => Object.keys(adEcht().o).filter(nr => adLohn(+nr).krug === art).length;
 /* Freischaltung von Rahmen/Avatar (need „adv-…“) */
+/* 10.43: Weihnachts-Rahmen und Krippen-Avatar gelten nur bis 6.1.2027 – im nächsten Advent wieder neu erspielen */
 function adFrei(need) {
+  if (adNachEnde()) return false;
   const o = adEcht().o;
   if (need === "adv-stern") return Object.keys(o).length >= 10;
   if (need === "adv-stern-g") return adAmTag() >= 25;
   const m = /^adv-(\d+)$/.exec(need || ""); return !!m && o[m[1]] != null;
 }
-const adNeedText = need => need === "adv-stern" ? "Adventskalender: 10 Türen geöffnet" : need === "adv-stern-g" ? "Adventskalender: alle 25 Türen am richtigen Tag" : /^adv-(\d+)$/.test(need || "") ? `Adventskalender: Tür ${need === "adv-0" ? "1. Advent" : need.slice(4)}` : "Adventskalender";
+const adNeedText = need => adNachEnde() ? "Weihnachts-Belohnung – im nächsten Advent wieder erspielen" : adNeedText0(need);
+const adNeedText0 = need => need === "adv-stern" ? "Adventskalender: 10 Türen geöffnet" : need === "adv-stern-g" ? "Adventskalender: alle 25 Türen am richtigen Tag" : /^adv-(\d+)$/.test(need || "") ? `Adventskalender: Tür ${need === "adv-0" ? "1. Advent" : need.slice(4)}` : "Adventskalender";
 function adMischen(r) {
   if (!r || !r.adv || !r.adv.o) return; const o = adEcht().o;
   Object.entries(r.adv.o).forEach(([nr, t]) => { if (+t > 0 && (o[nr] == null || +t < +o[nr])) o[nr] = +t; });
@@ -226,12 +229,12 @@ function adMischen(r) {
 }
 /* Avatar und Rahmen anmelden */
 (function adLohnAnmelden() {
-  if (typeof AVATARE !== "undefined" && !AVATARE.some(a => a.id === "adv-krippe")) AVATARE.push({ id: "adv-krippe", name: "Christus in der Krippe", price: -1, need: "adv-24", bezug: "Maria gebar ihren ersten Sohn, wickelte ihn in Windeln und legte ihn in eine Krippe (Lukas 2,7). Heiligabend im Adventskalender 2026." });
+  if (typeof AVATARE !== "undefined" && !AVATARE.some(a => a.id === "adv-krippe")) AVATARE.push({ id: "adv-krippe", name: "Christus in der Krippe", price: -1, need: "adv-24", bezug: "Maria gebar ihren ersten Sohn, wickelte ihn in Windeln und legte ihn in eine Krippe (Lukas 2,7). Heiligabend im Adventskalender 2026 – gilt bis 6. Januar." });
   if (typeof RAHMEN !== "undefined" && !RAHMEN.some(r => r.id === "adv-kranz1")) {
-    [1, 2, 3, 4].forEach(n => RAHMEN.push({ id: "adv-kranz" + n, name: `Adventskranz · ${n} ${n === 1 ? "Kerze" : "Kerzen"}`, price: -1, need: "adv-" + [0, 6, 13, 20][n - 1], bezug: `${n}. Advent im Adventskalender 2026 – das Licht kommt näher (Johannes 1,9).` }));
-    RAHMEN.push({ id: "adv-kranz5", name: "Adventskranz · Heiligabend", price: -1, need: "adv-24", bezug: "Alle Kerzen brennen: Heute ist euch der Retter geboren (Lukas 2,11)." });
-    RAHMEN.push({ id: "adv-stern", name: "Sternenhimmel", price: -1, need: "adv-stern", bezug: "Der Stern ging den Weisen voraus (Matthäus 2,9). Für 10 geöffnete Türen im Adventskalender." });
-    RAHMEN.push({ id: "adv-stern-g", name: "Sternenhimmel · Gold", price: -1, need: "adv-stern-g", bezug: "Alle 25 Türen am richtigen Tag geöffnet – treu durch den ganzen Advent." });
+    [1, 2, 3, 4].forEach(n => RAHMEN.push({ id: "adv-kranz" + n, name: `Adventskranz · ${n} ${n === 1 ? "Kerze" : "Kerzen"}`, price: -1, need: "adv-" + [0, 6, 13, 20][n - 1], bezug: `${n}. Advent im Adventskalender 2026 – das Licht kommt näher (Johannes 1,9). Gilt bis 6. Januar.` }));
+    RAHMEN.push({ id: "adv-kranz5", name: "Adventskranz · Heiligabend", price: -1, need: "adv-24", bezug: "Alle Kerzen brennen: Heute ist euch der Retter geboren (Lukas 2,11). Gilt bis 6. Januar." });
+    RAHMEN.push({ id: "adv-stern", name: "Sternenhimmel", price: -1, need: "adv-stern", bezug: "Der Stern ging den Weisen voraus (Matthäus 2,9). Für 10 geöffnete Türen im Adventskalender. Gilt bis 6. Januar." });
+    RAHMEN.push({ id: "adv-stern-g", name: "Sternenhimmel · Gold", price: -1, need: "adv-stern-g", bezug: "Alle 25 Türen am richtigen Tag geöffnet – treu durch den ganzen Advent. Gilt bis 6. Januar." });
   }
   if (typeof BADGES !== "undefined" && !BADGES.some(b => b.id === "adventstreue")) BADGES.push({ id: "adventstreue", kat: "gemeinschaft", name: "Adventstreue", d: "Alle 25 Türen des Adventskalenders am richtigen Tag geöffnet", ic: "star", tal: 25, ok: () => adAmTag() >= 25 });
 })();
@@ -283,7 +286,7 @@ VIEWS.advent = () => {
     <div class="ad-gesch-t">Die Weihnachtsgeschichte</div>
     <div class="ad-gesch">${[0, 6, 13, 20, 24].map(nr => { const auf = adOffen(nr), T = ADVENT_TUEREN[nr]; return `<button class="ad-g${auf ? " auf" : ""}" data-gesch="${nr}"><span class="ad-g-b">${auf ? tkBildSvg("adv", T.bild) : `<i>${nr === 24 ? "★" : AD_SO[nr]}</i>`}</span><small>${nr === 24 ? "Heiligabend" : AD_SO[nr] + ". Advent"}</small></button>`; }).join("")}</div>
     <div class="ad-lohnreihe">${["adv-kranz1", "adv-kranz2", "adv-kranz3", "adv-kranz4", "adv-kranz5"].map((id, i) => `<span class="ad-l${adFrei(["adv-0", "adv-6", "adv-13", "adv-20", "adv-24"][i]) ? " frei" : ""}" title="${esc(RAHMEN.find(r => r.id === id).name)}">${avatarHtml({ name: S.lbName || "?", avatar: i === 4 ? "adv-krippe" : S.avatar, frame: id }, 30)}</span>`).join("")}</div>
-    <p class="small muted ad-hinw">Jede Tür: Bibelvers, XP und Manna. Adventssonntage: Bild der Weihnachtsgeschichte, Silberkrug und eine Kerze mehr am Kranz-Rahmen. Heiligabend: Goldkrug und Avatar „Christus in der Krippe“. Geöffnete Türen kannst du jederzeit wieder ansehen, verpasste bis 6. Januar nachholen.</p></div>`;
+</div>`;
   wireGo();
   screen.querySelectorAll("[data-tuer]").forEach(t => t.addEventListener("click", () => adTuerTippen(+t.dataset.tuer)));
   screen.querySelectorAll("[data-gesch]").forEach(b => b.onclick = () => { const nr = +b.dataset.gesch; if (adOffen(nr)) { SFX.tap(); adZeigen(nr, null); } else adTuerTippen(nr); });
@@ -351,4 +354,12 @@ function adAnkuendigen(versuch = 0) {
       w => { if (w === "los") go("advent"); }).dataset.frei = "1";
   }, versuch ? 2500 : 2200);
 }
-(function adStart() { const alt = VIEWS.home; VIEWS.home = function (a) { alt(a); try { adBanner(); adAnkuendigen(); } catch (e) {} }; })();
+function adAblauf() {
+  if (adTest() || !adNachEnde() || !S.lbName) return;
+  let geaendert = false;
+  if (/^adv-/.test(S.frame || "")) { S.frame = "none"; geaendert = true; }
+  if (/^adv-/.test(S.avatar || "")) { S.avatar = "initial"; geaendert = true; }
+  if (geaendert) { save(); try { renderHud(); lbSync(true); } catch (e) {}
+    toast(`${svg("star", "#f2c14e")}<div><b>Die Weihnachtszeit ist vorbei</b><div class="small muted">Adventskranz und Krippe gibt es im nächsten Advent wieder.</div></div>`); }
+}
+(function adStart() { const alt = VIEWS.home; VIEWS.home = function (a) { alt(a); try { adAblauf(); adBanner(); adAnkuendigen(); } catch (e) {} }; })();
