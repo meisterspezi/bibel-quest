@@ -6092,6 +6092,45 @@ addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredInsta
 addEventListener("appinstalled", () => { deferredInstall = null; appHinweisZeigen(); }); /* 6.66: Belohnung gibt es beim ersten Start als App (+100) */
 if ("serviceWorker" in navigator && location.protocol === "https:") { addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {})); }
 
+/* ---------- 10.27: Auto-Update ----------
+   Die App prüft beim Start, bei jeder Rückkehr und alle 15 Min., ob auf GitHub eine neuere Version liegt (kleiner Abruf von sw.js,
+   ca. 3 KB, keine Datenbank). Gibt es eine, lädt sie sich in einem ruhigen Moment neu: nur auf einer Übersichtsseite, nie mitten
+   im Spiel, in einem offenen Fenster, beim Krug/der Truhe oder beim Tippen. Vorher wird alles Wartende gesendet (sofortSenden).
+   Schutz vor Endlos-Neuladen: dieselbe Version höchstens einmal je 30 Min. versuchen (falls GitHub noch alte Dateien liefert).
+   Nur Versionen, die NEUER sind, lösen ein Neuladen aus (nie zurück auf eine ältere). */
+const UPD_ABSTAND = 15 * 6e4, UPD_RUHIG = ["home", "lernen", "lernverse", "spielen", "zusammen", "gegner", "duelle", "bib", "rank", "album", "profil"];
+let updNeu = "", updZuletzt = 0, updLaeuft = false;
+const verTeile = v => String(v).split(/[.-]/).map(n => +n || 0);
+function verNeuer(a, b) { const x = verTeile(a), y = verTeile(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d > 0; } return false; }
+async function updPruefen(sofort) {
+  if (location.protocol !== "https:" || !navigator.onLine) return;
+  if (!sofort && Date.now() - updZuletzt < 6e4) return; updZuletzt = Date.now();
+  try {
+    const t = await (await fetch("sw.js?u=" + Date.now(), { cache: "no-store" })).text(), m = t.match(/bibel-quest-v(\d+(?:-\d+)+)/);
+    if (m && verNeuer(m[1], APP_VERSION)) { updNeu = m[1].replace(/-/g, "."); updVersuchen(); }
+  } catch (e) {}
+}
+function updRuhig() {
+  if (!UPD_RUHIG.includes(current) || document.body.classList.contains("spiel-laeuft") || gesperrt) return false;
+  if (document.querySelector(".modal, .sm-ov, .truhe-fx, .sm-tour, .sm-flug, .sb-ov")) return false;
+  const a = document.activeElement; return !(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
+}
+function updVersuchen() {
+  if (!updNeu || updLaeuft || !updRuhig()) return;
+  try { const v = JSON.parse(sessionStorage.getItem("bq-upd") || "{}"); if (v.v === updNeu && Date.now() - v.t < 30 * 6e4) return; } catch (e) {}
+  updLaeuft = true;
+  try { sessionStorage.setItem("bq-upd", JSON.stringify({ v: updNeu, t: Date.now(), von: APP_VERSION })); } catch (e) {}
+  try { sofortSenden(); } catch (e) {}
+  const neu = () => setTimeout(() => location.reload(), 1500);
+  try { navigator.serviceWorker && navigator.serviceWorker.getRegistration ? navigator.serviceWorker.getRegistration().then(r => r && r.update()).catch(() => {}).finally(neu) : neu(); } catch (e) { neu(); }
+}
+setTimeout(() => updPruefen(true), 6000);
+setInterval(() => { if (document.visibilityState === "visible") updPruefen(); }, UPD_ABSTAND);
+setInterval(updVersuchen, 5000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") setTimeout(() => updPruefen(true), 1500); });
+setTimeout(() => { try { const v = JSON.parse(sessionStorage.getItem("bq-upd") || "{}"); if (v.v && v.von !== APP_VERSION && !v.gezeigt) { v.gezeigt = 1; sessionStorage.setItem("bq-upd", JSON.stringify(v));
+  toast(`${svg("check", "var(--good)")}<div><b>Neue Version ${esc(VERSION_TEXT)}</b><div class="small muted">Die App wurde automatisch aktualisiert.</div></div>`); } } catch (e) {} }, 2500);
+
 /* ---------- Start ---------- */
 try { const von = new URLSearchParams(location.search).get("von"); if (von && /^[\w-]{4,64}$/.test(von)) { if (!S.lbName && !S.eingeladenVon) S.eingeladenVon = von; history.replaceState(null, "", location.pathname); } } catch (e) {}
 $("hWer").onclick = () => { SFX.tap(); if (!S.lbName) { go("name"); return; } go("profil"); };
