@@ -433,8 +433,8 @@ VIEWS.album = () => {
       <div class="smt-kruege${gesch ? " vier" : ""}">${kruege}</div>${aktion}${gesch ? `<p class="smt-gesch">${({ ggold: "Goldener", geschenk: "Silberner", gbronze: "Bronzener" })[smGeschenkBest()] || "Silberner"} Geschenk-Krug zusätzlich – antippen!</p>` : ""}</div>`;
   const punkte = (n, an) => `<span class="smt-pk">${Array.from({ length: n }, (_, i) => `<i class="${i < an ? "an" : ""}"></i>`).join("")}</span>`;
   const leiste = `<div class="smt-leiste">
-    <button class="smt-ziel${smRegel2() ? " gr" : ""}" id="smTreueInfo" aria-label="Treue-Siegel: noch ${bisGold} Krüge bis zum ${smRegel2() ? "Silberkrug" : "Treue-Krug"}">${smRegel2() ? SM_SIEGEL_SILBER_SVG : SM_SIEGEL_SVG}${punkte(SM_TREUE, SM_TREUE - bisGold)}</button>
-    <button class="smt-ziel${smRegel2() ? "" : " gr"}" id="smGeschenkInfo" aria-label="${smRegel2() ? "Goldkrug" : "Geschenk-Krug"}: noch ${nochT} Schatztruhen">${smRegel2() ? SM_GESCHENK_GOLD_SVG : SM_GESCHENK_SVG}${punkte(SM_TRUHEN_GESCHENK, SM_TRUHEN_GESCHENK - nochT)}</button>
+    <button class="smt-ziel${smRegel2() ? " gr" : ""}" id="smTreueInfo" aria-label="Treue-Siegel: noch ${bisGold} Krüge bis zum ${smRegel2() ? "Silberkrug" : "Treue-Krug"}">${smRegel2() ? smKrugIc("silber") : SM_SIEGEL_SVG}${punkte(SM_TREUE, SM_TREUE - bisGold)}</button>
+    <button class="smt-ziel${smRegel2() ? "" : " gr"}" id="smGeschenkInfo" aria-label="${smRegel2() ? "Goldkrug" : "Geschenk-Krug"}: noch ${nochT} Schatztruhen">${smRegel2() ? smKrugIc("gold") : SM_GESCHENK_SVG}${punkte(SM_TRUHEN_GESCHENK, SM_TRUHEN_GESCHENK - nochT)}</button>
     ${[1, 2].map(r => { const n = smBeutel(r), voll = n >= SM_TAUSCH[r];
       return `<button class="smt-sack${voll ? " voll" : ""}" data-tausch="${r}" style="--c:${SM_RC[r]}" aria-label="${SM_STUFE[r]}-Säckchen: ${n} von ${SM_TAUSCH[r]}">${SM_SACK}<b>${n}/${SM_TAUSCH[r]}</b></button>`; }).join("")}</div>`;
   const knopf = "", treue = "", truhe = "";
