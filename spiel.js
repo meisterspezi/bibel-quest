@@ -2009,7 +2009,8 @@ VIEWS.spielen = () => {
   screen.innerHTML = `${bereichKopf("spielen", { ic: "user", t: "Solo", sub: "Wie weit kommst du heute?" })}
   <div class="zv"><div class="zv2-buehne sok-solo">
     <div class="zv2-reihe"><span class="zv2-tit">${svg("link")}Ketten</span></div><div class="sok-gitter sok-ketten">${[g[1], g[2], g[0], g[3]].map(soloKachel).join("")}</div>
-    <div class="zv2-reihe"><span class="zv2-tit">${svg("star")}Themen · Blitz · Vers</span></div><div class="sok-gitter sok-themen">${g.slice(4).map(soloKachel).join("")}</div></div></div>`;
+    <div class="zv2-reihe"><span class="zv2-tit">${svg("star")}Themen</span></div><div class="sok-gitter sok-themen">${g.filter(s => s.grp in TKETTEN).map(soloKachel).join("")}</div>
+    <div class="zv2-reihe"><span class="zv2-tit">${svg("bolt")}Blitz · Vers</span></div><div class="sok-gitter sok-bv">${g.filter(s => s.id === "blitz" || s.id === "vers").map(soloKachel).join("")}</div></div></div>`;
   wireGo();
   screen.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playChain(b.dataset.k), cdSolo("kette-" + b.dataset.k)); });
   screen.querySelectorAll("[data-tk]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playThemenKette(b.dataset.tk), cdSolo("kette-" + b.dataset.tk)); });
@@ -2052,7 +2053,8 @@ VIEWS.zusammen = () => {
   ${dran}
   <div class="zv ${online ? "" : "sp-aus"}"><div class="zv2-buehne sok-solo">
     <div class="zv2-reihe"><span class="zv2-tit">${svg("link")}Ketten</span></div><div class="sok-gitter sok-ketten">${[g[1], g[2], g[0], g[3]].map(zvKachel).join("")}</div>
-    <div class="zv2-reihe"><span class="zv2-tit">${svg("star")}Themen · Blitz · Vers</span></div><div class="sok-gitter sok-themen">${g.slice(4).map(zvKachel).join("")}</div></div>
+    <div class="zv2-reihe"><span class="zv2-tit">${svg("star")}Themen</span></div><div class="sok-gitter sok-themen">${g.filter(s => s.grp in TKETTEN).map(zvKachel).join("")}</div>
+    <div class="zv2-reihe"><span class="zv2-tit">${svg("bolt")}Blitz · Vers</span></div><div class="sok-gitter sok-bv">${g.filter(s => s.id === "blitz" || s.id === "vers").map(zvKachel).join("")}</div></div>
     <p class="zv2-hinw"><span>1</span>Spiel antippen<i></i><span>2</span>Gegner wählen<i></i><span>3</span>Duell!</p>
     <div id="zvGegnerBox">${zvWahl ? zvGegnerHtml() : ""}</div></div>`;
   wireGo(); duDranVerdrahten(); zvVerdrahten();
@@ -4064,7 +4066,7 @@ const duVerseKey = () => { const jetzt = monatKey(); return Object.keys(MONATSVE
 const duTypVon = d => { const t = (d.art || "vers") === "kette" ? "kette-" + d.k : (d.art || "vers"); return DU_TYPEN[t] ? t : null; };
 const duTypAktuell = () => (DU_TYPEN[S.duTyp] ? S.duTyp : "vers");
 const duTypText = d => { const t = duTypVon(d) || "vers"; return t === "vers" ? `Lernvers ${monatName(d.k)}` : DU_TYPEN[t].name; };
-const duErgText = (art, e) => (art === "blitz" ? `${e.r} richtig` : art === "kette" ? `${e.r}/${e.n} Bücher richtig` : `${e.r}/${e.n} richtig`);
+const duErgText = (art, e) => (art === "blitz" ? `${e.r} richtig` : art === "kette" ? `${e.r}/${e.n} ${e.n > 10 ? "Bücher " : ""}richtig` /* 10.38: Themen-Ketten (≤ 10 Glieder) ohne „Bücher“ */ : `${e.r}/${e.n} richtig`);
 /* 9.13: Wer gewinnt, entscheidet allein die Zahl der richtigen Antworten – bei gleicher Zahl ist es unentschieden, egal wer schneller war (die Punkte werden weiter angezeigt) */
 /* 9.29: Biblionär (art "quiz"): bei gleich vielen richtigen Antworten gewinnt, wer die höhere Wertung (Gewinnstufe) hat – wer rechtzeitig aussteigt, wird belohnt */
 /* 10.34: Biblionär entscheidet nur die erreichte Gewinnstufe (Punkte) – wer rechtzeitig aussteigt, gewinnt; gleiche Punkte = Remis. Alle anderen Arten: richtige Antworten */
@@ -4332,7 +4334,7 @@ function duBelohnen() {
   checkBadges(); lbSync();
 }
 /* Kleine farbige Marke für die Duell-Art (Liste, Hinweise) */
-const duMarke = d => { const t = duTypVon(d) || "vers"; return `<i class="du-marke t-${DU_TYPEN[t].art}">${esc(DU_TYPEN[t].kurz || DU_TYPEN[t].name)}</i>${edMarke(d)}`; };
+const duMarke = d => { const t = duTypVon(d) || "vers"; const tf = TKETTEN[DU_TYPEN[t].k] && ZV_FARBE[DU_TYPEN[t].k]; return `<i class="du-marke t-${DU_TYPEN[t].art}"${tf ? ` style="--dt:${tf}"` : ""}>${esc(DU_TYPEN[t].kurz || DU_TYPEN[t].name)}</i>${edMarke(d)}`; };
 
 /* Anzeige-Helfer der Duellseite: Initialen, Siegesserie, nächstes Abzeichen, Arena-Banner */
 const duInitialen = n => (String(n || "?").trim().split(/\s+/).map(w => w[0]).join("").slice(0, 2) || "?").toUpperCase();
@@ -4589,16 +4591,21 @@ function duZeige() {
   const D = duSpiel; if (!D || current !== "duell" || D.abgeschlossen) return;
   if (D.i >= D.fragen.length || D.aus) return duAbschluss();
   const f = D.fragen[D.i], blitz = D.art === "blitz", kette = D.art === "kette", sek = kette ? DU_KETTE_SEK : DU_SEK;
+  const tk = kette && TKETTEN[D.k] ? TKETTEN[D.k] : null; /* 10.38: Themen-Ketten im Duell wie im Solo – Bilder-Zeitleiste, Frage mit Stelle */
+  const frHtml = tk ? (D.i === 0 ? `<div class="du-frage-buch"><span class="qsub">${esc(tk.start)}</span><span class="qsub">${esc(tk.info)}</span></div>`
+    : `<div class="du-frage-buch"><span class="qsub">${esc(tk.frage)}</span><b class="du-buch">${esc(tk.items[D.i - 1].t)}</b><span class="qsub">${esc(tk.sub(D.i - 1))} · ${esc(tk.items[D.i - 1].r)}</span></div>`) : duFrageHtml(f);
   if (!D.mass && !blitz && !kette && D.fragen.length <= 40) duMass(D); /* 9.65: Frage-Block und Antworten in der ganzen Runde gleich hoch */
   const fortschritt = blitz ? (DU_BLITZ_SEK - D.rest) / DU_BLITZ_SEK : D.i / D.fragen.length;
   const titel = blitz ? `Blitz · <span id="duSek">${Math.ceil(D.rest)} s</span>`
+    : tk ? `${esc(DU_TYPEN["kette-" + D.k].name)} · ${D.i + 1}/${D.fragen.length}`
     : kette ? `${esc(DU_TYPEN["kette-" + D.k].name)} · Buch ${D.i + 1}/${D.fragen.length}` : `Frage ${D.i + 1}/${D.fragen.length}${f.k !== D.k ? ` · Lernvers ${esc(monatName(f.k))}` : ""}`;
   screen.innerHTML = `<div class="vl du-spiel du-${D.art}">
     <div class="vl-kopf"><button class="vl-x" id="duX" aria-label="Duell abbrechen">${svg("back")}</button>
       <div class="vl-bar du-bar"><i style="width:${fortschritt * 100}%"></i></div><span class="du-punkte">${D.p}</span></div>
     <span class="vl-titel du-titel">${svg(blitz ? "bolt" : kette ? "link" : "bolt")} ${esc(D.gegner)} · ${titel}</span>
     <div class="du-zeit">${blitz ? `<i id="duZeit" class="global" style="width:${D.rest / DU_BLITZ_SEK * 100}%"></i>` : `<i id="duZeit" style="animation-duration:${sek}s"></i>`}</div>
-    ${D.mass ? `<div class="du-fr" style="min-height:${D.mass.top}px">${duFrageHtml(f)}</div>` : duFrageHtml(f)}
+    ${tk ? `<div class="du-tkz" id="duTkz">${tkZeitleiste(D.k, D.i - 1, D.i, -1)}</div>` : ""}
+    ${D.mass ? `<div class="du-fr" style="min-height:${D.mass.top}px">${frHtml}</div>` : frHtml}
     <div class="vl-wahl ${f.lang ? "" : "du-kurz"} ${f.buch || f.start ? "du-buecher" : ""}"${D.mass ? ` style="--oh:${D.mass.opt}px"` : ""}>${f.opts.map((o, j) => `<button class="vl-opt" data-o="${j}">${esc(o)}</button>`).join("")}</div>
   </div>`;
   const start = performance.now(); let fertig = false;
@@ -4610,6 +4617,7 @@ function duZeige() {
     if (ok) {
       /* 9.75: ein Punkt je richtige Antwort – keine Tempo-Punkte und keine Combos mehr */
       D.r++; D.p = D.r;
+      if (tk && $("duTkz")) $("duTkz").innerHTML = tkZeitleiste(D.k, D.i, -1, D.i); /* 10.38: Bild sofort aufdecken wie im Solo */
       SFX.right(D.r); vibrate(12); if (el) { const [x, y] = centerOf(el); floatText("+1", x, y); burst(x, y, 12, { speed: 4 }); }
     } else {
       D.f++; SFX.wrong(); vibrate([40, 30, 40]);
@@ -4737,6 +4745,8 @@ async function duEnde() {
     <div class="vle-werte"><div><b>+${xp}</b><span>XP</span></div>${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>${tal > DU_FAIR_TAL ? "Talente" : "Fairplay"}</span></div>` : ""}${mn ? `<div><b>+${mn}</b><span>Manna</span></div>` : ""}</div>
     ${fehler ? `<button class="btn primary breit" id="duNochmal">Nochmal senden</button>` : `<button class="btn primary breit" id="duFertig">${D.heim === "bib" ? "Zurück zu Biblionär" : "Zurück zu " + heimName("duelle")}</button>`}
     ${!D.neu && !fehler && !weg ? `<button class="btn ghost breit" id="duRevanche">${svg("bolt")} ${sieg ? "Nochmal duellieren" : "Revanche"}</button>` : ""}</div>`;
+  if (D.art === "kette" && TKETTEN[D.k]) { const e = screen.querySelector(".du-ende"); /* 10.38: Bilder und Erklärungen wie im Solo */
+    if (e) e.insertAdjacentHTML("beforeend", `<div class="du-tk${aufl ? " sb-spaet" : ""}">${tkErgebnis(D.k, D.r - 1, D.r === D.fragen.length)}</div>`); }
   if (!aufl && !fehler && !weg) SFX.coin(); /* Herausforderung gesendet: kleiner Ton, kein Sieg-Effekt */
   const weiter = () => { duSpiel = null; go(D.heim || heimAnsicht("duelle")); };
   if ($("duFertig")) $("duFertig").onclick = () => { SFX.tap(); weiter(); };

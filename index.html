@@ -1157,6 +1157,8 @@ body[data-acc="perle"]::after{-webkit-mask:none;mask:none;background:url("data:i
 .du-blitz .du-buch{text-shadow:0 0 18px #ff8a5c55}
 .du-buecher{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .du-buecher .vl-opt{text-align:center}
+/* 10.38: Themen-Ketten im Duell – Bilder-Zeitleiste wie im Solo */
+.du-tkz{margin:4px 0 2px}.du-tkz .tk-zl{margin:0}.du-tk{width:100%;margin-top:14px;text-align:left}.du-tk .tk-hero{text-align:center}
 .badge:not(.got) .du-ic-g,.rk-nav button[aria-pressed="false"] .du-ic-g{filter:grayscale(1) brightness(.7);opacity:.75}
 /* Startseite kompakt (6.33): alles ohne Scrollen auf ~390×844; Duell als Arena-Medaille zwischen Lernen und Spielen */
 .start{gap:10px}
@@ -2761,6 +2763,8 @@ body.ed-an:not(.weih-an) .bib-ende .bib-gross b{text-shadow:0 0 18px var(--edc)}
 .sok-solo .zv2-reihe{margin-bottom:6px}
 .sok-solo .sok-gitter{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin:0 2px 12px}
 .sok-solo .sok-gitter:last-child{margin-bottom:4px}
+/* 10.38: Themen (3) und Blitz · Vers (2) in eigenen Zeilen – gleiche Kachelbreite wie die Ketten, mittig */
+.sok-solo .sok-gitter.sok-themen,.sok-solo .sok-gitter.sok-bv{grid-template-columns:repeat(auto-fit,calc((100% - 12px) / 4));justify-content:center}
 .sok-solo .sok-k{background:none;border:0;box-shadow:none;padding:2px 0 4px}
 .sok-solo .sok-k .zv2-ring{width:72px;height:72px}.sok-solo .sok-k .zv2-in{width:63px;height:63px}.sok-solo .sok-k .zv2-in svg{width:52px;height:52px}
 .sok-solo .sok-pl{font-size:.6rem;padding:1px 6px;margin:-10px 0 3px}
