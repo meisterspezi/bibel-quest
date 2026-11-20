@@ -232,6 +232,7 @@ function sammelNachXp(n, quelle, info, vorher, nachher) {
   if (!smFrei()) return;
   const m = smInit(); let g = 0; info = info || {};
   if (quelle === "lektion") g += smLektionManna(info.lr || 0); /* 10.31: Lektionen nur 1 Manna je 10 richtig sortierte Bücher */
+  else if (info.tk && SM_SPIEL_Q.includes(quelle)) { const f = info.f | 0; if (f >= 3) g = 1; if (info.fm && f >= info.fm) g++; } /* 10.38: Themen-Ketten (kurz) – ab 3 richtigen +1, komplett +1, ohne 30-s-Grenze */
   else if (SM_SPIEL_Q.includes(quelle)) {
     const dauer = info.t0 ? Date.now() - info.t0 : 60000;
     if (dauer >= 30000) { g = 1; if (info.fm && info.f / info.fm >= (info.gs || 0.8) - 1e-9) g++; /* 10.30: Biblionär ab 10 von 15 */ if (quelle === "bib" && /^Wochenrunde/.test(info.d || "")) g += 2; }

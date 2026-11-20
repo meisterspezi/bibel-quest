@@ -1157,6 +1157,8 @@ body[data-acc="perle"]::after{-webkit-mask:none;mask:none;background:url("data:i
 .du-blitz .du-buch{text-shadow:0 0 18px #ff8a5c55}
 .du-buecher{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .du-buecher .vl-opt{text-align:center}
+/* 10.38: Themen-Ketten im Duell – Bilder-Zeitleiste wie im Solo */
+.du-tkz{margin:4px 0 2px}.du-tkz .tk-zl{margin:0}.du-tk{width:100%;margin-top:14px;text-align:left}.du-tk .tk-hero{text-align:center}
 .badge:not(.got) .du-ic-g,.rk-nav button[aria-pressed="false"] .du-ic-g{filter:grayscale(1) brightness(.7);opacity:.75}
 /* Startseite kompakt (6.33): alles ohne Scrollen auf ~390×844; Duell als Arena-Medaille zwischen Lernen und Spielen */
 .start{gap:10px}
@@ -2126,7 +2128,7 @@ body[data-tab="rank"]{--ar-gemeinde:#5fe0b0;--ar:#5fe0b0}
 .dlg-liste{display:flex;flex-direction:column;gap:8px}.dlg-b{max-width:88%;padding:10px 12px;border-radius:14px;background:var(--surface);border:1px solid rgba(255,255,255,.08)}.dlg-b.du{align-self:flex-start}.dlg-b.ich{align-self:flex-end;background:rgba(242,193,78,.16);border-color:rgba(242,193,78,.4)}.dlg-t{overflow-wrap:anywhere}.dlg-z{margin-top:4px;font-size:.72rem}
 /* 9.13: Zeitleiste der Themen-Ketten (Zehn Gebote, Schöpfung): grau, bis die Frage richtig beantwortet ist */
 .tk-zl{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:6px;margin:2px 0 4px}
-.tk-gebote{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px 6px}
+.tk-gebote,.tk-plagen{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px 6px}
 .tk-t{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
 .tk-bild{display:block;width:100%;aspect-ratio:1;border-radius:12px;overflow:hidden;background:#ffffff10;box-shadow:0 0 0 1.5px #ffffff22;transition:filter .5s,opacity .5s,box-shadow .5s}
 .tk-bild svg{display:block;width:100%;height:100%}
@@ -2761,6 +2763,8 @@ body.ed-an:not(.weih-an) .bib-ende .bib-gross b{text-shadow:0 0 18px var(--edc)}
 .sok-solo .zv2-reihe{margin-bottom:6px}
 .sok-solo .sok-gitter{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin:0 2px 12px}
 .sok-solo .sok-gitter:last-child{margin-bottom:4px}
+/* 10.38: Themen (3) und Blitz · Vers (2) in eigenen Zeilen – gleiche Kachelbreite wie die Ketten, mittig */
+.sok-solo .sok-gitter.sok-themen,.sok-solo .sok-gitter.sok-bv{grid-template-columns:repeat(auto-fit,calc((100% - 12px) / 4));justify-content:center}
 .sok-solo .sok-k{background:none;border:0;box-shadow:none;padding:2px 0 4px}
 .sok-solo .sok-k .zv2-ring{width:72px;height:72px}.sok-solo .sok-k .zv2-in{width:63px;height:63px}.sok-solo .sok-k .zv2-in svg{width:52px;height:52px}
 .sok-solo .sok-pl{font-size:.6rem;padding:1px 6px;margin:-10px 0 3px}
@@ -3438,6 +3442,11 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .gk-k .bw-kl{position:absolute;right:8px;bottom:8px;margin:0;z-index:2}.gk-k .bw-kl .sm-kr-ic{width:22px;height:22px}
 /* 10.30: Feedback beantwortet, Manna-Liste */
 .pk-antw-m{flex:none;font:800 .62rem var(--body);letter-spacing:.04em;padding:2px 6px;border-radius:99px;color:#0e1226;background:#5fe0b0}.smt-manna-l{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;text-align:left;margin:4px 0 8px;font-size:.9rem;line-height:1.3}.smt-manna-l b{color:#f2c14e;text-align:right}.pk-antw-z{margin-top:6px}
+/* 10.38: Plagen in Ägypten – NEU-Schild an der Kachel, Ankündigung */
+.sok-k .pl-neu{position:absolute;top:4px;right:4px;z-index:3;padding:2px 5px 1px;border-radius:7px 7px 6px 6px;background:linear-gradient(180deg,#e8434a,#b81d2c);color:#fff;font:900 .55rem/1.2 var(--body);letter-spacing:.04em;box-shadow:inset 0 2px 0 #fff,0 0 0 2px #151a3d,0 2px 6px #0006;pointer-events:none}
+@media (prefers-reduced-motion:no-preference){.sok-k .pl-neu{animation:plNeu 2.4s ease-in-out infinite}@keyframes plNeu{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}}
+.pl-ank-f{display:flex;justify-content:center;gap:8px;margin:4px 0 8px}.pl-ank-b{width:84px;height:84px;border-radius:14px;overflow:hidden;box-shadow:0 0 0 2px #e8475f,0 6px 16px #0008}.pl-ank-b:nth-child(1){transform:rotate(-6deg) translateY(6px)}.pl-ank-b:nth-child(3){transform:rotate(6deg) translateY(6px)}.pl-ank-b svg{display:block;width:100%;height:100%}
+.pl-ank-m{display:flex;align-items:center;gap:8px;justify-content:center}.pl-ank-m svg{width:24px;height:24px;flex:none}
 </style>
 </head>
 <body>
