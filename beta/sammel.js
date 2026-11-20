@@ -230,7 +230,7 @@ function sammelNachXp(n, quelle, info, vorher, nachher) {
   const m = smInit(); let g = 0; info = info || {};
   if (SM_SPIEL_Q.includes(quelle)) {
     const dauer = info.t0 ? Date.now() - info.t0 : 60000;
-    if (dauer >= 30000) { g = 1; if (info.fm && info.f / info.fm >= 0.8) g++; if (quelle === "bib" && /^Wochenrunde/.test(info.d || "")) g += 2; }
+    if (dauer >= 30000) { g = 1; if (info.fm && info.f / info.fm >= (info.gs || 0.8) - 1e-9) g++; /* 10.30: Biblionär ab 10 von 15 */ if (quelle === "bib" && /^Wochenrunde/.test(info.d || "")) g += 2; }
   }
   if (quelle === "tagesbonus" && /Schatztruhe/.test(info.d || "")) {
     g += SM_TRUHE_MANNA;
@@ -244,6 +244,11 @@ function sammelNachXp(n, quelle, info, vorher, nachher) {
 function smHerausforderung(ziele) {
   if (!smFrei()) return;
   const x = smGoldGeben(1); if (x) setTimeout(() => toast(`Herausforderung gesendet: +${x} Manna`), 1200);
+}
+/* 10.30: Herausforderung angenommen (eigene Runde gespielt): +1 Manna */
+function smAngenommen() {
+  if (!smFrei()) return;
+  const x = smGoldGeben(1); if (x) setTimeout(() => toast(`Herausforderung angenommen: +${x} Manna`), 1400);
 }
 /* 10.1: Manna der Schatztruhe sichtbar machen (Truhen-Fenster, Tagesaufgaben, Truhe von gestern) */
 const smTruheManna = () => smFrei() ? SM_TRUHE_MANNA : 0;
@@ -441,7 +446,7 @@ VIEWS.album = () => {
   /* 10.5: Erklärungen erst beim Antippen */
   const info = (t, x) => { SFX.tap(); modal(`<div class="smt-info"><h2>${t}</h2>${x}</div><button class="btn primary" data-close>Verstanden</button>`).dataset.frei = "1"; };
   if ($("smMannaLos")) $("smMannaLos").onclick = () => { SFX.tap(); go("spielen"); };
-  $("smMannaInfo") && ($("smMannaInfo").onclick = () => info(`${SM_GOLD_SVG} ${gold} Manna`, `<p>Mit ${SM_KRUG_PREIS} Manna öffnest du einen goldenen Krug mit ${SM_KRUG_KARTEN} Karten – bis zu ${SM_KRUG_TAG} Krüge am Tag. Neue Krüge gibt es jeden Morgen um ${SM_KRUG_STUNDE} Uhr.</p><p>Manna bekommst du für jede Runde ab 30 Sekunden (+1 bei guter Runde), jede Duell-Herausforderung, jede Schatztruhe (${SM_TRUHE_MANNA}), den Biblionär der Woche (2) und jeden Level-Aufstieg (3). Wer den Biblionär der Woche gewinnt, bekommt einen Gratiskrug. Sparen geht ohne Grenze.</p>`));
+  $("smMannaInfo") && ($("smMannaInfo").onclick = () => info(`${SM_GOLD_SVG} ${gold} Manna`, `<p>Mit ${SM_KRUG_PREIS} Manna öffnest du einen goldenen Krug mit ${SM_KRUG_KARTEN} Karten – bis zu ${SM_KRUG_TAG} Krüge am Tag. Neue Krüge gibt es jeden Morgen um ${SM_KRUG_STUNDE} Uhr.</p><div class="smt-manna-l">${[["+1", "Runde ab 30 Sek. (+1 gute Runde)"], ["+1", "Duell gesendet oder angenommen"], ["+1", "Tagesaufgabe"], ["+" + SM_TRUHE_MANNA, "Schatztruhe"], ["+2", "Abzeichen, Siegel, Biblionär der Woche"], ["+3", "Treue Woche, Level-Aufstieg"], ["+5", "Lernvers gemeistert, Menschenfischer"]].map(([z, t]) => `<b>${z}</b><span>${t}</span>`).join("")}</div><p>Sparen geht ohne Grenze.</p>`));
   $("smTreueInfo").onclick = () => info(smRegel2() ? "Silberkrug" : "Treue-Siegel", (smRegel2() ? `<p class="smt-kurz">Jeder <b>${SM_TREUE}. Krug</b> wird ein <b>Silberkrug</b>:<br>1 Silberkarte sicher,<br>doppelte Silber-Chance (40 %).</p>` : `<p>Jeder <b>${SM_TREUE}. Krug</b> ist ein goldener Treue-Krug: eine Goldkarte ist sicher dabei, und die Chance auf weitere Goldkarten ist <b>doppelt so hoch</b> (Gold 10 %).</p>`) + `<p>${bisGold === 1 ? "Der <b>nächste Krug</b> ist es!" : `Noch <b>${bisGold} Krüge</b>.`}</p>`);
   $("smGeschenkInfo").onclick = () => info(smRegel2() ? "Goldkrug" : "Geschenk-Krug", smRegel2() ? `<p class="smt-kurz">Jede <b>${SM_TRUHEN_GESCHENK}. Truhe</b> schenkt einen <b>Goldkrug</b>:<br>1 Goldkarte sicher,<br>doppelte Gold-Chance (10 %).</p><p>${nochT === 1 ? "Die <b>nächste Truhe</b> ist es!" : `Noch <b>${nochT} Truhen</b>.`}</p>` : `<p>Jede <b>${SM_TRUHEN_GESCHENK}. Schatztruhe</b> (alle 3 Tagesaufgaben geschafft) schenkt dir einen silbernen Geschenk-Krug – ohne Manna und <b>zusätzlich</b> zu den 3 Krügen am Tag. Im Silberkrug ist <b>1 Silberkarte sicher</b>, und die Chance auf Silber ist <b>doppelt so hoch</b> (Silber 40 %). Normale Krüge sind aus Bronze, jeder ${SM_TREUE}. Krug ist ein goldener Treue-Krug.</p><p>Noch <b>${nochT} Schatztruhen</b> bis zum nächsten Geschenk.</p>`);
   screen.querySelectorAll("[data-tausch]").forEach(b => b.onclick = () => smTauschStart(+b.dataset.tausch));
