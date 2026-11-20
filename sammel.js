@@ -162,8 +162,9 @@ function smGeschenkArten() { const m = smInit();
   return { ggold: Math.max(0, smPreisZahl(1) - m.kgg) + smTruhenGold(), geschenk: Math.max(0, smGeschenkeGesamt() - m.kga), gbronze: Math.max(0, smPreisZahl(3) - m.kgb) }; }
 const smGeschenke = () => { const a = smGeschenkArten(); return a.ggold + a.geschenk + a.gbronze; };
 const smGeschenkBest = () => { const a = smGeschenkArten(); return SM_GESCH_ARTEN.find(k => a[k] > 0) || ""; };
-/* 10.5: Neue Krüge gibt es jeden Morgen um 8 Uhr – der „Krug-Tag“ beginnt um 8:00 Uhr (Gerätezeit) */
-const SM_KRUG_STUNDE = 8;
+/* 10.5: Neue Krüge gibt es jeden Morgen – der „Krug-Tag“ beginnt zur vollen Stunde SM_KRUG_STUNDE (Gerätezeit).
+   10.25 (ab Sa 21.11.2026): 7 Uhr statt 8 Uhr. Der laufende Krug-Tag (Fr 20.11.) bleibt gleich, nur der nächste beginnt eine Stunde früher. */
+const SM_KRUG_STUNDE = 7;
 const smKrugTag = () => dstr(new Date(Date.now() - SM_KRUG_STUNDE * 36e5));
 const smHeuteKruege = () => { const m = smInit(); return m.kt === smKrugTag() ? m.kn : 0; };
 const smNeueKruegeText = () => (new Date().getHours() < SM_KRUG_STUNDE ? "heute" : "morgen") + " um " + SM_KRUG_STUNDE + " Uhr";
@@ -915,7 +916,7 @@ function smAnkuendigen() {
   }, 1500);
 }
 const SM_TOUR = [
-  { sel: ".smt-karte", t: "Krüge und Manna", x: "Ein goldener Krug kostet 10 Manna und enthält 4 Karten – bis zu 3 am Tag, neue jeden Morgen um 8 Uhr. Manna gibt es fürs Spielen. Dein erster Krug ist ein Geschenk." },
+  { sel: ".smt-karte", t: "Krüge und Manna", x: "Ein goldener Krug kostet 10 Manna und enthält 4 Karten – bis zu 3 am Tag, neue jeden Morgen um " + SM_KRUG_STUNDE + " Uhr. Manna gibt es fürs Spielen. Dein erster Krug ist ein Geschenk." },
   { sel: ".smt-leiste", t: "Ziele und Tauschbeutel", get x() { return smRegel2() ? "Treue-Siegel: jeder 7. Krug ist ein Silberkrug (1 Silber sicher). Geschenk: jede 7. Schatztruhe schenkt einen Goldkrug." + this.x2 : "Treue-Siegel: jeder 7. Krug hat sicher Gold. Geschenk: jede 7. Schatztruhe schenkt einen Krug." + this.x2; }, x2: " In den Säckchen sammeln sich doppelte Karten und alte Karten, die durch eine bessere ersetzt wurden – 4 davon machen eine Karte eine Stufe besser. Antippen erklärt alles." }
 ];
 function smTour() {
