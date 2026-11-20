@@ -126,7 +126,7 @@ function smInit() {
   const m = S[SM_KEY];
   if (!Array.isArray(m.album) || m.album.length !== 66) m.album = Array(66).fill(0);
   if (m.album.some(x => x > SM_MAX)) m.album = m.album.map(x => Math.min(SM_MAX, x | 0)); /* 9.92: Glanz-Karten werden Gold */
-  ["gv", "ga", "gn", "kz", "kn", "kga", "kgg", "kgb", "kgx", "kgt", "tzg", "tz", "ah", "tour", "gls"].forEach(k => { m[k] = Math.max(0, +m[k] || 0); });
+  ["gv", "ga", "gn", "kz", "kn", "kga", "kgg", "kgb", "kgx", "kgt", "tzg", "tz", "ah", "tour", "gls", "lr", "lg"].forEach(k => { m[k] = Math.max(0, +m[k] || 0); });
   ["gt", "kt"].forEach(k => { if (typeof m[k] !== "string") m[k] = ""; });
   /* 10.18: Bis 10.4 zählte der Startkrug als einer der 3 Tageskrüge. Wer ihn so geöffnet hat, erkennt man daran, dass am letzten Krug-Tag
      (bis 18.11.2026) mehr Tageskrüge gezählt sind als normale Krüge überhaupt geöffnet wurden → einmalig ein silberner Geschenk-Krug (kgx) */
@@ -205,7 +205,7 @@ function smMischen(r) {
   if (!r || !r[SM_KEY] || typeof r[SM_KEY] !== "object") return;
   const m = smInit(), o = r[SM_KEY];
   if (Array.isArray(o.album)) o.album.forEach((s, i) => { if (i < 66) m.album[i] = Math.max(m.album[i] | 0, Math.min(SM_MAX, s | 0)); });
-  ["gv", "ga", "kz", "kga", "kgg", "kgb", "kgx", "kgt", "tzg", "tz", "ah", "tour"].forEach(k => { m[k] = Math.max(m[k] | 0, +o[k] || 0); });
+  ["gv", "ga", "kz", "kga", "kgg", "kgb", "kgx", "kgt", "tzg", "tz", "ah", "tour", "lr", "lg"].forEach(k => { m[k] = Math.max(m[k] | 0, +o[k] || 0); });
   [["gt", "gn"], ["kt", "kn"]].forEach(([t, n]) => { const a = smTagZahl(o[t]), b = smTagZahl(m[t]); /* 10.26: als Zahl vergleichen */
     if (a > b) { m[t] = o[t]; m[n] = +o[n] || 0; } else if (a && a === b) m[n] = Math.max(m[n], +o[n] || 0); });
   ["be", "ba"].forEach(k => { [1, 2].forEach(x => { m[k][x] = Math.max(m[k][x] | 0, ((o[k] || {})[x]) | 0); }); });
@@ -228,7 +228,8 @@ function smGeschenk(grund, st) {
 function sammelNachXp(n, quelle, info, vorher, nachher) {
   if (!smFrei()) return;
   const m = smInit(); let g = 0; info = info || {};
-  if (SM_SPIEL_Q.includes(quelle)) {
+  if (quelle === "lektion") g += smLektionManna(info.lr || 0); /* 10.31: Lektionen nur 1 Manna je 10 richtig sortierte Bücher */
+  else if (SM_SPIEL_Q.includes(quelle)) {
     const dauer = info.t0 ? Date.now() - info.t0 : 60000;
     if (dauer >= 30000) { g = 1; if (info.fm && info.f / info.fm >= (info.gs || 0.8) - 1e-9) g++; /* 10.30: Biblionär ab 10 von 15 */ if (quelle === "bib" && /^Wochenrunde/.test(info.d || "")) g += 2; }
   }
@@ -240,6 +241,14 @@ function sammelNachXp(n, quelle, info, vorher, nachher) {
   if (nachher > vorher) g += 3 * (nachher - vorher);
   if (g) smGoldGeben(g);
 }
+/* 10.31: Lektionen – je 10 richtig sortierte Bücher 1 Manna, der Rest zählt bei der nächsten Lektion weiter.
+   lr = richtig sortierte Bücher gesamt, lg = davon schon in Manna bezahlt (beide nur steigend → beim Zusammenführen Maximum) */
+const SM_LEKTION_JE = 10;
+function smLektionManna(n) {
+  const m = smInit(); m.lr += Math.max(0, n | 0);
+  const x = Math.max(0, Math.floor(m.lr / SM_LEKTION_JE) - m.lg); m.lg += x; return x;
+}
+function smLektionRest() { const m = smInit(); return SM_LEKTION_JE - (m.lr % SM_LEKTION_JE); }
 /* 9.89/9.91: Duell-Herausforderung gesendet: +1 Manna, egal ob der andere annimmt – auch an Spieler vom eigenen Gerät */
 function smHerausforderung(ziele) {
   if (!smFrei()) return;
@@ -446,7 +455,7 @@ VIEWS.album = () => {
   /* 10.5: Erklärungen erst beim Antippen */
   const info = (t, x) => { SFX.tap(); modal(`<div class="smt-info"><h2>${t}</h2>${x}</div><button class="btn primary" data-close>Verstanden</button>`).dataset.frei = "1"; };
   if ($("smMannaLos")) $("smMannaLos").onclick = () => { SFX.tap(); go("spielen"); };
-  $("smMannaInfo") && ($("smMannaInfo").onclick = () => info(`${SM_GOLD_SVG} ${gold} Manna`, `<p>Mit ${SM_KRUG_PREIS} Manna öffnest du einen goldenen Krug mit ${SM_KRUG_KARTEN} Karten – bis zu ${SM_KRUG_TAG} Krüge am Tag. Neue Krüge gibt es jeden Morgen um ${SM_KRUG_STUNDE} Uhr.</p><div class="smt-manna-l">${[["+1", "Runde ab 30 Sek. (+1 gute Runde)"], ["+1", "Duell gesendet oder angenommen"], ["+1", "Tagesaufgabe"], ["+" + SM_TRUHE_MANNA, "Schatztruhe"], ["+2", "Abzeichen, Siegel, Biblionär der Woche"], ["+3", "Treue Woche, Level-Aufstieg"], ["+5", "Lernvers gemeistert, Menschenfischer"]].map(([z, t]) => `<b>${z}</b><span>${t}</span>`).join("")}</div><p>Sparen geht ohne Grenze.</p>`));
+  $("smMannaInfo") && ($("smMannaInfo").onclick = () => info(`${SM_GOLD_SVG} ${gold} Manna`, `<p>Mit ${SM_KRUG_PREIS} Manna öffnest du einen goldenen Krug mit ${SM_KRUG_KARTEN} Karten – bis zu ${SM_KRUG_TAG} Krüge am Tag. Neue Krüge gibt es jeden Morgen um ${SM_KRUG_STUNDE} Uhr.</p><div class="smt-manna-l">${[["+1", "Runde ab 30 Sek. (+1 gute Runde)"], ["+1", "je 10 richtig sortierte Bücher in Lektionen"], ["+1", "Duell gesendet oder angenommen"], ["+1", "Tagesaufgabe"], ["+" + SM_TRUHE_MANNA, "Schatztruhe"], ["+2", "Abzeichen, Siegel, Biblionär der Woche"], ["+3", "Treue Woche, Level-Aufstieg"], ["+5", "Lernvers gemeistert, Menschenfischer"]].map(([z, t]) => `<b>${z}</b><span>${t}</span>`).join("")}</div><p>Sparen geht ohne Grenze.</p>`));
   $("smTreueInfo").onclick = () => info(smRegel2() ? "Silberkrug" : "Treue-Siegel", (smRegel2() ? `<p class="smt-kurz">Jeder <b>${SM_TREUE}. Krug</b> wird ein <b>Silberkrug</b>:<br>1 Silberkarte sicher,<br>doppelte Silber-Chance (40 %).</p>` : `<p>Jeder <b>${SM_TREUE}. Krug</b> ist ein goldener Treue-Krug: eine Goldkarte ist sicher dabei, und die Chance auf weitere Goldkarten ist <b>doppelt so hoch</b> (Gold 10 %).</p>`) + `<p>${bisGold === 1 ? "Der <b>nächste Krug</b> ist es!" : `Noch <b>${bisGold} Krüge</b>.`}</p>`);
   $("smGeschenkInfo").onclick = () => info(smRegel2() ? "Goldkrug" : "Geschenk-Krug", smRegel2() ? `<p class="smt-kurz">Jede <b>${SM_TRUHEN_GESCHENK}. Truhe</b> schenkt einen <b>Goldkrug</b>:<br>1 Goldkarte sicher,<br>doppelte Gold-Chance (10 %).</p><p>${nochT === 1 ? "Die <b>nächste Truhe</b> ist es!" : `Noch <b>${nochT} Truhen</b>.`}</p>` : `<p>Jede <b>${SM_TRUHEN_GESCHENK}. Schatztruhe</b> (alle 3 Tagesaufgaben geschafft) schenkt dir einen silbernen Geschenk-Krug – ohne Manna und <b>zusätzlich</b> zu den 3 Krügen am Tag. Im Silberkrug ist <b>1 Silberkarte sicher</b>, und die Chance auf Silber ist <b>doppelt so hoch</b> (Silber 40 %). Normale Krüge sind aus Bronze, jeder ${SM_TREUE}. Krug ist ein goldener Treue-Krug.</p><p>Noch <b>${nochT} Schatztruhen</b> bis zum nächsten Geschenk.</p>`);
   screen.querySelectorAll("[data-tausch]").forEach(b => b.onclick = () => smTauschStart(+b.dataset.tausch));
