@@ -119,11 +119,12 @@ const eigenePid = pid => { const L = window.LB; return !!(L && L.uid && pid && (
 const $ = id => document.getElementById(id);
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const dstr = d => d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
-const today = () => dstr(new Date());
-const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return dstr(d); };
+/* 10.27: Kalender nach der vertrauenswürdigen Uhr (uhr.js) in deutscher Zeit – Uhr/Zeitzone am Handy umstellen hilft nicht */
+const today = () => dstr(BQ_UHR.kalDatum());
+const yesterday = () => { const d = BQ_UHR.kalDatum(); d.setDate(d.getDate() - 1); return dstr(d); };
 const dayNum = s => { if (!s) return 0; const p = s.split("-").map(Number); return Math.round(Date.UTC(p[0], p[1] - 1, p[2]) / 864e5); };
 const datumVon = n => new Date(n * 864e5 + 12 * 3600e3);
-function weekKey(datum) { const d = datum ? new Date(datum) : new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7)); const w1 = new Date(d.getFullYear(), 0, 4); const w = 1 + Math.round(((d - w1) / 864e5 - 3 + ((w1.getDay() + 6) % 7)) / 7); return d.getFullYear() + "-W" + String(w).padStart(2, "0"); }
+function weekKey(datum) { const d = datum ? BQ_UHR.wand(datum) : BQ_UHR.kalDatum(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7)); const w1 = new Date(d.getFullYear(), 0, 4); const w = 1 + Math.round(((d - w1) / 864e5 - 3 + ((w1.getDay() + 6) % 7)) / 7); return d.getFullYear() + "-W" + String(w).padStart(2, "0"); }
 const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const cumAlt = n => 25 * (n - 1) * (n + 2);
 /* 6.69: ab Level 46 gleichmäßig steiler (siehe XP_KNICK/XP_STEIGUNG in daten.js) */
@@ -158,7 +159,7 @@ const STAR = on => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2
 const MONATE = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 /* Lernvers der Gemeinde für den laufenden Monat (statt „Vers des Tages“) */
 function monatsversHtml() {
-  const d = new Date(), k = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+  const d = BQ_UHR.kalDatum(), k = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
   const v = typeof MONATSVERSE !== "undefined" && MONATSVERSE[k];
   return v ? `<figure class="vers monat klein"><span class="vers-label">Lernvers im ${MONATE[d.getMonth()]}</span><blockquote>${esc(v[0])}</blockquote><figcaption>${esc(v[1])} · ${VERS_QUELLE}</figcaption></figure>` : "";
 }
@@ -176,8 +177,8 @@ const LV_XP = 30, LV_XP_RICHTIG = 48; /* XP je Lektion + je Aufgabe, die beim er
 const LV_STUFEN_PRO_TAG = 1;       /* neue Stufen pro Tag – danach wird „gefestigt“ (XP, Übungstag) */
 const LV_PRUEF_QUOTE = 0.9;        /* Prüfung: so viel vom Vers muss stimmen */
 const LV_FREI_QUOTE = 0.85;        /* freies Aufsagen in den Lektionen */
-const monatKey = (d = new Date()) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
-const monatName = k => MONATE[+k.slice(5) - 1] + (k.slice(0, 4) !== String(new Date().getFullYear()) ? " " + k.slice(0, 4) : "");
+const monatKey = (d = BQ_UHR.kalDatum()) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+const monatName = k => MONATE[+k.slice(5) - 1] + (k.slice(0, 4) !== String(BQ_UHR.kalDatum().getFullYear()) ? " " + k.slice(0, 4) : "");
 /* Umzug: bis Version 6.29 gab es 3 Stufen (Wörter im Kopf aufsagen) → auf die neuen 5 Stufen umrechnen */
 function lvMig(v) { if (!v || v.v === 2) return v; const alt = [0, 2, 3, 5][Math.min(3, v.st || 0)]; return Object.assign({}, v, { st: alt, v: 2 }); }
 if (S.lv) Object.keys(S.lv).forEach(k => { S.lv[k] = lvMig(S.lv[k]); });
@@ -568,7 +569,7 @@ function vlEnde() {
       <div><b>+${xp}</b><span>XP</span></div>
       ${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>Talente</span></div>` : ""}
     </div>
-    ${aktuell ? `<div class="vle-monat">${svg("fire")}<span>An <b>${monatTage}</b> ${monatTage === 1 ? "Tag" : "Tagen"} im ${MONATE[new Date().getMonth()]} geübt</span></div>` : ""}
+    ${aktuell ? `<div class="vle-monat">${svg("fire")}<span>An <b>${monatTage}</b> ${monatTage === 1 ? "Tag" : "Tagen"} im ${MONATE[BQ_UHR.kalDatum().getMonth()]} geübt</span></div>` : ""}
     <div class="lv-stufe gross" aria-label="Stufe ${neuSt} von ${LV_MAX}">${Array.from({ length: LV_MAX }, (_, i) => `<i class="${i < neuSt ? "an" : ""}"></i>`).join("")}</div>
     ${zurPruefung ? `<button class="btn primary breit" id="vlPruef">${svg("siegel")} Jetzt zur Prüfung</button><button class="btn ghost breit" id="vlFertig">Später</button>` : `<button class="btn primary breit" id="vlFertig">Weiter</button>`}</div>`;
   $("vlFertig").onclick = () => { SFX.tap(); go(heimAnsicht("home")); };
@@ -1245,7 +1246,7 @@ function addXp(n, el, quelle, info) {
 }
 function richtig(n = 1) {
   neuerTag(); S.right += n; S.todayRight += n; S.bestDayRight = Math.max(S.bestDayRight || 0, S.todayRight);
-  if (new Date().getHours() < 7) S.earlyBird = true;
+  if (BQ_UHR.kalDatum().getHours() < 7) S.earlyBird = true;
   quest("right", n);
 }
 function addTal(n) { if (n <= 0) return; S.tal += n; renderHud(); save(); SFX.coin(); }
@@ -1375,8 +1376,8 @@ function aufgabenAuslosen(t) {
    prüfen das Datum gegen die Serverzeit (heute oder gestern). Uhr umstellen, App-Daten löschen oder ein zweites Gerät helfen nicht mehr.
    Ergebnis: ok (gebucht) · schon (heute bereits geholt) · regeln (Server-Regeln noch nicht veröffentlicht oder Spieler nicht in der
    Rangliste → wie früher auszahlen) · netz (offline/Fehler → später) · tag (Datum passt nicht → Uhr des Geräts prüfen). */
-async function serverMs() {
-  try { const r = await fetch(location.pathname, { method: "HEAD", cache: "no-store" }); const d = Date.parse(r.headers.get("date") || ""); if (d > 0) return d; } catch (e) {}
+async function serverMs() { /* 10.27: über die gemeinsame Uhr (uhr.js) */
+  if (!BQ_UHR.gesichert()) await BQ_UHR.holen();
   return Date.now();
 }
 const berlinTagZahl = ms => +new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Berlin" }).format(new Date(ms)).replace(/-/g, "");
@@ -4678,7 +4679,7 @@ const pkt = n => (+n || 0).toLocaleString("de-DE");
 const bibGesichert = erreicht => { let s = 0; BIB_SICHER.forEach(i => { if (erreicht > i) s = BIB_LEITER[i]; }); return s; };
 const bibWocheSeed = wk => hash("biblionaer-" + wk) % 2147483647;
 const bibVorwoche = () => weekKey(Date.now() - 7 * 864e5);
-const bibWocheTage = () => { const d = new Date(), wt = (d.getDay() + 6) % 7; return 7 - wt; }; // inkl. heute bis Sonntag
+const bibWocheTage = () => { const d = BQ_UHR.kalDatum(), wt = (d.getDay() + 6) % 7; return 7 - wt; }; // inkl. heute bis Sonntag
 
 /* Fragen aus dem Startwert: Auswahl, Antwort-Reihenfolge und die Joker-Ergebnisse sind für alle gleich */
 /* stand: Kalenderwoche, aus deren Fragenpool gezogen wird (Duell: Woche der Herausforderung) – neue Fragen mit ab: … ändern so keine alten Runden */

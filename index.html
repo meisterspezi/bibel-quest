@@ -3452,11 +3452,11 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
   var el = document.getElementById("splash"), txt = document.getElementById("spTxt"), zahl = document.getElementById("spZahl");
   var BUECHER = ["1. Mose","2. Mose","3. Mose","4. Mose","5. Mose","Josua","Richter","Rut","1. Samuel","2. Samuel","1. Könige","2. Könige","1. Chronik","2. Chronik","Esra","Nehemia","Ester","Hiob","Psalmen","Sprüche","Prediger","Hohelied","Jesaja","Jeremia","Klagelieder","Hesekiel","Daniel","Hosea","Joel","Amos","Obadja","Jona","Micha","Nahum","Habakuk","Zephanja","Haggai","Sacharja","Maleachi","Matthäus","Markus","Lukas","Johannes","Apostelgeschichte","Römer","1. Korinther","2. Korinther","Galater","Epheser","Philipper","Kolosser","1. Thessalonicher","2. Thessalonicher","1. Timotheus","2. Timotheus","Titus","Philemon","Hebräer","Jakobus","1. Petrus","2. Petrus","1. Johannes","2. Johannes","3. Johannes","Judas","Offenbarung"];
   var reduziert = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var MIN = reduziert ? 400 : 1400, t0 = Date.now(), ziel = 0.05, ist = 0, fertig = false, weg = false;
+  var MIN = reduziert ? 400 : 1400, t0 = performance.now(), ziel = 0.05, ist = 0, fertig = false, weg = false;
   function aus() { if (weg) return; weg = true; el.classList.add("weg"); setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 700); }
   function takt() {
     if (weg) return;
-    var zeit = Math.min(1, (Date.now() - t0) / MIN);
+    var zeit = Math.min(1, (performance.now() - t0) / MIN);
     var soll = Math.min(ziel, zeit);
     if (!fertig) soll = Math.min(soll, 65 / 66);
     ist += (soll - ist) * 0.2; if (soll - ist < 0.002) ist = soll;
@@ -3502,6 +3502,7 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 </div>
 <nav class="tabbar" id="tabbar" aria-label="Hauptmenü"></nav>
 
+<script src="uhr.js"></script>
 <script src="qrcode.js"></script>
 <script src="firebase-config.js"></script>
 <script src="daten.js"></script><script>window.SPL&&SPL.set(0.25)</script>

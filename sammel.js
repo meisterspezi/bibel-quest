@@ -172,17 +172,8 @@ const SM_KRUG_STUNDE = 7;
    - Ohne Serverzeit (offline) gibt es keinen neuen Krug-Tag: nur die restlichen Krüge des zuletzt gespeicherten Tages.
    - Der Krug-Tag läuft nur vorwärts. Steht im Spielstand ein Tag in der Zukunft (alte Version + vorgestellte Uhr), zählt heute als verbraucht.
    - Tage werden als Zahl verglichen (dstr ist nicht mit Nullen aufgefüllt: "2026-12-9" > "2026-12-10" als Text!). */
-let smUhr = null; /* { srv: Serverzeit ms, perf: performance.now() zum selben Moment } */
-const smUhrLokal = () => location.protocol === "file:" || /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
-async function smUhrHolen() {
-  try {
-    const t0 = performance.now(), r = await fetch(location.pathname, { method: "HEAD", cache: "no-store" }), t1 = performance.now();
-    const d = Date.parse(r.headers.get("date") || "");
-    if (d > 0) { const neu = !smUhr; smUhr = { srv: d + 500, perf: (t0 + t1) / 2 }; smUhrGeaendert(neu); return true; } /* Date ist auf Sekunden gerundet → +0,5 s */
-  } catch (e) {}
-  return false;
-}
-function smJetzt() { if (smUhr) return smUhr.srv + (performance.now() - smUhr.perf); return smUhrLokal() ? Date.now() : null; }
+const smUhrLokal = () => BQ_UHR.lokal; /* 10.27: Uhr kommt aus uhr.js (Serverzeit + Stoppuhr) */
+function smJetzt() { return BQ_UHR.gesichert() || BQ_UHR.lokal ? BQ_UHR.jetzt() : null; }
 const smTagZahl = t => { const a = String(t || "").split("-").map(Number); return a.length === 3 && a.every(x => x > 0) ? a[0] * 10000 + a[1] * 100 + a[2] : 0; };
 function smBerlin(ms) { const p = {}; new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Berlin", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", hourCycle: "h23" }).formatToParts(new Date(ms)).forEach(x => { p[x.type] = +x.value; }); return p; }
 /* Krug-Tag im Format von dstr ("2026-11-21"); null = Zeit nicht gesichert */
@@ -205,8 +196,7 @@ function smUhrGeaendert(erstesMal) {
   try { smHud(0); } catch (e) {}
   try { if (erstesMal && current === "album" && !document.querySelector(".sm-ov, .modal")) VIEWS.album(); } catch (e) {}
 }
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") smUhrHolen(); });
-setTimeout(smUhrHolen, 300);
+BQ_UHR.beiNeu(smUhrGeaendert);
 const smGefunden = () => smInit().album.filter(s => s > 0).length;
 const smGlanz = () => smInit().album.filter(s => s >= SM_MAX).length; /* 9.92: Goldkarten (Name bleibt für die Rangliste/Sammlung album) */
 
