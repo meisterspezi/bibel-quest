@@ -113,6 +113,13 @@ export async function sammeln(db, opt = {}) {
     al.docs.forEach(d => { const a = d.data(), sk = albumSk(a), z = karte.get(d.id); if (sk) skMap[d.id] = sk; if (z) { z[iGl] = glanz(a); if (sk) z[iAb] = abVon(sk); } });
   }
   for (const id of Object.keys(skMap)) if (!karte.has(id)) delete skMap[id];  // gelöschte/zusammengeführte Spieler
+  // 10.44 Bethlehem schmücken: schmuck/{pid} = { n } – Summe aller Schmuckstücke; Stand je Spieler in jobstand (nur Geänderte lesen, täglich alles)
+  const schAlt = job.schmuck && typeof job.schmuck === "object" ? job.schmuck : null, schAlle = !schAlt || voll;
+  const sch = await (schAlle ? db.collection("schmuck").get() : db.collection("schmuck").where("updated", ">", seit).get()); gelesen += sch.size;
+  const schMap = schAlle ? {} : { ...schAlt };
+  sch.docs.forEach(d => { const n = Math.max(0, Math.min(1000, (d.data().n | 0))); if (n) schMap[d.id] = n; });
+  const schNeu = JSON.stringify(schMap) !== JSON.stringify(schAlt || {});
+  const schSumme = Object.values(schMap).reduce((a, n) => a + n, 0), schSpender = Object.keys(schMap).length;
   const skNeu = JSON.stringify(skMap) !== skVor || !alOk;
   // 10.2 Album-Woche: Punkte zu Wochenbeginn bzw. beim ersten Sehen in dieser Woche (Basis für „Album diese Woche“)
   // 10.7: zusätzlich der Stand je Stufe zu Wochenbeginn (awb = "Gold.Silber.Bronze") – für „neue Karten diese Woche“
@@ -129,12 +136,12 @@ export async function sammeln(db, opt = {}) {
   const alStand = skNeu ? jetzt : (ms(alDoc.exists ? alDoc.data().stand : null) || jetzt);
   const zeilen = [...karte.values()].sort((a, b) => (a[0] < b[0] ? -1 : 1)), teile = teilen(zeilen);
   const b = db.batch(), ts = Timestamp.fromMillis(jetzt);
-  teile.forEach((z, i) => b.set(R.doc("spieler-" + i), { stand: ts, teil: i, teile: teile.length, anzahl: zeilen.length, alStand, daten: JSON.stringify({ f: FELDER, z }) }));
+  teile.forEach((z, i) => b.set(R.doc("spieler-" + i), { stand: ts, teil: i, teile: teile.length, anzahl: zeilen.length, alStand, schmuck: schSumme, schmuckSp: schSpender, daten: JSON.stringify({ f: FELDER, z }) }));
   alt.filter(d => +d.id.slice(8) >= teile.length).forEach(d => b.delete(d.ref));
   if (skNeu) b.set(ALref, { stand: ts, anzahl: Object.keys(skMap).length, daten: JSON.stringify(skMap) });
-  b.set(jobRef, { stand: jetzt, ...(voll ? { voll: jetzt } : {}), ...(awNeu ? { albumWoche: { wk, b: awB, s: awS } } : {}) }, { merge: true });
+  b.set(jobRef, { stand: jetzt, ...(voll ? { voll: jetzt } : {}), ...(awNeu ? { albumWoche: { wk, b: awB, s: awS } } : {}), ...(schNeu || !schAlt ? { schmuck: schMap } : {}) }, { merge: true });
   await b.commit();
-  return { art: (voll ? "voll" : "Änderungen") + (albumAlle ? " + alle Alben" : ""), alben: Object.keys(skMap).length, spieler: zeilen.length, dokumente: teile.length, gelesen, bytes: teile.map(z => bytes(JSON.stringify(z))) };
+  return { art: (voll ? "voll" : "Änderungen") + (albumAlle ? " + alle Alben" : ""), alben: Object.keys(skMap).length, schmuck: schSumme, spieler: zeilen.length, dokumente: teile.length, gelesen, bytes: teile.map(z => bytes(JSON.stringify(z))) };
 }
 
 // Was aufgeräumt wird: [Sammlung, Feld, Grenze, Beschreibung]

@@ -52,6 +52,8 @@ if (!configured) {
       }
       await fs.setDoc(ref("album", pid), d); return "alt";
     };
+    /* 10.44: eigene Anzahl gespendeter Schmuckstücke (Bethlehem schmücken) */
+    LB.schmuckSetzen = async (pid, n) => { await LB.signIn(); await fs.setDoc(ref("schmuck", pid), { n: Math.max(1, Math.min(300, n | 0)), updated: fs.serverTimestamp() }); };
     /* 10.2: alle Alben (vom Sammel-Job) für das Schaufenster – 1 Lesevorgang, 12 Std. auf dem Gerät gemerkt, nur auf Abruf */
     const ALB_KEY = "bq-albumliste", ALB_TTL = 12 * 36e5;
     /* 10.17: Neu geladen wird, sobald die Rangliste eine neuere Albumliste meldet (bq-albumstand > gemerkter Stand s) –
@@ -183,6 +185,8 @@ if (!configured) {
       if (!teile.length || teile.length < (teile[0].teile | 0)) return null;
       /* 10.17: Wann wurde die Albumliste zuletzt geändert? (vom Job in jedes Teil geschrieben) – gemerkt auch für zwischengespeicherte Listen */
       const alSt = Math.max(0, ...teile.map(t => +t.alStand || 0)); if (alSt) try { localStorage.setItem("bq-albumstand", String(alSt)); } catch (e) {}
+      /* 10.44: Bethlehem schmücken – Summe aller Schmuckstücke (vom Job in jedes Teil geschrieben) */
+      try { const st = teile.find(t => t.schmuck != null); if (st) localStorage.setItem("bq-schmuck", JSON.stringify({ s: +st.schmuck || 0, sp: +st.schmuckSp || 0, t: zeitMs(st.stand) })); } catch (e) {}
       const alter = Math.max(...teile.map(t => Date.now() - zeitMs(t.stand)));
       if (alter > SAMMEL_ALT) {
         if (alter <= SAMMEL_ALBUM_ALT) try { sammelAltAlbum = new Map();
