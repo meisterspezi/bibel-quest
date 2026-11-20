@@ -100,6 +100,9 @@ const smKrugStil = (art, treue, r2) => art === "ggold" || (treue && !r2) ? "gold
 /* 10.22: Neue Regel ab Freitag, 20.11.2026, 08:00 Uhr (07:00 UTC): jeder 7. Krug ist ein Silberkrug (1 Silber sicher),
    jede 7. Schatztruhe schenkt einen Goldkrug (1 Gold sicher). Vorher umgekehrt. In der Beta und auf localhost sofort. */
 const SM_REGEL2 = Date.UTC(2026, 10, 20, 7, 0, 0);
+/* 10.41: ab Sa 21.11.2026 07:00 (06:00 UTC) ist die sichere Karte im Silberkrug immer genau Silber – nicht mehr „mindestens Silber“ (wurde sonst oft Gold) */
+const SM_REGEL3 = Date.UTC(2026, 10, 21, 6, 0, 0);
+const smRegel3 = () => (typeof BETA !== "undefined" && BETA) || /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || Date.now() >= SM_REGEL3;
 const smRegel2 = () => (typeof BETA !== "undefined" && BETA) || /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || Date.now() >= SM_REGEL2;
 /* Stil des Treue-Krugs (jeder 7.) */
 const smSiebterStil = () => smRegel2() ? "silber" : "gold";
@@ -337,11 +340,13 @@ try { document.fonts.ready.then(() => { try { smHudPlatz(); } catch (e) {} }); d
    2. Gibt es Bücher unter dieser Stufe, wird eines aufgewertet (bevorzugt genau eine Stufe darunter → fehlende Bronze zuerst).
    3. Sonst eine doppelte Karte dieser Stufe → Tauschbeutel. 4. Jedes Buch höchstens einmal pro Krug. */
 function smWuerfeln(min, w) { w = w || SM_W; const o = []; let t = 0; for (let r = Math.max(1, min); r <= SM_MAX; r++) { o.push(r); t += w[r]; } let x = Math.random() * t; for (const r of o) { x -= w[r]; if (x <= 0) return r; } return o[o.length - 1]; }
-function smZiehen(album, nr, w, sicher) {
+function smZiehen(album, nr, w, sicher, genau) {
   const res = [], used = {}, min = sicher != null ? sicher : nr % SM_TREUE === 0 ? SM_MAX : 2, z = l => l[Math.floor(Math.random() * l.length)];
   for (let k = 0; k < SM_KRUG_KARTEN; k++) {
     if (album.every(s => s >= SM_MAX)) break;
-    const r = (min > 1 && k === SM_KRUG_KARTEN - 1 && !res.some(c => c.s >= min)) ? smWuerfeln(min, w) : smWuerfeln(1, w);
+    /* genau (10.41): die sichere Karte ist exakt diese Stufe; eine zufällige Goldkarte ersetzt die sichere Silberkarte nicht */
+    const fehlt = genau ? !res.some(c => c.s === min) : !res.some(c => c.s >= min);
+    const r = (min > 1 && k === SM_KRUG_KARTEN - 1 && fehlt) ? (genau ? min : smWuerfeln(min, w)) : smWuerfeln(1, w);
     const idx = album.map((s, i) => i).filter(i => !used[i]), frei = idx.filter(i => album[i] < r);
     if (frei.length) { const g = frei.filter(i => album[i] === r - 1), i = z(g.length ? g : frei); used[i] = 1; res.push({ i, s: r, v: album[i] }); album[i] = r; }
     else { const d = idx.filter(i => album[i] >= r); if (!d.length) continue; const i = z(d); used[i] = 1; res.push({ i, s: r, v: album[i], d: 1 }); }
@@ -363,7 +368,7 @@ function smKrugKaufen(wahl) {
   const r2 = smRegel2(), sieben = m.kz % SM_TREUE === 0;
   /* sicher: Goldkrug 1 Gold; alter 7. Krug 1 Gold; Silberkrug und (ab 10.22) 7. Krug 1 Silber; Bronze-Krug nichts */
   const sicher = art === "ggold" || (sieben && !r2) ? SM_MAX : art === "geschenk" || sieben ? 2 : 0;
-  const vor = m.album.slice(), zug = smZiehen(m.album, m.kz, smGewichte(art, sieben, r2), sicher); /* 10.14: nur der Silberkrug hat 1 Silber sicher */
+  const vor = m.album.slice(), zug = smZiehen(m.album, m.kz, smGewichte(art, sieben, r2), sicher, sicher === 2 && smRegel3()); /* 10.14: nur der Silberkrug hat 1 Silber sicher */
   zug.forEach(c => { if (c.d && c.s < SM_MAX) m.be[c.s] = (m.be[c.s] | 0) + 1; });
   if (smAltInBeutel()) zug.forEach(c => { if (!c.d && c.v > 0 && c.v < SM_MAX) { m.be[c.v] = (m.be[c.v] | 0) + 1; c.a = 1; } }); /* 10.19: alte Karte → Säckchen */
   m.offen = { z: zug, vor, nr: m.kz, art, r2: r2 ? 1 : 0, q }; /* Ergebnis wird VOR der Animation gespeichert – Schließen der App würfelt nichts neu */
