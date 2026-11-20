@@ -85,6 +85,9 @@ const smFrei = () => (typeof BETA !== "undefined" && BETA) || /^(localhost|127\.
 /* ---------- Regeln ---------- */
 const SM_KEY = typeof BETA !== "undefined" && BETA ? "smBeta" : "sm2"; /* 9.93: Beta-Album getrennt vom echten Album */
 const SM_KRUG_PREIS = 10, SM_KRUG_KARTEN = 4, SM_KRUG_TAG = 3, SM_TREUE = 7, SM_MAX = 3; /* 9.92: nur Bronze/Silber/Gold, 4 Karten, jeder 7. Krug sicher Gold */
+const SM_BEUTEL_MAX = 99; /* 10.34: ein Säckchen zeigt bis 99 Karten (gezählt wird ohne Grenze – es geht nie eine Karte verloren) */
+const smSackZahl = n => n > SM_BEUTEL_MAX ? SM_BEUTEL_MAX + "+" : String(n);
+const smSackText = (n, N) => n >= N ? smSackZahl(n) : n + "/" + N; /* unter der Tauschgrenze „2/4“, darüber die echte Zahl */
 const SM_TAUSCH = { 1: 4, 2: 4 };                             /* 4 Bronze → Silber, 4 Silber → Gold */
 const SM_W = { 1: 0.75, 2: 0.20, 3: 0.05 };         /* Seltenheit je Karte */
 /* 10.14: drei Krug-Arten – normaler Krug Bronze, Geschenk-Krug Silber (doppelte Silber-Chance), Treue-Krug (jeder 7.) Gold (doppelte Gold-Chance + 1 Gold sicher) */
@@ -409,7 +412,7 @@ const SM_GESCHENK_GOLD_SVG = `<svg class="smt-ic" viewBox="0 0 24 24" aria-hidde
 const SM_GESCHENK_SVG = `<svg class="smt-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="1.8" fill="#c3cedb" stroke="#2f3642" stroke-width="1.3"/><rect x="3" y="7" width="18" height="4" rx="1.4" fill="#eef3f9" stroke="#2f3642" stroke-width="1.3"/><path d="M12 7v13" stroke="#f2c14e" stroke-width="2.4"/><path d="M12 7c-2-3-6-3-5-.5 .6 1.4 3.4.8 5 .5zm0 0c2-3 6-3 5-.5-.6 1.4-3.4.8-5 .5z" fill="#f2c14e" stroke="#7a4c0e" stroke-width=".9"/></svg>`;
 function smBeutelHtml() {
   return `<div class="sm-beutel">${[1, 2].map(r => { const n = smBeutel(r), voll = n >= SM_TAUSCH[r];
-    return `<button class="sm-bz${voll ? " voll" : ""}" data-tausch="${r}" style="--c:${SM_RC[r]}" aria-label="${SM_STUFE[r]}-Säckchen: ${n} von ${SM_TAUSCH[r]}${voll ? " – tauschen" : ""}">${SM_SACK}<span class="pk">${Array.from({ length: SM_TAUSCH[r] }, (_, k) => `<i class="${k < n ? "an" : ""}"></i>`).join("")}</span><span class="sm-bz-t"><b>${n}</b> ${SM_STUFE[r]}</span><small>${SM_TAUSCH[r]} → 1 ${SM_STUFE[r + 1]}</small></button>`; }).join("")}</div>`;
+    return `<button class="sm-bz${voll ? " voll" : ""}" data-tausch="${r}" style="--c:${SM_RC[r]}" aria-label="${SM_STUFE[r]}-Säckchen: ${n} von ${SM_TAUSCH[r]}${voll ? " – tauschen" : ""}">${SM_SACK}<span class="pk">${Array.from({ length: SM_TAUSCH[r] }, (_, k) => `<i class="${k < n ? "an" : ""}"></i>`).join("")}</span><span class="sm-bz-t"><b class="bz-n">${smSackZahl(n)}</b> ${SM_STUFE[r]}</span><small>${n >= 2 * SM_TAUSCH[r] ? `${Math.floor(n / SM_TAUSCH[r])}× tauschen` : `${SM_TAUSCH[r]} → 1 ${SM_STUFE[r + 1]}`}</small></button>`; }).join("")}</div>`;
 }
 VIEWS.album = () => {
   if (!smFrei()) { go("home"); return; }
@@ -436,7 +439,7 @@ VIEWS.album = () => {
     <button class="smt-ziel${smRegel2() ? " gr" : ""}" id="smTreueInfo" aria-label="Treue-Siegel: noch ${bisGold} Krüge bis zum ${smRegel2() ? "Silberkrug" : "Treue-Krug"}">${smRegel2() ? smKrugIc("silber") : SM_SIEGEL_SVG}${punkte(SM_TREUE, SM_TREUE - bisGold)}</button>
     <button class="smt-ziel${smRegel2() ? "" : " gr"}" id="smGeschenkInfo" aria-label="${smRegel2() ? "Goldkrug" : "Geschenk-Krug"}: noch ${nochT} Schatztruhen">${smRegel2() ? smKrugIc("gold") : SM_GESCHENK_SVG}${punkte(SM_TRUHEN_GESCHENK, SM_TRUHEN_GESCHENK - nochT)}</button>
     ${[1, 2].map(r => { const n = smBeutel(r), voll = n >= SM_TAUSCH[r];
-      return `<button class="smt-sack${voll ? " voll" : ""}" data-tausch="${r}" style="--c:${SM_RC[r]}" aria-label="${SM_STUFE[r]}-Säckchen: ${n} von ${SM_TAUSCH[r]}">${SM_SACK}<b>${n}/${SM_TAUSCH[r]}</b></button>`; }).join("")}</div>`;
+      return `<button class="smt-sack${voll ? " voll" : ""}" data-tausch="${r}" style="--c:${SM_RC[r]}" aria-label="${SM_STUFE[r]}-Säckchen: ${n} Karten">${SM_SACK}<b class="bz-n" data-n="${SM_TAUSCH[r]}">${smSackText(n, SM_TAUSCH[r])}</b></button>`; }).join("")}</div>`;
   const knopf = "", treue = "", truhe = "";
   const knopfAlt = art === "fertig" ? `<p class="sm-hinw">Alle 66 Karten in Gold – dein Album ist vollendet!</p>`
     : `<button class="sm-krug-kn${art === "gold" || art === "geschenk" ? "" : " aus"}" id="smKrugKn">${smKrugIc(art === "geschenk" ? "silber" : (m.kz + 1) % SM_TREUE === 0 ? smSiebterStil() : "bronze")}<span><b>${art === "geschenk" ? "Geschenk-Krug öffnen" : "Krug öffnen"}</b><small>${art === "geschenk" ? `${smGeschenke()} ${smGeschenke() === 1 ? "Geschenk" : "Geschenke"} bereit` : art === "tag" ? "Heute schon 3 Krüge – morgen wieder" : art === "arm" ? `Noch ${SM_KRUG_PREIS - gold} Manna – spiel eine Runde!` : `${SM_KRUG_KARTEN} Karten · ${SM_KRUG_PREIS} Manna`}</small></span>${art === "gold" ? `<i class="sm-preis">${SM_GOLD_SVG}${SM_KRUG_PREIS}</i>` : ""}</button>`;
@@ -671,7 +674,7 @@ function smEinfliegen(zug, vor, fertig) {
   zug.forEach(c => { const el = platz(c.i); if (el && !c.d) el.outerHTML = smKarteHtml(c.i, vor[c.i]); }); /* alter Stand */
   const be = { 1: smBeutel(1), 2: smBeutel(2) }; zug.forEach(c => { if (c.d && c.s < SM_MAX) be[c.s] = Math.max(0, be[c.s] - 1); if (c.a) be[c.v] = Math.max(0, be[c.v] - 1); });
   const beutelZeigen = r => { const b = screen.querySelector(`[data-tausch="${r}"]`); if (!b) return; const n = Math.min(be[r], SM_TAUSCH[r]);
-    b.querySelectorAll(".pk i").forEach((x, k) => x.classList.toggle("an", k < n)); const z = b.querySelector("b, .bz-n"); if (z && /^\d+$/.test(z.textContent.trim())) z.textContent = be[r]; };
+    b.querySelectorAll(".pk i").forEach((x, k) => x.classList.toggle("an", k < n)); const z = b.querySelector(".bz-n"); if (z) z.textContent = z.dataset.n ? smSackText(be[r], +z.dataset.n) : smSackZahl(be[r]); b.classList.toggle("voll", be[r] >= SM_TAUSCH[r]); }; /* 10.34: Zahl zählt beim Einsortieren mit, auch über 4 */
   [1, 2].forEach(beutelZeigen);
   const schicht = document.createElement("div"); schicht.className = "sm-flug";
   schicht.innerHTML = `<button class="btn ghost sm-flug-weg">Überspringen</button><p class="sm-flug-z"></p>`;
