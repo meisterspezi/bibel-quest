@@ -3994,7 +3994,7 @@ function profilVergleich(r) {
 const DU_FRAGEN = 8, DU_SEK = 12, DU_KETTE_SEK = 10, DU_BLITZ_SEK = 60, DU_BLITZ_FRAGEN = 160, DU_MAX_OFFEN = 10, DU_MAX_AUSWAHL = 10, DU_TAGE_HALTEN = 30, DU_TAGE = 3; /* 9.65: Duelle laufen nur noch 3 Tage (leaderboard.js legt ablauf an), danach werden sie gelöscht */
 /* 6.77/6.79: XP-Angleichung – Ziel ≈ 150 XP/Min im Einzelspiel (≈ Esthers Tagestempo von ~9.000 XP bei rund 1 Std. Spielzeit), Duelle (soziales Spiel mit Warten/Herausfordern) ≈ 225 XP/Min (+50 %) */
 const DU_XP = 30, DU_PRO = { vers: 33, blitz: 9, kette: 9, quiz: 66 }, DU_MAXR = { vers: 8, blitz: 25, kette: 66, quiz: 15 };
-const DU_SIEG_TAL = 10, DU_REMIS_TAL = 10, DU_FAIR_TAL = 5; /* 9.65: Remis = 100 % der Sieg-Belohnung (vorher 5) */
+const DU_SIEG_TAL = 10, DU_REMIS_TAL = 10, DU_FAIR_TAL = 5, DU_SIEG_MANNA = 2, DU_REMIS_MANNA = 1; /* 10.32: Sieg +2 Manna, Remis +1 Manna für beide */ /* 9.65: Remis = 100 % der Sieg-Belohnung (vorher 5) */
 const DU_TYPEN = {
   vers: { art: "vers", name: "Lernvers", ic: "scroll", info: "8 Fragen zum Lernvers des Monats · 12 s je Frage" },
   blitz: { art: "blitz", k: "all", name: "Blitz", ic: "bolt", info: "60 Sekunden: Was kommt danach? Ein Fehler kostet 3 s" },
@@ -4079,13 +4079,14 @@ let duAufloesQ = [];
 function duAufloesVersuch() {
   if (!duAufloesQ.length || duSpiel || document.querySelector(".modal, .sb-ov") || !["home", "duelle", "bib", "spielen", "rank", "profil", "lernen", "ich"].includes(current)) return;
   const d = duAufloesQ.shift(), du = d.vonErg, er = d.anErg, typ = duTypVon(d) || "vers", art = DU_TYPEN[typ].art || d.art;
-  const kf = 1 /* 6.93: keine Kürzung bei Duellen */, sieg0 = duVgl(du, er, art) > 0, remis0 = duVgl(du, er, art) === 0, tal = Math.round((sieg0 ? DU_SIEG_TAL : remis0 ? DU_REMIS_TAL : 0) * kf);
+  const kf = 1 /* 6.93: keine Kürzung bei Duellen */, sieg0 = duVgl(du, er, art) > 0, remis0 = duVgl(du, er, art) === 0, tal = Math.round((sieg0 ? DU_SIEG_TAL : remis0 ? DU_REMIS_TAL : 0) * kf),
+    mn = typeof smFrei === "function" && smFrei() ? (sieg0 ? DU_SIEG_MANNA : remis0 ? DU_REMIS_MANNA : 0) : 0;
   const ov = document.createElement("div"); ov.className = "sb-ov"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");
   ov.innerHTML = `<div class="vl vl-ende du-ende sb-ende">
     <div class="sb-kopf"><small>Ergebnis ist da</small><b>${esc(duTypText(d))}-Duell gegen ${esc(d.anName)}</b></div>
     ${sbHtml({ gegner: d.anName, du, er, art })}
     <h1 class="sb-spaet sb-titel"></h1><p class="muted sb-spaet sb-zeile"></p>
-    ${tal ? `<div class="vle-werte sb-spaet"><div><b>+${tal}${TAL_MUENZE}</b><span>Talente</span></div></div>` : ""}
+    ${tal || mn ? `<div class="vle-werte sb-spaet">${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>Talente</span></div>` : ""}${mn ? `<div><b>+${mn}</b><span>Manna</span></div>` : ""}</div>` : ""}
     <div class="sb-spaet sb-knoepfe"><button class="btn primary breit" id="sbWeiter">${duAufloesQ.length ? `Nächstes Ergebnis (${duAufloesQ.length})` : "Weiter"}</button>
     <button class="btn ghost breit" id="sbRev">${svg("bolt")} ${sieg0 ? "Nochmal duellieren" : "Revanche"}</button></div></div>`;
   document.body.appendChild(ov);
@@ -4248,7 +4249,7 @@ const duNeueErgebnisse = () => (duListe || []).filter(d => d.von === S.pid && d.
 /* Herausforderer bekommt seinen Sieg, sobald er das Ergebnis zum ersten Mal sieht */
 function duBelohnen() {
   const neu = duNeueErgebnisse(); if (!neu.length) return;
-  let tal = 0;
+  let tal = 0, mn = 0;
   /* 9.54: Die Liste enthält jetzt die neuesten 100 Duelle (vorher 60 beliebige). Ergebnisse, die dadurch erstmals sichtbar werden:
      nur die der letzten 14 Tage belohnen (ältere still als gesehen merken) und höchstens 5 Auflösungen zeigen – der Rest steht unter „Ergebnisse“. */
   neu.forEach(d => {
@@ -4256,11 +4257,11 @@ function duBelohnen() {
     if (Date.now() - (d.fertig || d.erstellt || 0) > DU_LOHN_TAGE * 864e5) return;
     const v = duVgl(d.vonErg, d.anErg, d.art);
     const kf = 1;  /* 6.93: Duelle werden nie gekürzt (bis 6.92: gekürzt beim 5.+ Duell am Tag gegen denselben Gegner) */
-    if (v > 0) tal += Math.round(DU_SIEG_TAL * kf); else if (v === 0) tal += Math.round(DU_REMIS_TAL * kf); /* der Sieg selbst wird in duZaehlen() aus den Duellen gezählt */
+    if (v > 0) tal += Math.round(DU_SIEG_TAL * kf); else if (v === 0) tal += Math.round(DU_REMIS_TAL * kf); mn += v > 0 ? DU_SIEG_MANNA : v === 0 ? DU_REMIS_MANNA : 0; /* der Sieg selbst wird in duZaehlen() aus den Duellen gezählt */
     if (duAufloesQ.length < DU_AUFLOES_MAX) duAufloesQ.push(d); /* 6.62: statt Hinweis eine Auflösung im Siegelbruch-Stil */
   });
   setTimeout(duAufloesVersuch, 600);
-  if (tal) S.tal += tal; save(); renderHud();
+  if (tal) S.tal += tal; save(); if (mn) mannaPlus(mn); renderHud();
   /* Sieg sofort in die Rangliste und Abzeichen prüfen (sonst erst beim nächsten Spiel) */
   checkBadges(); lbSync();
 }
@@ -4610,7 +4611,7 @@ async function duEnde() {
   if (D.gleichF == null) { D.gleichF = duGleichFaktor(gegnerIds); D.gleichEinzel = D.neu ? Object.fromEntries(ziele.map(z => [z.id, duGleichEinzel(z.id)])) : null; duGleichZaehlen(gegnerIds); }
   xp = duXpWert(D, ziele);
   const angekommen = () => { if (D.gezaehlt) return; D.gezaehlt = true; if (D.neu) S.duGesendet = (S.duGesendet || 0) + ziele.length; else S.duAngenommen = (S.duAngenommen || 0) + 1; quest("duell", 1); save(); };
-  let titel, zeile, tal = 0, sieg = false, remis = false, fehler = false, weg = false;
+  let titel, zeile, tal = 0, mn = 0, sieg = false, remis = false, fehler = false, weg = false;
   try {
     if (D.neu) {
       /* je Gegner ein eigenes Duell mit demselben Startwert; bei einem Fehler werden beim nächsten Versuch nur die fehlenden gesendet */
@@ -4630,7 +4631,7 @@ async function duEnde() {
       try { if (!D.oelAn && typeof smAngenommen === "function") { D.oelAn = true; smAngenommen(); } } catch (e) {} /* 10.30: +1 Manna fürs Annehmen */
       const vgl = duVgl({ r: D.r, p: D.p }, D.gegnerErg, D.art); sieg = vgl > 0; remis = vgl === 0;
       /* Fairplay: wer eine Herausforderung annimmt, bekommt immer etwas – dazu Sieg/Remis */
-      if (!D.talGegeben) { D.talGegeben = true; tal = Math.round((DU_FAIR_TAL + (sieg ? DU_SIEG_TAL : vgl === 0 ? DU_REMIS_TAL : 0)) * (D.gleichF != null ? D.gleichF : 1)); if (sieg) S.duSiege = (S.duSiege || 0) + 1; save(); }
+      if (!D.talGegeben) { D.talGegeben = true; tal = Math.round((DU_FAIR_TAL + (sieg ? DU_SIEG_TAL : vgl === 0 ? DU_REMIS_TAL : 0)) * (D.gleichF != null ? D.gleichF : 1)); if (sieg) S.duSiege = (S.duSiege || 0) + 1; save(); mn = mannaPlus(sieg ? DU_SIEG_MANNA : vgl === 0 ? DU_REMIS_MANNA : 0); }
       titel = sieg ? "Gewonnen!" : vgl === 0 ? "Unentschieden!" : "Knapp vorbei!";
       zeile = sieg ? (D.art === "quiz" && D.r === (D.gegnerErg.r | 0) ? `Gleich viele richtige Antworten – deine höhere Wertung entscheidet. Du hast ${esc(D.gegner)} besiegt.` : `Du hast ${esc(D.gegner)} besiegt.`) : vgl === 0 ? "Genau gleich viele richtige Antworten – egal, wer schneller war!" : `${esc(D.gegner)} war diesmal besser – fordere eine Revanche!`;
     }
@@ -4654,7 +4655,7 @@ async function duEnde() {
     <div class="sb-kopf"><small>${duMarke({ art: D.art, k: D.k, opt: edOpt(D.ed) })}</small><b>Du gegen ${esc(D.gegner)}</b></div>
     ${sbHtml({ gegner: D.gegner, du: { p: D.p, r: D.r, n }, er: D.gegnerErg, art: D.art })}
     <h1 class="sb-spaet${sieg || remis ? "" : " leise"}">${titel}</h1><p class="muted sb-spaet">${zeile}${extra ? `<br><span class="small">${extra.replace(/^ · /, "")}</span>` : ""}</p>
-    <div class="vle-werte sb-spaet"><div><b>+${xp}</b><span>XP</span></div>${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>${tal > DU_FAIR_TAL ? "Talente" : "Fairplay"}</span></div>` : ""}</div>
+    <div class="vle-werte sb-spaet"><div><b>+${xp}</b><span>XP</span></div>${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>${tal > DU_FAIR_TAL ? "Talente" : "Fairplay"}</span></div>` : ""}${mn ? `<div><b>+${mn}</b><span>Manna</span></div>` : ""}</div>
     <div class="sb-spaet sb-knoepfe"><button class="btn ghost breit${sieg ? "" : " puls"}" id="duRevanche">${svg("bolt")} ${sieg ? "Nochmal duellieren" : "Revanche"}</button>
     <button class="btn primary breit" id="duFertig">${D.heim === "bib" ? "Zurück zu Biblionär" : "Zurück zu " + heimName("duelle")}</button></div></div>`;
     const wurzel = screen.querySelector(".sb-ende");
@@ -4666,7 +4667,7 @@ async function duEnde() {
     <h1>${titel}</h1><p class="muted">${zeile}</p>
     <div class="du-art-zeile">${duMarke({ art: D.art, k: D.k, opt: edOpt(D.ed) })}<span class="small muted">${esc(DU_TYPEN[typ].info)}</span></div>
     <div class="du-vs"><div class="du-vs-sp ${sieg ? "vorn" : ""}"><span>Du</span><b>${duKurz(duWert(D.art, D))}</b><small>${duErgText(D.art, ich)}${extra}</small></div><span class="du-vs-x">:</span>${gegnerSpalte}</div>
-    <div class="vle-werte"><div><b>+${xp}</b><span>XP</span></div>${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>${tal > DU_FAIR_TAL ? "Talente" : "Fairplay"}</span></div>` : ""}</div>
+    <div class="vle-werte"><div><b>+${xp}</b><span>XP</span></div>${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>${tal > DU_FAIR_TAL ? "Talente" : "Fairplay"}</span></div>` : ""}${mn ? `<div><b>+${mn}</b><span>Manna</span></div>` : ""}</div>
     ${fehler ? `<button class="btn primary breit" id="duNochmal">Nochmal senden</button>` : `<button class="btn primary breit" id="duFertig">${D.heim === "bib" ? "Zurück zu Biblionär" : "Zurück zu " + heimName("duelle")}</button>`}
     ${!D.neu && !fehler && !weg ? `<button class="btn ghost breit" id="duRevanche">${svg("bolt")} ${sieg ? "Nochmal duellieren" : "Revanche"}</button>` : ""}</div>`;
   if (!aufl && !fehler && !weg) SFX.coin(); /* Herausforderung gesendet: kleiner Ton, kein Sieg-Effekt */
