@@ -253,3 +253,139 @@ TK_BILD.gebote[9] = () => `<defs>${TK_DEFS_GLANZ}
 <g transform="translate(206 40)"><path d="M-26 0Q0 -22 26 0Q0 22 -26 0z" fill="#fff" opacity=".92"/><circle r="9.5" fill="#3fa84a"/><circle r="4.4" fill="#10301a"/><circle cx="-2" cy="-2" r="1.5" fill="#fff"/><path d="M-26 0Q0 -22 26 0" fill="none" stroke="#3a2a10" stroke-width="2.4"/></g>`;
 let _tkZ = 0;
 const tkBildSvg = (id, k) => { const u = "t" + (++_tkZ); return `<svg viewBox="0 0 240 240" aria-hidden="true" focusable="false" preserveAspectRatio="xMidYMid slice">${TK_BILD[id][k]().replace(/@/g, u)}</svg>`; };
+/* 10.38: Bilder der Themen-Kette „Plagen in Ägypten“ (2. Mose 7–12) – selbst gezeichnete Vektorgrafiken im Stil der Gebote-Bilder.
+   Kindgerecht: keine verletzten Menschen, die 10. Plage wird als Passah (Blut am Türpfosten, Lamm) gezeigt. */
+TK_BILD.plagen = [];
+const _pyr = (x, y, s, o = 1) => `<g transform="translate(${x} ${y}) scale(${s})" opacity="${o}"><path d="M0 0L-60 64H60z" fill="#d9a35a"/><path d="M0 0L60 64H8z" fill="#9a6a34"/><path d="M0 0L-60 64H-48z" fill="#f2c98a" opacity=".6"/>${_ar(6, i => `<path d="M${-50 + i * 4} ${54 - i * 9}H${50 - i * 4}" stroke="#7a4a20" stroke-opacity=".25" stroke-width="1.2"/>`)}</g>`;
+const _schilf = (x, y, n, c = "#3f7a3a") => _ar(n, i => `<path d="M${x + i * 6} ${y}q${(i % 2 ? 4 : -4)} -24 ${(i % 2 ? 2 : -3)} -${30 + (i * 7) % 16}" stroke="${c}" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="${x + i * 6 + (i % 2 ? 2 : -3)}" cy="${y - 30 - (i * 7) % 16}" rx="2.6" ry="7" fill="#7a4a24"/>`);
+const _stab = (x1, y1, x2, y2) => `<path d="M${x1} ${y1}L${x2} ${y2}" stroke="#5a3418" stroke-width="7" stroke-linecap="round"/><path d="M${x1} ${y1}L${x2} ${y2}" stroke="#b8803e" stroke-width="3.4" stroke-linecap="round"/><path d="M${x1} ${y1}q-14 -4 -12 -18" stroke="#5a3418" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M${x1} ${y1}q-14 -4 -12 -18" stroke="#b8803e" stroke-width="3.4" fill="none" stroke-linecap="round"/>`;
+const _haus = (x, y, s, licht) => `<g transform="translate(${x} ${y}) scale(${s})"><rect x="-26" y="-34" width="52" height="34" fill="#c99a62"/><rect x="-26" y="-34" width="18" height="34" fill="#e2bb84"/><rect x="-30" y="-38" width="60" height="6" fill="#8a5a30"/><rect x="-8" y="-20" width="14" height="20" rx="2" fill="${licht ? "#ffd27a" : "#5a3418"}"/><rect x="12" y="-26" width="9" height="8" fill="${licht ? "#ffe9a8" : "#5a3418"}"/>${licht ? `<rect x="-8" y="-20" width="14" height="20" rx="2" fill="#fff3b0" opacity=".6" filter="url(#bs@)"/>` : ""}</g>`;
+const _fliege = (x, y, s, r = 0) => `<g transform="translate(${x} ${y}) rotate(${r}) scale(${s})"><ellipse cx="-5" cy="-5" rx="6" ry="3.4" fill="#dfe8f5" opacity=".75" transform="rotate(-30 -5 -5)"/><ellipse cx="5" cy="-5" rx="6" ry="3.4" fill="#dfe8f5" opacity=".75" transform="rotate(30 5 -5)"/><ellipse cx="0" cy="0" rx="3.6" ry="6" fill="#1e2230"/><circle cx="0" cy="-6" r="3" fill="#3a1c1c"/><circle cx="-1" cy="-7" r=".9" fill="#c43a3a"/></g>`;
+const _frosch = (x, y, s, f = 1) => `<g transform="translate(${x} ${y}) scale(${s * f} ${s})"><ellipse cx="0" cy="8" rx="26" ry="16" fill="#3e8a34"/><ellipse cx="0" cy="12" rx="17" ry="9" fill="#bfe08a"/><path d="M-24 14q-14 6 -10 16h14zM24 14q14 6 10 16h-14z" fill="#2f6e28"/><circle cx="-11" cy="-8" r="8" fill="#3e8a34"/><circle cx="11" cy="-8" r="8" fill="#3e8a34"/><circle cx="-11" cy="-9" r="5" fill="#fff"/><circle cx="11" cy="-9" r="5" fill="#fff"/><circle cx="-10" cy="-8.5" r="2.6" fill="#1b1a10"/><circle cx="12" cy="-8.5" r="2.6" fill="#1b1a10"/><path d="M-10 6q10 6 20 0" stroke="#1f4a1a" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="-8" cy="0" rx="6" ry="3" fill="#fff" opacity=".22"/></g>`;
+const _kuh = (x, y, s, liegt, farbe = "#a8724a") => liegt
+  ? `<g transform="translate(${x} ${y}) scale(${s})"><ellipse cx="0" cy="0" rx="34" ry="14" fill="${farbe}"/><ellipse cx="-6" cy="2" rx="10" ry="6" fill="#f2e6d0" opacity=".85"/><ellipse cx="36" cy="6" rx="11" ry="8" fill="${farbe}"/><path d="M40 -1q6 -6 2 -9M32 -1q-4 -7 -1 -9" stroke="#e8dcc0" stroke-width="2.6" fill="none" stroke-linecap="round"/><circle cx="40" cy="6" r="1.4" fill="#2a1a10"/><path d="M-34 4q-10 2 -12 10" stroke="${farbe}" stroke-width="3" fill="none" stroke-linecap="round"/></g>`
+  : `<g transform="translate(${x} ${y}) scale(${s})"><ellipse cx="0" cy="0" rx="30" ry="15" fill="${farbe}"/><ellipse cx="6" cy="-2" rx="9" ry="6" fill="#f2e6d0" opacity=".85"/><circle cx="32" cy="-8" r="10" fill="${farbe}"/><path d="M30 -16q-4 -8 2 -10M38 -16q6 -6 0 -10" stroke="#e8dcc0" stroke-width="2.6" fill="none" stroke-linecap="round"/><circle cx="35" cy="-8" r="1.4" fill="#2a1a10"/><path d="M-20 10v16M-8 12v16M10 12v16M20 10v16" stroke="${farbe}" stroke-width="5" stroke-linecap="round"/></g>`;
+const _heuschrecke = (x, y, s, r = 0) => `<g transform="translate(${x} ${y}) rotate(${r}) scale(${s})"><path d="M-22 0q20 -10 40 -2q4 4 0 6q-20 6 -40 -4z" fill="#8a9a3a"/><path d="M-18 -2q18 -14 34 -6" fill="#c8d07a" opacity=".55"/><ellipse cx="-4" cy="-6" rx="16" ry="4" fill="#e8e2b0" opacity=".55" transform="rotate(-8)"/><circle cx="20" cy="0" r="5" fill="#6a7a2a"/><circle cx="21.5" cy="-1" r="1.4" fill="#1a1a0a"/><path d="M4 2l-8 12l-10 2M10 2l4 12" stroke="#5a6a22" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M23 -3q8 -8 14 -8M22 -4q4 -10 10 -12" stroke="#5a6a22" stroke-width="1.2" fill="none"/></g>`;
+const _himmel = (id, a, b, c) => `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a}"/><stop offset=".6" stop-color="${b}"/><stop offset="1" stop-color="${c}"/></linearGradient>`;
+
+/* 1 – Wasser wird zu Blut (2. Mose 7,14–25): der Nil färbt sich rot */
+TK_BILD.plagen[0] = () => `<defs>${TK_DEFS_GLANZ}${_himmel("s@", "#3a2a6a", "#d8744a", "#ffc27a")}
+<linearGradient id="n@" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff5a6a"/><stop offset=".5" stop-color="#c8283e"/><stop offset="1" stop-color="#7a1424"/></linearGradient></defs>
+<rect width="240" height="240" fill="url(#s@)"/><circle cx="64" cy="92" r="30" fill="#ffe2a8" opacity=".7" filter="url(#bl@)"/><circle cx="64" cy="92" r="15" fill="#fff2cf"/>
+${_pyr(150, 64, 1)}${_pyr(214, 92, .62, .9)}
+<path d="M0 132H240V146H0z" fill="#c99a5a"/>
+<path d="M0 146Q60 136 120 146T240 144V240H0z" fill="url(#n@)"/>
+${_ar(6, i => `<path d="M${10 + i * 38} ${166 + (i % 3) * 18}q12 -6 24 0" stroke="#ffd0d6" stroke-opacity=".55" stroke-width="2.6" fill="none" stroke-linecap="round"/>`)}
+<g fill="none" stroke="#ffc0c8" stroke-opacity=".7"><ellipse cx="78" cy="176" rx="14" ry="4" stroke-width="2"/><ellipse cx="78" cy="176" rx="26" ry="8" stroke-width="1.4" stroke-opacity=".45"/></g>
+${_stab(54, 112, 80, 174)}${_schilf(186, 150, 7)}${_schilf(4, 152, 4)}`;
+
+/* 2 – Frösche (2. Mose 7,26–8,11): Frösche überall – bis in den Palast */
+TK_BILD.plagen[1] = () => `<defs>${TK_DEFS_GLANZ}${_himmel("s@", "#5ab4e8", "#a8dcf2", "#f2e2b0")}
+<linearGradient id="p@" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f2d8a0"/><stop offset=".6" stop-color="#d8b070"/><stop offset="1" stop-color="#a87e46"/></linearGradient></defs>
+<rect width="240" height="240" fill="url(#s@)"/><circle cx="200" cy="40" r="20" fill="#fffbe0"/><circle cx="200" cy="40" r="34" fill="#fff6c0" opacity=".5" filter="url(#bl@)"/>
+${_ar(4, i => `<g><rect x="${18 + i * 58}" y="42" width="22" height="122" fill="url(#p@)"/><rect x="${12 + i * 58}" y="34" width="34" height="10" rx="2" fill="#b8884a"/><path d="M${16 + i * 58} 34q13 -14 26 0" fill="#3f8a6a"/>${_ar(4, k => `<path d="M${18 + i * 58} ${60 + k * 26}h22" stroke="#9a6a34" stroke-opacity=".35" stroke-width="2"/>`)}</g>`)}
+<path d="M0 160H240V176H0zM0 176H240V192H0z" fill="#e8c890"/><path d="M0 176H240" stroke="#b8884a" stroke-width="2"/><path d="M0 192H240V240H0z" fill="#d2a868"/><path d="M0 192H240" stroke="#a87e46" stroke-width="2"/>
+${_frosch(60, 206, 1.15)}${_frosch(160, 214, .95, -1)}${_frosch(120, 160, .7)}${_frosch(204, 150, .55, -1)}${_frosch(28, 150, .5)}`;
+
+/* 3 – Mücken (2. Mose 8,12–15): aus dem Staub der Erde werden Mücken */
+TK_BILD.plagen[2] = () => `<defs>${TK_DEFS_GLANZ}${_himmel("s@", "#e8b070", "#f2d29a", "#f6e2b8")}
+<radialGradient id="w@" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#c8945a" stop-opacity=".8"/><stop offset="1" stop-color="#c8945a" stop-opacity="0"/></radialGradient></defs>
+<rect width="240" height="240" fill="url(#s@)"/>${_pyr(196, 100, .7, .55)}
+<path d="M0 172Q80 160 160 170T240 166V240H0z" fill="#c99560"/><path d="M0 196Q90 186 240 196V240H0z" fill="#a8744a"/>
+<ellipse cx="96" cy="120" rx="86" ry="58" fill="url(#w@)"/>
+${(() => { const r = _rnd(77); return _ar(110, () => { const a = r() * 6.28, d = Math.sqrt(r()) * 70, x = 96 + Math.cos(a) * d * 1.3, y = 120 + Math.sin(a) * d * .85; return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><circle r="1.5" fill="#2a1a10"/><path d="M-2.4 -1.6l2 1.4l2 -1.4" stroke="#5a4030" stroke-width=".7" fill="none"/></g>`; }); })()}
+<path d="M30 184q30 -30 60 -10t60 -20" stroke="#fff6dc" stroke-opacity=".5" stroke-width="3" fill="none" stroke-dasharray="2 7" stroke-linecap="round"/>
+${_stab(20, 120, 44, 190)}<ellipse cx="46" cy="192" rx="22" ry="6" fill="#e8c890" opacity=".7" filter="url(#bs@)"/>`;
+
+/* 4 – Hundsfliegen (2. Mose 8,16–28): Schwärme über Ägypten – Goschen bleibt verschont */
+TK_BILD.plagen[3] = () => `<defs>${TK_DEFS_GLANZ}${_himmel("s@", "#6a6a8a", "#b8a890", "#e8d0a0")}
+${_himmel("g@", "#7ac8f2", "#bfe6f6", "#f2ecc0")}<clipPath id="c@"><path d="M168 0H240V240H168z"/></clipPath></defs>
+<rect width="240" height="240" fill="url(#s@)"/><rect x="168" width="72" height="240" fill="url(#g@)"/>
+<path d="M168 0V240" stroke="#fff" stroke-opacity=".6" stroke-width="2" stroke-dasharray="6 6"/>
+<circle cx="214" cy="40" r="14" fill="#fffbe0"/><circle cx="214" cy="40" r="26" fill="#fff6c0" opacity=".5" filter="url(#bl@)"/>
+<path d="M0 178Q80 170 168 178V240H0z" fill="#b08a5a"/><path d="M168 178Q200 172 240 176V240H168z" fill="#7ab45a"/>
+${_haus(52, 182, 1.1)}${_haus(124, 184, .9)}${_haus(206, 182, .9, 1)}
+${(() => { const r = _rnd(41); return _ar(34, () => _fliege((8 + r() * 152).toFixed(1), (24 + r() * 130).toFixed(1), (.5 + r() * .55).toFixed(2), (r() * 80 - 40).toFixed(0))); })()}
+${_fliege(84, 92, 1.6, -15)}`;
+
+/* 5 – Viehpest (2. Mose 9,1–7): das Vieh der Ägypter wird krank, das Vieh Israels bleibt gesund */
+TK_BILD.plagen[4] = () => `<defs>${TK_DEFS_GLANZ}${_himmel("s@", "#5a5a72", "#9a9aa8", "#d8d0b8")}
+${_himmel("g@", "#7ac8f2", "#c8eaf6", "#f6f0c8")}</defs>
+<rect width="240" height="240" fill="url(#s@)"/><path d="M150 0H240V150H150z" fill="url(#g@)"/>
+${_wolke(64, 44, 1.05, "#6a6a80", "#4a4a5e", .95)}${_wolke(124, 62, .7, "#7a7a90", "#5a5a6e", .85)}
+<circle cx="208" cy="40" r="13" fill="#fffbe0"/><circle cx="208" cy="40" r="24" fill="#fff6c0" opacity=".5" filter="url(#bl@)"/>
+<path d="M0 150Q80 142 150 150V240H0z" fill="#9a9a62"/><path d="M150 150Q200 144 240 148V240H150z" fill="#6ab04a"/>
+<path d="M0 190Q120 178 240 190V240H0z" fill="#7a7a4a"/><path d="M150 182Q200 178 240 182V240H150z" fill="#4e9a3a"/>
+${_kuh(78, 196, 1.25, 1, "#8a6a52")}${_kuh(194, 164, .85, 0, "#c88a52")}${_kuh(206, 206, .7, 0, "#f2e6d0")}
+<g stroke="#2a2a3a" stroke-opacity=".35" stroke-width="2" stroke-linecap="round">${_ar(10, i => `<path d="M${20 + i * 12} ${70 + (i % 3) * 4}l-4 14"/>`)}</g>`;
+
+/* 6 – Geschwüre (2. Mose 9,8–12): Mose wirft Ofenruß in die Luft – er wird zu Staub über dem ganzen Land */
+TK_BILD.plagen[5] = () => `<defs>${TK_DEFS_GLANZ}${_himmel("s@", "#8a6a6a", "#c8a07a", "#ecd2a0")}
+<radialGradient id="f@" cx=".5" cy=".6" r=".5"><stop offset="0" stop-color="#fff2a0"/><stop offset=".5" stop-color="#ff9a3a"/><stop offset="1" stop-color="#c8401a" stop-opacity="0"/></radialGradient></defs>
+<rect width="240" height="240" fill="url(#s@)"/>
+${_ar(5, i => `<circle cx="${70 + i * 30}" cy="${70 - (i % 2) * 18}" r="${30 - i * 2}" fill="#4a3a3a" opacity="${.5 - i * .06}" filter="url(#bs@)"/>`)}
+${(() => { const r = _rnd(9); return _ar(70, () => `<circle cx="${(30 + r() * 200).toFixed(1)}" cy="${(14 + r() * 110).toFixed(1)}" r="${(.8 + r() * 1.8).toFixed(1)}" fill="#2a2222" opacity="${(.3 + r() * .5).toFixed(2)}"/>`); })()}
+<path d="M0 182Q120 170 240 182V240H0z" fill="#b08a5a"/><path d="M0 206Q120 198 240 206V240H0z" fill="#8a6640"/>
+<g transform="translate(64 184)"><path d="M-40 0V-46Q-40 -70 0 -70Q40 -70 40 -46V0z" fill="#a85a3a"/>${_ar(4, k => `<path d="M-40 ${-12 - k * 12}H40" stroke="#6a3a22" stroke-opacity=".5" stroke-width="2"/>`)}<path d="M-16 0V-22Q0 -38 16 -22V0z" fill="#2a120a"/><ellipse cx="0" cy="-8" rx="15" ry="14" fill="url(#f@)"/><rect x="-8" y="-84" width="16" height="16" fill="#8a4a2a"/></g>
+<g transform="translate(168 182)"><path d="M-16 0l6 -50h20l6 50z" fill="#3a5a9a"/><path d="M-10 -50h20l2 22h-24z" fill="#5a7ab8"/><circle cx="0" cy="-60" r="11" fill="#e8b88a"/><path d="M-11 -62q0 -14 11 -14t11 14q-4 -6 -11 -6t-11 6z" fill="#e8e8e8"/><path d="M-6 -52q6 12 12 0" fill="#f2f2f2"/><path d="M-10 -42l-26 -28M10 -42l14 -30" stroke="#e8b88a" stroke-width="6" stroke-linecap="round"/><circle cx="-38" cy="-72" r="5" fill="#3a2e2e"/><circle cx="25" cy="-74" r="5" fill="#3a2e2e"/></g>`;
+
+/* 7 – Hagel (2. Mose 9,13–35): Hagel und Feuer, das über die Erde läuft */
+TK_BILD.plagen[6] = () => `<defs>${TK_DEFS_GLANZ}${_himmel("s@", "#1a1e3a", "#3a3e6a", "#6a6a8a")}
+<radialGradient id="h@" cx=".35" cy=".3" r=".7"><stop offset="0" stop-color="#ffffff"/><stop offset=".6" stop-color="#d8ecff"/><stop offset="1" stop-color="#8ab0d8"/></radialGradient></defs>
+<rect width="240" height="240" fill="url(#s@)"/>
+${_wolke(50, 30, 1.2, "#4a4e72", "#2a2e4a")}${_wolke(170, 36, 1.3, "#525680", "#30345a")}${_wolke(116, 18, .9, "#5a5e88", "#3a3e64")}
+<path d="M132 56l-14 34h12l-16 40l34 -50h-14l12 -24z" fill="#fff6b0"/><path d="M132 56l-14 34h12l-16 40l34 -50h-14l12 -24z" fill="#fff6b0" opacity=".6" filter="url(#bl@)"/>
+<path d="M0 186Q120 176 240 186V240H0z" fill="#4a6a3a"/><path d="M0 210Q120 202 240 210V240H0z" fill="#3a5230"/>
+${_ar(9, i => `<path d="M${14 + i * 26} 214q-4 -18 2 -30" stroke="#a8b05a" stroke-width="3" fill="none"/><path d="M${16 + i * 26} 196l8 4" stroke="#a8b05a" stroke-width="2.4"/>`)}
+<g>${_ar(5, i => `<path d="M${30 + i * 44} 200q-8 -14 0 -26q4 10 10 6q4 -12 -2 -22q16 12 8 40z" fill="#ff7a2a"/><path d="M${32 + i * 44} 200q-4 -8 0 -14q4 6 6 2q2 6 -2 12z" fill="#ffe27a"/>`)}</g>
+${(() => { const r = _rnd(5); return _ar(30, () => { const x = r() * 240, y = 60 + r() * 120, s = 2.4 + r() * 3.4; return `<path d="M${(x + 6).toFixed(1)} ${(y - 14).toFixed(1)}L${x.toFixed(1)} ${y.toFixed(1)}" stroke="#c8dcff" stroke-opacity=".35" stroke-width="1.4"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${s.toFixed(1)}" fill="url(#h@)"/>`; }); })()}`;
+
+/* 8 – Heuschrecken (2. Mose 10,1–20): der Ostwind bringt Heuschrecken, sie fressen alles Grüne */
+TK_BILD.plagen[7] = () => `<defs>${TK_DEFS_GLANZ}${_himmel("s@", "#c88a3a", "#e8b860", "#f2d898")}
+<linearGradient id="k@" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8c84a"/><stop offset="1" stop-color="#a8862a"/></linearGradient></defs>
+<rect width="240" height="240" fill="url(#s@)"/><circle cx="40" cy="44" r="18" fill="#fff2c0" opacity=".8"/>
+<ellipse cx="150" cy="78" rx="110" ry="46" fill="#4a3a1a" opacity=".35" filter="url(#bl@)"/>
+${(() => { const r = _rnd(23); return _ar(60, () => { const x = 40 + r() * 210, y = 40 + r() * 80; return `<path d="M${x.toFixed(1)} ${y.toFixed(1)}l6 -1.5" stroke="#3a2e14" stroke-width="2.4" stroke-linecap="round" opacity="${(.5 + r() * .5).toFixed(2)}"/>`; }); })()}
+<g stroke="#fff" stroke-opacity=".5" stroke-width="2.6" fill="none" stroke-linecap="round"><path d="M240 54q-30 4 -60 -2"/><path d="M240 122q-40 6 -80 -4"/></g>
+<path d="M0 160Q120 150 240 160V240H0z" fill="#8a7a3a"/>
+${_ar(20, i => `<path d="M${6 + i * 12} 240V${176 + (i % 3) * 6}" stroke="url(#k@)" stroke-width="3"/><ellipse cx="${6 + i * 12}" cy="${172 + (i % 3) * 6}" rx="3.4" ry="8" fill="${i % 4 === 1 ? "#6a5a2a" : "url(#k@)"}"/>`)}
+${_heuschrecke(110, 186, 2.1, -8)}${_heuschrecke(54, 132, .9, 10)}${_heuschrecke(196, 150, 1.1, -20)}`;
+
+/* 9 – Finsternis (2. Mose 10,21–29): drei Tage Dunkelheit – aber bei den Israeliten war es hell */
+TK_BILD.plagen[8] = () => `<defs>${TK_DEFS_GLANZ}
+<radialGradient id="l@" cx=".72" cy=".72" r=".45"><stop offset="0" stop-color="#ffd27a" stop-opacity=".75"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient></defs>
+<rect width="240" height="240" fill="#07081a"/><rect width="240" height="240" fill="url(#l@)"/>
+${_pyr(70, 92, 1.1, .32)}${_pyr(140, 118, .7, .25)}
+<path d="M0 176Q120 168 240 176V240H0z" fill="#0f1124"/>
+<ellipse cx="190" cy="200" rx="80" ry="30" fill="#5a4626" opacity=".55" filter="url(#bl@)"/>
+${_haus(176, 186, 1.15, 1)}${_haus(222, 196, .8, 1)}
+<circle cx="172" cy="172" r="40" fill="#ffd27a" opacity=".22" filter="url(#bl@)"/>
+<g fill="#ffe9a0">${_fk(150, 128, 4, .7)}${_fk(210, 140, 3, .6)}</g>`;
+
+/* 10 – Tod der Erstgeburt / Passah (2. Mose 11,1–12,30): das Blut des Lammes an den Türpfosten schützt die Familie */
+TK_BILD.plagen[9] = () => `<defs>${TK_DEFS_GLANZ}${_himmel("s@", "#0d1445", "#26306a", "#4a4a7a")}
+<linearGradient id="t@" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd27a"/><stop offset="1" stop-color="#e89a3a"/></linearGradient></defs>
+<rect width="240" height="240" fill="url(#s@)"/>${_sterne(12, 30, 4, 4, 236, 90, 1.3)}
+<circle cx="200" cy="40" r="16" fill="#f6f2dc"/><circle cx="206" cy="36" r="14" fill="#1a2256" opacity=".9"/>
+<path d="M0 196H240V240H0z" fill="#3a2e24"/>
+<rect x="36" y="56" width="168" height="140" fill="#b88a5a"/><rect x="36" y="56" width="60" height="140" fill="#d2a874"/><rect x="28" y="48" width="184" height="12" fill="#7a4a24"/>
+<rect x="88" y="96" width="64" height="100" fill="url(#t@)"/><rect x="88" y="96" width="64" height="100" fill="#fff3b0" opacity=".35" filter="url(#bs@)"/>
+<path d="M78 86H162V98H78z" fill="#6a3a1c"/><path d="M78 98H90V196H78zM150 98H162V196H150z" fill="#6a3a1c"/>
+<g fill="#e8475f"><path d="M82 88q10 -2 18 2q10 -3 20 0q10 -3 20 0q10 -3 18 -1v6H82z"/><path d="M80 104q4 20 0 40q6 14 2 30h6V104z"/><path d="M152 106q4 18 0 36q6 16 2 32h6V106z"/><circle cx="112" cy="94" r="2" /></g>
+<g transform="translate(120 206)"><ellipse cx="0" cy="0" rx="24" ry="13" fill="#f6f2e6"/>${_ar(7, i => `<circle cx="${-18 + i * 6}" cy="${-8 + (i % 2) * 3}" r="6" fill="#ffffff"/>`)}<circle cx="24" cy="-8" r="9" fill="#f2ece0"/><ellipse cx="28" cy="-14" rx="5" ry="2.6" fill="#e8d8c8" transform="rotate(-30 28 -14)"/><circle cx="27" cy="-8" r="1.3" fill="#2a1a10"/><path d="M-14 10v8M-4 11v8M8 11v8M16 10v8" stroke="#d8ccb8" stroke-width="4" stroke-linecap="round"/></g>
+<g fill="#ffe9a0">${_fk(60, 30, 5, .8)}${_fk(150, 22, 4, .7)}</g>`;
+/* 10.38: Symbole der Kette „Plagen in Ägypten“ – drei Vorschläge (A Stab über rotem Nil, B Pyramide am roten Nil, C Passah-Tür) */
+(() => {
+const SPARK = (x, y) => `<path class="wr-spark" d="M${x} ${y}l1.49 4.01 4.01 1.49-4.01 1.49-1.49 4.01-1.49-4.01-4.01-1.49 4.01-1.49z" fill="#fff"/>`;
+const KOPF = id => `<svg x="0" y="0" width="24" height="24" viewBox="0 0 64 64" overflow="visible" class="wr wr-spielen"><defs><linearGradient id="plK${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8a98"/><stop offset=".5" stop-color="#e8475f"/><stop offset="1" stop-color="#9a1e34"/></linearGradient></defs><circle class="wr-halo" cx="32" cy="32" r="31" fill="url(#wrH_spielen)"/><ellipse cx="32" cy="61" rx="19" ry="2.2" fill="#000" opacity=".3"/>`;
+const WELLE = (id, y) => `<path d="M6 ${y}q6.5-6 13 0t13 0 13 0 13 0V58H6z" fill="url(#plK${id})" stroke="#1b2a55" stroke-width="1.4" stroke-linejoin="round"/><path d="M10 ${y + 1}q4-3 8 -1M36 ${y + 1}q4-3 8 -1" stroke="#ffd0d6" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".8"/>`;
+const STAB = `<path d="M44 6L22 50" stroke="#1b2a55" stroke-width="6.4" stroke-linecap="round"/><path d="M44 6L22 50" stroke="url(#wrG)" stroke-width="3.6" stroke-linecap="round"/><path d="M44 6q3-6-2-7.5q-5-1-6.5 4" stroke="#1b2a55" stroke-width="6.4" fill="none" stroke-linecap="round"/><path d="M44 6q3-6-2-7.5q-5-1-6.5 4" stroke="url(#wrG)" stroke-width="3.6" fill="none" stroke-linecap="round"/><path d="M42 11L24 47" stroke="#fff" stroke-width="1" opacity=".7"/>`;
+const A = KOPF("a") + WELLE("a", 42) + STAB + `<g fill="none" stroke="#ffd0d6" stroke-width="1.4" opacity=".9"><ellipse cx="22" cy="48" rx="8" ry="2.4"/><ellipse cx="22" cy="48" rx="14" ry="4" opacity=".5"/></g>` + SPARK(50, 22) + `</svg>`;
+const B = KOPF("b") + `<g stroke="#1b2a55" stroke-width="5" stroke-linecap="round"><path d="M50 4v6M40 8l3 4M60 8l-3 4"/></g><g stroke="url(#wrT_spielen)" stroke-width="2.6" stroke-linecap="round"><path d="M50 4v6M40 8l3 4M60 8l-3 4"/></g>` +
+  `<path d="M28 12L6 42H50z" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1.4" stroke-linejoin="round"/><path d="M28 12L50 42H32z" fill="#a8742a" opacity=".55"/><path d="M28 14L12 36" stroke="#fff" stroke-width="1.6" opacity=".75" stroke-linecap="round"/>` +
+  `<path d="M42 30L32 42H54z" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1.2" stroke-linejoin="round" opacity=".9"/>` + WELLE("b", 44) + SPARK(8, 6) + `</svg>`;
+const C = KOPF("c") + `<path d="M12 58V18H52V58z" fill="url(#wrSt)" stroke="#1b2a55" stroke-width="1.4"/><path d="M22 58V28H42V58z" fill="url(#wrG)" stroke="#1b2a55" stroke-width="1.2"/><path d="M24 56V30" stroke="#fff" stroke-width="1.6" opacity=".7"/>` +
+  `<path d="M18 22H46V28H18zM18 28H23V58H18zM41 28H46V58H41z" fill="url(#plKc)" stroke="#1b2a55" stroke-width="1.2" stroke-linejoin="round"/><path d="M8 18H56" stroke="#1b2a55" stroke-width="4" stroke-linecap="round"/><path d="M8 18H56" stroke="url(#wrG)" stroke-width="2" stroke-linecap="round"/>` + SPARK(50, 4) + `</svg>`;
+window.PLAGEN_SYM = { A, B, C };
+ICONS.plagen = A;
+})();
