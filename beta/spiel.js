@@ -3029,6 +3029,7 @@ function zusammenfuehren(r) {
   bibGesMischen(r); /* 9.63: Fragenverlauf beider Geräte */
   try { if (typeof smMischen === "function") smMischen(r); } catch (e) {} /* 9.84: Sammelalbum und Goldstaub */
   try { if (typeof adMischen === "function") adMischen(r); } catch (e) {} /* 10.40: Adventskalender */
+  try { if (typeof schMischen === "function") schMischen(r); } catch (e) {} /* 10.44: Bethlehem schmücken */
   try { xqAbgleich(xpVorher); } catch (e) {}
   if (r.weekKey === S.weekKey) S.weekXp = Math.max(S.weekXp, r.weekXp || 0); else if ((r.weekKey || "") > (S.weekKey || "")) { S.weekKey = r.weekKey; S.weekXp = r.weekXp; }
   if (r.todayDay === S.todayDay) { S.todayXp = Math.max(S.todayXp, r.todayXp || 0); S.todayRight = Math.max(S.todayRight || 0, r.todayRight || 0); }

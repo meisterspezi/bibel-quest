@@ -101,6 +101,7 @@ function bethlehem(st) {
     ${blOlive(118, 302, .9)}${blOlive(248, 300, .85)}
     ${haeuser}
     ${blStall(stallAuf)}
+    ${typeof blSchmuck === "function" && typeof schSumme === "function" ? blSchmuck(st.schmuck != null ? st.schmuck : schStufe(schSumme())) : ""}
     <g class="bl-t so${stallJetzt ? " jetzt" : ""}" data-tuer="24"><path d="M138 470V404Q138 372 180 368Q222 372 222 404V470z" fill="transparent"/><rect x="160" y="476" width="40" height="16" rx="8" fill="${stallAuf ? "#f2c14e" : "#1a1424"}" stroke="${stallJetzt ? "#fff6c0" : "#f2c14e"}" stroke-width="1.4"/><text x="180" y="488" text-anchor="middle" font-family="Georgia" font-weight="700" font-size="11" fill="${stallAuf ? "#3a1e08" : "#f2c14e"}">24</text></g>
   </svg>`;
 }
@@ -216,12 +217,13 @@ const adKruege = art => Object.keys(adEcht().o).filter(nr => adLohn(+nr).krug ==
 function adFrei(need) {
   if (adNachEnde()) return false;
   const o = adEcht().o;
+  if (need === "adv-schmuck") return schEcht().g >= 1;
   if (need === "adv-stern") return Object.keys(o).length >= 10;
   if (need === "adv-stern-g") return adAmTag() >= 25;
   const m = /^adv-(\d+)$/.exec(need || ""); return !!m && o[m[1]] != null;
 }
 const adNeedText = need => adNachEnde() ? "Weihnachts-Belohnung – im nächsten Advent wieder erspielen" : adNeedText0(need);
-const adNeedText0 = need => need === "adv-stern" ? "Adventskalender: 10 Türen geöffnet" : need === "adv-stern-g" ? "Adventskalender: alle 25 Türen am richtigen Tag" : /^adv-(\d+)$/.test(need || "") ? `Adventskalender: Tür ${need === "adv-0" ? "1. Advent" : need.slice(4)}` : "Adventskalender";
+const adNeedText0 = need => need === "adv-schmuck" ? "Bethlehem schmücken: 1 Schmuckstück spenden" : need === "adv-stern" ? "Adventskalender: 10 Türen geöffnet" : need === "adv-stern-g" ? "Adventskalender: alle 25 Türen am richtigen Tag" : /^adv-(\d+)$/.test(need || "") ? `Adventskalender: Tür ${need === "adv-0" ? "1. Advent" : need.slice(4)}` : "Adventskalender";
 function adMischen(r) {
   if (!r || !r.adv || !r.adv.o) return; const o = adEcht().o;
   Object.entries(r.adv.o).forEach(([nr, t]) => { if (+t > 0 && (o[nr] == null || +t < +o[nr])) o[nr] = +t; });
@@ -283,12 +285,14 @@ VIEWS.advent = () => {
     ${test ? `<div class="ad-test">Vorschau mit Testdatum ${esc(adHeuteStr())} – keine Belohnungen. <button class="btn ghost mini" id="adTagZ">◀</button><button class="btn ghost mini" id="adTagV">▶</button><button class="btn ghost mini" id="adReset">Zurücksetzen</button></div>`
       : vorStart && (BETA || adLokal()) ? `<div class="ad-test">Beta-Vorschau: Im Testlabor ein Datum ab 29.11. wählen, um Türen zu öffnen.</div>` : ""}
     <div class="ad-buehne">${bethlehem({ heute: h, offen })}</div>
+    ${schHtml()}
     <div class="ad-gesch-t">Die Weihnachtsgeschichte</div>
     <div class="ad-gesch">${[0, 6, 13, 20, 24].map(nr => { const auf = adOffen(nr), T = ADVENT_TUEREN[nr]; return `<button class="ad-g${auf ? " auf" : ""}" data-gesch="${nr}"><span class="ad-g-b">${auf ? tkBildSvg("adv", T.bild) : `<i>${nr === 24 ? "★" : AD_SO[nr]}</i>`}</span><small>${nr === 24 ? "Heiligabend" : AD_SO[nr] + ". Advent"}</small></button>`; }).join("")}</div>
     <div class="ad-lohnreihe">${["adv-kranz1", "adv-kranz2", "adv-kranz3", "adv-kranz4", "adv-kranz5"].map((id, i) => `<span class="ad-l${adFrei(["adv-0", "adv-6", "adv-13", "adv-20", "adv-24"][i]) ? " frei" : ""}" title="${esc(RAHMEN.find(r => r.id === id).name)}">${avatarHtml({ name: S.lbName || "?", avatar: i === 4 ? "adv-krippe" : S.avatar, frame: id }, 30)}</span>`).join("")}</div>
 </div>`;
   wireGo();
   screen.querySelectorAll("[data-tuer]").forEach(t => t.addEventListener("click", () => adTuerTippen(+t.dataset.tuer)));
+  schVerdrahten();
   screen.querySelectorAll("[data-gesch]").forEach(b => b.onclick = () => { const nr = +b.dataset.gesch; if (adOffen(nr)) { SFX.tap(); adZeigen(nr, null); } else adTuerTippen(nr); });
   const tagGehen = d => { const n = Math.max(adTag(0) - 1, Math.min(dayNum(AD_ENDE) + 1, adJetzt() + d)), x = datumVon(n); sessionStorage.setItem("bq-ed-datum", `${x.getUTCFullYear()}-${x.getUTCMonth() + 1}-${x.getUTCDate()}`); go("advent"); };
   if ($("adTagZ")) { $("adTagZ").onclick = () => tagGehen(-1); $("adTagV").onclick = () => tagGehen(1); $("adReset").onclick = () => { sessionStorage.removeItem("bq-adv-test"); go("advent"); }; }
@@ -363,3 +367,103 @@ function adAblauf() {
     toast(`${svg("star", "#f2c14e")}<div><b>Die Weihnachtszeit ist vorbei</b><div class="small muted">Adventskranz und Krippe gibt es im nächsten Advent wieder.</div></div>`); }
 }
 (function adStart() { const alt = VIEWS.home; VIEWS.home = function (a) { alt(a); try { adAblauf(); adBanner(); adAnkuendigen(); } catch (e) {} }; })();
+
+/* ---------- 10.44: Gemeinsam Bethlehem schmücken ----------
+   Jeder spendet Schmuckstücke (Preis 10 Talente × Level, höchstens 5 am Tag, 29.11.–24.12.). Jedes Schmuckstück zählt für alle gleich.
+   Eigener Stand: S.sch = { g: gespendet gesamt, t: Tag (dayNum), h: heute, s: an den Server gemeldet, log: [ms…], gs: zuletzt gesehene Stufe }.
+   Server: schmuck/{pid} = { n } → Sammel-Job summiert in rangliste (schmuck, schmuckSp) → localStorage „bq-schmuck“. */
+const SCH_STUFEN = [
+  { n: 15, name: "Öllampen in den Fenstern", vers: "Matthäus 5,16" },
+  { n: 35, name: "Palmzweige an den Türen", vers: "Johannes 12,13" },
+  { n: 60, name: "Festtücher über den Gassen", vers: "Psalm 118,24" },
+  { n: 95, name: "Laterne und Stroh am Stall", vers: "Lukas 2,7" },
+  { n: 135, name: "Hirtenfeuer und Herde", vers: "Lukas 2,8" },
+  { n: 180, name: "Sternenglanz über der Stadt", vers: "Matthäus 2,9" },
+  { n: 235, name: "Engel über dem Hirtenfeld", vers: "Lukas 2,13" },
+  { n: 300, name: "Der Engelchor singt", vers: "Lukas 2,14" }];
+const SCH_TAG_MAX = 5, SCH_ENDE = "2026-12-24";
+const schPreis = () => 10 * Math.max(1, levelOf(S.xp));
+function schEcht() { if (!S.sch || typeof S.sch !== "object") S.sch = {}; const m = S.sch; ["g", "t", "h", "s", "gs"].forEach(k => { m[k] = Math.max(0, +m[k] || 0); }); if (!Array.isArray(m.log)) m.log = []; return m; }
+function schTest() { try { return JSON.parse(sessionStorage.getItem("bq-sch-test") || "null") || { g: 0, h: 0, t: 0, extra: 0 }; } catch (e) { return { g: 0, h: 0, t: 0, extra: 0 }; } }
+const schLaeuft = () => adJetzt() >= adTag(0) && adJetzt() <= dayNum(SCH_ENDE);
+function schServer() { try { return JSON.parse(localStorage.getItem("bq-schmuck") || "null") || { s: 0, sp: 0, t: 0 }; } catch (e) { return { s: 0, sp: 0, t: 0 }; } }
+/* Summe = Server + eigene Spenden, die der Job noch nicht gezählt hat (Testmodus: plus Vorschau-Spenden) */
+function schSumme() { const sv = schServer(), m = schEcht(); let s = sv.s + m.log.filter(z => z > (sv.t || 0)).length; if (adTest()) { const t = schTest(); s += t.g + t.extra; } return Math.max(0, s); }
+const schStufe = s => SCH_STUFEN.filter(x => s >= x.n).length;
+function schHeute() { if (adTest()) { const t = schTest(); return t.t === adJetzt() ? t.h : 0; } const m = schEcht(); return m.t === adJetzt() ? m.h : 0; }
+function schMischen(r) { if (!r || !r.sch) return; const m = schEcht(), o = r.sch; m.g = Math.max(m.g, +o.g || 0); m.s = Math.max(m.s, +o.s || 0); m.gs = Math.max(m.gs, +o.gs || 0);
+  if ((+o.t || 0) > m.t) { m.t = +o.t; m.h = +o.h || 0; } else if (+o.t === m.t) m.h = Math.max(m.h, +o.h || 0);
+  m.log = [...new Set([...m.log, ...(Array.isArray(o.log) ? o.log : [])])].sort((a, b) => a - b).slice(-30); }
+/* An den Server melden – höchstens +5 je Speichern (Regel), Rest beim nächsten Mal */
+let schSendet = false;
+async function schSenden() {
+  const m = schEcht(); if (schSendet || m.g <= m.s || !S.pid || typeof LB === "undefined" || !LB.schmuckSetzen || gesperrt) return;
+  schSendet = true;
+  try { while (m.g > m.s) { const n = Math.min(m.g, m.s + 5); await LB.schmuckSetzen(S.pid, n); m.s = n; save(); } }
+  catch (e) { /* alte Regeln oder offline – später erneut */ }
+  schSendet = false;
+}
+function schSpenden() {
+  const test = adTest(), preis = schPreis();
+  if (!schLaeuft()) { toast(`<div>Geschmückt wird vom 1. Advent bis Heiligabend.</div>`); return; }
+  if (schHeute() >= SCH_TAG_MAX) { toast(`<div>Heute hast du schon ${SCH_TAG_MAX} Schmuckstücke gespendet – morgen wieder!</div>`); return; }
+  if (!test && (S.tal | 0) < preis) { SFX.wrong(); toast(`<div>Dafür brauchst du ${preis.toLocaleString("de-DE")} Talente.</div>`); return; }
+  if (!test && typeof BQ_UHR !== "undefined" && !BQ_UHR.gesichert() && !BQ_UHR.lokal) { toast("<div>Zum Schmücken kurz mit dem Internet verbinden.</div>"); return; }
+  const vorStufe = schStufe(schSumme());
+  if (test) { const t = schTest(); if (t.t !== adJetzt()) { t.t = adJetzt(); t.h = 0; } t.h++; t.g++; sessionStorage.setItem("bq-sch-test", JSON.stringify(t)); }
+  else { const m = schEcht(); if (m.t !== adJetzt()) { m.t = adJetzt(); m.h = 0; } m.h++; m.g++; m.log = [...m.log, Date.now()].slice(-30); S.tal = (S.tal | 0) - preis; save(); renderHud(); lbSync(); schSenden(); }
+  SFX.coin(); try { burst && burst(); } catch (e) {}
+  const nach = schStufe(schSumme());
+  toast(`${svg("star", "#f2c14e")}<div><b>Danke fürs Schmücken!</b><div class="small muted">${test ? "Vorschau – keine Talente abgezogen" : `−${preis.toLocaleString("de-DE")} Talente`} · heute ${schHeute()}/${SCH_TAG_MAX}</div></div>`);
+  if (nach > vorStufe) setTimeout(() => schNeueStufe(nach), 900);
+  if (current === "advent") VIEWS.advent();
+}
+function schNeueStufe(st) {
+  const x = SCH_STUFEN[st - 1]; if (!x) return; if (!adTest()) { schEcht().gs = Math.max(schEcht().gs, st); save(); }
+  modal(`<div class="rb-fenster sch-stufe"><small class="sm-ank-neu">STUFE ${st} VON ${SCH_STUFEN.length}</small><h2>Bethlehem wird festlicher!</h2><p><b>${esc(x.name)}</b></p><p class="small muted">Gemeinsam geschmückt – nach ${esc(x.vers)}</p><button class="btn primary" data-close="">Ansehen</button></div>`).dataset.frei = "1";
+  try { rain(60); } catch (e) {}
+}
+function schHtml() {
+  const s = schSumme(), st = schStufe(s), nx = SCH_STUFEN[st], vor = st ? SCH_STUFEN[st - 1].n : 0, preis = schPreis(), test = adTest(), sv = schServer();
+  const pct = nx ? Math.round((s - vor) / (nx.n - vor) * 100) : 100, laeuft = schLaeuft(), h = schHeute();
+  const eigen = test ? schTest().g : schEcht().g;
+  return `<div class="sch-box">
+    <div class="sch-k"><b>Gemeinsam Bethlehem schmücken</b><small>${st ? `Stufe ${st}/${SCH_STUFEN.length} · ${esc(SCH_STUFEN[st - 1].name)}` : "Noch ungeschmückt"}</small></div>
+    <div class="sch-bar"><i style="width:${Math.max(2, Math.min(100, pct))}%"></i></div>
+    <div class="sch-z"><span>${nx ? `Nächste Stufe: ${esc(nx.name)}` : "Alles geschmückt – Ehre sei Gott in der Höhe!"}</span><span>${nx ? `noch ${nx.n - s}` : ""}</span></div>
+    ${laeuft ? `<button class="btn primary sch-knopf" id="schLos"${h >= SCH_TAG_MAX ? " disabled" : ""}>${h >= SCH_TAG_MAX ? "Heute schon 5× geschmückt ✓" : `1 Schmuckstück spenden · ${preis.toLocaleString("de-DE")} Talente`}</button>
+    <div class="sch-info">Preis = 10 × dein Level · heute ${h}/${SCH_TAG_MAX} · jedes Schmuckstück zählt für alle gleich</div>`
+      : `<div class="sch-info">${adJetzt() < adTag(0) ? "Startet am 1. Advent (29.11.)" : "Danke an alle, die mitgeschmückt haben!"}</div>`}
+    <div class="sch-info">Du: <b>${eigen}</b> Schmuckstücke${sv.sp ? ` · ${sv.sp} Spieler schmücken mit` : ""}${eigen ? " · Rahmen „Festliches Bethlehem“ ✓" : ""}</div>
+    ${test ? `<div class="ad-test">Vorschau Schmuck: <button class="btn ghost mini" id="schMinus">−50</button><button class="btn ghost mini" id="schPlus">+50</button></div>` : ""}</div>`;
+}
+function schVerdrahten() {
+  if ($("schLos")) $("schLos").onclick = schSpenden;
+  const v = d => { const t = schTest(); t.extra = Math.max(0, (t.extra | 0) + d); sessionStorage.setItem("bq-sch-test", JSON.stringify(t)); VIEWS.advent(); };
+  if ($("schPlus")) { $("schPlus").onclick = () => v(50); $("schMinus").onclick = () => v(-50); }
+  const st = schStufe(schSumme()); if (!adTest() && st > schEcht().gs && schEcht().g + schServer().s > 0) setTimeout(() => schNeueStufe(st), 600);
+  schSenden();
+  /* Summe auffrischen (Rangliste ist zwischengespeichert – meist kein Lesezugriff) */
+  try { const vor = localStorage.getItem("bq-schmuck"); if (typeof LB !== "undefined" && LB.alleSpieler) LB.alleSpieler().then(() => { if (current === "advent" && localStorage.getItem("bq-schmuck") !== vor) VIEWS.advent(); }).catch(() => {}); } catch (e) {}
+}
+/* Schmuck über der Szene (Koordinaten wie bethlehem()) */
+function blSchmuck(stufe) {
+  const s = n => stufe >= n; let o = "";
+  if (s(6)) o += `<path d="M-20 150Q120 40 380 90" stroke="#c8d0ff" stroke-opacity=".10" stroke-width="46" fill="none" filter="url(#blBlur)"/>${Array.from({ length: 40 }, (_, i) => `<circle cx="${(i * 47) % 360}" cy="${40 + (i * 29) % 120}" r="${.6 + (i % 3) * .5}" fill="#fff8d0" opacity=".9"/>`).join("")}`;
+  if (s(7)) o += `<g transform="translate(300 150) scale(.42)">${_engel(0, 0, 1).replace(/@/g, "s")}</g><g transform="translate(60 160) scale(.36)">${_engel(0, 0, 1).replace(/@/g, "s")}</g>`;
+  if (s(8)) o += `<path d="M150 60L120 380H240L210 60z" fill="#fff6d0" opacity=".14" filter="url(#blBlur2)"/>${[[120, 110, .3], [180, 92, .34], [240, 110, .3], [90, 140, .26], [270, 140, .26]].map(([x, y, k]) => `<g transform="translate(${x} ${y}) scale(${k})">${_engel(0, 0, 1).replace(/@/g, "s")}</g>`).join("")}`;
+  if (s(1)) o += BL_HAEUSER.map(([x, y, w]) => `<g transform="translate(${x + w * .78} ${y - 5})"><circle r="7" fill="#ffd27a" opacity=".35"/><path d="M-4 0q4 3 8 0q-1 -3 -4 -3q-3 0 -4 3z" fill="#c8864a"/><path d="M0 -3q2 -3 0 -6q-2 3 0 6z" fill="#ffe27a"/></g>`).join("");
+  if (s(2)) o += BL_HAEUSER.filter((_, i) => i % 2 === 0).map(([x, y]) => `<g transform="translate(${x + 4} ${y + 2})"><path d="M0 0q10 -6 20 -2" stroke="#3f8a3a" stroke-width="2.4" fill="none"/>${[2, 6, 10, 14, 18].map(t => `<path d="M${t} ${-1.2 - (t % 4)}l-2 ${4 + (t % 3)}M${t} ${-1.2 - (t % 4)}l2 ${4 + (t % 3)}" stroke="#4fae5a" stroke-width="1.3"/>`).join("")}</g>`).join("");
+  if (s(3)) { const ketten = [[54, 196, 100, 206], [152, 200, 212, 198], [258, 196, 306, 194], [56, 250, 128, 254], [234, 254, 304, 242], [56, 312, 2, 308], [304, 304, 262, 316]], f = ["#d8344a", "#3a6ad8", "#f2c14e", "#f2f2f2", "#4fae5a"];
+    o += ketten.map(([x1, y1, x2, y2], k) => { const mx = (x1 + x2) / 2, my = Math.max(y1, y2) + 16;
+      return `<path d="M${x1} ${y1}Q${mx} ${my} ${x2} ${y2}" stroke="#e8dcc0" stroke-width="1" fill="none"/>${Array.from({ length: 6 }, (_, i) => { const t = (i + .5) / 6, x = (1 - t) * (1 - t) * x1 + 2 * (1 - t) * t * mx + t * t * x2, y = (1 - t) * (1 - t) * y1 + 2 * (1 - t) * t * my + t * t * y2; return `<path d="M${(x - 3).toFixed(1)} ${y.toFixed(1)}h6l-3 7z" fill="${f[(i + k) % 5]}"/>`; }).join("")}`; }).join(""); }
+  if (s(4)) o += `<g transform="translate(180 378)"><path d="M0 -10v8" stroke="#3a2a1a" stroke-width="2"/><rect x="-6" y="-2" width="12" height="16" rx="3" fill="#ffd27a" stroke="#5a3a1a" stroke-width="2"/><circle cy="6" r="18" fill="#ffd27a" opacity=".3"/></g><g fill="#e8c86a" stroke="#b8963a" stroke-width="1"><rect x="112" y="452" width="24" height="16" rx="3"/><rect x="226" y="454" width="22" height="14" rx="3"/></g>`;
+  if (s(5)) o += `<g transform="translate(28 300)"><circle r="16" fill="#ff8a2a" opacity=".35" filter="url(#blBlur2)"/><path d="M-6 4l12 -2M-5 -1l10 5" stroke="#5a3418" stroke-width="2.4"/><path d="M-3 1q3 -11 5 -2q2 -5 3 1z" fill="#ffc24a"/></g>${blSchaf(326, 300, .9)}${blSchaf(342, 306, .8, -1)}${blSchaf(312, 310, .8)}`;
+  return `<g class="bl-schmuck" pointer-events="none">${o}</g>`;
+}
+/* Rahmen „Festliches Bethlehem“ für alle, die mindestens 1 Schmuckstück gespendet haben (gilt bis 6.1.) */
+(function schRahmen() {
+  if (typeof RAHMEN !== "undefined" && !RAHMEN.some(r => r.id === "adv-schmuck")) RAHMEN.push({ id: "adv-schmuck", name: "Festliches Bethlehem", price: -1, need: "adv-schmuck", bezug: "Gemeinsam geschmückt: Dies ist der Tag, den der HERR gemacht hat (Psalm 118,24). Gilt bis 6. Januar." });
+  if (window.RAHMEN_SVG) { const f = ["#d8344a", "#3a6ad8", "#f2c14e", "#f2f2f2", "#4fae5a"];
+    RAHMEN_SVG["adv-schmuck"] = `<svg class="av-fr" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="41" fill="none" stroke="#141a3a" stroke-width="5"/><circle cx="50" cy="50" r="41" fill="none" stroke="#c99a62" stroke-width="2.6"/>${Array.from({ length: 16 }, (_, i) => { const a = i / 16 * Math.PI * 2, x = 50 + Math.cos(a) * 42, y = 50 + Math.sin(a) * 42; return `<path transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(a * 57.3 + 90).toFixed(0)})" d="M-3.4 -2h6.8l-3.4 7z" fill="${f[i % 5]}"/>`; }).join("")}${[-90, 30, 150].map(w => { const a = w / 57.3, x = 50 + Math.cos(a) * 42, y = 50 + Math.sin(a) * 42; return `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><circle r="6" fill="#ffd27a" opacity=".35"/><path d="M-4 1q4 3 8 0q-1 -3 -4 -3q-3 0 -4 3z" fill="#c8864a"/><path d="M0 -2q2 -3 0 -6q-2 3 0 6z" fill="#ffe27a"/></g>`; }).join("")}</svg>`; }
+})();
