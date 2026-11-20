@@ -1657,7 +1657,7 @@ function tabbarSetzen(name) {
   const aktiv = name in TAB_VON ? TAB_VON[name] : name;
   document.body.dataset.tab = name === "name" ? "" : (aktiv || "frei");
   if (!nav.dataset.fertig) {
-    nav.innerHTML = TABS.map(([k, t, i]) => `<button data-tab="${k}" aria-label="${t}"><span class="tb-ic">${i === "arena" ? DUELL_LOGO : svg(i)}</span><span>${t}</span>${k === "duelle" ? `<span class="tb-du" id="tbDu" hidden></span>` : k === "bib" ? `<span class="tb-du" id="tbBib" hidden></span><span class="tb-funk" id="tbEd" hidden aria-hidden="true"><i class="f1">❄</i><i class="f2">❄</i></span><span class="tb-neu" id="tbEdNeu" hidden>NEU</span>` : ""}</button>`).join("");
+    nav.innerHTML = TABS.map(([k, t, i]) => `<button data-tab="${k}" aria-label="${t}"><span class="tb-ic">${i === "arena" ? DUELL_LOGO : svg(i)}</span><span>${t}</span>${k === "duelle" ? `<span class="tb-du" id="tbDu" hidden></span>` : k === "bib" ? `<span class="tb-du" id="tbBib" hidden></span><span class="tb-funk" id="tbEd" hidden aria-hidden="true"><i class="f1">❄</i><i class="f2">❄</i></span><span class="tb-neu" id="tbEdNeu" hidden>NEU</span>` : k === "spielen" ? `<span class="tb-neu" id="tbPlNeu"${plNeu() ? "" : " hidden"}>NEU</span>` : ""}</button>`).join("");
     nav.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { SFX.tap(); go(b.dataset.tab); });
     nav.dataset.fertig = "1";
   }
@@ -1991,7 +1991,7 @@ function spielMenue(zus) {
   return `<div class="sp-menue" style="--ar:var(--ar-${zus ? "gemeinde" : "spielen"})">
     ${bkLabel("link", "Kette")}
     <div class="sp-gitter">${kette}</div>
-    ${bkLabel("scroll", "Themen-Ketten")}<div class="sp-gitter">${Object.entries(TKETTEN).map(([id, k]) => { const n = Math.min(k.items.length, S[k.key] ? S[k.key] + 1 : 0); return spKachel(zus ? `data-dtyp="kette-${id}"` : `data-tk="${id}"`, svg(k.ic), k.name, n ? `${n} von ${k.items.length}` : "Los geht's!", "sp-ketten", n / k.items.length * 100); }).join("")}</div>
+    ${bkLabel("scroll", "Themen-Ketten")}<div class="sp-gitter">${Object.entries(TKETTEN).filter(([id]) => tkSichtbar(id)).map(([id, k]) => { const n = Math.min(k.items.length, S[k.key] ? S[k.key] + 1 : 0); return spKachel(zus ? `data-dtyp="kette-${id}"` : `data-tk="${id}"`, svg(k.ic), k.name, n ? `${n} von ${k.items.length}` : "Los geht's!", "sp-ketten", n / k.items.length * 100); }).join("")}</div>
     ${bkLabel("bolt", "Blitz")}
     ${sp("blitz", 'data-go="blitz"', "bolt", "Blitz-Runde")}
     ${bkLabel("scroll", "Lernvers")}
@@ -2003,7 +2003,7 @@ const soloAttr = s => { if (s.id === "blitz") return 'data-go="blitz"'; if (s.id
 /* 9.70: Solo als Kachel-Raster (2 Spalten) – Medaillon, Name, Stand, Fortschrittsbalken, goldener Haken bei „geschafft“; Reihenfolge der Ketten: AT, NT, Ganze Bibel, Rückwärts */
 const soloKachel = s => spKachel2(s, soloAttr(s));
 /* 9.70: dieselbe Kachel für „Zusammen“ (an = gewähltes Spiel) */
-const spKachel2 = (s, attr, an) => `<button class="sok-k${an ? " an" : ""}" ${attr} style="--c:${ZV_FARBE[s.grp]};--p:${zvPr(s.pct)}"><span class="zv2-ring"><span class="zv2-in">${svg(s.ic)}</span></span><small class="sok-pl">${esc(s.sub)}</small><b>${s.mini && s.mini !== s.kurz ? `<span class="lang">${esc(s.kurz)}</span><span class="kurz">${esc(s.mini)}</span>` : esc(s.kurz)}</b></button>`; /* 9.73: Variante „Medaille“ – Symbol zentriert und groß, Stand als Plakette am Ring, kein Balken, kein Haken */
+const spKachel2 = (s, attr, an) => `<button class="sok-k${an ? " an" : ""}" ${attr} style="--c:${ZV_FARBE[s.grp]};--p:${zvPr(s.pct)}">${s.id === "kette-plagen" && plNeu() ? `<span class="pl-neu">NEU</span>` : ""}<span class="zv2-ring"><span class="zv2-in">${svg(s.ic)}</span></span><small class="sok-pl">${esc(s.sub)}</small><b>${s.mini && s.mini !== s.kurz ? `<span class="lang">${esc(s.kurz)}</span><span class="kurz">${esc(s.mini)}</span>` : esc(s.kurz)}</b></button>`; /* 9.73: Variante „Medaille“ – Symbol zentriert und groß, Stand als Plakette am Ring, kein Balken, kein Haken */
 VIEWS.spielen = () => {
   const g = zvSpiele();
   screen.innerHTML = `${bereichKopf("spielen", { ic: "user", t: "Solo", sub: "Wie weit kommst du heute?" })}
@@ -2026,7 +2026,7 @@ function zvSpiele() {
     return { id: "kette-" + id, ic: K.ic, name: K.name, kurz: K.kurz || K.name, mini: K.kurz || K.name.replace(/^Zehn /, ""), sub: n ? `${n} von ${K.items.length}` : "Los geht's!", pct: n / K.items.length * 100, grp: id }; };
   const bp = spielStand("blitz")[1], [vs0, vp] = spielStand("vers"), r = S.bestBlitz | 0;
   const vs = vs0.startsWith("Neuer") ? "Neuer Vers!" : vs0.startsWith("Vers des") ? "Gemeistert" : vs0.startsWith("Prüfung") ? "Prüfung!" : vs0;
-  return [k("bibel"), k("at"), k("nt"), k("rueck"), t("gebote"), t("schoepfung"), t("plagen"),
+  return [k("bibel"), k("at"), k("nt"), k("rueck"), t("gebote"), t("schoepfung"), ...(plFrei() ? [t("plagen")] : []),
     { id: "blitz", ic: "bolt", name: "Blitz", kurz: "Blitz", sub: r ? `Rekord ${r}` : "Los geht's!", pct: bp, grp: "blitz" },
     { id: "vers", ic: "scroll", name: "Lernvers", kurz: "Lernvers", sub: vs, pct: vp, grp: "vers" }];
 }
@@ -2475,6 +2475,12 @@ function playChain(mode) {
 
 /* ---------- 9.11: Themen-Ketten – feste Reihenfolge mit klarer biblischer Grundlage (Zehn Gebote, Schöpfungstage) ----------
    Wie die Buch-Ketten: immer das, was als Nächstes kommt – ein Fehler beendet die Kette. Rekord je Kette in S[key] (Index des letzten richtigen Gliedes). */
+/* 10.38: Start der Kette „Plagen in Ägypten“ – Mo 23.11.2026 07:00 deutscher Zeit (06:00 UTC); in der Beta und auf localhost sofort.
+   Date.now() ist dank uhr.js die Serverzeit – Uhr umstellen schaltet nichts früher frei. NEU-Schild eine Woche lang. */
+const PL_START = Date.UTC(2026, 10, 23, 6, 0, 0), PL_NEU_BIS = Date.UTC(2026, 10, 30, 6, 0, 0);
+const plFrei = () => (typeof BETA !== "undefined" && BETA) || /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || Date.now() >= PL_START;
+const plNeu = () => plFrei() && Date.now() < PL_NEU_BIS;
+const tkSichtbar = id => id !== "plagen" || plFrei();
 const TKETTEN = {
   gebote: { name: "Zehn Gebote", info: "2. Mose 20,3–17", key: "chainGebote", bonus: 30, tal: 8, ic: "tafeln", frage: "Welches Gebot kommt nach", start: "Wie lautet das 1. Gebot?", sub: n => `${n + 1}. Gebot`,
     items: [
@@ -2587,7 +2593,7 @@ function playThemenKette(id) {
       ${tkErgebnis(id, i, full)}</div>`; wireGo();
     $("cagain").onclick = () => { SFX.tap(); countdown(() => playThemenKette(id), cdSolo("kette-" + id)); };
     if (full) { SFX.level(); rain(200); } else if (rec) SFX.win();
-    xpOderOel(xp, null, "kette", { t0, f: Math.max(0, i), fm: seq.length - 1, d: `${K.name}${full ? " · komplett" : " · gerissen"}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
+    xpOderOel(xp, null, "kette", { tk: 1, t0, f: Math.max(0, i), fm: seq.length - 1, d: `${K.name}${full ? " · komplett" : " · gerissen"}${W.d}` }); addTal(tal); save(); checkBadges(); lbSync();
   }
 }
 
@@ -2875,7 +2881,7 @@ VIEWS.stat = () => {
     ${pfTrenner("Rekorde")}
     <div class="pf2-g2">${pfKachel("bolt", m.blitz || 0, "Blitz-Rekord")}${pfKachel("bolt", m.combo != null ? (folgeNeu(m) ? m.combo : 0) : "–", "Blitz in Folge")}${pfKachel("duell", (m.duS || 0) + " / " + (m.duG || 0), "Arena-Siege / Duelle")}${pfKachel("biblionaer", pkt(m.bib || 0), "Biblionär-Rekord")}</div>
     ${pfTrenner("Ketten")}
-    <div class="pf2-karte pf2-zls">${ch("Kette Bibel", m.bestChain, 66)}${ch("Kette AT", m.chainAT, 39, "at")}${ch("Kette NT", m.chainNT, 27, "nt")}${ch("Kette rückwärts", m.chainRueck, 66)}${ch("Zehn Gebote", S.chainGebote, 10)}${ch("Schöpfungstage", S.chainSchoepfung, 7)}${ch("Plagen in Ägypten", S.chainPlagen, 10)}</div></div>`;
+    <div class="pf2-karte pf2-zls">${ch("Kette Bibel", m.bestChain, 66)}${ch("Kette AT", m.chainAT, 39, "at")}${ch("Kette NT", m.chainNT, 27, "nt")}${ch("Kette rückwärts", m.chainRueck, 66)}${ch("Zehn Gebote", S.chainGebote, 10)}${ch("Schöpfungstage", S.chainSchoepfung, 7)}${plFrei() ? ch("Plagen in Ägypten", S.chainPlagen, 10) : ""}</div></div>`;
   wireGo();
 };
 
@@ -2998,7 +3004,7 @@ function zusammenfuehren(r) {
   if (!r || typeof r !== "object") return;
   const max = k => { S[k] = Math.max(+S[k] || 0, +r[k] || 0); };
   const xpVorher = +S.xp || 0;
-  ["xp", "tal", "right", "bestStreak", "bestChain", "chainAT", "chainNT", "chainRueck", "chainGebote", "chainSchoepfung", "chainPlagen", "bestBlitz", "bestCombo", "bestFolge", "questBonusCount", "bestGoalStreak", "bestDayRight", "duSiege", "duSpiele", "duGesendet", "duAngenommen", "lvLohn", "bibRekord", "bibSpiele", "bibMillion"].forEach(max);
+  ["xp", "tal", "right", "bestStreak", "bestChain", "chainAT", "chainNT", "chainRueck", "chainGebote", "chainSchoepfung", "chainPlagen", "plAnk", "bestBlitz", "bestCombo", "bestFolge", "questBonusCount", "bestGoalStreak", "bestDayRight", "duSiege", "duSpiele", "duGesendet", "duAngenommen", "lvLohn", "bibRekord", "bibSpiele", "bibMillion"].forEach(max);
   /* Wochenrunde: die neuere Woche gewinnt; in derselben Woche zählt der höhere Wert (ein Versuch wird nie zurückgesetzt) */
   if ((r.bwK || "") > (S.bwK || "")) { if (S.bwK && S.bwK !== r.bwK) { S.bwVK = S.bwK; S.bwVP = S.bwP | 0; } S.bwK = r.bwK; S.bwP = r.bwP | 0; S.bwFertig = !!r.bwFertig; }
   else if (r.bwK && r.bwK === S.bwK) { S.bwP = Math.max(S.bwP | 0, r.bwP | 0); S.bwFertig = !!(S.bwFertig || r.bwFertig); }
@@ -3982,7 +3988,7 @@ function pvInhalt(r, ich, istIch, reiter) {
     ["Blitz-Rekord", r.blitz | 0, ich.blitz | 0],
     ["Blitz in Folge", folgeNeu(r) ? r.combo | 0 : 0, ich.combo | 0],
     ["Biblionär-Rekord", r.bib | 0, ich.bib | 0]].concat(istIch ? [ /* 10.3: Themen-Ketten stehen nur im eigenen Spielstand */
-    ["Zehn Gebote", `${S.chainGebote ? Math.min(10, S.chainGebote + 1) : 0}/10`, ""], ["Schöpfungstage", `${S.chainSchoepfung ? Math.min(7, S.chainSchoepfung + 1) : 0}/7`, ""], ["Plagen in Ägypten", `${S.chainPlagen ? Math.min(10, S.chainPlagen + 1) : 0}/10`, ""]] : []), istIch)
+    ["Zehn Gebote", `${S.chainGebote ? Math.min(10, S.chainGebote + 1) : 0}/10`, ""], ["Schöpfungstage", `${S.chainSchoepfung ? Math.min(7, S.chainSchoepfung + 1) : 0}/7`, ""]].concat(plFrei() ? [["Plagen in Ägypten", `${S.chainPlagen ? Math.min(10, S.chainPlagen + 1) : 0}/10`, ""]] : []) : []), istIch)
     + (Array.isArray(r.sg) ? `<div class="pv-sg"><span class="small muted">Siegel${istIch ? "" : " von " + esc(r.name)}</span>${siegelReihe(r)}</div>` : "");
   if (reiter === "album") return `<div class="small" style="margin:2px 0 6px"><b>${albumPunkte(r)} Punkte</b>${istIch ? "" : ` <span class="muted">· du ${albumPunkte(ich)}</span>`}</div><div id="pvAlbum">${typeof smIch === "function" && smIch(r) ? albumSchaufenster(r, true) : `<p class="small muted">Album wird geladen …</p>`}</div>${istIch ? `<button class="btn ghost mini" data-go="album" style="margin-top:8px">Zum Sammelalbum</button>` : ""}`;
   /* Abzeichen */
@@ -4435,7 +4441,7 @@ VIEWS.duelle = () => {
   if (duListe === null) duAktualisieren().then(() => { if (current === "duelle" && !duSpiel) VIEWS.duelle(); });
 };
 /* Auswahl der Duell-Art als Kacheln (eine Ebene, direkt über der Gegnerliste) */
-const duTypKacheln = (aktiv, attr = "data-typ", marken = {}) => `<div class="du-typen" role="radiogroup" aria-label="Duell-Art">${Object.entries(DU_TYPEN).map(([id, t]) =>
+const duTypKacheln = (aktiv, attr = "data-typ", marken = {}) => `<div class="du-typen" role="radiogroup" aria-label="Duell-Art">${Object.entries(DU_TYPEN).filter(([id]) => id !== "kette-plagen" || plFrei()).map(([id, t]) =>
   `<button class="du-typ t-${t.art}" role="radio" aria-checked="${id === aktiv}" ${attr}="${id}"><span class="dt-ic">${svg(t.ic)}</span><span class="dt-name">${esc(t.name)}</span>${marken[id] ? `<i class="dt-marke">${marken[id]}</i>` : ""}</button>`).join("")}</div>`;
 /* Gegnerwahl direkt auf der Duell-Seite (keine weitere Menüebene) */
 async function duGegnerLaden() {
@@ -4511,7 +4517,7 @@ function duGegnerVerdrahten() {
 }
 /* Duell-Art wählen und herausfordern (Revanche, Profil): die bisherige Art ist markiert, eine andere wird vorgeschlagen */
 function duTypWahl(r, bisher, revanche = false) {
-  const andere = Object.keys(DU_TYPEN).filter(t => t !== bisher);
+  const andere = Object.keys(DU_TYPEN).filter(t => t !== bisher && (t !== "kette-plagen" || plFrei()));
   const vorschlag = bisher ? (DU_TYPEN[bisher].art === "vers" ? "blitz" : DU_TYPEN[bisher].art === "blitz" ? "kette-at" : "vers") : null;
   let wahl = vorschlag || duTypAktuell();
   const marken = {}; if (bisher) marken[bisher] = "wie eben"; if (vorschlag && andere.includes(vorschlag)) marken[vorschlag] = "Vorschlag";
@@ -4722,7 +4728,7 @@ async function duEnde() {
   const extra = D.art === "kette" && D.r === D.fragen.length ? " · ganze Kette!"
     : D.art === "quiz" ? (D.p >= BIB_LEITER[14] ? " · Biblionär!" : D.raus ? " · ausgestiegen" : "") : "";
   const gegnerSpalte = `<div class="du-vs-sp offen"><span>${esc(D.gegner)}</span><b>?</b><small>${viele ? "sind dran" : "ist dran"}</small></div>`;
-  function xpGeben(ms) { if (D.xpGegeben) return; D.xpGegeben = true; duXpTagZaehlen(); setTimeout(() => { addXp(xp, null, ziele.some(z => eigenePid(z.id)) ? "duelleigen" : "duell", { t0: D.t0, f: D.r, fm: n, gs: D.art === "quiz" ? 10 / 15 : 0, d: `${(DU_TYPEN[typ] && DU_TYPEN[typ].name) || D.art} · ${D.neu ? "Herausforderung" : "angenommen"}${D.gleichF < 1 ? " · gleicher Gegner ×" + (Math.round(D.gleichF * 100) / 100) : ""}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, ms); }
+  function xpGeben(ms) { if (D.xpGegeben) return; D.xpGegeben = true; duXpTagZaehlen(); setTimeout(() => { addXp(xp, null, ziele.some(z => eigenePid(z.id)) ? "duelleigen" : "duell", { t0: D.t0, f: D.r, fm: n, tk: D.art === "kette" && TKETTEN[D.k] ? 1 : 0, gs: D.art === "quiz" ? 10 / 15 : 0, d: `${(DU_TYPEN[typ] && DU_TYPEN[typ].name) || D.art} · ${D.neu ? "Herausforderung" : "angenommen"}${D.gleichF < 1 ? " · gleicher Gegner ×" + (Math.round(D.gleichF * 100) / 100) : ""}` }); if (tal) addTal(tal); checkBadges(); lbSync(); }, ms); }
   /* 6.62: Gegenspieler – Auflösung im Siegelbruch-Stil; Titel, Belohnung und Knöpfe erst danach */
   const aufl = !D.neu && !fehler && !weg;
   if (aufl) {
@@ -6374,3 +6380,20 @@ function staemmeErstatten() {
   ICONS["av-leiter"] = A(`<circle class="wr-halo" cx="46" cy="12" r="16" fill="url(#wrH_lohn)"/><path d="M14 60L40 6M28 60L54 6" stroke="${O}" stroke-width="5" stroke-linecap="round"/><path d="M14 60L40 6M28 60L54 6" stroke="url(#wrG)" stroke-width="3" stroke-linecap="round"/>${[0, 1, 2, 3, 4, 5].map(i => { const y = 52 - i * 8.6, x = 18 + i * 4.2; return `<path d="M${x} ${y}h14" stroke="${O}" stroke-width="4.4" stroke-linecap="round"/><path d="M${x} ${y}h14" stroke="url(#wrP)" stroke-width="2.4" stroke-linecap="round"/>`; }).join("")}${[[46, 2], [58, 10], [56, 22]].map(([x, y]) => `<path d="M${x} ${y - 3}l1 2.2 2.4 .8-2.4.8-1 2.2-1-2.2-2.4-.8 2.4-.8z" fill="#fff6c8"/>`).join("")}`);
   ICONS["av-palme"] = A(`<path d="M18 60C24 44 34 26 50 6" fill="none" stroke="${O}" stroke-width="5" stroke-linecap="round"/><path d="M18 60C24 44 34 26 50 6" fill="none" stroke="#7a9a3a" stroke-width="3" stroke-linecap="round"/>${Array.from({ length: 9 }, (_, i) => { const t = .15 + i * .09, x = 18 + (50 - 18) * t + 2, y = 60 - 54 * t, l = 16 - i * 1.1; return `<path d="M${x} ${y}q-${l * .8}-${l * .2}-${l}-${l * .7}" fill="none" stroke="#3f7a3a" stroke-width="3.2" stroke-linecap="round"/><path d="M${x} ${y}q${l * .3}-${l * .3}${l}-${l * .2}" fill="none" stroke="#5fae5a" stroke-width="3.2" stroke-linecap="round"/>`; }).join("")}<path d="M48 8l4-4" stroke="url(#wrG)" stroke-width="2.4" stroke-linecap="round"/>`);
 })();
+
+/* 10.38: Einmalige Ankündigung „Plagen in Ägypten“ auf der Startseite (ab Start, in der Beta sofort) – führt direkt ins Spiel */
+function plAnkuendigen(versuch = 0) {
+  if (!plFrei() || S.plAnk || !S.lbName || gesperrt) return;
+  setTimeout(() => {
+    if (S.plAnk || current !== "home") return;
+    if (document.querySelector(".modal, .sm-ov, .sm-tour, .truhe-fx") || document.body.classList.contains("spiel-laeuft")) { if (versuch < 6) plAnkuendigen(versuch + 1); return; }
+    S.plAnk = 1; save();
+    const bilder = [0, 3, 9].map(k => `<span class="pl-ank-b">${tkBildSvg("plagen", k)}</span>`).join("");
+    modal(`<div class="rb-fenster pl-ank"><div class="pl-ank-f">${bilder}</div><small class="sm-ank-neu">NEU</small><h2>Plagen in Ägypten</h2>
+      <p>Bringe die <b>zehn Plagen</b> in die richtige Reihenfolge – mit Bildern und Erklärungen aus 2. Mose 7–12. Allein oder im <b>Duell</b>.</p>
+      <p class="pl-ank-m">${typeof SM_GOLD_SVG !== "undefined" ? SM_GOLD_SVG : ""}<span>Jede Runde bringt <b>Manna</b> – die ganze Kette noch mehr.</span></p>
+      <button class="btn primary" data-close="los">${svg("plagen")} Jetzt spielen</button><button class="btn ghost" data-close="">Später</button></div>`,
+      w => { if (w === "los") { go("spielen"); countdown(() => playThemenKette("plagen"), cdSolo("kette-plagen")); } }).dataset.frei = "1";
+  }, versuch ? 2500 : 3200);
+}
+(function plStart() { const alt = VIEWS.home; VIEWS.home = function (a) { alt(a); plAnkuendigen(); }; })();
