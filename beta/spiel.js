@@ -8,7 +8,7 @@ const DEF = {
   xp: 0, tal: 0, stars: {}, right: 0,
   streak: 0, bestStreak: 0, lastDay: "", todayXp: 0, todayDay: "", todayRight: 0, bestDayRight: 0,
   goalStreak: 0, bestGoalStreak: 0, lastGoalDay: "",
-  bestChain: 0, chainAT: 0, chainNT: 0, chainRueck: 0, chainGebote: 0, chainSchoepfung: 0, bestBlitz: 0, bestCombo: 0, bestFolge: 0,
+  bestChain: 0, chainAT: 0, chainNT: 0, chainRueck: 0, chainGebote: 0, chainSchoepfung: 0, chainPlagen: 0, bestBlitz: 0, bestCombo: 0, bestFolge: 0,
   badges: [], owned: ["gold"], theme: "gold", avatar: "initial", frame: "none", title: "none",
   tage: [], treueWochen: [], treueBonus: { week: "", stufen: [] }, meister: { bibel: [], at: [], nt: [], rueck: [] },
   siegelGesehen: { bibel: 0, at: 0, nt: 0, rueck: 0 }, aufgefrischt: false, eingeladenVon: "", eingeladen: false, fischerDabei: false, menschenfischer: false,
@@ -2009,23 +2009,24 @@ VIEWS.spielen = () => {
   screen.innerHTML = `${bereichKopf("spielen", { ic: "user", t: "Solo", sub: "Wie weit kommst du heute?" })}
   <div class="zv"><div class="zv2-buehne sok-solo">
     <div class="zv2-reihe"><span class="zv2-tit">${svg("link")}Ketten</span></div><div class="sok-gitter sok-ketten">${[g[1], g[2], g[0], g[3]].map(soloKachel).join("")}</div>
-    <div class="zv2-reihe"><span class="zv2-tit">${svg("star")}Themen · Blitz · Vers</span></div><div class="sok-gitter sok-themen">${g.slice(4).map(soloKachel).join("")}</div></div></div>`;
+    <div class="zv2-reihe"><span class="zv2-tit">${svg("star")}Themen</span></div><div class="sok-gitter sok-themen">${g.filter(s => s.grp in TKETTEN).map(soloKachel).join("")}</div>
+    <div class="zv2-reihe"><span class="zv2-tit">${svg("bolt")}Blitz · Vers</span></div><div class="sok-gitter sok-bv">${g.filter(s => s.id === "blitz" || s.id === "vers").map(soloKachel).join("")}</div></div></div>`;
   wireGo();
   screen.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playChain(b.dataset.k), cdSolo("kette-" + b.dataset.k)); });
   screen.querySelectorAll("[data-tk]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playThemenKette(b.dataset.tk), cdSolo("kette-" + b.dataset.tk)); });
 };
 
 /* ---------- 9.19: „Zusammen“ / Neues Duell: Medaillon-Bühne. Spiel antippen → darunter erscheint die Gegnerliste, ein Tipp auf einen Gegner startet das Duell ---------- */
-const ZV_FARBE = { kette: "#ffb54a", gebote: "#b38cff", schoepfung: "#5fe0b0", blitz: "#ff8a5c", vers: "#7fc8ff" };
+const ZV_FARBE = { kette: "#ffb54a", gebote: "#b38cff", schoepfung: "#5fe0b0", plagen: "#e8475f", blitz: "#ff8a5c", vers: "#7fc8ff" };
 const zvPr = v => Math.max(0, Math.min(100, v || 0)).toFixed(1);
 function zvSpiele() {
   const k = id => { const K = KETTEN[id], n = Math.min(K.seq.length, kettenBuecher(K.key));
     return { id: "kette-" + id, ic: "kette-" + id, name: K.name, kurz: { bibel: "Ganze Bibel", at: "Altes Test.", nt: "Neues Test.", rueck: "Rückwärts" }[id], sub: n ? `${n} von ${K.seq.length}` : "Los geht's!", pct: n / K.seq.length * 100, grp: "kette" }; };
   const t = id => { const K = TKETTEN[id], n = Math.min(K.items.length, S[K.key] ? S[K.key] + 1 : 0);
-    return { id: "kette-" + id, ic: K.ic, name: K.name, kurz: K.name, mini: K.name.replace(/^Zehn /, ""), sub: n ? `${n} von ${K.items.length}` : "Los geht's!", pct: n / K.items.length * 100, grp: id }; };
+    return { id: "kette-" + id, ic: K.ic, name: K.name, kurz: K.kurz || K.name, mini: K.kurz || K.name.replace(/^Zehn /, ""), sub: n ? `${n} von ${K.items.length}` : "Los geht's!", pct: n / K.items.length * 100, grp: id }; };
   const bp = spielStand("blitz")[1], [vs0, vp] = spielStand("vers"), r = S.bestBlitz | 0;
   const vs = vs0.startsWith("Neuer") ? "Neuer Vers!" : vs0.startsWith("Vers des") ? "Gemeistert" : vs0.startsWith("Prüfung") ? "Prüfung!" : vs0;
-  return [k("bibel"), k("at"), k("nt"), k("rueck"), t("gebote"), t("schoepfung"),
+  return [k("bibel"), k("at"), k("nt"), k("rueck"), t("gebote"), t("schoepfung"), t("plagen"),
     { id: "blitz", ic: "bolt", name: "Blitz", kurz: "Blitz", sub: r ? `Rekord ${r}` : "Los geht's!", pct: bp, grp: "blitz" },
     { id: "vers", ic: "scroll", name: "Lernvers", kurz: "Lernvers", sub: vs, pct: vp, grp: "vers" }];
 }
@@ -2052,7 +2053,8 @@ VIEWS.zusammen = () => {
   ${dran}
   <div class="zv ${online ? "" : "sp-aus"}"><div class="zv2-buehne sok-solo">
     <div class="zv2-reihe"><span class="zv2-tit">${svg("link")}Ketten</span></div><div class="sok-gitter sok-ketten">${[g[1], g[2], g[0], g[3]].map(zvKachel).join("")}</div>
-    <div class="zv2-reihe"><span class="zv2-tit">${svg("star")}Themen · Blitz · Vers</span></div><div class="sok-gitter sok-themen">${g.slice(4).map(zvKachel).join("")}</div></div>
+    <div class="zv2-reihe"><span class="zv2-tit">${svg("star")}Themen</span></div><div class="sok-gitter sok-themen">${g.filter(s => s.grp in TKETTEN).map(zvKachel).join("")}</div>
+    <div class="zv2-reihe"><span class="zv2-tit">${svg("bolt")}Blitz · Vers</span></div><div class="sok-gitter sok-bv">${g.filter(s => s.id === "blitz" || s.id === "vers").map(zvKachel).join("")}</div></div>
     <p class="zv2-hinw"><span>1</span>Spiel antippen<i></i><span>2</span>Gegner wählen<i></i><span>3</span>Duell!</p>
     <div id="zvGegnerBox">${zvWahl ? zvGegnerHtml() : ""}</div></div>`;
   wireGo(); duDranVerdrahten(); zvVerdrahten();
@@ -2482,7 +2484,20 @@ const TKETTEN = {
   schoepfung: { name: "Schöpfung", info: "Die sieben Schöpfungstage · 1. Mose 1,1–2,3", key: "chainSchoepfung", bonus: 24, tal: 6, ic: "schoepfung", frage: "Was folgt auf", start: "Was schuf Gott am 1. Tag?", sub: n => `${n + 1}. Tag`,
     items: [
       { t: "Licht und Finsternis", d: "Gott spricht: „Es werde Licht!“ Er trennt das Licht von der Finsternis und nennt das Licht Tag und die Finsternis Nacht.", r: "1. Mose 1,3–5" }, { t: "Himmelsfeste: Wasser oben und unten", d: "Gott schafft die Weite des Himmels und trennt das Wasser unter ihr vom Wasser über ihr.", r: "1. Mose 1,6–8" }, { t: "Land, Meer und Pflanzen", d: "Das Wasser sammelt sich zu Meeren, trockenes Land erscheint. Die Erde lässt Gras, Kräuter und fruchttragende Bäume wachsen.", r: "1. Mose 1,9–13" },
-      { t: "Sonne, Mond und Sterne", d: "Gott setzt Sonne, Mond und Sterne an den Himmel – als Lichter für Tag und Nacht, für Zeiten, Tage und Jahre.", r: "1. Mose 1,14–19" }, { t: "Fische und Vögel", d: "Das Wasser wimmelt von Leben, Vögel fliegen unter dem Himmel. Gott segnet sie: Seid fruchtbar und mehrt euch.", r: "1. Mose 1,20–23" }, { t: "Landtiere und der Mensch", d: "Gott schafft die Landtiere – und zuletzt den Menschen als sein Ebenbild, als Mann und Frau. Alles war sehr gut.", r: "1. Mose 1,24–31" }, { t: "Gott ruht", d: "Gott vollendet sein Werk und ruht am siebten Tag. Er segnet diesen Tag und heiligt ihn.", r: "1. Mose 2,2–3" }] }
+      { t: "Sonne, Mond und Sterne", d: "Gott setzt Sonne, Mond und Sterne an den Himmel – als Lichter für Tag und Nacht, für Zeiten, Tage und Jahre.", r: "1. Mose 1,14–19" }, { t: "Fische und Vögel", d: "Das Wasser wimmelt von Leben, Vögel fliegen unter dem Himmel. Gott segnet sie: Seid fruchtbar und mehrt euch.", r: "1. Mose 1,20–23" }, { t: "Landtiere und der Mensch", d: "Gott schafft die Landtiere – und zuletzt den Menschen als sein Ebenbild, als Mann und Frau. Alles war sehr gut.", r: "1. Mose 1,24–31" }, { t: "Gott ruht", d: "Gott vollendet sein Werk und ruht am siebten Tag. Er segnet diesen Tag und heiligt ihn.", r: "1. Mose 2,2–3" }] },
+  /* 10.38: Plagen in Ägypten (2. Mose 7–12) – Farbe „Nil-Karmin“ #e8475f */
+  plagen: { name: "Plagen in Ägypten", kurz: "Plagen", info: "Die zehn Plagen · 2. Mose 7–12", key: "chainPlagen", bonus: 30, tal: 8, ic: "plagen", frage: "Welche Plage kommt nach", start: "Was war die 1. Plage?", sub: n => `${n + 1}. Plage`,
+    items: [
+      { t: "Wasser wird zu Blut", d: "Mose schlägt mit dem Stab ins Wasser des Nils. Das Wasser wird zu Blut, die Fische sterben, und die Ägypter können nicht mehr daraus trinken.", r: "2. Mose 7,14–25" },
+      { t: "Frösche", d: "Aus dem Nil kommen so viele Frösche, dass sie in die Häuser, die Betten und sogar in die Backöfen kriechen.", r: "2. Mose 7,26–8,11" },
+      { t: "Mücken", d: "Aaron schlägt in den Staub der Erde, und er wird zu Mücken. Die Zauberer des Pharao müssen zugeben: „Das ist Gottes Finger!“", r: "2. Mose 8,12–15" },
+      { t: "Hundsfliegen", d: "Schwärme von Hundsfliegen füllen die Häuser der Ägypter. Das Land Gosen, wo Israel wohnt, bleibt verschont – Gott macht einen Unterschied zwischen seinem Volk und Ägypten.", r: "2. Mose 8,16–28" },
+      { t: "Viehpest", d: "Eine schwere Seuche trifft das Vieh der Ägypter. Vom Vieh der Israeliten stirbt kein einziges Tier.", r: "2. Mose 9,1–7" },
+      { t: "Geschwüre", d: "Mose wirft Ofenruß in die Luft. Er wird zu Staub über ganz Ägypten, und Menschen und Tiere bekommen Geschwüre – auch die Zauberer.", r: "2. Mose 9,8–12" },
+      { t: "Hagel", d: "Ein gewaltiger Hagel mit Feuer fällt auf Ägypten. Wer Gottes Wort ernst nahm, hatte seine Knechte und sein Vieh rechtzeitig in Sicherheit gebracht.", r: "2. Mose 9,13–35" },
+      { t: "Heuschrecken", d: "Ein Ostwind bringt Heuschrecken. Sie bedecken das ganze Land und fressen alles Grüne, was der Hagel übrig gelassen hat.", r: "2. Mose 10,1–20" },
+      { t: "Finsternis", d: "Drei Tage lang liegt eine dichte Finsternis über Ägypten. Niemand sieht den anderen – aber bei den Israeliten ist es hell in ihren Wohnungen.", r: "2. Mose 10,21–29" },
+      { t: "Tod der Erstgeburt", d: "In der Passahnacht streicht Israel das Blut des Lammes an die Türpfosten, und der HERR geht an diesen Häusern vorüber. Danach lässt der Pharao das Volk ziehen. Jesus ist unser Passahlamm (1. Korinther 5,7).", r: "2. Mose 11,1–12,30" }] },
 };
 /* 9.19: neue Symbole für Zehn Gebote (Steintafeln) und Schöpfung (Erdkugel mit Strahlen). Beim Generator-Lauf nach werkzeuge/symbole-erzeugen.js übernehmen. */
 (() => {
@@ -2513,7 +2528,7 @@ function tkZeitleiste(id, erreicht, ziel, neu) {
   const K = TKETTEN[id], n = K.items.length;
   return `<div class="tk-zl tk-${id}" style="--n:${n}" role="list" aria-label="${esc(K.name)}">${K.items.map((x, k) => {
     const auf = k <= erreicht, kl = ["tk-t", auf ? "auf" : "zu", k === ziel ? "ziel" : "", k === neu ? "neu" : ""].filter(Boolean).join(" ");
-    return `<div class="${kl}" role="listitem" aria-label="${esc(K.sub(k))}${auf ? ": " + esc(x.t) : ""}"><span class="tk-bild">${auf ? tkBildSvg(id, k) : ""}</span><b>${id === "gebote" ? k + 1 + "." : "Tag " + (k + 1)}</b></div>`;
+    return `<div class="${kl}" role="listitem" aria-label="${esc(K.sub(k))}${auf ? ": " + esc(x.t) : ""}"><span class="tk-bild">${auf ? tkBildSvg(id, k) : ""}</span><b>${id === "schoepfung" ? "Tag " + (k + 1) : k + 1 + "."}</b></div>`;
   }).join("")}</div>`;
 }
 
@@ -2860,7 +2875,7 @@ VIEWS.stat = () => {
     ${pfTrenner("Rekorde")}
     <div class="pf2-g2">${pfKachel("bolt", m.blitz || 0, "Blitz-Rekord")}${pfKachel("bolt", m.combo != null ? (folgeNeu(m) ? m.combo : 0) : "–", "Blitz in Folge")}${pfKachel("duell", (m.duS || 0) + " / " + (m.duG || 0), "Arena-Siege / Duelle")}${pfKachel("biblionaer", pkt(m.bib || 0), "Biblionär-Rekord")}</div>
     ${pfTrenner("Ketten")}
-    <div class="pf2-karte pf2-zls">${ch("Kette Bibel", m.bestChain, 66)}${ch("Kette AT", m.chainAT, 39, "at")}${ch("Kette NT", m.chainNT, 27, "nt")}${ch("Kette rückwärts", m.chainRueck, 66)}${ch("Zehn Gebote", S.chainGebote, 10)}${ch("Schöpfungstage", S.chainSchoepfung, 7)}</div></div>`;
+    <div class="pf2-karte pf2-zls">${ch("Kette Bibel", m.bestChain, 66)}${ch("Kette AT", m.chainAT, 39, "at")}${ch("Kette NT", m.chainNT, 27, "nt")}${ch("Kette rückwärts", m.chainRueck, 66)}${ch("Zehn Gebote", S.chainGebote, 10)}${ch("Schöpfungstage", S.chainSchoepfung, 7)}${ch("Plagen in Ägypten", S.chainPlagen, 10)}</div></div>`;
   wireGo();
 };
 
@@ -2983,7 +2998,7 @@ function zusammenfuehren(r) {
   if (!r || typeof r !== "object") return;
   const max = k => { S[k] = Math.max(+S[k] || 0, +r[k] || 0); };
   const xpVorher = +S.xp || 0;
-  ["xp", "tal", "right", "bestStreak", "bestChain", "chainAT", "chainNT", "chainRueck", "chainGebote", "chainSchoepfung", "bestBlitz", "bestCombo", "bestFolge", "questBonusCount", "bestGoalStreak", "bestDayRight", "duSiege", "duSpiele", "duGesendet", "duAngenommen", "lvLohn", "bibRekord", "bibSpiele", "bibMillion"].forEach(max);
+  ["xp", "tal", "right", "bestStreak", "bestChain", "chainAT", "chainNT", "chainRueck", "chainGebote", "chainSchoepfung", "chainPlagen", "bestBlitz", "bestCombo", "bestFolge", "questBonusCount", "bestGoalStreak", "bestDayRight", "duSiege", "duSpiele", "duGesendet", "duAngenommen", "lvLohn", "bibRekord", "bibSpiele", "bibMillion"].forEach(max);
   /* Wochenrunde: die neuere Woche gewinnt; in derselben Woche zählt der höhere Wert (ein Versuch wird nie zurückgesetzt) */
   if ((r.bwK || "") > (S.bwK || "")) { if (S.bwK && S.bwK !== r.bwK) { S.bwVK = S.bwK; S.bwVP = S.bwP | 0; } S.bwK = r.bwK; S.bwP = r.bwP | 0; S.bwFertig = !!r.bwFertig; }
   else if (r.bwK && r.bwK === S.bwK) { S.bwP = Math.max(S.bwP | 0, r.bwP | 0); S.bwFertig = !!(S.bwFertig || r.bwFertig); }
@@ -3967,7 +3982,7 @@ function pvInhalt(r, ich, istIch, reiter) {
     ["Blitz-Rekord", r.blitz | 0, ich.blitz | 0],
     ["Blitz in Folge", folgeNeu(r) ? r.combo | 0 : 0, ich.combo | 0],
     ["Biblionär-Rekord", r.bib | 0, ich.bib | 0]].concat(istIch ? [ /* 10.3: Themen-Ketten stehen nur im eigenen Spielstand */
-    ["Zehn Gebote", `${S.chainGebote ? Math.min(10, S.chainGebote + 1) : 0}/10`, ""], ["Schöpfungstage", `${S.chainSchoepfung ? Math.min(7, S.chainSchoepfung + 1) : 0}/7`, ""]] : []), istIch)
+    ["Zehn Gebote", `${S.chainGebote ? Math.min(10, S.chainGebote + 1) : 0}/10`, ""], ["Schöpfungstage", `${S.chainSchoepfung ? Math.min(7, S.chainSchoepfung + 1) : 0}/7`, ""], ["Plagen in Ägypten", `${S.chainPlagen ? Math.min(10, S.chainPlagen + 1) : 0}/10`, ""]] : []), istIch)
     + (Array.isArray(r.sg) ? `<div class="pv-sg"><span class="small muted">Siegel${istIch ? "" : " von " + esc(r.name)}</span>${siegelReihe(r)}</div>` : "");
   if (reiter === "album") return `<div class="small" style="margin:2px 0 6px"><b>${albumPunkte(r)} Punkte</b>${istIch ? "" : ` <span class="muted">· du ${albumPunkte(ich)}</span>`}</div><div id="pvAlbum">${typeof smIch === "function" && smIch(r) ? albumSchaufenster(r, true) : `<p class="small muted">Album wird geladen …</p>`}</div>${istIch ? `<button class="btn ghost mini" data-go="album" style="margin-top:8px">Zum Sammelalbum</button>` : ""}`;
   /* Abzeichen */
@@ -4037,6 +4052,7 @@ const DU_TYPEN = {
   "kette-rueck": { art: "kette", k: "rueck", name: "Rückwärts", ic: "kette-rueck", info: "Offenbarung bis 1. Mose · für Profis" },
   "kette-gebote": { art: "kette", k: "gebote", name: "Zehn Gebote", ic: "tafeln", info: "2. Mose 20,3–17 · ein Fehler beendet sie" },
   "kette-schoepfung": { art: "kette", k: "schoepfung", name: "Schöpfung", ic: "schoepfung", info: "Die sieben Schöpfungstage · ein Fehler beendet sie" },
+  "kette-plagen": { art: "kette", k: "plagen", name: "Plagen in Ägypten", ic: "plagen", info: "Die zehn Plagen · ein Fehler beendet sie" },
   quiz: { art: "quiz", k: "leiter", name: "Biblionär", kurz: "Biblionär", ic: "biblionaer", info: "15 Bibelfragen bis 1 Million Punkte · 3 Joker · Aussteigen erlaubt" }
 };
 let duListe = null, duFehler = "", duSpiel = null, duWahl = false, duGegner = null, duSuche = "", duAlle = false;
@@ -4050,7 +4066,7 @@ const duVerseKey = () => { const jetzt = monatKey(); return Object.keys(MONATSVE
 const duTypVon = d => { const t = (d.art || "vers") === "kette" ? "kette-" + d.k : (d.art || "vers"); return DU_TYPEN[t] ? t : null; };
 const duTypAktuell = () => (DU_TYPEN[S.duTyp] ? S.duTyp : "vers");
 const duTypText = d => { const t = duTypVon(d) || "vers"; return t === "vers" ? `Lernvers ${monatName(d.k)}` : DU_TYPEN[t].name; };
-const duErgText = (art, e) => (art === "blitz" ? `${e.r} richtig` : art === "kette" ? `${e.r}/${e.n} Bücher richtig` : `${e.r}/${e.n} richtig`);
+const duErgText = (art, e) => (art === "blitz" ? `${e.r} richtig` : art === "kette" ? `${e.r}/${e.n} ${e.n > 10 ? "Bücher " : ""}richtig` /* 10.38: Themen-Ketten (≤ 10 Glieder) ohne „Bücher“ */ : `${e.r}/${e.n} richtig`);
 /* 9.13: Wer gewinnt, entscheidet allein die Zahl der richtigen Antworten – bei gleicher Zahl ist es unentschieden, egal wer schneller war (die Punkte werden weiter angezeigt) */
 /* 9.29: Biblionär (art "quiz"): bei gleich vielen richtigen Antworten gewinnt, wer die höhere Wertung (Gewinnstufe) hat – wer rechtzeitig aussteigt, wird belohnt */
 /* 10.34: Biblionär entscheidet nur die erreichte Gewinnstufe (Punkte) – wer rechtzeitig aussteigt, gewinnt; gleiche Punkte = Remis. Alle anderen Arten: richtige Antworten */
@@ -4318,7 +4334,7 @@ function duBelohnen() {
   checkBadges(); lbSync();
 }
 /* Kleine farbige Marke für die Duell-Art (Liste, Hinweise) */
-const duMarke = d => { const t = duTypVon(d) || "vers"; return `<i class="du-marke t-${DU_TYPEN[t].art}">${esc(DU_TYPEN[t].kurz || DU_TYPEN[t].name)}</i>${edMarke(d)}`; };
+const duMarke = d => { const t = duTypVon(d) || "vers"; const tf = TKETTEN[DU_TYPEN[t].k] && ZV_FARBE[DU_TYPEN[t].k]; return `<i class="du-marke t-${DU_TYPEN[t].art}"${tf ? ` style="--dt:${tf}"` : ""}>${esc(DU_TYPEN[t].kurz || DU_TYPEN[t].name)}</i>${edMarke(d)}`; };
 
 /* Anzeige-Helfer der Duellseite: Initialen, Siegesserie, nächstes Abzeichen, Arena-Banner */
 const duInitialen = n => (String(n || "?").trim().split(/\s+/).map(w => w[0]).join("").slice(0, 2) || "?").toUpperCase();
@@ -4575,16 +4591,21 @@ function duZeige() {
   const D = duSpiel; if (!D || current !== "duell" || D.abgeschlossen) return;
   if (D.i >= D.fragen.length || D.aus) return duAbschluss();
   const f = D.fragen[D.i], blitz = D.art === "blitz", kette = D.art === "kette", sek = kette ? DU_KETTE_SEK : DU_SEK;
+  const tk = kette && TKETTEN[D.k] ? TKETTEN[D.k] : null; /* 10.38: Themen-Ketten im Duell wie im Solo – Bilder-Zeitleiste, Frage mit Stelle */
+  const frHtml = tk ? (D.i === 0 ? `<div class="du-frage-buch"><span class="qsub">${esc(tk.start)}</span><span class="qsub">${esc(tk.info)}</span></div>`
+    : `<div class="du-frage-buch"><span class="qsub">${esc(tk.frage)}</span><b class="du-buch">${esc(tk.items[D.i - 1].t)}</b><span class="qsub">${esc(tk.sub(D.i - 1))} · ${esc(tk.items[D.i - 1].r)}</span></div>`) : duFrageHtml(f);
   if (!D.mass && !blitz && !kette && D.fragen.length <= 40) duMass(D); /* 9.65: Frage-Block und Antworten in der ganzen Runde gleich hoch */
   const fortschritt = blitz ? (DU_BLITZ_SEK - D.rest) / DU_BLITZ_SEK : D.i / D.fragen.length;
   const titel = blitz ? `Blitz · <span id="duSek">${Math.ceil(D.rest)} s</span>`
+    : tk ? `${esc(DU_TYPEN["kette-" + D.k].name)} · ${D.i + 1}/${D.fragen.length}`
     : kette ? `${esc(DU_TYPEN["kette-" + D.k].name)} · Buch ${D.i + 1}/${D.fragen.length}` : `Frage ${D.i + 1}/${D.fragen.length}${f.k !== D.k ? ` · Lernvers ${esc(monatName(f.k))}` : ""}`;
   screen.innerHTML = `<div class="vl du-spiel du-${D.art}">
     <div class="vl-kopf"><button class="vl-x" id="duX" aria-label="Duell abbrechen">${svg("back")}</button>
       <div class="vl-bar du-bar"><i style="width:${fortschritt * 100}%"></i></div><span class="du-punkte">${D.p}</span></div>
     <span class="vl-titel du-titel">${svg(blitz ? "bolt" : kette ? "link" : "bolt")} ${esc(D.gegner)} · ${titel}</span>
     <div class="du-zeit">${blitz ? `<i id="duZeit" class="global" style="width:${D.rest / DU_BLITZ_SEK * 100}%"></i>` : `<i id="duZeit" style="animation-duration:${sek}s"></i>`}</div>
-    ${D.mass ? `<div class="du-fr" style="min-height:${D.mass.top}px">${duFrageHtml(f)}</div>` : duFrageHtml(f)}
+    ${tk ? `<div class="du-tkz" id="duTkz">${tkZeitleiste(D.k, D.i - 1, D.i, -1)}</div>` : ""}
+    ${D.mass ? `<div class="du-fr" style="min-height:${D.mass.top}px">${frHtml}</div>` : frHtml}
     <div class="vl-wahl ${f.lang ? "" : "du-kurz"} ${f.buch || f.start ? "du-buecher" : ""}"${D.mass ? ` style="--oh:${D.mass.opt}px"` : ""}>${f.opts.map((o, j) => `<button class="vl-opt" data-o="${j}">${esc(o)}</button>`).join("")}</div>
   </div>`;
   const start = performance.now(); let fertig = false;
@@ -4596,6 +4617,7 @@ function duZeige() {
     if (ok) {
       /* 9.75: ein Punkt je richtige Antwort – keine Tempo-Punkte und keine Combos mehr */
       D.r++; D.p = D.r;
+      if (tk && $("duTkz")) $("duTkz").innerHTML = tkZeitleiste(D.k, D.i, -1, D.i); /* 10.38: Bild sofort aufdecken wie im Solo */
       SFX.right(D.r); vibrate(12); if (el) { const [x, y] = centerOf(el); floatText("+1", x, y); burst(x, y, 12, { speed: 4 }); }
     } else {
       D.f++; SFX.wrong(); vibrate([40, 30, 40]);
@@ -4692,7 +4714,8 @@ async function duEnde() {
     if (!D.neu) { try { await duAktualisieren(); weg = !duFehler && !(duListe || []).some(x => x.id === D.id); } catch (e2) {} }
     if (weg) { titel = "Herausforderung zurückgezogen"; zeile = `${esc(D.gegner)} hat dieses Duell abgebrochen. Deine XP für die Runde bekommst du trotzdem.`; }
     else { fehler = true; titel = "Nicht gesendet";
-      zeile = D.neu && D.ok && D.ok.length ? `${D.ok.length} von ${ziele.length} Herausforderungen sind angekommen. Prüfe dein Internet und sende den Rest nochmal.` : "Die Verbindung hat nicht geklappt. Prüfe dein Internet und versuche es nochmal."; }
+      zeile = D.neu && D.k === "plagen" && /permission/i.test(String((e && (e.code || e.message)) || "")) ? "Das Duell „Plagen in Ägypten“ wird gerade freigeschaltet – bitte versuche es später nochmal. Deine XP für die Runde bekommst du trotzdem." /* 10.38: bis die neuen Firebase-Regeln veröffentlicht sind */
+        : D.neu && D.ok && D.ok.length ? `${D.ok.length} von ${ziele.length} Herausforderungen sind angekommen. Prüfe dein Internet und sende den Rest nochmal.` : "Die Verbindung hat nicht geklappt. Prüfe dein Internet und versuche es nochmal."; }
   }
   if (D.gleichF < 1 && !fehler && !weg) zeile += `<br><span class="small">${Math.round(D.gleichF * 100)} % der Belohnung: ${viele ? "gegen einige von ihnen" : "gegen " + esc(D.gegner)} heute schon ${DU_GLEICH_VOLL}× oder öfter gespielt.</span>`;
   const typ = D.art === "kette" ? "kette-" + D.k : D.art, ich = { r: D.r, n };
@@ -4722,6 +4745,8 @@ async function duEnde() {
     <div class="vle-werte"><div><b>+${xp}</b><span>XP</span></div>${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>${tal > DU_FAIR_TAL ? "Talente" : "Fairplay"}</span></div>` : ""}${mn ? `<div><b>+${mn}</b><span>Manna</span></div>` : ""}</div>
     ${fehler ? `<button class="btn primary breit" id="duNochmal">Nochmal senden</button>` : `<button class="btn primary breit" id="duFertig">${D.heim === "bib" ? "Zurück zu Biblionär" : "Zurück zu " + heimName("duelle")}</button>`}
     ${!D.neu && !fehler && !weg ? `<button class="btn ghost breit" id="duRevanche">${svg("bolt")} ${sieg ? "Nochmal duellieren" : "Revanche"}</button>` : ""}</div>`;
+  if (D.art === "kette" && TKETTEN[D.k]) { const e = screen.querySelector(".du-ende"); /* 10.38: Bilder und Erklärungen wie im Solo */
+    if (e) e.insertAdjacentHTML("beforeend", `<div class="du-tk${aufl ? " sb-spaet" : ""}">${tkErgebnis(D.k, D.r - 1, D.r === D.fragen.length)}</div>`); }
   if (!aufl && !fehler && !weg) SFX.coin(); /* Herausforderung gesendet: kleiner Ton, kein Sieg-Effekt */
   const weiter = () => { duSpiel = null; go(D.heim || heimAnsicht("duelle")); };
   if ($("duFertig")) $("duFertig").onclick = () => { SFX.tap(); weiter(); };
