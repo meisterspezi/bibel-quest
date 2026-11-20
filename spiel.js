@@ -2138,10 +2138,13 @@ VIEWS.lektion = (arg) => {
     quest("station", 1); quest("runde", 1);
     SFX.win(); vibrate([20, 30, 20, 30, 60]); rain(70);
     setTimeout(() => {
-      xpOderOel(xp, null, "lektion", { t0, f: Math.max(0, g.books.length - err), fm: g.books.length, d: `Lektion ${gi + 1} · ${stars} ${stars === 1 ? "Stern" : "Sterne"} · ${err} Fehler${W.d}` }); addTal(ltal);
+      const smOk = typeof smInit === "function" && smFrei(), mv = smOk ? smInit().gv : 0;
+      xpOderOel(xp, null, "lektion", { t0, lr: g.books.length, f: Math.max(0, g.books.length - err), fm: g.books.length, d: `Lektion ${gi + 1} · ${stars} ${stars === 1 ? "Stern" : "Sterne"} · ${err} Fehler${W.d}` }); addTal(ltal);
       const next = gi + 1 < GROUPS.length;
+      const mn = smOk ? smInit().gv - mv : 0, mr = smOk ? smLektionRest() : 0; /* 10.31: Manna der Lektion + Rest bis zum nächsten */
+      const mHinw = mr ? `<p class="small muted" style="margin:4px 0 0">Noch ${mr} ${mr === 1 ? "Buch" : "Bücher"} bis zum nächsten Manna</p>` : "";
       const m = modal(`<div class="label">Lektion geschafft</div><div class="stars" style="justify-content:center;gap:8px">${[1, 2, 3].map(k => `<span style="display:inline-block;width:44px;animation:pop .4s ${k * 0.15}s both">${STAR(stars >= k)}</span>`).join("")}</div>
-      <h2>${err === 0 ? "Fehlerfrei!" : err + " Fehler"}</h2><div class="rewards">${xp ? `<span class="pill">+${xp} XP</span>` : ""}${ltal ? `<span class="pill">+${ltal} Talente</span>` : ""}</div>${W.hinweis}
+      <h2>${err === 0 ? "Fehlerfrei!" : err + " Fehler"}</h2><div class="rewards">${xp ? `<span class="pill">+${xp} XP</span>` : ""}${ltal ? `<span class="pill">+${ltal} Talente</span>` : ""}${mn > 0 ? `<span class="pill">+${mn} Manna</span>` : ""}</div>${mHinw}${W.hinweis}
       ${LIEDZEIT ? `<div class="hilfe belohnung"><div class="label">${svg("music")} Liedbelohnung – freiwillig</div>${singBox(strophenVonGruppe(gi).map(vi => `<div class="lied-mini">${LIED[vi].lines.map((_, li) => zeileHtml(vi, li)).join("<br>")}</div>`).join(""))}</div>` : ""}
       <button class="btn primary" data-close="${next ? "next" : "lernen"}">${next ? "Nächste Lektion" : "Zur Übersicht"}</button><button class="btn ghost" data-close="again">Nochmal ordnen</button>`,
         r => { vorlesenStop(); if (r === "next") go("lektion", gi + 1); else if (r === "again") { schritt = 3; zeige(); } else go("lernen"); });
