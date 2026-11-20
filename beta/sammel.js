@@ -165,9 +165,48 @@ const smGeschenkBest = () => { const a = smGeschenkArten(); return SM_GESCH_ARTE
 /* 10.5: Neue Krüge gibt es jeden Morgen – der „Krug-Tag“ beginnt zur vollen Stunde SM_KRUG_STUNDE (Gerätezeit).
    10.25 (ab Sa 21.11.2026): 7 Uhr statt 8 Uhr. Der laufende Krug-Tag (Fr 20.11.) bleibt gleich, nur der nächste beginnt eine Stunde früher. */
 const SM_KRUG_STUNDE = 7;
-const smKrugTag = () => dstr(new Date(Date.now() - SM_KRUG_STUNDE * 36e5));
-const smHeuteKruege = () => { const m = smInit(); return m.kt === smKrugTag() ? m.kn : 0; };
-const smNeueKruegeText = () => (new Date().getHours() < SM_KRUG_STUNDE ? "heute" : "morgen") + " um " + SM_KRUG_STUNDE + " Uhr";
+/* 10.26: Krug-Tag fälschungssicher – nur EINMAL am Tag neue Krüge, egal wie die Uhr des Handys steht.
+   - Uhrzeit kommt vom Server (Date-Kopf von GitHub Pages, wie bei der Schatztruhe). Danach läuft sie mit performance.now() weiter –
+     diese Uhr ist vom Umstellen der Handy-Uhr nicht betroffen. Bei jeder Rückkehr in die App wird neu abgeglichen.
+   - Gerechnet wird immer in deutscher Zeit (Europe/Berlin), also auch bei Zeitzonen-Wechsel/Reise gleich.
+   - Ohne Serverzeit (offline) gibt es keinen neuen Krug-Tag: nur die restlichen Krüge des zuletzt gespeicherten Tages.
+   - Der Krug-Tag läuft nur vorwärts. Steht im Spielstand ein Tag in der Zukunft (alte Version + vorgestellte Uhr), zählt heute als verbraucht.
+   - Tage werden als Zahl verglichen (dstr ist nicht mit Nullen aufgefüllt: "2026-12-9" > "2026-12-10" als Text!). */
+let smUhr = null; /* { srv: Serverzeit ms, perf: performance.now() zum selben Moment } */
+const smUhrLokal = () => location.protocol === "file:" || /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+async function smUhrHolen() {
+  try {
+    const t0 = performance.now(), r = await fetch(location.pathname, { method: "HEAD", cache: "no-store" }), t1 = performance.now();
+    const d = Date.parse(r.headers.get("date") || "");
+    if (d > 0) { const neu = !smUhr; smUhr = { srv: d + 500, perf: (t0 + t1) / 2 }; smUhrGeaendert(neu); return true; } /* Date ist auf Sekunden gerundet → +0,5 s */
+  } catch (e) {}
+  return false;
+}
+function smJetzt() { if (smUhr) return smUhr.srv + (performance.now() - smUhr.perf); return smUhrLokal() ? Date.now() : null; }
+const smTagZahl = t => { const a = String(t || "").split("-").map(Number); return a.length === 3 && a.every(x => x > 0) ? a[0] * 10000 + a[1] * 100 + a[2] : 0; };
+function smBerlin(ms) { const p = {}; new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Berlin", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", hourCycle: "h23" }).formatToParts(new Date(ms)).forEach(x => { p[x.type] = +x.value; }); return p; }
+/* Krug-Tag im Format von dstr ("2026-11-21"); null = Zeit nicht gesichert */
+function smKrugTag() {
+  const ms = smJetzt(); if (ms == null) return null;
+  const p = smBerlin(ms), d = new Date(Date.UTC(p.year, p.month - 1, p.day - (p.hour < SM_KRUG_STUNDE ? 1 : 0)));
+  return d.getUTCFullYear() + "-" + (d.getUTCMonth() + 1) + "-" + d.getUTCDate();
+}
+/* { t: gültiger Krug-Tag, n: davon schon geöffnet } */
+function smKrugStand() {
+  const m = smInit(), t = smKrugTag(), a = smTagZahl(t), b = smTagZahl(m.kt);
+  if (!a) return b ? { t: m.kt, n: m.kn } : { t: null, n: SM_KRUG_TAG }; /* offline: nur Rest des gespeicherten Tages */
+  if (a > b) return { t, n: 0 };
+  if (a === b) return { t, n: m.kn };
+  return { t, n: SM_KRUG_TAG, zukunft: 1 };
+}
+function smHeuteKruege() { return smKrugStand().n; } /* Funktion (nicht const): smHud nutzt sie schon beim Laden */
+const smNeueKruegeText = () => { const ms = smJetzt(); return (ms != null && smBerlin(ms).hour < SM_KRUG_STUNDE ? "heute" : "morgen") + " um " + SM_KRUG_STUNDE + " Uhr"; };
+function smUhrGeaendert(erstesMal) {
+  try { smHud(0); } catch (e) {}
+  try { if (erstesMal && current === "album" && !document.querySelector(".sm-ov, .modal")) VIEWS.album(); } catch (e) {}
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") smUhrHolen(); });
+setTimeout(smUhrHolen, 300);
 const smGefunden = () => smInit().album.filter(s => s > 0).length;
 const smGlanz = () => smInit().album.filter(s => s >= SM_MAX).length; /* 9.92: Goldkarten (Name bleibt für die Rangliste/Sammlung album) */
 
@@ -177,7 +216,8 @@ function smMischen(r) {
   const m = smInit(), o = r[SM_KEY];
   if (Array.isArray(o.album)) o.album.forEach((s, i) => { if (i < 66) m.album[i] = Math.max(m.album[i] | 0, Math.min(SM_MAX, s | 0)); });
   ["gv", "ga", "kz", "kga", "kgg", "kgb", "kgx", "kgt", "tzg", "tz", "ah", "tour"].forEach(k => { m[k] = Math.max(m[k] | 0, +o[k] || 0); });
-  [["gt", "gn"], ["kt", "kn"]].forEach(([t, n]) => { if ((o[t] || "") > m[t]) { m[t] = o[t]; m[n] = +o[n] || 0; } else if (o[t] === m[t]) m[n] = Math.max(m[n], +o[n] || 0); });
+  [["gt", "gn"], ["kt", "kn"]].forEach(([t, n]) => { const a = smTagZahl(o[t]), b = smTagZahl(m[t]); /* 10.26: als Zahl vergleichen */
+    if (a > b) { m[t] = o[t]; m[n] = +o[n] || 0; } else if (a && a === b) m[n] = Math.max(m[n], +o[n] || 0); });
   ["be", "ba"].forEach(k => { [1, 2].forEach(x => { m[k][x] = Math.max(m[k][x] | 0, ((o[k] || {})[x]) | 0); }); });
   m.lohn = [...new Set([...m.lohn, ...(Array.isArray(o.lohn) ? o.lohn : [])])];
   if (o.rb) Object.keys(o.rb).forEach(k => { if (m.rb[k] === undefined) m.rb[k] = o.rb[k]; });
@@ -307,8 +347,8 @@ function smKrugKaufen(wahl) {
   const istG = wahl === "geschenk" || SM_GESCH_ARTEN.includes(wahl);
   const art = istG ? (!smGeschenkBereit() ? "" : wahl !== "geschenk" && smGeschenkArten()[wahl] > 0 ? wahl : smGeschenkBest()) : smKrugMoeglich();
   if (!SM_GESCH_ARTEN.includes(art) && art !== "gold") return null;
-  const m = smInit(), t = smKrugTag();
-  if (m.kt !== t) { m.kt = t; m.kn = 0; }
+  const m = smInit(), st = smKrugStand();
+  if (art === "gold") { if (!st.t || st.n >= SM_KRUG_TAG) return null; m.kt = st.t; m.kn = st.n; } /* 10.26: nur mit gesichertem Krug-Tag */
   let q = "";
   if (art === "geschenk") m.kga++; else if (art === "ggold") { if (smPreisZahl(1) > m.kgg) { m.kgg++; q = "platz1"; } else { m.kgt++; q = "truhe"; } } else if (art === "gbronze") m.kgb++; else { m.ga += SM_KRUG_PREIS; m.kn++; } /* 10.5: Geschenk-Krug zählt nicht zu den 3 am Tag */
   m.kz++;
@@ -377,11 +417,12 @@ VIEWS.album = () => {
     const istTreue = !auf && (m.kz + 1 + (i - heute)) % SM_TREUE === 0;
     return `<span class="smt-krug${auf ? " auf" : bereit ? " bereit" : ""}${istTreue ? " treue" + (smRegel2() ? " s7" : "") : ""}">${smKrugIc(istTreue ? smSiebterStil() : "bronze")}<small>${auf ? "geöffnet" : bereit ? "bereit" : SM_KRUG_PREIS + " Manna"}</small></span>`; }).join("")
     + (gesch ? `<button class="smt-krug geschenk g-${SM_GESCH_STIL[smGeschenkBest()] || "silber"}" id="smGeschenkKn" aria-label="Geschenk-Krug öffnen">${smKrugIc(smGeschenkBest() === "ggold" || ((m.kz + 1) % SM_TREUE === 0 && !smRegel2()) ? "gold" : SM_GESCH_STIL[smGeschenkBest()] === "bronze" && (m.kz + 1) % SM_TREUE !== 0 ? "bronze" : "silber")}<small>Geschenk${gN > 1 ? " ×" + gN : ""}</small></button>` : "");
-  const aktion = fertigTag ? `<p class="smt-fertig">Neue Krüge ${smNeueKruegeText()}</p>`
+  const ohneZeit = fertigTag && !smKrugStand().t; /* 10.26: offline und noch kein Krug-Tag bekannt */
+  const aktion = fertigTag ? `<p class="smt-fertig">${ohneZeit ? "Für neue Krüge kurz mit dem Internet verbinden" : "Neue Krüge " + smNeueKruegeText()}</p>`
     : art === "arm" ? `<button class="smt-los arm" id="smMannaLos">Noch ${SM_KRUG_PREIS - gold} Manna – spiel eine Runde</button>`
     : art === "fertig" ? "" : `<button class="smt-los" id="smKrugKn">${smKrugIc((m.kz + 1) % SM_TREUE === 0 ? smSiebterStil() : "bronze")}Krug öffnen · ${SM_KRUG_PREIS} Manna</button>`;
   const krugKarte = art === "fertig" ? `<p class="sm-hinw">Alle 66 Karten in Gold – dein Album ist vollendet!</p>`
-    : `<div class="smt-karte${fertigTag ? " fertig" : ""}"><div class="smt-kopf"><b>${fertigTag ? "Heute erledigt ✓" : "Krüge heute"}</b><button class="smt-manna" id="smMannaInfo" aria-label="Manna – was ist das?">${SM_GOLD_SVG}${gold}</button></div>
+    : `<div class="smt-karte${fertigTag ? " fertig" : ""}"><div class="smt-kopf"><b>${ohneZeit ? "Kein Internet" : fertigTag ? "Heute erledigt ✓" : "Krüge heute"}</b><button class="smt-manna" id="smMannaInfo" aria-label="Manna – was ist das?">${SM_GOLD_SVG}${gold}</button></div>
       <div class="smt-kruege${gesch ? " vier" : ""}">${kruege}</div>${aktion}${gesch ? `<p class="smt-gesch">${({ ggold: "Goldener", geschenk: "Silberner", gbronze: "Bronzener" })[smGeschenkBest()] || "Silberner"} Geschenk-Krug zusätzlich – antippen!</p>` : ""}</div>`;
   const punkte = (n, an) => `<span class="smt-pk">${Array.from({ length: n }, (_, i) => `<i class="${i < an ? "an" : ""}"></i>`).join("")}</span>`;
   const leiste = `<div class="smt-leiste">
