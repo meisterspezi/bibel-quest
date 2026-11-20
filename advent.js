@@ -373,14 +373,14 @@ function adAblauf() {
    Eigener Stand: S.sch = { g: gespendet gesamt, t: Tag (dayNum), h: heute, s: an den Server gemeldet, log: [ms…], gs: zuletzt gesehene Stufe }.
    Server: schmuck/{pid} = { n } → Sammel-Job summiert in rangliste (schmuck, schmuckSp) → localStorage „bq-schmuck“. */
 const SCH_STUFEN = [
-  { n: 25, name: "Öllampen in den Fenstern", vers: "Matthäus 5,16" },
-  { n: 60, name: "Palmzweige an den Türen", vers: "Johannes 12,13" },
-  { n: 110, name: "Festtücher über den Gassen", vers: "Psalm 118,24" },
-  { n: 170, name: "Laterne und Stroh am Stall", vers: "Lukas 2,7" },
-  { n: 240, name: "Hirtenfeuer und Herde", vers: "Lukas 2,8" },
-  { n: 320, name: "Sternenglanz über der Stadt", vers: "Matthäus 2,9" },
-  { n: 410, name: "Engel über dem Hirtenfeld", vers: "Lukas 2,13" },
-  { n: 520, name: "Der Engelchor singt", vers: "Lukas 2,14" }];
+  { n: 15, name: "Öllampen in den Fenstern", vers: "Matthäus 5,16" },
+  { n: 35, name: "Palmzweige an den Türen", vers: "Johannes 12,13" },
+  { n: 60, name: "Festtücher über den Gassen", vers: "Psalm 118,24" },
+  { n: 95, name: "Laterne und Stroh am Stall", vers: "Lukas 2,7" },
+  { n: 135, name: "Hirtenfeuer und Herde", vers: "Lukas 2,8" },
+  { n: 180, name: "Sternenglanz über der Stadt", vers: "Matthäus 2,9" },
+  { n: 235, name: "Engel über dem Hirtenfeld", vers: "Lukas 2,13" },
+  { n: 300, name: "Der Engelchor singt", vers: "Lukas 2,14" }];
 const SCH_TAG_MAX = 5, SCH_ENDE = "2026-12-24";
 const schPreis = () => 10 * Math.max(1, levelOf(S.xp));
 function schEcht() { if (!S.sch || typeof S.sch !== "object") S.sch = {}; const m = S.sch; ["g", "t", "h", "s", "gs"].forEach(k => { m[k] = Math.max(0, +m[k] || 0); }); if (!Array.isArray(m.log)) m.log = []; return m; }
