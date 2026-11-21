@@ -1163,6 +1163,7 @@ async function xqEinkreisen(r, gem) {
   await versuch("Belohnungs-Protokoll", c => { c.bel = kopie(Array.isArray(gem.bel) ? gem.bel.slice(-100) : []); });
   await versuch("Anfangsbestand", c => { c.alt = Math.min(c.alt | 0, gem.alt | 0); });
   r.teil = r.ok_teile.length > 0;
+  r.gleich = !r.ok_teile.length && !r.abgelehnt.length; /* 10.45: alles stand schon so in der Datenbank */
 }
 /* 6.85: Zählung dieses Spielers mit dem Stand in der Datenbank abgleichen: lesen, Unterschiede benennen, mischen (je Quelle der höhere Wert),
    erneut speichern und zur Kontrolle noch einmal lesen. Ergebnis { ok, code, msg, srv, nachher, vorher[], diffs[], neu[] } – Anzeige in der XP-Prüfung. */
@@ -1180,8 +1181,28 @@ async function xqAbgleichen(manuell) {
     S.xq = gem; S.xqSync = JSON.stringify(S.xq); save(); xqFehler = null; r.ok = true;
     try { r.nachher = await L.xpHolen(S.pid); } catch (e) {}
   } catch (e) { r.code = (e && e.code) || "unbekannt"; r.msg = String((e && e.message) || "").slice(0, 160); xqFehler = { z: Date.now(), code: r.code, msg: r.msg };
+    /* 10.45: Daten in Ordnung, trotzdem permission-denied → meist steht die Anmeldung dieses Geräts nicht (mehr) im Profil
+       (z. B. Safari/iPad hat die Anmeldung gelöscht). Erst prüfen und still neu verbinden, dann einmal neu speichern. */
+    if (r.code === "permission-denied" && !r.diffs.length) {
+      r.geraet = await xqGeraetPruefen();
+      if (r.geraet.neu) {
+        try { await L.xpSetzen(S.pid, S.lbName, gem); S.xq = gem; S.xqSync = JSON.stringify(S.xq); save(); xqFehler = null; r.ok = true; r.neuVerbunden = true;
+          try { r.nachher = await L.xpHolen(S.pid); } catch (e3) {}
+          return r;
+        } catch (e3) { r.code = (e3 && e3.code) || r.code; r.msg = String((e3 && e3.message) || r.msg).slice(0, 160); }
+      }
+    }
     if (!r.diffs.length && (manuell || xqEinkreisenFrei())) { try { await xqEinkreisen(r, gem); } catch (e2) {} } }
   return r;
+}
+/* 10.45: Steht die Anmeldung dieses Geräts in der Geräteliste des Profils? Wenn nicht: still neu verbinden (wie 6.64).
+   Ergebnis { uid, drin: true|false|null, neu } – null = Profil nicht lesbar. */
+async function xqGeraetPruefen() {
+  const L = window.LB, g = { uid: (L && L.uid) || "", drin: null, neu: false };
+  try { const e = L && L.holeSpieler ? await L.holeSpieler(S.pid) : null;
+    if (e) g.drin = Array.isArray(e.owners) ? e.owners.includes(g.uid) : S.pid === g.uid; } catch (e) {}
+  if (g.drin === false) { try { g.neu = !!(await geraetNeuVerbinden("")); } catch (e) {} }
+  return g;
 }
 /* automatische Eingrenzung höchstens einmal je Stunde (jeder Versuch sind einige Schreibzugriffe) */
 function xqEinkreisenFrei() { const k = "bq-xq-ek", t = Date.now(); try { if (t - (+localStorage.getItem(k) || 0) < 36e5) return false; localStorage.setItem(k, String(t)); } catch (e) {} return true; }
@@ -1190,7 +1211,9 @@ const xqUnterschiedText = l => (l && l.length ? l.join("; ") : "kein Regelversto
 async function xqAbgleichMitMeldung(grund) {
   const r = await xqAbgleichen(); if (r.code === "nicht-bereit") return r;
   const wer = `Spieler ${S.lbName || "?"}, Profil ${S.pid || "?"}, Version ${APP_VERSION}`;
-  if (!r.ok) postkastenMelden("datenbank", `XP-Zählung speichern fehlgeschlagen (${r.code}${r.msg ? ": " + r.msg : ""}) – ${wer}. Verletzt: ${xqUnterschiedText(r.vorher)}. Nach dem Mischen: ${xqUnterschiedText(r.diffs)}.${r.ok_teile ? ` Einzeln gespeichert: ${r.ok_teile.join(", ") || "nichts"}. Abgelehnt: ${r.abgelehnt.join(", ") || "nichts"}.` : ""}`, "xqz-fehl-" + r.code + "-" + S.pid);
+  const gt = r.geraet ? ` Gerät ${r.geraet.uid || "?"}: ${r.geraet.drin === true ? "im Profil eingetragen (Ursache liegt woanders)" : r.geraet.drin === false ? (r.geraet.neu ? "war NICHT im Profil eingetragen, neu verbunden – Speichern trotzdem abgelehnt" : "NICHT im Profil eingetragen, neu verbinden fehlgeschlagen") : "Profil nicht lesbar"}.` : "";
+  if (!r.ok) postkastenMelden("datenbank", `XP-Zählung speichern fehlgeschlagen (${r.code}${r.msg ? ": " + r.msg : ""}) – ${wer}. Verletzt: ${xqUnterschiedText(r.vorher)}. Nach dem Mischen: ${xqUnterschiedText(r.diffs)}.${gt}${r.gleich ? " Einzeln speichern nicht nötig: Die Datenbank hat schon denselben Stand – es fehlen keine XP." : r.ok_teile ? ` Einzeln gespeichert: ${r.ok_teile.join(", ") || "nichts"}. Abgelehnt: ${r.abgelehnt.join(", ") || "nichts"}.` : ""}`, "xqz-fehl-" + r.code + "-" + S.pid);
+  else if (r.neuVerbunden) postkastenMelden("status", `XP-Zählung gespeichert, nachdem das Gerät neu verbunden wurde (${grund}) – ${wer}, Gerät ${(r.geraet && r.geraet.uid) || "?"}.`, "xqz-nv-" + S.pid);
   else if (r.neu.length || r.vorher.length) postkastenMelden("status", `XP-Zählung nachgeholt (${grund}) – ${wer}. Neu in der Datenbank: ${r.neu.map(x => `${XQ_QUELLEN[x.k] || x.k} ${x.vorher}→${x.jetzt}`).join(", ") || "–"}. Der alte Stand hätte verletzt: ${xqUnterschiedText(r.vorher)}.`, "xqz-ok-" + S.pid);
   return r;
 }
@@ -6128,7 +6151,7 @@ VIEWS.xppruefung = () => {
         const alt = r.srv ? `In der Datenbank standen: ${Object.entries(r.srv.q || {}).map(([k, v]) => nm(k) + " " + v).join(", ") || "–"}.` : "In der Datenbank gab es noch keine Zählung.";
         if (r.code === "nicht-bereit") m.textContent = "Nicht möglich (Internet, Anmeldung oder gesperrtes Fenster).";
         else if (r.ok) m.innerHTML = `✓ Gespeichert. ${esc(alt)}<br>${r.neu.length ? "Neu eingetragen: " + r.neu.map(x => esc(nm(x.k)) + " " + x.vorher + " → " + x.jetzt).join(", ") : "Nichts nachzutragen – die Datenbank war schon aktuell."}<br>Der alte Stand hätte verletzt: ${esc(xqUnterschiedText(r.vorher))}.<br>Öffne die XP-Prüfung neu, um die Zahlen zu aktualisieren.`;
-        else m.innerHTML = `✗ Abgelehnt (${esc(r.code)}${r.msg ? ": " + esc(r.msg) : ""}).<br>${esc(alt)}<br>Verletzt (alter Stand): ${esc(xqUnterschiedText(r.vorher))}<br>Verletzt (nach Mischen): ${esc(xqUnterschiedText(r.diffs))}${r.ok_teile ? `<br><b>Einzeln gespeichert:</b> ${esc(r.ok_teile.join(", ") || "nichts")}<br><b>Von der Datenbank abgelehnt:</b> ${esc(r.abgelehnt.join(", ") || "nichts")}` : ""}`;
+        else m.innerHTML = `✗ Abgelehnt (${esc(r.code)}${r.msg ? ": " + esc(r.msg) : ""}).<br>${esc(alt)}<br>Verletzt (alter Stand): ${esc(xqUnterschiedText(r.vorher))}<br>Verletzt (nach Mischen): ${esc(xqUnterschiedText(r.diffs))}${r.geraet ? `<br><b>Gerät:</b> ${esc(r.geraet.uid || "?")} – ${r.geraet.drin === true ? "im Profil eingetragen" : r.geraet.drin === false ? (r.geraet.neu ? "war nicht eingetragen, neu verbunden" : "NICHT eingetragen, neu verbinden fehlgeschlagen") : "Profil nicht lesbar"}` : ""}${r.gleich ? "<br><b>Datenbank hat schon denselben Stand</b> – es fehlen keine XP." : r.ok_teile ? `<br><b>Einzeln gespeichert:</b> ${esc(r.ok_teile.join(", ") || "nichts")}<br><b>Von der Datenbank abgelehnt:</b> ${esc(r.abgelehnt.join(", ") || "nichts")}` : ""}`;
       } catch (e) { m.textContent = "Abgleich fehlgeschlagen (" + ((e && e.code) || "Fehler") + ")."; }
       b.disabled = false;
     });
