@@ -38,7 +38,7 @@ if (typeof BETA !== "undefined" && BETA) addEventListener("DOMContentLoaded", ()
         <p class="tl-ist">Jetzt: <b>${td ? datumVon(dayNum(td)).toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "long", year: "numeric" }) : "echtes Datum"}</b></p>
         <div class="tl-liste">${daten().map(([d, t]) => `<button class="tl-z${d === td ? " an" : ""}" data-datum="${d}"><span>${t}</span><small>${d ? datumVon(dayNum(d)).toLocaleDateString("de-DE", { day: "numeric", month: "short" }) : "–"}</small></button>`).join("")}</div>
         <p class="small muted">Gilt, bis du die App schließt. Biblionär-Runden der Weihnachts-Ausgabe sind mit Testdatum Vorschau-Runden: keine XP, keine Talente, kein Ranglisten-Eintrag.</p>
-        <div class="tl-reihe">${knopf("edneu", "Weihnachts-Hinweise neu zeigen", 1)}${knopf("rbneu", "Rückblick-Fenster neu zeigen", 1)}</div>
+        <div class="tl-reihe">${knopf("adank", "Advents-Ankündigung zeigen", 1)}${knopf("edneu", "Weihnachts-Hinweise neu zeigen", 1)}${knopf("rbneu", "Rückblick-Fenster neu zeigen", 1)}</div>
       </section>
       <section class="tl-box"><h2>Sammelalbum (Beta)</h2>
         <p class="tl-ist">${smGefunden()} / 66 gefunden · ${smGlanz()} in Gold · <b>${smGold()} Manna</b> · Krüge heute ${smHeuteKruege()}/${SM_KRUG_TAG} · Geschenke ${smGeschenke()}</p>
@@ -69,6 +69,7 @@ if (typeof BETA !== "undefined" && BETA) addEventListener("DOMContentLoaded", ()
       if (a.startsWith("a:")) { m.album = ALBUM_STAND[a.slice(2)](); m.lohn = []; m.offen = null; msg = "Album-Stand gesetzt"; }
       if (a === "einf") { m.ah = 0; m.tour = 0; save(); go("home"); return; }
       if (a === "reset") { delete S[SM_KEY]; smInit(); msg = "Beta-Album zurückgesetzt (mit Startkrug)"; }
+      if (a === "adank") { if (typeof adAnkFenster === "function") adAnkFenster(); return; }
       if (a === "edneu") { try { localStorage.removeItem(LS + ":edneu"); } catch (e) {} save(); go("home"); return; }
       if (a === "rbneu") { m.rb = {}; save(); go("home"); return; }
       if (a === "album") { go("album"); return; }

@@ -140,7 +140,7 @@ h2{font-family:var(--display);font-weight:800;font-size:1.3rem;margin:0 0 4px;te
 .q{font-family:var(--display);font-weight:800;font-size:2rem;line-height:1.1;text-align:center;margin:6px 0;text-wrap:balance}
 .qsub{text-align:center;font-size:.85rem;color:var(--muted)}
 .opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.opt{border:0;border-radius:14px;padding:16px 8px;min-height:62px;font-weight:900;font-size:1.02rem;background:var(--surface2);border-bottom:5px solid #0008;cursor:pointer}
+.opt{border:0;border-radius:14px;padding:16px 8px;min-height:var(--opth,62px);font-weight:900;font-size:1.02rem;background:var(--surface2);border-bottom:5px solid #0008;cursor:pointer}
 .opt:active{transform:translateY(3px)}
 .opt.right{background:var(--good);color:#002b19;animation:pop .3s}
 .opt.wrong{background:var(--bad);color:#2b0000;animation:shake .35s}
@@ -3482,6 +3482,30 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .sch-bar{height:12px;border-radius:8px;background:#ffffff18;overflow:hidden}.sch-bar i{display:block;height:100%;background:linear-gradient(90deg,#f2c14e,#ffe9a0);border-radius:8px}
 .sch-z{display:flex;justify-content:space-between;gap:8px;font-size:.74rem;color:#c8d0ee}.sch-z span:last-child{white-space:nowrap;font-weight:700}
 .sch-knopf{width:100%;margin-top:2px}.sch-knopf[disabled]{opacity:.6}.sch-info{font-size:.72rem;color:#b8c0d8;text-align:center}
+/* 10.47: Advents-Ankündigung im Stil der Patchnote-Grafik */
+.modal.ad2-m .card{max-width:380px;padding:0;overflow:hidden;border-color:#f2c14e66;box-shadow:0 0 60px #f2c14e30;max-height:94vh;max-height:94dvh;overflow-y:auto}
+.ad2{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 14px 14px;text-align:center}
+.ad2-hg{position:absolute;inset:0 0 auto;height:260px;opacity:.5;pointer-events:none;-webkit-mask-image:linear-gradient(#000 40%,transparent);mask-image:linear-gradient(#000 40%,transparent)}.ad2-hg svg{width:100%;height:100%;display:block}
+.ad2>*:not(.ad2-hg){position:relative}
+.ad2-neu{background:#d8323f;color:#fff;font-weight:900;letter-spacing:.14em;border-radius:99px;padding:3px 12px;font-size:.68rem;box-shadow:0 0 16px #d8323f88;text-transform:uppercase}
+.ad2 h2{margin:2px 0 0;font:800 1.75rem/1.05 var(--display);color:#f2c14e;text-shadow:0 2px 16px #f2c14e55}
+.ad2-sub{color:#bfe3ff;font-size:.85rem}
+.ad2-f{display:flex;justify-content:center;gap:8px;margin:6px 0 8px}.ad2-b{width:76px;height:76px;border-radius:14px;overflow:hidden;box-shadow:0 0 0 2px #f2c14e,0 6px 16px #000a}.ad2-b svg{display:block;width:100%;height:100%}
+.ad2-b:nth-child(1){transform:rotate(-7deg) translateY(5px)}.ad2-b:nth-child(3){transform:rotate(7deg) translateY(5px)}
+.ad2-zl{display:flex;flex-direction:column;gap:6px;width:100%;text-align:left}
+.ad2-z{display:flex;gap:10px;align-items:center;background:#1b2146e6;border:1px solid #f2c14e40;border-radius:14px;padding:8px 10px}
+.ad2-ic{flex:none;width:40px;height:40px;border-radius:10px;display:grid;place-items:center;overflow:hidden;background:#141a44;box-shadow:inset 0 0 0 1.5px var(--c)}.ad2-ic img{width:34px;height:auto}.ad2-ic svg{width:34px;height:34px}
+.ad2-kr{display:block;width:40px;height:40px}.ad2-kr svg{width:100%;height:100%}
+.ad2-z b{display:block;font:700 .9rem var(--display);color:var(--c)}.ad2-z p{margin:1px 0 0;font-size:.78rem;line-height:1.3;color:#dfe4ff}.ad2-z em{font-style:normal;color:#f2c14e;font-weight:700}
+.ad2-vers{margin:6px 0 4px;font:italic .85rem/1.35 Georgia,serif;color:#fff3c8}.ad2-vers small{display:block;font:normal .7rem var(--body);color:#9aa6d8;margin-top:2px}
+.ad2 .btn{width:100%}
+@media (max-height:760px){.ad2{gap:4px;padding-top:12px}.ad2 h2{font-size:1.5rem}.ad2-f{margin:2px 0 4px}.ad2-b{width:62px;height:62px}.ad2-z{padding:6px 9px}.ad2-vers{margin:2px 0}}
+/* 10.48: Frage-Block mit fester Höhe – Text mittig, Themen-Ketten in kleinerer Schrift (ganze Sätze statt Buchnamen) */
+.q.hoehe-fest{display:flex;align-items:center;justify-content:center}
+.tk-karte .q{font-size:1.4rem;line-height:1.2}
+.du-fr:has(> .du-frage-buch){display:flex;flex-direction:column;justify-content:center}
+.du-frage-buch.tk .du-buch{font-size:1.4rem;line-height:1.2}
+.q-block{display:flex;flex-direction:column;justify-content:center;gap:12px}.q-block .q:empty{display:none}
 </style>
 </head>
 <body>

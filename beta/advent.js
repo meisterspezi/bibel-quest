@@ -350,13 +350,23 @@ function adAnkuendigen(versuch = 0) {
   setTimeout(() => {
     if (adEcht().ank || current !== "home") return;
     if (document.querySelector(".modal, .sm-ov, .sm-tour, .truhe-fx") || document.body.classList.contains("spiel-laeuft")) { if (versuch < 6) adAnkuendigen(versuch + 1); return; }
-    adEcht().ank = 1; save();
-    modal(`<div class="rb-fenster ad-ank"><div class="ad-ank-b">${tkBildSvg("adv", "krippe")}</div><small class="sm-ank-neu">NEU</small><h2>Der Adventskalender ist da!</h2>
-      <p>Bis Heiligabend öffnest du jeden Tag eine Tür in Bethlehem – mit einem Bibelvers zur Geburt von Jesus, XP und Manna.</p>
-      <p>An den <b>Adventssonntagen</b> geht die Weihnachtsgeschichte weiter, und an <b>Heiligabend</b> wartet ein besonderes Geschenk.</p>
-      <button class="btn primary" data-close="los">Erste Tür öffnen</button><button class="btn ghost" data-close="">Später</button></div>`,
-      w => { if (w === "los") go("advent"); }).dataset.frei = "1";
+    adEcht().ank = 1; save(); adAnkFenster();
   }, versuch ? 2500 : 2200);
+}
+/* 10.47: Ankündigung wie die Patchnote-Grafik „Advent in Bethlehem“ – Bilder-Fächer, drei Neuerungen, Jesaja 9,5 */
+function adAnkFenster() {
+    const bild = k => `<span class="ad2-b">${tkBildSvg("adv", k)}</span>`;
+    const zeile = (c, ic, t, p) => `<div class="ad2-z" style="--c:${c}"><span class="ad2-ic">${ic}</span><div><b>${t}</b><p>${p}</p></div></div>`;
+    const m = modal(`<div class="ad2"><div class="ad2-hg" aria-hidden="true"><svg viewBox="0 0 ${BL_W} ${BL_H}" preserveAspectRatio="xMidYMin slice">${blSzene(0)}</svg></div>
+      <small class="ad2-neu">NEU · ab 1. Advent</small><h2>Advent in Bethlehem</h2><span class="ad2-sub">bis 6. Januar</span>
+      <div class="ad2-f">${bild("verheissung")}${bild("weg")}${bild("hirten")}</div>
+      <div class="ad2-zl">${zeile("#f2c14e", bethlehemMini(), "Adventskalender", "Jeden Tag eine Tür mit einem <em>Bibelvers</em> zur Geburt von Jesus, dazu XP und Manna. An Heiligabend wartet ein <em>Goldkrug</em>.")}
+      ${zeile("#bfe3ff", `<img src="icons/biblionaer-logo.webp" alt="">`, "Weihnachts-Biblionär", "Fragen zu Advent und Weihnachten – <em>allein</em>, als <em>Biblionär der Woche</em> oder im <em>Duell</em>.")}
+      ${zeile("#7be04a", `<span class="ad2-kr">${tkBildSvg("adv", "krippe")}</span>`, "Bethlehem schmücken", "Mit Talenten gemeinsam Bethlehem schmücken – <em>jedes Schmuckstück zählt gleich viel</em>.")}</div>
+      <p class="ad2-vers">„Denn ein Kind ist uns geboren, ein Sohn ist uns gegeben …“<small>Jesaja 9,5</small></p>
+      <button class="btn primary" data-close="los">Erste Tür öffnen</button><button class="btn ghost" data-close="">Später</button></div>`,
+      w => { if (w === "los") go("advent"); });
+    m.dataset.frei = "1"; m.classList.add("ad2-m");
 }
 function adAblauf() {
   if (adTest() || !adNachEnde() || !S.lbName) return;
