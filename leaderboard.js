@@ -340,6 +340,8 @@ if (!configured) {
       /* 9.28 Protokoll: jede Änderung der Zuordnung mit Server-Zeitstempel (Sammlung gemlog, nur der Verwalter liest) */
       if (vorher !== g) { try { await fs.addDoc(fs.collection(db, "gemlog"), { pid, name: String(name || "").slice(0, 20), von: vorher || "", nach: g, durch: durch === "verwalter" ? "verwalter" : "spieler", zeit: fs.serverTimestamp() }); } catch (e) {} }
     };
+    /* 10.46: Gemeinde-Zuordnung eines einzelnen Spielers (1 Lesezugriff) – null, wenn es keine gibt */
+    LB.mitgliedHolen = async (pid) => { const d = await fs.getDoc(ref("mitglied", pid)); return d.exists() ? String(d.data().g || "") || null : null; };
     LB.gemProtokoll = async (n) => (await fs.getDocs(fs.query(fs.collection(db, "gemlog"), fs.orderBy("zeit", "desc"), fs.limit(n || 300)))).docs.map(d => { const x = d.data(); return { id: d.id, pid: x.pid, name: x.name || "", von: x.von || "", nach: x.nach || "", durch: x.durch || "spieler", zeit: x.zeit && x.zeit.toMillis ? x.zeit.toMillis() : 0 }; });
     LB.gemAnlegen = async (id, name, ord, extra) => { await LB.signIn(); const d = { name, ord: ord | 0 }; if (extra && extra.pw) d.pw = String(extra.pw).slice(0, 30); if (extra && extra.logo) d.logo = String(extra.logo).slice(0, 30000); if (extra && extra.pruef) d.pruef = true; await fs.setDoc(ref("gemeinden", id), d); };
     // 9.11 Freischaltung: Anträge (antraege/{pid}), Freigaben je Gerät (freigabe/{uid}) und der Joker-Schlüssel (geheim/joker)

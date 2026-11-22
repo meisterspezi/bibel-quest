@@ -16,7 +16,7 @@ const DEF = {
   dq: { day: "", items: [], bonus: false }, questBonusCount: 0, lv: {}, duGes: [], duSiege: 0, duSpiele: 0, duTyp: "vers", duGesendet: 0, duAngenommen: 0, duArten: [], duKetteVoll: false,
   mute: false, beat: true, gapSing: false, atTi: 0, ntTi: 0,
   ruestStufe: {}, stift: {}, spendeXp: {}, edBib: {}, stiftGefeiert: [], stiftEingeweiht: false,
-  xq: null, dlgGesehen: 0, dlgDev: {}, lvLohn: 0, gem: null, gemNeu: false, nachGel: [], nachAb: 0, gemGesendet: "", rankScope: "", duAlle: false, lbName: "", pid: "", ownersSet: false, offlineOnly: false, weekKey: "", weekXp: 0, podium: false, wochensieger: false, wochenziel: false,
+  xq: null, dlgGesehen: 0, dlgDev: {}, lvLohn: 0, gem: null, gemGewaehlt: "", gemNeu: false, nachGel: [], nachAb: 0, gemGesendet: "", rankScope: "", duAlle: false, lbName: "", pid: "", ownersSet: false, offlineOnly: false, weekKey: "", weekXp: 0, podium: false, wochensieger: false, wochenziel: false,
   ver: 6
 };
 let S = JSON.parse(JSON.stringify(DEF));
@@ -3090,6 +3090,7 @@ async function profilBeitreten(pid, opts = {}) {
     zusammenfuehren(ausRangliste(daten));
   }
   S.lbName = (daten && daten.name) || S.lbName; S.pid = pid; S.ownersSet = true;
+  await gemUebernehmen(pid, remote);
   if (altPid && altPid !== pid && !GERAET.liste.some(p => p.key !== GERAET.aktiv && p.pid === altPid)) { try { await L.remove(altPid); } catch (e) {} }
   applyTheme(); save(); renderHud(); checkBadges(); lbSync(true); cloudSync(true);
 }
@@ -3303,7 +3304,7 @@ async function gemLaden(neu) {
       try { const a = await L.antragHolen(S.pid); ANTRAG = a ? { g: a.g, status: a.status } : null; } catch (e) {}
       const eig = z[S.pid];
       if (eig && eig !== S.gem && (!S.gemGesendet || S.gemGesendet === S.gem) && (gemInfo(eig) || eig === "gast")) {
-        S.gem = eig; S.gemGesendet = eig; S.gemNeu = false; save();
+        S.gem = eig; S.gemGesendet = eig; S.gemGewaehlt = eig; S.gemNeu = false; save();
         if (eig === GEM_STANDARD) jokerLaden(true).catch(() => {}); else jokerSperren();
         if (eig !== "gast") toast(`${svg("people")}<div><b>Willkommen bei ${esc(gemName(eig))}!</b><div class="small muted">Der Verwalter hat dich freigeschaltet.</div></div>`);
       }
@@ -3311,9 +3312,29 @@ async function gemLaden(neu) {
     return alt !== JSON.stringify([GEM, GEM_ZUORD, ANTRAG]);
   } catch (e) { if (!gemGeladen) gemFehler = true; return false; } /* 9.30: Laden gescheitert → alter Ersatzwert statt dauerhaft leerer Münzen */
 }
+/* 10.46: Beim Anmelden in ein bestehendes Profil („Ich spiele schon mit“, „Ja, das bin ich“, Zusammenführung) die Gemeinde übernehmen.
+   Vorher blieb die Gemeinde des leeren Geräts („Gast“) stehen und wurde sofort an den Server geschickt – so wurden Eva und Ina
+   am 21.11.2026 ungewollt aus Eichstätt ausgetragen. Quelle: Zuordnung auf dem Server, sonst der Online-Spielstand. */
+async function gemUebernehmen(pid, remote) {
+  const L = window.LB; let g = null;
+  try { if (L && L.mitgliedHolen) g = await L.mitgliedHolen(pid); } catch (e) {}
+  if (g) { S.gem = g; S.gemGesendet = g; S.gemGewaehlt = g; GEM_ZUORD[pid] = g; }
+  else if (remote && typeof remote.gem === "string" && remote.gem) { S.gem = remote.gem; S.gemGesendet = remote.gem; S.gemGewaehlt = remote.gem; }
+  else S.gemGesendet = S.gem; /* nichts bekannt: lieber nichts senden als ungefragt „Gast“ */
+  S.gemNeu = false;
+  if (S.gem === GEM_STANDARD) jokerLaden(true).catch(() => {}); else if (S.gem === "gast") jokerSperren();
+}
+let gemSendenLaeuft = false;
 function gemSenden() {
-  const L = window.LB; if (!L || !L.ok || !L.gemSetzen || !S.pid || !S.ownersSet || !S.gem || S.gemGesendet === S.gem) return;
-  const g = S.gem; L.gemSetzen(S.pid, S.lbName, g).then(() => { S.gemGesendet = g; GEM_ZUORD[S.pid] = g; save(); }).catch(() => {});
+  const L = window.LB; if (!L || !L.ok || !L.gemSetzen || !S.pid || !S.ownersSet || !S.gem || S.gemGesendet === S.gem || gemSendenLaeuft) return;
+  const g = S.gem, pid = S.pid; gemSendenLaeuft = true;
+  /* 10.46: „Gast“ nur senden, wenn der Spieler das selbst gewählt hat (Verlassen) – sonst erst nachsehen, ob er auf dem Server schon zu einer Gemeinde gehört */
+  const pruefen = g === "gast" && S.gemGewaehlt !== "gast" && L.mitgliedHolen ? L.mitgliedHolen(pid).catch(() => undefined) : Promise.resolve(null);
+  pruefen.then(server => {
+    if (server === undefined) return; /* Prüfung gescheitert (z. B. offline): später nochmal */
+    if (server && server !== "gast" && pid === S.pid && S.gem === "gast") { S.gem = server; S.gemGesendet = server; S.gemGewaehlt = server; GEM_ZUORD[pid] = server; save(); if (server === GEM_STANDARD) jokerLaden(true).catch(() => {}); gemNeuZeichnen(); return; }
+    return L.gemSetzen(pid, S.lbName, g).then(() => { if (pid === S.pid) { S.gemGesendet = g; save(); } GEM_ZUORD[pid] = g; });
+  }).catch(() => {}).finally(() => { gemSendenLaeuft = false; });
 }
 function gemNeuZeichnen() { if (["rank", "ich", "profil", "zusammen", "gegner", "shop"].includes(current)) go(current); }
 /* Gemeinde eintragen / wechseln: Gemeinde wählen → Passwort (Ort der Gemeinde) */
@@ -3349,7 +3370,7 @@ function gemBeitreten() {
       if (w && w === pwNorm(gemPw(g))) {
         const fertig = () => {
           if (gemPruef(meineGem()) && !g.pruef) { jokerSperren(); const L = window.LB; if (L && L.ok && L.uid && L.freigabeEntfernen) L.freigabeEntfernen([L.uid]).catch(() => {}); } /* Willi und Aaron gibt es nur für Eichstätt */
-          S.gem = g.id; S.gemNeu = false; S.gemGesendet = ""; save(); gemSenden(); GEM_ZUORD[S.pid] = g.id;
+          S.gem = g.id; S.gemGewaehlt = g.id; S.gemNeu = false; S.gemGesendet = ""; save(); gemSenden(); GEM_ZUORD[S.pid] = g.id;
           m.remove(); SFX.coin(); toast(`${svg("people")}<div>Willkommen bei ${esc(g.name)}!</div>`); gemNeuZeichnen();
         };
         if (meineGem() !== "gast") gemWarnung(g, fertig); /* 9.13.1: Wechsel aus einer Gemeinde – erst warnen, mit Abbrechen */
@@ -3385,7 +3406,7 @@ function gemWarnung(ziel, weiter) {
 }
 function gemVerlassen() {
   gemWarnung(null, () => {
-    const warPruef = gemPruef(meineGem()); S.gem = "gast"; S.gemNeu = false; S.gemGesendet = ""; save(); gemSenden(); GEM_ZUORD[S.pid] = "gast";
+    const warPruef = gemPruef(meineGem()); S.gem = "gast"; S.gemGewaehlt = "gast"; S.gemNeu = false; S.gemGesendet = ""; save(); gemSenden(); GEM_ZUORD[S.pid] = "gast";
     if (warPruef) { jokerSperren(); const L = window.LB; if (L && L.ok && L.uid && L.freigabeEntfernen) L.freigabeEntfernen([L.uid]).catch(() => {}); }
     toast(`${svg("user")}<div>Du bist jetzt Gast.</div>`); gemNeuZeichnen();
   });
@@ -3465,7 +3486,7 @@ VIEWS.gemverwaltung = () => {
       L.gemAnlegen(id, n, GEM.length, { pw, logo: logos._neu || "" }).then(() => { SFX.coin(); VIEWS.gemverwaltung(); }).catch(() => fehler(fehlerText())); };
     $("gvZu").onclick = () => { const pid = $("gvSp").value, g = $("gvZiel").value, r = spieler.find(x => x.id === pid); if (!r) return;
       const vorher = gemVon(pid);
-      L.gemSetzen(pid, r.name, g, "verwalter").then(() => freigabeAbgleich(pid, g, vorher)).then(() => { SFX.coin(); GEM_ZUORD[pid] = g; if (pid === S.pid) { S.gem = g; save(); } VIEWS.gemverwaltung(); }).catch(() => fehler("Das hat nicht geklappt.")); };
+      L.gemSetzen(pid, r.name, g, "verwalter").then(() => freigabeAbgleich(pid, g, vorher)).then(() => { SFX.coin(); GEM_ZUORD[pid] = g; if (pid === S.pid) { S.gem = g; S.gemGesendet = g; S.gemGewaehlt = g; save(); } VIEWS.gemverwaltung(); }).catch(() => fehler("Das hat nicht geklappt.")); };
     wireGo();
   });
 };
