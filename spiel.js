@@ -2237,7 +2237,7 @@ VIEWS.gap = (arg) => {
   const luecken = [];
   strophen.forEach(vi => LIED[vi].lines.forEach((ln, li) => ln.forEach((s, si) => { if (typeof s !== "string") luecken.push({ vi, li, si, t: s.t }); })));
   const alleTexte = []; LIED.forEach(v => v.lines.forEach(ln => ln.forEach(s => { if (typeof s !== "string") alleTexte.push(s.t); })));
-  let k = 0, fehler = 0, xp = 0; const offen = new Set(); let lock = false; const t0 = Date.now();
+  let k = 0, fehler = 0, xp = 0; const offen = new Set(); let lock = false; const t0 = Date.now(); let gapH = 0, gapOpt = 0;
   const render = () => {
     const L = luecken[k]; lock = false;
     /* bereits erratene Bücher sichtbar, die übrigen verdeckt */
@@ -2251,6 +2251,11 @@ VIEWS.gap = (arg) => {
       <div class="card"><p class="liedtext gross" id="gapText">${strophe}</p></div>
       ${LIEDZEIT ? `<label class="schalter"><input type="checkbox" id="gapSingCb" ${S.gapSing ? "checked" : ""}> ${svg("music")} Nach jeder Lücke die Zeile singen</label>` : ""}
       <div class="opts" id="go">${shuffle([L.t, ...nah]).map(t => `<button class="opt" data-t="${esc(t)}">${esc(t)}</button>`).join("")}</div></div>`;
+    if (!gapH) { /* 10.48: Liedtext und Antworten immer gleich hoch – über alle Lücken, verdeckt und aufgedeckt */
+      const alleOffen = new Set(luecken.map(x => x.vi + "-" + x.li + "-" + x.si));
+      gapH = hoeheFest($("gapText"), luecken.flatMap(x => [LIED[x.vi].lines.map((_, li) => zeileHtml(x.vi, li, li === x.li ? x.si : -1, new Set())).join("<br>"), LIED[x.vi].lines.map((_, li) => zeileHtml(x.vi, li, -1, alleOffen)).join("<br>")]), true);
+      gapOpt = optsFest($("go"), alleTexte);
+    } else { $("gapText").style.minHeight = gapH + "px"; if (gapOpt) $("go").style.setProperty("--opth", gapOpt + "px"); }
     wireGo();
     if ($("gapSingCb")) $("gapSingCb").onchange = e => { S.gapSing = e.target.checked; save(); };
     screen.querySelectorAll("#go .opt").forEach(b => b.onclick = () => {
@@ -2374,9 +2379,38 @@ function countdown(cb, info) {
   };
   const t = setInterval(() => { n--; if (n <= 0) { clearInterval(t); los(); } else takt(n); }, 1000); timers.push(t);
 }
+/* 10.48: Antworten bleiben an derselben Stelle – unabhängig davon, wie lang die Frage ist.
+   hoeheFest misst ein Element unsichtbar mit allen möglichen Inhalten der Runde und setzt die größte Höhe als min-height.
+   optsFest macht alle Antwortknöpfe einer Runde gleich hoch (größte Höhe aller möglichen Antworten, CSS-Variable --opth). */
+function hoeheFest(el, inhalte, html) {
+  if (!el || !el.parentNode) return 0;
+  let h = 0;
+  try {
+    const k = el.cloneNode(false); k.removeAttribute("id");
+    k.style.cssText += `;position:absolute;visibility:hidden;pointer-events:none;left:0;top:0;width:${el.getBoundingClientRect().width}px;min-height:0;height:auto;margin:0`;
+    el.parentNode.appendChild(k);
+    new Set(inhalte).forEach(v => { if (html) k.innerHTML = v; else k.textContent = v; h = Math.max(h, Math.ceil(k.getBoundingClientRect().height)); });
+    k.remove();
+  } catch (e) {}
+  if (h) { el.style.minHeight = h + "px"; el.classList.add("hoehe-fest"); }
+  return h;
+}
+function optsFest(box, texte) {
+  if (!box || !box.firstElementChild) return 0;
+  let h = 0;
+  try {
+    const v = box.firstElementChild, k = v.cloneNode(false);
+    k.style.cssText += `;position:absolute;visibility:hidden;pointer-events:none;left:0;top:0;width:${v.getBoundingClientRect().width}px;min-height:0;height:auto`;
+    box.appendChild(k);
+    new Set(texte).forEach(t => { k.textContent = t; h = Math.max(h, Math.ceil(k.getBoundingClientRect().height)); });
+    k.remove();
+  } catch (e) {}
+  if (h) box.style.setProperty("--opth", h + "px");
+  return h;
+}
 function playBlitz(scope) {
   const idx = []; ALL.forEach((x, i) => { if (i < ALL.length - 1 && (scope === "all" || (x.t === scope && ALL[i + 1].t === scope))) idx.push(i); });
-  let time = 60, right = 0, wrong = 0, combo = 0, maxCombo = 0, xp = 0, cur = -1, lock = false; const fehlerBuecher = []; const t0 = Date.now();
+  let time = 60, right = 0, wrong = 0, combo = 0, maxCombo = 0, xp = 0, cur = -1, lock = false, fest = false; const fehlerBuecher = []; const t0 = Date.now();
   screen.innerHTML = `<div class="stack">
     <div class="topline"><span id="bt">60 s</span><span>${svg("check", "var(--good)").replace('<svg', '<svg style="width:18px;height:18px;vertical-align:-3px"')} <span id="br">0</span></span><span id="bx">0 XP</span></div>
     <div class="timer"><i id="tb"></i></div>
@@ -2391,6 +2425,7 @@ function playBlitz(scope) {
     let i; do { i = idx[Math.floor(Math.random() * idx.length)]; } while (idx.length > 1 && i === cur); cur = i; lock = false;
     $("bq").textContent = ALL[i].b; $("bm").textContent = GROUPS[ALL[i].gi].name;
     const o = $("bo"); o.innerHTML = ""; makeOpts(i).forEach(b => { const btn = document.createElement("button"); btn.className = "opt"; btn.textContent = b; btn.onclick = () => ans(btn, b); o.appendChild(btn); });
+    if (!fest) { fest = true; hoeheFest($("bq"), idx.map(j => ALL[j].b)); hoeheFest($("bm"), idx.map(j => GROUPS[ALL[j].gi].name)); optsFest(o, ALL.map(x => x.b)); } /* 10.48 */
   }
   function ans(btn, b) {
     if (lock) return; const correct = ALL[cur + 1].b;
@@ -2448,10 +2483,10 @@ VIEWS._chainAlt = () => {
   screen.querySelectorAll("[data-k]").forEach(b => b.onclick = () => { SFX.tap(); countdown(() => playChain(b.dataset.k), cdSolo("kette-" + b.dataset.k)); });
 };
 function playChain(mode) {
-  const K = KETTEN[mode], seq = K.seq; let i = -1, xp = 0, lock = false; const t0 = Date.now();
+  const K = KETTEN[mode], seq = K.seq; let i = -1, xp = 0, lock = false, fest = false; const t0 = Date.now();
   screen.innerHTML = `<div class="stack"><div class="topline"><span><span id="cp">1</span> / ${seq.length}</span><span class="small muted">${K.name}</span><span id="cx">0 XP</span></div>
   <div class="progress"><i id="cbar"></i></div>
-  <div class="card stack"><div class="qsub" id="cs">${K.rueck ? "Was steht davor?" : "Was kommt nach"}</div><div class="q" id="cq"></div><div class="qsub" id="cm"></div>
+  <div class="card stack"><div class="q-block" id="cf"><div class="qsub" id="cs">${K.rueck ? "Was steht davor?" : "Was kommt nach"}</div><div class="q" id="cq"></div><div class="qsub" id="cm"></div></div>
     <div class="combo" id="cc"></div><div class="opts" id="co"></div></div>
   <div class="topline" style="justify-content:flex-end"><button class="btn ghost mini" data-go="${heimAnsicht("spielen")}">Abbrechen</button></div></div>`;
   wireGo(); show();
@@ -2461,6 +2496,11 @@ function playChain(mode) {
     if (i < 0) { $("cs").textContent = KETTE_START[mode]; $("cq").textContent = ""; $("cm").textContent = K.info; }
     else { const b = seq[i]; $("cs").textContent = K.rueck ? "Was steht davor?" : "Was kommt nach"; $("cq").textContent = ALL[b].b; $("cm").textContent = `${ALL[b].t === "AT" ? "Altes" : "Neues"} Testament · ${GROUPS[ALL[b].gi].name}`; }
     const o = $("co"); o.innerHTML = ""; (i < 0 ? optsStart(seq) : optsSeq(seq, i)).forEach(t => { const btn = document.createElement("button"); btn.className = "opt"; btn.textContent = t; btn.onclick = () => ans(btn, t); o.appendChild(btn); });
+    if (!fest) { fest = true; /* 10.48: Frage-Zeilen und Antworten in der ganzen Kette gleich hoch – auch bei der Startfrage */
+      const zeilen = (s, q, m) => `<div class="qsub">${esc(s)}</div><div class="q">${esc(q)}</div><div class="qsub">${esc(m)}</div>`;
+      hoeheFest($("cf"), [zeilen(KETTE_START[mode], "", K.info), ...seq.map(b => zeilen(K.rueck ? "Was steht davor?" : "Was kommt nach", ALL[b].b, `${ALL[b].t === "AT" ? "Altes" : "Neues"} Testament · ${GROUPS[ALL[b].gi].name}`))], true);
+      hoeheFest($("cc"), ["", "Altes Testament geschafft!"]);
+      optsFest(o, seq.map(b => ALL[b].b)); }
   }
   function ans(btn, t) {
     if (lock) return; const correct = ALL[seq[i + 1]].b;
@@ -2569,11 +2609,11 @@ function tkErgebnis(id, i, full) {
   return `<div class="tk-hero"><span class="tk-bild hero">${tkBildSvg(id, k)}</span><b>${esc(K.sub(k))} · ${esc(it[k].t)}</b><small>${esc(it[k].r)}</small><p>${esc(it[k].d || "")}</p></div>${tkZeitleiste(id, i, -1, -1)}`;
 }
 function playThemenKette(id) {
-  const K = TKETTEN[id], seq = K.items; let i = -1, xp = 0, lock = false, neuAuf = -1; const t0 = Date.now();
+  const K = TKETTEN[id], seq = K.items; let i = -1, xp = 0, lock = false, neuAuf = -1, fest = false; const t0 = Date.now();
   screen.innerHTML = `<div class="stack"><div class="topline"><span><span id="cp">1</span> / ${seq.length}</span><span class="small muted">${esc(K.name)}</span><span id="cx">0 XP</span></div>
   <div class="progress"><i id="cbar"></i></div>
   <div id="tkz"></div>
-  <div class="card stack"><div class="qsub" id="cs">${K.frage}</div><div class="q" id="cq"></div><div class="qsub" id="cm"></div>
+  <div class="card stack tk-karte"><div class="qsub" id="cs">${K.frage}</div><div class="q" id="cq"></div><div class="qsub" id="cm"></div>
     <div class="combo" id="cc"></div><div class="opts" id="co"></div></div>
   <div class="topline" style="justify-content:flex-end"><button class="btn ghost mini" data-go="${heimAnsicht("spielen")}">Abbrechen</button></div></div>`;
   wireGo(); show();
@@ -2584,11 +2624,14 @@ function playThemenKette(id) {
   }
   function show() {
     lock = false;
-    if (i < 0) { $("cs").textContent = K.start; $("cq").textContent = ""; $("cm").textContent = K.info; }
+    if (i < 0) { $("cs").textContent = K.name; $("cq").textContent = K.start; $("cm").textContent = K.info; } /* 10.48: Startfrage groß wie die übrigen */
     else { $("cs").textContent = K.frage; $("cq").textContent = seq[i].t; $("cm").textContent = `${K.sub(i)} · ${seq[i].r}`; }
     $("cp").textContent = i + 2; $("cbar").style.width = ((i + 1) / (seq.length - 1) * 100) + "%";
     $("tkz").innerHTML = tkZeitleiste(id, i, i + 1, neuAuf); neuAuf = -1;
     const o = $("co"); o.innerHTML = ""; opts().forEach(t => { const btn = document.createElement("button"); btn.className = "opt"; btn.textContent = t; btn.onclick = () => ans(btn, t); o.appendChild(btn); });
+    if (!fest) { fest = true; /* 10.48: Frage und Antworten in der ganzen Kette gleich hoch */
+      hoeheFest($("cs"), [K.name, K.frage]); hoeheFest($("cq"), [K.start, ...seq.map(x => x.t)]); hoeheFest($("cm"), [K.info, ...seq.map((x, j) => `${K.sub(j)} · ${x.r}`)]);
+      optsFest(o, seq.map(x => x.t)); }
   }
   function ans(btn, t) {
     if (lock) return; const correct = seq[i + 1].t;
@@ -4625,13 +4668,15 @@ VIEWS.duell = () => { screen.innerHTML = ""; };
 const duFrageHtml = f => f.start ? `<div class="du-frage-buch"><span class="qsub">${esc(f.start)}</span></div>`
   : f.buch ? `<div class="du-frage-buch"><span class="qsub">${esc(f.label || "Was kommt nach")}</span><b class="du-buch">${esc(f.buch)}</b>${f.gruppe ? `<span class="qsub">${esc(f.gruppe)}</span>` : ""}</div>`
   : `<h2 class="vl-frage">${f.frage}</h2><div class="vl-vers">${f.vers}</div>`;
-function duMass(D) {
-  const m = { top: 0, opt: 0 };
+function duMass(D, frBei) {
+  const m = { top: 0, opt: 0 }, gesehen = new Set();
   try {
     const t = document.createElement("div"); t.className = `vl du-spiel du-${D.art}`; t.setAttribute("aria-hidden", "true"); t.style.cssText = "height:0;overflow:hidden;visibility:hidden;pointer-events:none";
     screen.appendChild(t);
-    D.fragen.forEach(f => {
-      t.innerHTML = `<div class="du-fr">${duFrageHtml(f)}</div><div class="vl-wahl ${f.lang ? "" : "du-kurz"} ${f.buch || f.start ? "du-buecher" : ""}">${f.opts.map(o => `<button class="vl-opt">${esc(o)}</button>`).join("")}</div>`;
+    D.fragen.forEach((f, i) => {
+      const fr = frBei ? frBei(i) : duFrageHtml(f), schl = fr + "|" + (f.lang ? 1 : 0) + "|" + f.opts.join("|"); /* 10.48: gleiche Fragen nur einmal messen (Blitz hat bis 160) */
+      if (gesehen.has(schl)) return; gesehen.add(schl);
+      t.innerHTML = `<div class="du-fr">${fr}</div><div class="vl-wahl ${f.lang ? "" : "du-kurz"} ${f.buch || f.start ? "du-buecher" : ""}">${f.opts.map(o => `<button class="vl-opt">${esc(o)}</button>`).join("")}</div>`;
       m.top = Math.max(m.top, t.children[0].offsetHeight);
       t.children[1].querySelectorAll(".vl-opt").forEach(b => { m.opt = Math.max(m.opt, b.offsetHeight); });
     });
@@ -4644,9 +4689,10 @@ function duZeige() {
   if (D.i >= D.fragen.length || D.aus) return duAbschluss();
   const f = D.fragen[D.i], blitz = D.art === "blitz", kette = D.art === "kette", sek = kette ? DU_KETTE_SEK : DU_SEK;
   const tk = kette && TKETTEN[D.k] ? TKETTEN[D.k] : null; /* 10.38: Themen-Ketten im Duell wie im Solo – Bilder-Zeitleiste, Frage mit Stelle */
-  const frHtml = tk ? (D.i === 0 ? `<div class="du-frage-buch"><span class="qsub">${esc(tk.start)}</span><span class="qsub">${esc(tk.info)}</span></div>`
-    : `<div class="du-frage-buch"><span class="qsub">${esc(tk.frage)}</span><b class="du-buch">${esc(tk.items[D.i - 1].t)}</b><span class="qsub">${esc(tk.sub(D.i - 1))} · ${esc(tk.items[D.i - 1].r)}</span></div>`) : duFrageHtml(f);
-  if (!D.mass && !blitz && !kette && D.fragen.length <= 40) duMass(D); /* 9.65: Frage-Block und Antworten in der ganzen Runde gleich hoch */
+  const frBei = i => tk ? (i === 0 ? `<div class="du-frage-buch tk"><span class="qsub">${esc(tk.name)}</span><b class="du-buch">${esc(tk.start)}</b><span class="qsub">${esc(tk.info)}</span></div>`
+    : `<div class="du-frage-buch tk"><span class="qsub">${esc(tk.frage)}</span><b class="du-buch">${esc(tk.items[i - 1].t)}</b><span class="qsub">${esc(tk.sub(i - 1))} · ${esc(tk.items[i - 1].r)}</span></div>`) : duFrageHtml(D.fragen[i]);
+  const frHtml = frBei(D.i);
+  if (!D.mass) duMass(D, frBei); /* 9.65: Frage-Block und Antworten in der ganzen Runde gleich hoch – 10.48: auch bei Ketten, Themen-Ketten und Blitz */
   const fortschritt = blitz ? (DU_BLITZ_SEK - D.rest) / DU_BLITZ_SEK : D.i / D.fragen.length;
   const titel = blitz ? `Blitz · <span id="duSek">${Math.ceil(D.rest)} s</span>`
     : tk ? `${esc(DU_TYPEN["kette-" + D.k].name)} · ${D.i + 1}/${D.fragen.length}`

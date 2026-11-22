@@ -140,7 +140,7 @@ h2{font-family:var(--display);font-weight:800;font-size:1.3rem;margin:0 0 4px;te
 .q{font-family:var(--display);font-weight:800;font-size:2rem;line-height:1.1;text-align:center;margin:6px 0;text-wrap:balance}
 .qsub{text-align:center;font-size:.85rem;color:var(--muted)}
 .opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.opt{border:0;border-radius:14px;padding:16px 8px;min-height:62px;font-weight:900;font-size:1.02rem;background:var(--surface2);border-bottom:5px solid #0008;cursor:pointer}
+.opt{border:0;border-radius:14px;padding:16px 8px;min-height:var(--opth,62px);font-weight:900;font-size:1.02rem;background:var(--surface2);border-bottom:5px solid #0008;cursor:pointer}
 .opt:active{transform:translateY(3px)}
 .opt.right{background:var(--good);color:#002b19;animation:pop .3s}
 .opt.wrong{background:var(--bad);color:#2b0000;animation:shake .35s}
@@ -3500,6 +3500,12 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .ad2-vers{margin:6px 0 4px;font:italic .85rem/1.35 Georgia,serif;color:#fff3c8}.ad2-vers small{display:block;font:normal .7rem var(--body);color:#9aa6d8;margin-top:2px}
 .ad2 .btn{width:100%}
 @media (max-height:760px){.ad2{gap:4px;padding-top:12px}.ad2 h2{font-size:1.5rem}.ad2-f{margin:2px 0 4px}.ad2-b{width:62px;height:62px}.ad2-z{padding:6px 9px}.ad2-vers{margin:2px 0}}
+/* 10.48: Frage-Block mit fester Höhe – Text mittig, Themen-Ketten in kleinerer Schrift (ganze Sätze statt Buchnamen) */
+.q.hoehe-fest{display:flex;align-items:center;justify-content:center}
+.tk-karte .q{font-size:1.4rem;line-height:1.2}
+.du-fr:has(> .du-frage-buch){display:flex;flex-direction:column;justify-content:center}
+.du-frage-buch.tk .du-buch{font-size:1.4rem;line-height:1.2}
+.q-block{display:flex;flex-direction:column;justify-content:center;gap:12px}.q-block .q:empty{display:none}
 </style>
 </head>
 <body>
