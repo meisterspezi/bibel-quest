@@ -1235,6 +1235,8 @@ async function xqAbgleichMitMeldung(grund) {
   const r = await xqAbgleichen(); if (r.code === "nicht-bereit") return r;
   const wer = `Spieler ${S.lbName || "?"}, Profil ${S.pid || "?"}, Version ${APP_VERSION}`;
   const gt = r.geraet ? ` Gerät ${r.geraet.uid || "?"}: ${r.geraet.drin === true ? "im Profil eingetragen (Ursache liegt woanders)" : r.geraet.drin === false ? (r.geraet.neu ? "war NICHT im Profil eingetragen, neu verbunden – Speichern trotzdem abgelehnt" : "NICHT im Profil eingetragen, neu verbinden fehlgeschlagen") : "Profil nicht lesbar"}.` : "";
+  /* 10.50: Speichern abgelehnt, aber die Datenbank hat schon alle XP (nichts Neues) → nichts verloren: Stand als gespeichert merken, keine Meldung */
+  if (!r.ok && r.srv && r.srv.q && !r.neu.length && !r.diffs.length) { try { S.xq = xqMischen(S.xq, r.srv); S.xqSync = JSON.stringify(S.xq); save(); } catch (e) {} xqzSammeln(grund + ", Speichern abgelehnt", []); return r; }
   if (!r.ok) postkastenMelden("datenbank", `XP-Zählung speichern fehlgeschlagen (${r.code}${r.msg ? ": " + r.msg : ""}) – ${wer}. Verletzt: ${xqUnterschiedText(r.vorher)}. Nach dem Mischen: ${xqUnterschiedText(r.diffs)}.${gt}${r.gleich ? " Einzeln speichern nicht nötig: Die Datenbank hat schon denselben Stand – es fehlen keine XP." : r.ok_teile ? ` Einzeln gespeichert: ${r.ok_teile.join(", ") || "nichts"}. Abgelehnt: ${r.abgelehnt.join(", ") || "nichts"}.` : ""}`, "xqz-fehl-" + r.code + "-" + S.pid);
   else if (r.neuVerbunden) postkastenMelden("status", `XP-Zählung gespeichert, nachdem das Gerät neu verbunden wurde (${grund}) – ${wer}, Gerät ${(r.geraet && r.geraet.uid) || "?"}.`, "xqz-nv-" + S.pid);
   else if (r.neu.length || r.vorher.length) xqzSammeln(grund, r.neu); /* 10.49: keine Einzelmeldung mehr, nur Tages-Sammelmeldung bei echtem Nachtrag */
@@ -1258,12 +1260,12 @@ async function xqNachholen(e) {
 const XQ_PRUEF_ABSTAND = 30 * 60000;
 function xqServerUebernehmen(srv) {
   if (gesperrt || !srv || !srv.q || !S.xq || !S.xq.q) return false;
-  const hinten = Object.entries(srv.q).some(([k, v]) => (v | 0) > ((S.xq.q[k]) | 0)) || ((srv.alt | 0) < (S.xq.alt | 0)) || (Array.isArray(srv.bel) && srv.bel.length > ((S.xq.bel || []).length));
-  if (!hinten) return false;
+  let hinten = Object.entries(srv.q).some(([k, v]) => (v | 0) > ((S.xq.q[k]) | 0)) || ((srv.alt | 0) < (S.xq.alt | 0)) || (Array.isArray(srv.bel) && srv.bel.length > ((S.xq.bel || []).length));
   const vorne = Object.entries(S.xq.q).some(([k, v]) => (+v || 0) > ((srv.q[k]) | 0));
-  S.xq = xqMischen(S.xq, srv);
-  if (!vorne) S.xqSync = JSON.stringify(S.xq); /* Gerät hat nichts Eigenes mehr – kein erneutes Speichern nötig */
-  save(); return true;
+  if (hinten) S.xq = xqMischen(S.xq, srv);
+  /* 10.50: Hat das Gerät nichts, was der Datenbank fehlt, gilt der Stand als gespeichert – kein (abgelehntes) Doppel-Speichern */
+  if (!vorne) { const sig = JSON.stringify(S.xq); if (S.xqSync !== sig) { S.xqSync = sig; hinten = true; } }
+  if (hinten) save(); return hinten;
 }
 /* 6.85: Beim Start einmal prüfen, ob die Datenbank alles hat, was dieses Gerät gezählt hat – sonst nachholen */
 async function xqStartPruefung() {
