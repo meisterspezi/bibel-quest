@@ -13,7 +13,7 @@
 //
 // Zugänge kommen als Geheimnisse aus GitHub (siehe .github/workflows/worker.yml) – nie in diese Datei schreiben.
 
-import { sammeln, sammelText } from "../job/sammeln.mjs";
+import { sammeln, sammelText, schaetzAuswerten } from "../job/sammeln.mjs";
 import { restDb } from "./fs-rest.mjs";
 
 const TAG = 864e5;
@@ -257,6 +257,11 @@ export default {
     } catch (e) { console.log("fehler", e.message); return antwort({ ok: false }, 500); }
   },
   async scheduled(ereignis, env, ctx) {
+    if (ereignis.cron === AUFLOES_CRON) {  /* 10.54: Schätzfrage der Woche pünktlich Sonntag 20:01 Uhr auswerten (Winter 19:01 UTC, Sommer 18:01 UTC) */
+      ctx.waitUntil((async () => { const db = restDb({ basis: env.FIRESTORE_EMULATOR || "https://firestore.googleapis.com", projekt: env.PROJEKT, token: () => googleToken(env) });
+        console.log("Schätzfrage:", (await schaetzAuswerten(db)).join("; ") || "nichts zu tun"); })().catch(e => { console.log("schaetzfrage", e.message); return sagen(env, env.K_ALARM, ":rotating_light: *Schätzfrage auswerten (Worker)*: " + esc(e.message).slice(0, 300) + " – der Sammel-Lauf versucht es um :07/:37 erneut.").catch(() => {}); }));
+      return;
+    }
     if (ereignis.cron === SAMMEL_CRON) {  /* 10.6 – ohne Slack-Beitritt, damit der Lauf schlank bleibt */
       ctx.waitUntil(sammelLauf(env).catch(e => { console.log("sammeln", e.message); return sagen(env, env.K_ALARM, ":rotating_light: *Sammel-Rangliste (Worker)*: " + esc(e.message).slice(0, 300) + " – GitHub springt nach 45 Min. als Ersatz ein.").catch(() => {}); }));
       return;
@@ -266,6 +271,7 @@ export default {
 };
 /* ---------- 10.6: Sammel-Rangliste (alle 30 Minuten) ---------- */
 const SAMMEL_CRON = "7,37 * * * *";
+const AUFLOES_CRON = "1 18,19 * * 0";
 // Mit Secret GH_DISPATCH_TOKEN (GitHub-Schlüssel nur mit Recht „Actions: Read and write“ für bibel-quest) stößt der Worker nur
 // den GitHub-Lauf an – das braucht kaum Rechenzeit (kostenloser Cloudflare-Tarif: wenige Millisekunden je Aufruf), und
 // angestoßene Läufe startet GitHub sofort. Ohne Schlüssel (oder wenn GitHub ablehnt) sammelt der Worker selbst.

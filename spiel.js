@@ -3348,7 +3348,7 @@ const RANK_TABS = {
   duSiege: { label: "Siege", val: r => r.duS || 0, unit: "Siege", titel: "Siege in der Arena" },
   duSpiele: { label: "Gespielt", val: r => r.duG || 0, unit: "Duelle", titel: "Duelle in der Arena" },
   bibSpiele: { label: "Gespielt", val: r => (r.bwK === BIB_GESAMT ? r.p || 0 : 0), unit: "Spiele", titel: "Biblionär-Spiele" },
-  bibWoche: { label: "Woche", val: r => (r.bwK === weekKey() ? r.bwP || 0 : 0), unit: "Punkte", titel: "Biblionär der Woche" },
+  bibWoche: { label: "Woche", val: r => (r.bwK === (typeof bwAnzeigeWoche === "function" ? bwAnzeigeWoche() : weekKey()) ? r.bwP || 0 : 0), unit: "Punkte", titel: "Biblionär der Woche" },
   bibRekord: { label: "Rekord", val: r => r.bib || 0, unit: "Punkte", titel: "Biblionär-Rekord" },
   /* 10.2: Sammelalbum – Bronze 1, Silber 2, Gold 3 Punkte (höchstens 198); Woche = Zuwachs seit Montag (Stand vom Sammel-Job) */
   album: { label: "Gesamt", val: r => (typeof albumPunkte === "function" ? albumPunkte(r) : 0), unit: "Punkte", titel: "Sammelalbum" },
@@ -3893,7 +3893,7 @@ VIEWS.rank = (tab) => {
   screen.querySelectorAll("[data-bsub]").forEach(b => b.onclick = () => { SFX.tap(); blitzSub = b.dataset.bsub; go("rank", "blitz"); });
   const bwVerdrahten = () => { const b = $("bwLos"); if (b) b.onclick = () => { SFX.tap(); bibWocheStarten(); }; };
   if (rankTab === "bibWoche") { bwVerdrahten(); bibSiegerPruefen().then(() => (bibVorwocheListe ? bibVorwocheListe : bibVorwocheLaden())).then(() => { const box = $("bwBox"); if (box && current === "rank" && rankTab === "bibWoche") { box.innerHTML = bibInfoLeiste(); bwVerdrahten(); } }); }
-  const me = S.pid || L.uid; const wk = weekKey(); let zeilen = [];
+  const me = S.pid || L.uid; const wk = rankTab === "bibWoche" ? bwAnzeigeWoche() : weekKey(); let zeilen = [];
   lbUnsub.push(L.watch(rankKind(), rankTab === "bibSpiele" ? BIB_GESAMT : wk, rows => {
     if (current !== "rank") return;
     rows = rows.filter(r => (scope !== "gemeinde" || gemVon(r.id) === meineGem()) && (rankWert(r) > 0 || r.id === me)).sort((a, b) => rankWert(b) - rankWert(a) || String(a.name).localeCompare(String(b.name)));
@@ -4919,6 +4919,14 @@ const pkt = n => (+n || 0).toLocaleString("de-DE");
 const bibGesichert = erreicht => { let s = 0; BIB_SICHER.forEach(i => { if (erreicht > i) s = BIB_LEITER[i]; }); return s; };
 const bibWocheSeed = wk => hash("biblionaer-" + wk) % 2147483647;
 const bibVorwoche = () => weekKey(Date.now() - 7 * 864e5);
+/* 10.54 (Michaels Vorgabe): Die Wochenrunde endet Sonntag 20 Uhr mit der Auflösung, neue Fragen gibt es ab Montag 7 Uhr –
+   dazwischen ist „Pause“ und es werden die Sieger gezeigt. Die Kalenderwoche (weekKey, Fragen-Startwert, Serverbeleg) bleibt Mo 0 Uhr. */
+function bwPause(ms) { try { const d = ms ? BQ_UHR.wand(ms) : BQ_UHR.kalDatum(), t = d.getDay(), h = d.getHours(); return (t === 0 && h >= 20) || (t === 1 && h < 7); } catch (e) { return false; } }
+/* Woche, deren Sieger gerade gelten: Sonntag ab 20 Uhr die laufende, sonst die vorige */
+const bwAufloesWoche = () => { const d = BQ_UHR.kalDatum(); return d.getDay() === 0 && d.getHours() >= 20 ? weekKey() : bibVorwoche(); };
+/* Woche für die Wochen-Rangliste: in der Pause die aufgelöste Woche (Montag 0–7 Uhr sonst leer) */
+const bwAnzeigeWoche = () => (bwPause() ? bwAufloesWoche() : weekKey());
+const bwNeuText = n => (bwPause() ? "Neue Fragen Mo 7 Uhr" : `Neue Fragen in ${n} ${n === 1 ? "Tag" : "Tagen"}`);
 const bibWocheTage = () => { const d = BQ_UHR.kalDatum(), wt = (d.getDay() + 6) % 7; return 7 - wt; }; // inkl. heute bis Sonntag
 
 /* Fragen aus dem Startwert: Auswahl, Antwort-Reihenfolge und die Joker-Ergebnisse sind für alle gleich */
@@ -5212,9 +5220,10 @@ async function bibVersuchBuchen(ms) {
 const bibWocheGespielt = () => S.bwK === weekKey() || S.bwGesperrt === weekKey();
 function bibWocheStarten() {
   if (bibWocheGespielt()) { go("rank", "bibWoche"); return; }
+  if (bwPause()) { toast(`${svg("biblionaer")}<div><b>Die Wochenrunde ist aufgelöst</b><div class="small muted">Hier sind die Sieger – neue Fragen gibt es ab Montag 7 Uhr.</div></div>`); go("rank", "bibWoche"); return; }
   const wk = weekKey();
   modal(`<div class="label">Biblionär der Woche</div><h2 style="margin:0">${wk.split("-W")[1]}. Kalenderwoche</h2>
-    <p class="muted">Alle in der Gemeinde bekommen dieselben 15 Fragen. Du hast <b>einen Versuch</b> – wer abbricht, bekommt 0 Punkte. Am Montag kommt die Siegerin oder der Sieger aufs Podest${typeof bwPreisAn === "function" && bwPreisAn() ? " – die besten drei bekommen einen Krug" : ""}.</p>
+    <p class="muted">Alle in der Gemeinde bekommen dieselben 15 Fragen. Du hast <b>einen Versuch</b> – wer abbricht, bekommt 0 Punkte. Spielbar bis Sonntag 20 Uhr – dann kommt die Siegerin oder der Sieger aufs Podest${typeof bwPreisAn === "function" && bwPreisAn() ? " – die besten drei bekommen einen Krug" : ""}.</p>
     ${typeof bwPreisHtml === "function" ? bwPreisHtml("gross") : ""}
     <button class="btn primary" data-close="los">${svg("biblionaer")} Los geht's</button><button class="btn ghost" data-close>Später</button>`, r => {
     if (r !== "los") return;
@@ -5226,8 +5235,10 @@ async function bibWocheAnfang() {
   if (bibWocheLaeuft) return; bibWocheLaeuft = true;
   try {
     if (!(await bibPoolHolen())) { bibPoolFehlt(); return; }   /* 9.80: erst Fragen sichern, dann den Wochenversuch buchen */
-    const ms = await serverMs(), wk = weekKey(ms), e = await bibVersuchBuchen(ms);
-    if (e === "schon") { S.bwGesperrt = wk; save(); toast(`${svg("biblionaer")}<div><b>Diese Woche schon gespielt</b><div class="small muted">Die Wochenrunde gibt es nur einmal – am Montag kommen neue Fragen.</div></div>`); go("rank", "bibWoche"); return; }
+    const ms = await serverMs(), wk = weekKey(ms);
+    if (bwPause(ms)) { toast(`${svg("biblionaer")}<div><b>Die Wochenrunde ist aufgelöst</b><div class="small muted">Neue Fragen gibt es ab Montag 7 Uhr.</div></div>`); return; }
+    const e = await bibVersuchBuchen(ms);
+    if (e === "schon") { S.bwGesperrt = wk; save(); toast(`${svg("biblionaer")}<div><b>Diese Woche schon gespielt</b><div class="small muted">Die Wochenrunde gibt es nur einmal – neue Fragen ab Montag 7 Uhr.</div></div>`); go("rank", "bibWoche"); return; }
     if (e === "netz") { toast(`${svg("biblionaer")}<div><b>Keine Verbindung</b><div class="small muted">Die Wochenrunde braucht Internet, damit niemand sie doppelt spielt.</div></div>`); return; }
     if (e === "tag") { toast(`${svg("biblionaer")}<div><b>Datum passt nicht</b><div class="small muted">Bitte Datum und Uhrzeit deines Geräts prüfen (automatisch einstellen).</div></div>`); return; }
     if (S.bwK && S.bwK !== wk) { S.bwVK = S.bwK; S.bwVP = S.bwP | 0; }
@@ -5241,12 +5252,12 @@ async function bibWocheAnfang() {
 let bibVorwocheListe = null;
 async function bibVorwocheLaden() {
   const L = window.LB; if (!L || !L.ok || !L.bibWoche) return null;
-  const vw = bibVorwoche();
+  const vw = bwAufloesWoche();
   try { bibVorwocheListe = { wk: vw, rows: (await L.bibWoche(vw)).filter(r => r.p > 0).sort((a, b) => b.p - a.p) }; } catch (e) { return null; }
   return bibVorwocheListe;
 }
 async function bibSiegerPruefen() {
-  const vw = bibVorwoche();
+  const vw = bwAufloesWoche();
   if (typeof bibAufloesungFaellig === "function" && bibAufloesungFaellig()) return; /* 10.54: erst die Auflösungs-Animation, danach der Preis */
   if (S.bwGeprueft === vw || !S.pid || !(S.bwK === vw || S.bwVK === vw)) return;
   const v = await bibVorwocheLaden(); if (!v) return;
@@ -5271,21 +5282,23 @@ function bibInfoLeiste() {
   const wert = w => `<b class="bi-wert">${w}</b>`;
   if (rankTab === "bibSpiele") return ""; /* 10.8: „Deine Spiele“ entfernt */
   if (rankTab === "bibRekord") return ""; /* 10.8: „Dein Rekord“ entfernt (Michaels Wahl) */
-  const v = bibVorwocheListe && bibVorwocheListe.wk === bibVorwoche() ? bibVorwocheListe.rows : null;
+  const v = bibVorwocheListe && bibVorwocheListe.wk === bwAufloesWoche() ? bibVorwocheListe.rows : null;
   const sieger = v && v.length ? v.filter(r => r.p === v[0].p) : [];
   const vor = sieger.length ? `Letzte Woche: ${sieger.slice(0, 2).map(r => esc(r.name)).join(", ")}${sieger.length > 2 ? " u. a." : ""} · ${pkt(sieger[0].p)}` : "";
   if (!online) return leiste("crown", "Wochenrunde", "Nur mit Eintrag in der Rangliste", "");
-  if (bibWocheGespielt()) return leiste("crown", "Deine Runde", vor || `Neue Fragen in ${n} ${n === 1 ? "Tag" : "Tagen"}`, wert(pkt(S.bwP)));
+  if (bibWocheGespielt()) return leiste("crown", "Deine Runde", vor || bwNeuText(n), wert(pkt(S.bwP)));
+  if (bwPause()) return leiste("crown", "Aufgelöst", vor || "Neue Fragen Mo 7 Uhr", "");
   return leiste("crown", "Wochenrunde", vor || `1 Versuch · noch ${n} ${n === 1 ? "Tag" : "Tage"}`, `<button class="bi-los" id="bwLos">${svg("biblionaer")}Spielen</button>`);
 }
 function bibWocheKarte() {
   const online = !!(S.lbName && !S.offlineOnly);
-  const v = bibVorwocheListe && bibVorwocheListe.wk === bibVorwoche() ? bibVorwocheListe.rows : null;
+  const v = bibVorwocheListe && bibVorwocheListe.wk === bwAufloesWoche() ? bibVorwocheListe.rows : null;
   const sieger = v && v.length ? v.filter(r => r.p === v[0].p) : [];
   const vor = sieger.length ? `<div class="bw-vor">${svg("crown", "#f2c14e")}<span>Letzte Woche: <b>${sieger.slice(0, 3).map(r => esc(r.name)).join(", ")}</b>${sieger.length > 3 ? " u. a." : ""} · ${pkt(sieger[0].p)}</span></div>` : "";
   const n = bibWocheTage();
   const knopf = !online ? `<p class="small muted" style="margin:0">Für die Wochenrunde brauchst du einen Eintrag in der Gemeinde-Rangliste.</p>`
-    : bibWocheGespielt() ? `<div class="bw-ich"><span>Deine Runde</span><b>${pkt(S.bwP)}</b><small>Neue Fragen in ${n} ${n === 1 ? "Tag" : "Tagen"}</small></div>`
+    : bibWocheGespielt() ? `<div class="bw-ich"><span>Deine Runde</span><b>${pkt(S.bwP)}</b><small>${bwNeuText(n)}</small></div>`
+    : bwPause() ? `<div class="bw-ich"><span>Aufgelöst</span><b>👑</b><small>Neue Fragen Mo 7 Uhr</small></div>`
     : `<button class="btn primary bw-los" id="bwLos">${svg("biblionaer")} Wochenrunde spielen</button><span class="small muted">1 Versuch · noch ${n} ${n === 1 ? "Tag" : "Tage"}</span>`;
   return `<div class="card bw-karte">${knopf}${vor}</div>`;
 }
@@ -5604,7 +5617,7 @@ VIEWS.bib = () => {
         : `<div class="bq4-woche aus"><span class="bq4-kr">${eN.sym}</span><span><b>Biblionär der Woche</b><small>die Runden sind vorbei</small></span><span></span></div>`)
     : !wocheAn
     ? `<div class="bq4-woche aus"><span class="bq4-kr">${svg("crown")}</span><span><b>Biblionär der Woche</b><small>nur mit Eintrag in der Rangliste</small></span><span></span></div>`
-    : `<button class="bq4-woche${typeof bwPreisAn === "function" && bwPreisAn() ? " mit-preis" : ""}" id="bqWoche" aria-label="${gespielt ? `Biblionär der Woche: deine Runde ${pkt(S.bwP)} Punkte – Rangliste` : `Biblionär der Woche starten – noch ${n} ${n === 1 ? "Tag" : "Tage"}`}"><span class="bq4-kr">${svg("crown")}</span><span><b>Biblionär der Woche</b><small>${gespielt ? `deine Runde · ${pkt(S.bwP)} Punkte` : `${wk.split("-W")[1]}. KW · gleiche Fragen für alle · 1 Versuch`}</small></span>${typeof bwPreisHtml === "function" ? bwPreisHtml("marke") : ""}${gespielt ? `<span class="bq4-uhr">${svg("trophy")}<small>Liste</small></span>` : `<span class="bq4-uhr">${n}<small>${n === 1 ? "Tag" : "Tage"}</small></span>`}</button>`;
+    : `<button class="bq4-woche${typeof bwPreisAn === "function" && bwPreisAn() ? " mit-preis" : ""}" id="bqWoche" aria-label="${gespielt ? `Biblionär der Woche: deine Runde ${pkt(S.bwP)} Punkte – Rangliste` : `Biblionär der Woche starten – noch ${n} ${n === 1 ? "Tag" : "Tage"}`}"><span class="bq4-kr">${svg("crown")}</span><span><b>Biblionär der Woche</b><small>${gespielt ? `deine Runde · ${pkt(S.bwP)} Punkte` : bwPause() ? "aufgelöst · neue Fragen Mo 7 Uhr" : `${wk.split("-W")[1]}. KW · gleiche Fragen für alle · 1 Versuch`}</small></span>${typeof bwPreisHtml === "function" ? bwPreisHtml("marke") : ""}${gespielt ? `<span class="bq4-uhr">${svg("trophy")}<small>Liste</small></span>` : (bwPause() ? `<span class="bq4-uhr">${svg("crown")}<small>Sieger</small></span>` : `<span class="bq4-uhr">${n}<small>${n === 1 ? "Tag" : "Tage"}</small></span>`)}</button>`;
   const ichKurz = esc(duInitialen(S.lbName || "Ich"));
   const dranZeile = d => `<li class="bq2-z"><span class="bq2-av">${esc(duInitialen(d.vonName))}</span><span class="bq2-tx"><b>${esc(d.vonName)}${edMarke(d)}</b><small>fordert dich heraus · noch ${Math.max(0, Math.ceil((d.ablauf - Date.now()) / 864e5))} T.</small></span>
       <span class="bq2-p du-verdeckt" aria-label="Punkte verdeckt">?</span><span class="bq2-kn"><button class="bq2-an" data-bqan="${d.id}">${svg("bolt")}Antreten</button><button class="bq2-x" data-bqab="${d.id}" aria-label="Duell von ${esc(d.vonName)} ablehnen">${svg("nein")}</button></span></li>`;

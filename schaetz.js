@@ -150,9 +150,12 @@ function evSetzen(id, o) {
 }
 function bibEv() {
   if (!S.lbName || S.offlineOnly || current !== "home" || typeof bibWocheGespielt !== "function") return;
-  const fertig = bibWocheGespielt(), n = bibWocheTage();
-  evSetzen("bib", { ord: 3, farbe: "#66e0d0", sym: `<img src="icons/biblionaer-logo.webp" alt="" width="48" height="46">`, titel: "Biblionär", sub: fertig ? "der Woche ✓" : `noch ${n} ${n === 1 ? "Tag" : "Tage"}`,
-    zahl: fertig ? "" : "!", grau: fertig, klick: () => (typeof bibWocheStarten === "function" ? bibWocheStarten() : go("bib")) }); /* 10.54: direkt zur Wochenrunde (gespielt → Wochen-Rangliste) */
+  const pause = typeof bwPause === "function" && bwPause(), neuAufl = pause && bibAufloesungFaellig();
+  const fertig = !neuAufl && (pause || bibWocheGespielt()), n = bibWocheTage();
+  /* 10.54: offen → direkt zur Wochenrunde; Sonntag 20 Uhr bis Montag 7 Uhr: Auflösung (Animation) bzw. die Sieger */
+  evSetzen("bib", { ord: 3, farbe: "#66e0d0", sym: `<img src="icons/biblionaer-logo.webp" alt="" width="48" height="46">`, titel: "Biblionär",
+    sub: neuAufl ? "Auflösung!" : pause ? "Sieger ✓" : fertig ? "der Woche ✓" : `noch ${n} ${n === 1 ? "Tag" : "Tage"}`, zahl: fertig ? "" : "!", grau: fertig,
+    klick: () => neuAufl ? bibAufloesungPruefen(true).catch(() => {}) : (typeof bibWocheStarten === "function" ? bibWocheStarten() : go("bib")) });
 }
 
 /* ---------- Startseite: Kachel ---------- */
@@ -390,11 +393,11 @@ function rvSchaetz(f, e, fertig) {
 }
 /* Biblionär der Woche: einmal je Woche für ALLE (wer mitgespielt hat oder nicht), sobald die Vorwoche fertig ist. Danach folgt
    für Platz 1–3 wie bisher die Preisübergabe (bibPreisUebergabe wartet, solange .rv-ov offen ist). */
-const bibAufloesungFaellig = () => !!(S.lbName && !S.offlineOnly && typeof bibVorwoche === "function" && S.bwRv !== bibVorwoche());
-async function bibAufloesungPruefen() {
-  if (!S.lbName || S.offlineOnly || current !== "home" || gesperrt || typeof bibVorwoche !== "function") return;
-  const vw = bibVorwoche(); if (S.bwRv === vw) return;
-  const v = bibVorwocheListe && bibVorwocheListe.wk === vw ? bibVorwocheListe : await bibVorwocheLaden(); if (!v || current !== "home") return;
+const bibAufloesungFaellig = () => !!(S.lbName && !S.offlineOnly && typeof bwAufloesWoche === "function" && S.bwRv !== bwAufloesWoche());
+async function bibAufloesungPruefen(klick) {
+  if (!S.lbName || S.offlineOnly || (current !== "home" && !klick) || gesperrt || typeof bwAufloesWoche !== "function") return;
+  const vw = bwAufloesWoche(); if (S.bwRv === vw) return;
+  const v = bibVorwocheListe && bibVorwocheListe.wk === vw ? bibVorwocheListe : await bibVorwocheLaden(); if (!v || (current !== "home" && !klick)) return;
   if (!v.rows.length) { S.bwRv = vw; save(); bibSiegerPruefen().catch(() => {}); return; }
   if (document.querySelector(".modal, .sm-ov, .sm-tour, .truhe-fx, .rv-ov, .bwp") || document.body.classList.contains("spiel-laeuft")) { setTimeout(() => bibAufloesungPruefen().catch(() => {}), 4000); return; }
   S.bwRv = vw; save();
@@ -407,7 +410,7 @@ async function bibAufloesungPruefen() {
     ${rows.length < 3 ? `<p class="rv-hinw">Preise gibt es ab 3 Teilnehmern.</p>` : `<p class="rv-hinw">Preise: Gold-, Silber- und Bronzekrug</p>`}
     <p class="rv-ich">${ich ? (ich.pl <= 3 ? `Du bist auf <b>Platz ${ich.pl}</b> ${["🥇", "🥈", "🥉"][ich.pl - 1]}` : `Du bist auf Platz ${ich.pl} mit ${pkt(ich.p)} Punkten`) : "Diese Woche wieder mitspielen?"}</p>
     <button class="btn primary rv-los" data-rv-zu>${ich && ich.pl <= 3 && rows.length >= 3 ? "Weiter zum Preis" : "Weiter"}</button>`;
-  rvZeigen(html, () => { try { bibSiegerPruefen(); } catch (e) {} }, {
+  rvZeigen(html, () => { try { bibSiegerPruefen(); if (current === "home") go("home"); } catch (e) {} }, {
     schritte: [[100, b => b.classList.add("s1")], [800, b => { b.classList.add("s2"); try { SFX.level(); } catch (x) {} }], [1900, b => b.classList.add("s3")],
       [2400, b => b.classList.add("s4")], [3200, b => b.classList.add("s5")], [4000, b => { b.classList.add("s6"); b.closest(".rv-ov").querySelector(".rv-skip").hidden = true; try { SFX.badge(); rain(ich && ich.pl <= 3 ? 110 : 60); } catch (x) {} }]]
   });
