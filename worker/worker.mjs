@@ -271,7 +271,7 @@ export default {
 };
 /* ---------- 10.6: Sammel-Rangliste (alle 30 Minuten) ---------- */
 const SAMMEL_CRON = "7,37 * * * *";
-const AUFLOES_CRON = "1 18,19 * * 0";
+const AUFLOES_CRON = "1 18,19 * * SUN";
 // Mit Secret GH_DISPATCH_TOKEN (GitHub-Schlüssel nur mit Recht „Actions: Read and write“ für bibel-quest) stößt der Worker nur
 // den GitHub-Lauf an – das braucht kaum Rechenzeit (kostenloser Cloudflare-Tarif: wenige Millisekunden je Aufruf), und
 // angestoßene Läufe startet GitHub sofort. Ohne Schlüssel (oder wenn GitHub ablehnt) sammelt der Worker selbst.

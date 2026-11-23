@@ -22,4 +22,4 @@ ADMINS = "U0CGB9GHFB9"   # Michael
 [triggers]
 # alle 15 Minuten: Liegengebliebenes nachsenden · täglich 18:00 UTC (19/20 Uhr in Deutschland): Tageszahlen
 # 10.6: Minute 7 und 37 jeder Stunde: Sammel-Rangliste (job/sammeln.mjs; GitHub ist nur noch Ersatz)
-crons = ["*/15 * * * *", "0 18 * * *", "7,37 * * * *", "1 18,19 * * 0"]
+crons = ["*/15 * * * *", "0 18 * * *", "7,37 * * * *", "1 18,19 * * SUN"]
