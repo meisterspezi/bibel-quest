@@ -2820,6 +2820,18 @@ body.ed-an:not(.weih-an) .bib-ende .bib-gross b{text-shadow:0 0 18px var(--edc)}
 .sz-i-vers{font-style:italic;font-size:12.5px;color:#dfe3ff;margin:12px 6px 8px}.sz-i-vers small{display:block;font-style:normal;color:var(--muted);margin-top:2px}
 .sz-info .btn{width:100%;margin-top:6px}
 .sz-vz{padding:7px 0;border-bottom:1px solid #ffffff10;font-size:13px}.sz-vz .btn.mini{padding:2px 8px;font-size:12px;margin-left:4px}
+/* 10.53 Medaillon-Reihe (Advent · Schätzfrage · Biblionär der Woche) */
+.ev-reihe{display:flex;justify-content:center;gap:18px;margin:12px 0 4px}
+.ev-m{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:0;color:var(--fg);width:92px;padding:0;cursor:pointer}
+.ev-ring{width:68px;height:68px;border-radius:50%;padding:3px;background:conic-gradient(from 200deg,var(--c),#fff6dc,var(--c),#f2c14e,var(--c));box-shadow:0 0 18px -4px var(--c)}
+.ev-in{width:100%;height:100%;border-radius:50%;background:radial-gradient(circle at 50% 35%,#1d2550,#0e1430);display:grid;place-items:center;border:2px solid #0e1226;overflow:hidden}
+.ev-in svg,.ev-in img{width:46px;height:46px;object-fit:contain;display:block}
+.ev-m b{font-size:12px;line-height:1.15;text-align:center}.ev-m small{font-size:10.5px;color:var(--c);margin-top:-3px;text-align:center;white-space:nowrap}
+.ev-zahl{position:absolute;top:0;right:12px;min-width:20px;height:20px;border-radius:10px;background:linear-gradient(180deg,#ff5d6c,#d6283a);color:#fff;font:800 11px/20px var(--body);text-align:center;padding:0 5px;box-shadow:0 0 0 2px var(--bg)}
+.ev-ok{position:absolute;top:2px;right:14px;width:18px;height:18px;border-radius:50%;background:#2e8f68;color:#fff;font:800 11px/18px var(--body);text-align:center;box-shadow:0 0 0 2px var(--bg)}
+.ev-neu{position:absolute;top:-6px;left:6px;padding:2px 5px 1px;border-radius:7px 7px 6px 6px;background:linear-gradient(180deg,#e8434a,#b81d2c);color:#fff;font:900 .55rem/1.2 var(--body);box-shadow:inset 0 2px 0 #fff,0 0 0 2px #151a3d}
+.ev-m.grau .ev-ring{background:#3a4278;box-shadow:none}.ev-m.grau .ev-in{filter:saturate(.35) brightness(.8)}.ev-m.grau small{color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.ev-m:not(.grau) .ev-ring{animation:evGlanz 3s ease-in-out infinite}@keyframes evGlanz{0%,100%{box-shadow:0 0 14px -4px var(--c)}50%{box-shadow:0 0 22px 0 var(--c)}}}
 </style>
 <!-- CI-Stylesheet (Farben, Schriften, Bausteine) – nach dem App-Stil, damit seine Werte gelten -->
 <link rel="stylesheet" href="ci/ci.css">

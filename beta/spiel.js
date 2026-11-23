@@ -3121,6 +3121,7 @@ function zusammenfuehren(r) {
   /* 10.52 Schätzfrage: Preise und belohnte Wochen vereinigen, Titel-Frist und Ankündigung das Maximum, eigene Schätzungen zusammen */
   S.szPreise = [...new Set([...(S.szPreise || []), ...(Array.isArray(r.szPreise) ? r.szPreise : [])])].slice(-60);
   S.szLohn = [...new Set([...(S.szLohn || []), ...(Array.isArray(r.szLohn) ? r.szLohn : [])])].slice(-60);
+  S.szGesehen = [...new Set([...(S.szGesehen || []), ...(Array.isArray(r.szGesehen) ? r.szGesehen : [])])].slice(-30);
   ["szTitelBis", "szAnk", "szAnkB"].forEach(k => { S[k] = Math.max(+S[k] || 0, +r[k] || 0); });
   if (r.sz && typeof r.sz === "object") S.sz = Object.assign({}, r.sz, S.sz || {});
   S.duArten = [...new Set([...(S.duArten || []), ...(Array.isArray(r.duArten) ? r.duArten : [])])]; S.duKetteVoll = !!(S.duKetteVoll || r.duKetteVoll);

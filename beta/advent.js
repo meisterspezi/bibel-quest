@@ -336,9 +336,17 @@ function adZeigen(nr, lohn) {
 
 /* ---------- Startseite: Banner + einmalige Ankündigung ---------- */
 function adBanner() {
-  if (!adSichtbar() || current !== "home" || screen.querySelector(".ad-banner")) return;
+  if (!adSichtbar() || current !== "home" || screen.querySelector(".ad-banner,[data-ev=advent]")) return;
   const h = adHeuteNr(), wartet = h >= 0 && !adOffen(h), nach = Array.from({ length: Math.max(0, h) }, (_, i) => i).filter(i => !adOffen(i)).length;
   const sub = adNachEnde() ? "Bilder und Verse ansehen" : h < 0 ? (adJetzt() < adTag(0) ? "Beta-Vorschau · Start So 29.11." : "Bis zum nächsten Advent!") : wartet ? `${h === 0 ? "Tür „1. Advent“" : h === 24 ? "Heiligabend" : "Tür " + h} wartet auf dich` : nach ? `${nach} ${nach === 1 ? "Tür" : "Türen"} zum Nachholen` : "Heute schon geöffnet ✓";
+  /* 10.53: Medaillon in der Reihe unter den Tagesaufgaben (Michaels Wahl „C · Medaillons“) */
+  if (typeof evSetzen === "function") {
+    const offen = (wartet ? 1 : 0) + nach;
+    evSetzen("advent", { ord: 1, farbe: "#f2c14e", sym: bethlehemMini().replace('width="26" height="26"', 'width="46" height="46"'), titel: "Advent",
+      sub: adNachEnde() ? "Bilder ansehen" : h < 0 ? (adJetzt() < adTag(0) ? "ab 29.11." : "bis bald") : wartet ? (h === 0 ? "1. Advent" : h === 24 ? "Heiligabend" : "Tür " + h) : nach ? `${nach} nachholen` : "heute ✓",
+      zahl: offen ? String(offen) : "", grau: !offen, neu: adJetzt() < dayNum(AD_NEU_BIS), klick: () => go("advent") });
+    return;
+  }
   const b = document.createElement("button"); b.className = "ad-banner" + (wartet ? " wartet" : "");
   b.innerHTML = `<span class="ad-b-ic">${bethlehemMini()}</span><span><b>Adventskalender</b> <small>· ${esc(sub)}</small></span>${adJetzt() < dayNum(AD_NEU_BIS) ? `<span class="pl-neu">NEU</span>` : ""}<i>›</i>`;
   b.onclick = () => { SFX.tap(); go("advent"); };

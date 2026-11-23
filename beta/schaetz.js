@@ -119,6 +119,31 @@ const szTitelFrei = () => Date.now() < (+S.szTitelBis || 0);
 if (typeof TITEL !== "undefined" && !TITEL.some(t => t.id === "schaetzmeister"))
   TITEL.push({ id: "schaetzmeister", name: "Schätzmeister", price: -1, need: "sz-meister", bezug: "Wer einen Turm bauen will, setzt sich zuerst hin und überschlägt die Kosten (Lukas 14,28 sinngemäß). Platz 1 der Schätzfrage der Woche – gilt eine Woche." });
 
+/* ---------- 10.53: Medaillon-Reihe unter den Tagesaufgaben (Advent · Schätzfrage · Biblionär der Woche) ----------
+   Leuchtender goldener Ring + rote Zahl, solange dort etwas wartet; grau mit Haken, wenn erledigt. */
+function evReihe() {
+  let r = screen.querySelector(".ev-reihe"); if (r) return r;
+  r = document.createElement("div"); r.className = "ev-reihe"; r.setAttribute("aria-label", "Aktionen");
+  const kopf = screen.querySelector(".start-aufg"); if (kopf) kopf.insertAdjacentElement("afterend", r); else screen.prepend(r);
+  return r;
+}
+function evSetzen(id, o) {
+  if (current !== "home") return;
+  const r = evReihe(); let b = r.querySelector(`[data-ev="${id}"]`);
+  if (!b) { b = document.createElement("button"); b.dataset.ev = id; r.appendChild(b); }
+  b.className = "ev-m" + (o.grau ? " grau" : ""); b.style.setProperty("--c", o.farbe || "#f2c14e"); b.dataset.ord = o.ord || 9;
+  b.innerHTML = `<span class="ev-ring"><span class="ev-in">${o.sym}</span></span>${o.zahl ? `<span class="ev-zahl">${esc(o.zahl)}</span>` : o.grau ? `<span class="ev-ok">✓</span>` : ""}${o.neu ? `<span class="ev-neu">NEU</span>` : ""}<b>${esc(o.titel)}</b><small>${esc(o.sub || "")}</small>`;
+  b.setAttribute("aria-label", `${o.titel}: ${o.sub || ""}${o.zahl ? " – wartet" : ""}`);
+  b.onclick = () => { SFX.tap(); o.klick(); };
+  [...r.children].sort((a, c) => (+a.dataset.ord) - (+c.dataset.ord)).forEach(x => r.appendChild(x));
+}
+function bibEv() {
+  if (!S.lbName || S.offlineOnly || current !== "home" || typeof bibWocheGespielt !== "function") return;
+  const fertig = bibWocheGespielt(), n = bibWocheTage();
+  evSetzen("bib", { ord: 3, farbe: "#66e0d0", sym: `<img src="icons/biblionaer-logo.webp" alt="" width="48" height="46">`, titel: "Biblionär", sub: fertig ? "der Woche ✓" : `noch ${n} ${n === 1 ? "Tag" : "Tage"}`,
+    zahl: fertig ? "" : "!", grau: fertig, klick: () => go("bib") });
+}
+
 /* ---------- Startseite: Kachel ---------- */
 async function szKachel() {
   if (!szFrei() || !S.lbName || S.offlineOnly || current !== "home") return;
@@ -129,6 +154,12 @@ async function szKachel() {
   const n = w.lauf ? await szAnzahlHolen(f.wk) : null;
   if (current !== "home" || screen.querySelector(".sz-kachel")) return;
   const ich = e ? szListe(e).find(x => x.pid === S.pid) : null, neu = (BETA || Date.now() < SZ_NEU_BIS);
+  /* 10.53: als Medaillon */
+  { const wartet = w.lauf ? meine == null : !!(e && !(S.szGesehen || []).includes(f.wk));
+    evSetzen("sz", { ord: 2, farbe: "#ff9f5a", sym: SZ_SYM(46), titel: "Schätzfrage",
+      sub: w.lauf ? (meine == null ? szRestText(f.ende).replace("noch ", "noch ") : "geschätzt ✓") : e ? (ich ? `Platz ${ich.pl}` : "Auflösung") : "wird ausgewertet",
+      zahl: wartet ? "!" : "", grau: !wartet, neu, klick: () => go("schaetz") });
+    return; }
   const b = document.createElement("button"); b.className = "sz-kachel" + (w.lauf && meine == null ? " offen" : !w.lauf && e ? " gold" : "");
   const zeile = w.lauf ? (meine == null ? `<span class="sz-chip o">⏳ ${szRestText(f.ende)}</span>${n != null ? `<span class="sz-chip">👥 ${n} ${n === 1 ? "hat" : "haben"} geschätzt</span>` : ""}`
       : `<span class="sz-chip">Auflösung ${szZeitText(f.ende)}</span>`)
@@ -173,6 +204,7 @@ async function szSeiteFuellen() {
   const e = await szErgebnisHolen(f.wk); if (current !== "schaetz") return;
   if (!e) { $("szInhalt").innerHTML = `<div class="card sz-leer">${SZ_SYM(64)}<p>Die Schätzungen werden gerade ausgewertet.<br><span class="small muted">Spätestens in einer halben Stunde ist die Auflösung da.</span></p></div>`; return; }
   szLohnPruefen(f.wk, e);
+  if (!(S.szGesehen || []).includes(f.wk)) { S.szGesehen = [...(S.szGesehen || []), f.wk].slice(-30); save(); }
   $("szSub").textContent = `${kw} · aufgelöst ${szZeitText(f.ende)} · ${e.n} ${e.n === 1 ? "Schätzung" : "Schätzungen"}`;
   $("szInhalt").innerHTML = szAufloesungHtml(e);
 }
@@ -236,7 +268,7 @@ function szAnkuendigen(versuch = 0) {
     m.dataset.frei = "1"; m.classList.add("sz-info-m");
   }, versuch ? 2500 : 4200);
 }
-(function szStart() { const alt = VIEWS.home; VIEWS.home = function (a) { alt(a); try { szTitelPruefen(); szKachel().catch(() => {}); szAnkuendigen(); } catch (e) {} }; })();
+(function szStart() { const alt = VIEWS.home; VIEWS.home = function (a) { alt(a); try { bibEv(); szTitelPruefen(); szKachel().catch(() => {}); szAnkuendigen(); } catch (e) {} }; })();
 if (typeof TAB_VON !== "undefined") Object.assign(TAB_VON, { schaetz: "home", szverwaltung: "" });
 
 /* ---------- Verwalter: Postkasten → Schätzfragen ---------- */
