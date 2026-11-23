@@ -365,7 +365,7 @@ function adAnkFenster() {
       ${zeile("#7be04a", `<span class="ad2-kr">${tkBildSvg("adv", "krippe")}</span>`, "Bethlehem schmücken", "Mit Talenten gemeinsam Bethlehem schmücken – <em>jedes Schmuckstück zählt gleich viel</em>.")}</div>
       <p class="ad2-vers">„Denn ein Kind ist uns geboren, ein Sohn ist uns gegeben …“<small>Jesaja 9,5</small></p>
       <button class="btn primary" data-close="los">Erste Tür öffnen</button><button class="btn ghost" data-close="">Später</button></div>`,
-      w => { if (w === "los") go("advent"); });
+      w => { if (w === "los") go("advent"); else setTimeout(() => { try { edNeuPruefen(); } catch (e) {} }, 400); }); /* 10.51: danach Weihnachts-Biblionär */
     m.dataset.frei = "1"; m.classList.add("ad2-m");
 }
 function adAblauf() {
