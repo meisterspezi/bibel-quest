@@ -145,6 +145,21 @@ if (!configured) {
       try { const d = await fs.getDoc(ref("einstellungen", "entwickler")); return d.exists() ? d.data().pid || null : null; } catch (e) { return null; }
     };
     // 9.60 Beta-Kanal: einstellungen/beta = {pids: [Profile, die die Beta-Version nutzen dürfen]} – lesen jeder Angemeldete (einzeln), schreiben nur der Verwalter
+    // 10.52: Schätzfrage der Woche
+    const szFr = d => { const x = d.data(); return { wk: d.id, f: x.f || "", e: x.e || "", t: !!x.t, start: zeitMs(x.start), ende: zeitMs(x.ende), fertig: zeitMs(x.fertig) }; };
+    LB.szListe = async (abMs) => { const s = await fs.getDocs(fs.query(fs.collection(db, "schaetzfrage"), fs.where("ende", ">", fs.Timestamp.fromMillis(abMs)), fs.orderBy("ende"), fs.limit(8))); return s.docs.map(szFr); };
+    LB.szAbgeben = async (wk, pid, name, w) => { await LB.signIn(); const b = fs.writeBatch(db); b.set(ref("schaetzung", wk + "_" + pid), { wk, pid, name, w, z: fs.serverTimestamp() }); b.set(ref("schaetzteil", wk + "_" + pid), { wk, name }); await b.commit(); };
+    LB.szMeine = async (wk, pid) => { await LB.signIn(); try { const d = await fs.getDoc(ref("schaetzung", wk + "_" + pid)); return d.exists() ? d.data().w : null; } catch (e) { if (e && e.code === "permission-denied") return null; throw e; } };
+    LB.szAnzahl = async wk => (await fs.getCountFromServer(fs.query(fs.collection(db, "schaetzteil"), fs.where("wk", "==", wk)))).data().count;
+    LB.szErgebnis = async wk => { const d = await fs.getDoc(ref("schaetzergebnis", wk)); return d.exists() ? d.data() : null; };
+    // nur Verwalter
+    LB.szFragenAlle = async () => (await fs.getDocs(fs.collection(db, "schaetzfrage"))).docs.map(szFr);
+    LB.szFrageSetzen = async (wk, f) => { await LB.signIn(); await fs.setDoc(ref("schaetzfrage", wk), { f: f.f, e: f.e, t: !!f.t, start: fs.Timestamp.fromMillis(f.start), ende: fs.Timestamp.fromMillis(f.ende) }); };
+    LB.szEndeSetzen = async (wk, ende) => { await LB.signIn(); await fs.setDoc(ref("schaetzfrage", wk), { ende: fs.Timestamp.fromMillis(ende) }, { merge: true }); };
+    LB.szAntwortSetzen = async (wk, a) => { await LB.signIn(); await fs.setDoc(ref("schaetzantwort", wk), { a: a.a | 0, s: a.s || "", i: a.i || "" }); };
+    LB.szAntwortHolen = async wk => { await LB.signIn(); const d = await fs.getDoc(ref("schaetzantwort", wk)); return d.exists() ? d.data() : null; };
+    LB.szAlle = async wk => { await LB.signIn(); return (await fs.getDocs(fs.query(fs.collection(db, "schaetzung"), fs.where("wk", "==", wk)))).docs.map(d => ({ ...d.data(), z: zeitMs(d.data().z) })); };
+    LB.szErgebnisSetzen = async (wk, e) => { await LB.signIn(); const b = fs.writeBatch(db); b.set(ref("schaetzergebnis", wk), { ...e, z: fs.serverTimestamp() }); b.set(ref("schaetzfrage", wk), { fertig: fs.serverTimestamp() }, { merge: true }); await b.commit(); };
     LB.betaHolen = async () => { const d = await fs.getDoc(ref("einstellungen", "beta")); return d.exists() && Array.isArray(d.data().pids) ? d.data().pids : []; };
     LB.betaSetzen = async (pids) => { await LB.signIn(); await fs.setDoc(ref("einstellungen", "beta"), { pids: [...new Set(pids)].slice(0, 300), updated: fs.serverTimestamp() }); };
     LB.feedbackListe = async () => {

@@ -1625,8 +1625,8 @@ function ruestungHtml(n, klein = true) {
   return `<span class="ruest ${klein ? "klein" : ""}" title="Waffenrüstung Gottes: ${n} von 6">${RUESTUNG.slice(0, n).map(r => `<i class="rst-${ruestStufe(r.id)}">${svg("ar-" + r.id)}</i>`).join("")}</span>`;
 }
 /* Freischalt-Bedingung: "lvN" = ab Level N (Level-Belohnung), sonst ein Abzeichen */
-const needOk = need => /^adv-/.test(need || "") ? (typeof adFrei === "function" && adFrei(need)) : /^lv\d+$/.test(need || "") ? levelOf(S.xp) >= +need.slice(2) : /^alb-/.test(need || "") ? (typeof smLohnFrei === "function" && smLohnFrei(need)) : S.badges.includes(need);
-const needText = need => /^adv-/.test(need || "") ? (typeof adNeedText === "function" ? adNeedText(need) : "Adventskalender") : /^alb-/.test(need || "") ? (need === "alb-wort" ? "Sammelalbum: alle 66 Bücher in Gold" : need === "alb-wort-s" ? "Sammelalbum: alle 66 Bücher mindestens in Silber" : need === "alb-wort-b" ? "Sammelalbum: alle 66 Bücher gefunden" : `Sammelalbum: ${typeof SM_AV_REIHE !== "undefined" && GROUPS[SM_AV_REIHE.indexOf(need)] ? GROUPS[SM_AV_REIHE.indexOf(need)].name : "Buchreihe"} ganz in Gold`) : /^lv\d+$/.test(need || "") ? `ab Level ${need.slice(2)}` : `Abzeichen „${(BADGES.find(x => x.id === need) || {}).name || ""}“`;
+const needOk = need => need === "sz-meister" ? (typeof szTitelFrei === "function" && szTitelFrei()) : /^adv-/.test(need || "") ? (typeof adFrei === "function" && adFrei(need)) : /^lv\d+$/.test(need || "") ? levelOf(S.xp) >= +need.slice(2) : /^alb-/.test(need || "") ? (typeof smLohnFrei === "function" && smLohnFrei(need)) : S.badges.includes(need);
+const needText = need => need === "sz-meister" ? "Schätzfrage der Woche: Platz 1 (gilt eine Woche)" : /^adv-/.test(need || "") ? (typeof adNeedText === "function" ? adNeedText(need) : "Adventskalender") : /^alb-/.test(need || "") ? (need === "alb-wort" ? "Sammelalbum: alle 66 Bücher in Gold" : need === "alb-wort-s" ? "Sammelalbum: alle 66 Bücher mindestens in Silber" : need === "alb-wort-b" ? "Sammelalbum: alle 66 Bücher gefunden" : `Sammelalbum: ${typeof SM_AV_REIHE !== "undefined" && GROUPS[SM_AV_REIHE.indexOf(need)] ? GROUPS[SM_AV_REIHE.indexOf(need)].name : "Buchreihe"} ganz in Gold`) : /^lv\d+$/.test(need || "") ? `ab Level ${need.slice(2)}` : `Abzeichen „${(BADGES.find(x => x.id === need) || {}).name || ""}“`;
 function itemFrei(kat, it) {
   if (it.price === 0) return true;
   if (it.price < 0) return needOk(it.need);
@@ -3118,6 +3118,11 @@ function zusammenfuehren(r) {
   if ((r.bwVK || "") > (S.bwVK || "") && r.bwVK !== S.bwK) { S.bwVK = r.bwVK; S.bwVP = r.bwVP | 0; }
   S.bwSiege = [...new Set([...(S.bwSiege || []), ...(Array.isArray(r.bwSiege) ? r.bwSiege : [])])].slice(-60);
   S.bwPreise = [...new Set([...(S.bwPreise || []), ...(Array.isArray(r.bwPreise) ? r.bwPreise : [])])].slice(-80); /* 10.16 */
+  /* 10.52 Schätzfrage: Preise und belohnte Wochen vereinigen, Titel-Frist und Ankündigung das Maximum, eigene Schätzungen zusammen */
+  S.szPreise = [...new Set([...(S.szPreise || []), ...(Array.isArray(r.szPreise) ? r.szPreise : [])])].slice(-60);
+  S.szLohn = [...new Set([...(S.szLohn || []), ...(Array.isArray(r.szLohn) ? r.szLohn : [])])].slice(-60);
+  ["szTitelBis", "szAnk", "szAnkB"].forEach(k => { S[k] = Math.max(+S[k] || 0, +r[k] || 0); });
+  if (r.sz && typeof r.sz === "object") S.sz = Object.assign({}, r.sz, S.sz || {});
   S.duArten = [...new Set([...(S.duArten || []), ...(Array.isArray(r.duArten) ? r.duArten : [])])]; S.duKetteVoll = !!(S.duKetteVoll || r.duKetteVoll);
   S.duGes = [...new Set([...(S.duGes || []), ...(Array.isArray(r.duGes) ? r.duGes : [])])].slice(-150);
   ["aufgefrischt", "eingeladen", "fischerDabei", "menschenfischer"].forEach(k => { S[k] = !!(S[k] || r[k]); });

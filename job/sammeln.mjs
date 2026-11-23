@@ -141,7 +141,38 @@ export async function sammeln(db, opt = {}) {
   if (skNeu) b.set(ALref, { stand: ts, anzahl: Object.keys(skMap).length, daten: JSON.stringify(skMap) });
   b.set(jobRef, { stand: jetzt, ...(voll ? { voll: jetzt } : {}), ...(awNeu ? { albumWoche: { wk, b: awB, s: awS } } : {}), ...(schNeu || !schAlt ? { schmuck: schMap } : {}) }, { merge: true });
   await b.commit();
-  return { art: (voll ? "voll" : "Änderungen") + (albumAlle ? " + alle Alben" : ""), alben: Object.keys(skMap).length, schmuck: schSumme, spieler: zeilen.length, dokumente: teile.length, gelesen, bytes: teile.map(z => bytes(JSON.stringify(z))) };
+  let schaetz = []; try { schaetz = await schaetzAuswerten(db); } catch (e) { schaetz = ["Schätzfrage: " + e.message]; }  // 10.52
+  return { schaetz, art: (voll ? "voll" : "Änderungen") + (albumAlle ? " + alle Alben" : ""), alben: Object.keys(skMap).length, schmuck: schSumme, spieler: zeilen.length, dokumente: teile.length, gelesen, bytes: teile.map(z => bytes(JSON.stringify(z))) };
+}
+
+// 10.52: Schätzfrage der Woche auswerten – nach dem Ende (So 20 Uhr) beim nächsten Lauf. Wertung: Abstand zur Antwort,
+// gleicher Abstand = gleicher Platz (ohne Lücke), Gemeinde-Schätzung = Median. Ergebnis in schaetzergebnis/{wk}, Liste als JSON
+// [[pid, name, schätzung, abstand, platz], …]. Dieselbe Rechnung steht in schaetz.js (szWertung) für „Jetzt auswerten“ des Verwalters.
+export function szWertung(f, a, liste) {
+  const A = Math.round(+a.a || 0);
+  const l = (liste || []).filter(x => x && typeof x.pid === "string" && Number.isFinite(+x.w))
+    .map(x => ({ pid: x.pid, name: String(x.name || "?").slice(0, 20), w: Math.round(+x.w), z: +x.z || 0 })).map(x => ({ ...x, d: Math.abs(x.w - A) }))
+    .sort((p, q) => p.d - q.d || p.z - q.z);
+  let pl = 0, vor = -1; l.forEach(x => { if (x.d !== vor) { pl++; vor = x.d; } x.pl = pl; });
+  const ws = l.map(x => x.w).sort((p, q) => p - q), n = ws.length;
+  const med = n ? (n % 2 ? ws[(n - 1) / 2] : Math.round((ws[n / 2 - 1] + ws[n / 2]) / 2)) : null;
+  return { f: f.f || "", e: f.e || "", t: !!f.t, a: A, s: a.s || "", i: a.i || "", n, med, l: JSON.stringify(l.map(x => [x.pid, x.name, x.w, x.d, x.pl])) };
+}
+export async function schaetzAuswerten(db) {
+  const T = db.Timestamp || (await ladeAdmin()).Timestamp, jetzt = Date.now(), aus = [];
+  const fr = await db.collection("schaetzfrage").where("ende", ">", T.fromMillis(jetzt - 3 * TAG)).get();
+  for (const d of fr.docs) {
+    const f = d.data(); if (f.fertig || ms(f.ende) > jetzt) continue;
+    const ant = await db.collection("schaetzantwort").doc(d.id).get();
+    if (!ant.exists) { aus.push(d.id + ": Antwort fehlt"); continue; }
+    const ge = await db.collection("schaetzung").where("wk", "==", d.id).get();
+    const e = szWertung(f, ant.data(), ge.docs.map(x => { const y = x.data(); return { ...y, z: ms(y.z) }; }));
+    const b = db.batch();
+    b.set(db.collection("schaetzergebnis").doc(d.id), { ...e, z: T.fromMillis(jetzt) });
+    b.set(db.collection("schaetzfrage").doc(d.id), { fertig: T.fromMillis(jetzt) }, { merge: true });
+    await b.commit(); aus.push(`${d.id}: ${e.n} Schätzungen ausgewertet`);
+  }
+  return aus;
 }
 
 // Was aufgeräumt wird: [Sammlung, Feld, Grenze, Beschreibung]
@@ -186,7 +217,7 @@ export async function sammelnNoetig(db, opt = {}) {
   const j = (await db.collection("jobstand").doc("sammeln").get()).data() || {};
   return !(+j.stand > 0 && Date.now() - +j.stand < ERSATZ_AB);
 }
-export const sammelText = r => `Sammel-Rangliste (${r.art}): ${r.spieler} Spieler in ${r.dokumente} Dokument(en), ${r.gelesen} Dokumente gelesen, Größe ${r.bytes.map(b => Math.round(b / 1024) + " KB").join(" + ")}`;
+export const sammelText = r => `Sammel-Rangliste (${r.art}): ${r.spieler} Spieler in ${r.dokumente} Dokument(en), ${r.gelesen} Dokumente gelesen, Größe ${r.bytes.map(b => Math.round(b / 1024) + " KB").join(" + ")}${r.schaetz && r.schaetz.length ? " · Schätzfrage: " + r.schaetz.join("; ") : ""}`;
 if (typeof process !== "undefined" && process.argv && import.meta.url === `file://${process.argv[1]}`) {
   const db = await start();
   if (await sammelnNoetig(db, { immer: ja(process.env.VOLL) || ja(process.env.IMMER) })) console.log(sammelText(await sammeln(db, { voll: ja(process.env.VOLL) })));
