@@ -152,7 +152,7 @@ function bibEv() {
   if (!S.lbName || S.offlineOnly || current !== "home" || typeof bibWocheGespielt !== "function") return;
   const fertig = bibWocheGespielt(), n = bibWocheTage();
   evSetzen("bib", { ord: 3, farbe: "#66e0d0", sym: `<img src="icons/biblionaer-logo.webp" alt="" width="48" height="46">`, titel: "Biblionär", sub: fertig ? "der Woche ✓" : `noch ${n} ${n === 1 ? "Tag" : "Tage"}`,
-    zahl: fertig ? "" : "!", grau: fertig, klick: () => go("bib") });
+    zahl: fertig ? "" : "!", grau: fertig, klick: () => (typeof bibWocheStarten === "function" ? bibWocheStarten() : go("bib")) }); /* 10.54: direkt zur Wochenrunde (gespielt → Wochen-Rangliste) */
 }
 
 /* ---------- Startseite: Kachel ---------- */
