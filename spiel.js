@@ -1698,8 +1698,10 @@ function edKachelWinter() {
 }
 /* 10.4: Fußleiste – Funkeln die ganze Ausgabe über, NEU-Fähnchen in den ersten 14 Tagen (ED_NEU_TAGE), wie an der Album-Kapsel */
 function edTabSetzen() { const L = edLaufend(), t = $("tbEd"), n = $("tbEdNeu"); if (t) t.hidden = !L; if (n) n.hidden = !(L && L.seit < ED_NEU_TAGE); }
+function edWartetAufAdvent() { try { return typeof adLaeuft === "function" && adLaeuft() && !adTest() && !adEcht().ank; } catch (e) { return false; } }
 function edNeuPruefen() {
   const L = edLaufend(); if (!L || !S.lbName || gesperrt || edGemerkt("f", L.key)) return;
+  if (edWartetAufAdvent()) return; /* 10.51: zuerst die Ankündigung „Advent in Bethlehem“, danach dieses Fenster */
   setTimeout(() => {
     if (edGemerkt("f", L.key) || !["home", "lernen", "spielen", "duelle", "rank"].includes(current) || document.querySelector(".modal") || document.body.classList.contains("spiel-laeuft")) return;
     edMerken("f", L.key);
