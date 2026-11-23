@@ -123,9 +123,19 @@ if (typeof TITEL !== "undefined" && !TITEL.some(t => t.id === "schaetzmeister"))
    Leuchtender goldener Ring + rote Zahl, solange dort etwas wartet; grau mit Haken, wenn erledigt. */
 function evReihe() {
   let r = screen.querySelector(".ev-reihe"); if (r) return r;
-  r = document.createElement("div"); r.className = "ev-reihe"; r.setAttribute("aria-label", "Aktionen");
+  r = document.createElement("div"); r.className = "ev-reihe ev-wart"; r.setAttribute("aria-label", "Aktionen");
   const kopf = screen.querySelector(".start-aufg"); if (kopf) kopf.insertAdjacentElement("afterend", r); else screen.prepend(r);
+  setTimeout(evFertig, 1500);  /* spätestens dann zeigen, auch wenn die Schätzfrage noch lädt */
   return r;
+}
+/* 10.54: Erst zeigen, wenn alle Medaillons ihren Stand haben (kein Springen). Sind ALLE erledigt (grau), wandert die Reihe
+   unter Biblionär und Arena – wer trotzdem hin will, scrollt. Wartet irgendwo etwas, steht sie oben unter den Tagesaufgaben. */
+function evFertig() {
+  const r = screen.querySelector(".ev-reihe"); if (!r || current !== "home") return;
+  const m = [...r.children], alleGrau = m.length > 0 && m.every(x => x.classList.contains("grau"));
+  const ziel = alleGrau ? screen.querySelector(".kt-grid") : screen.querySelector(".start-aufg");
+  if (ziel && ziel.nextElementSibling !== r) ziel.insertAdjacentElement("afterend", r);
+  r.classList.toggle("unten", alleGrau); r.classList.remove("ev-wart");
 }
 function evSetzen(id, o) {
   if (current !== "home") return;
@@ -136,12 +146,16 @@ function evSetzen(id, o) {
   b.setAttribute("aria-label", `${o.titel}: ${o.sub || ""}${o.zahl ? " – wartet" : ""}`);
   b.onclick = () => { SFX.tap(); o.klick(); };
   [...r.children].sort((a, c) => (+a.dataset.ord) - (+c.dataset.ord)).forEach(x => r.appendChild(x));
+  if (!r.classList.contains("ev-wart")) evFertig();
 }
 function bibEv() {
   if (!S.lbName || S.offlineOnly || current !== "home" || typeof bibWocheGespielt !== "function") return;
-  const fertig = bibWocheGespielt(), n = bibWocheTage();
-  evSetzen("bib", { ord: 3, farbe: "#66e0d0", sym: `<img src="icons/biblionaer-logo.webp" alt="" width="48" height="46">`, titel: "Biblionär", sub: fertig ? "der Woche ✓" : `noch ${n} ${n === 1 ? "Tag" : "Tage"}`,
-    zahl: fertig ? "" : "!", grau: fertig, klick: () => go("bib") });
+  const pause = typeof bwPause === "function" && bwPause(), neuAufl = pause && bibAufloesungFaellig();
+  const fertig = !neuAufl && (pause || bibWocheGespielt()), n = bibWocheTage();
+  /* 10.54: offen → direkt zur Wochenrunde; Sonntag 20 Uhr bis Montag 7 Uhr: Auflösung (Animation) bzw. die Sieger */
+  evSetzen("bib", { ord: 3, farbe: "#66e0d0", sym: `<img src="icons/biblionaer-logo.webp" alt="" width="48" height="46">`, titel: "Biblionär",
+    sub: neuAufl ? "Auflösung!" : pause ? "Sieger ✓" : fertig ? "der Woche ✓" : `noch ${n} ${n === 1 ? "Tag" : "Tage"}`, zahl: fertig ? "" : "!", grau: fertig,
+    klick: () => neuAufl ? bibAufloesungPruefen(true).catch(() => {}) : (typeof bibWocheStarten === "function" ? bibWocheStarten() : go("bib")) });
 }
 
 /* ---------- Startseite: Kachel ---------- */
@@ -157,7 +171,7 @@ async function szKachel() {
   /* 10.53: als Medaillon */
   { const wartet = w.lauf ? meine == null : !!(e && !(S.szGesehen || []).includes(f.wk));
     evSetzen("sz", { ord: 2, farbe: "#ff9f5a", sym: SZ_SYM(46), titel: "Schätzfrage",
-      sub: w.lauf ? (meine == null ? szRestText(f.ende).replace("noch ", "noch ") : "geschätzt ✓") : e ? (ich ? `Platz ${ich.pl}` : "Auflösung") : "wird ausgewertet",
+      sub: w.lauf ? (meine == null ? szRestText(f.ende) : "der Woche ✓") : e ? (wartet ? "Auflösung!" : ich ? `Platz ${ich.pl} ✓` : "der Woche ✓") : "wird ausgewertet",
       zahl: wartet ? "!" : "", grau: !wartet, neu, klick: () => go("schaetz") });
     return; }
   const b = document.createElement("button"); b.className = "sz-kachel" + (w.lauf && meine == null ? " offen" : !w.lauf && e ? " gold" : "");
@@ -173,7 +187,7 @@ async function szKachel() {
 /* ---------- Ansicht „schaetz“: schätzen · warten · Auflösung ---------- */
 VIEWS.schaetz = () => {
   if (!szFrei()) { go("home"); return; }
-  screen.innerHTML = `${backBtn("home", "Start")}<div class="sz-seite"><div class="sz-kopf">${SZ_SYM(52)}<div><h1 class="sz-h">Schätzfrage</h1><div class="sz-sub" id="szSub">wird geladen …</div></div></div><div id="szInhalt"><div class="card small muted">Einen Moment …</div></div></div>`;
+  screen.innerHTML = `${backBtn("home", "Start")}<div class="sz-seite"><div class="sz-kopf">${SZ_SYM(52)}<div><h1 class="sz-h">Schätzfrage der Woche</h1><div class="sz-sub" id="szSub">wird geladen …</div></div></div><div id="szInhalt"><div class="card small muted">Einen Moment …</div></div></div>`;
   wireGo();
   szSeiteFuellen().catch(() => { const x = $("szInhalt"); if (x) x.innerHTML = `<div class="card small muted">Die Schätzfrage konnte nicht geladen werden – bitte kurz mit dem Internet verbinden.</div>`; });
 };
@@ -203,8 +217,9 @@ async function szSeiteFuellen() {
   $("szSub").textContent = `${kw} · aufgelöst ${szZeitText(f.ende)}`;
   const e = await szErgebnisHolen(f.wk); if (current !== "schaetz") return;
   if (!e) { $("szInhalt").innerHTML = `<div class="card sz-leer">${SZ_SYM(64)}<p>Die Schätzungen werden gerade ausgewertet.<br><span class="small muted">Spätestens in einer halben Stunde ist die Auflösung da.</span></p></div>`; return; }
-  szLohnPruefen(f.wk, e);
-  if (!(S.szGesehen || []).includes(f.wk)) { S.szGesehen = [...(S.szGesehen || []), f.wk].slice(-30); save(); }
+  const ersteMal = !(S.szGesehen || []).includes(f.wk);
+  if (ersteMal) { S.szGesehen = [...(S.szGesehen || []), f.wk].slice(-30); save(); rvSchaetz(f, e, () => szLohnPruefen(f.wk, e)); }
+  else szLohnPruefen(f.wk, e);
   $("szSub").textContent = `${kw} · aufgelöst ${szZeitText(f.ende)} · ${e.n} ${e.n === 1 ? "Schätzung" : "Schätzungen"}`;
   $("szInhalt").innerHTML = szAufloesungHtml(e);
 }
@@ -268,7 +283,7 @@ function szAnkuendigen(versuch = 0) {
     m.dataset.frei = "1"; m.classList.add("sz-info-m");
   }, versuch ? 2500 : 4200);
 }
-(function szStart() { const alt = VIEWS.home; VIEWS.home = function (a) { alt(a); try { bibEv(); szTitelPruefen(); szKachel().catch(() => {}); szAnkuendigen(); } catch (e) {} }; })();
+(function szStart() { const alt = VIEWS.home; VIEWS.home = function (a) { alt(a); try { bibEv(); szTitelPruefen(); szKachel().catch(() => {}).finally(() => setTimeout(evFertig, 0)); szAnkuendigen(); setTimeout(() => bibAufloesungPruefen().catch(() => {}), 1800); } catch (e) {} }; })();
 if (typeof TAB_VON !== "undefined") Object.assign(TAB_VON, { schaetz: "home", szverwaltung: "" });
 
 /* ---------- Verwalter: Postkasten → Schätzfragen ---------- */
@@ -321,4 +336,82 @@ async function szAuswerten(f) {
   const g = await L.szAlle(f.wk), e = szWertung(f, a, g);
   await L.szErgebnisSetzen(f.wk, e); szLs("-e-" + f.wk, null); szLs("-liste", null);
   return `${f.wk}: ${e.n} Schätzungen ausgewertet`;
+}
+
+/* ---------- 10.54: Auflösungs-Animation am Ende der Woche (Schätzfrage der Woche · Biblionär der Woche) ----------
+   Vollbild, einmal je Woche und Spieler, jederzeit „Überspringen“. Bei reduzierter Bewegung sofort das Endbild.
+   Ablauf: Titel → Antwort/Logo → (Schätzungen fallen auf den Zahlenstrahl) → Podest wächst 3 · 2 · 1 → Krone/Konfetti → eigener Platz. */
+const rvRuhig = () => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } };
+function rvPodest(gruppen, wert) {
+  /* gruppen[0..2] = Spieler auf Platz 1..3 (je Liste) */
+  const sp = p => { const g = gruppen[p - 1] || []; if (!g.length) return `<div class="rv-p rv-p${p} leer"><div class="rv-sockel"><b>${p}</b></div></div>`;
+    const namen = g.length > 2 ? `${esc(g[0].name)} +${g.length - 1}` : g.map(x => esc(x.name)).join(" &amp; ");
+    return `<div class="rv-p rv-p${p}"><div class="rv-wer">${p === 1 ? `<span class="rv-krone">👑</span>` : ""}<div class="rv-avs">${g.slice(0, 3).map(x => `<span class="sz-av${x.pid === S.pid ? " ich" : ""}" style="--c:${szFarbe(x.pid)}">${esc(szIni(x.name))}</span>`).join("")}</div><b>${namen}</b><small>${wert(g[0])}</small></div><div class="rv-sockel"><b>${p}</b></div></div>`; };
+  return `<div class="rv-pod">${sp(2)}${sp(1)}${sp(3)}</div>`;
+}
+function rvZeigen(html, fertig, ablauf) {
+  if (document.querySelector(".rv-ov")) return;
+  const ov = document.createElement("div"); ov.className = "rv-ov"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-label", "Auflösung");
+  ov.innerHTML = `<div class="rv-sterne" aria-hidden="true">${Array.from({ length: 36 }, (_, i) => `<i style="left:${(i * 37) % 100}%;top:${(i * 53) % 100}%;animation-delay:${(i % 7) * .4}s"></i>`).join("")}</div>
+    <div class="rv-box">${html}</div><button class="rv-skip" type="button">Überspringen ›</button>`;
+  document.body.appendChild(ov);
+  const box = ov.querySelector(".rv-box"), uhren = [];
+  let zu = false;
+  const ende = () => { if (zu) return; zu = true; uhren.forEach(clearTimeout); ov.classList.add("weg"); setTimeout(() => { ov.remove(); try { fertig && fertig(); } catch (e) {} }, 350); };
+  const alles = () => { uhren.forEach(clearTimeout); box.classList.add("s1", "s2", "s3", "s4", "s5", "s6"); ov.querySelector(".rv-skip").hidden = true; ablauf.sofort && ablauf.sofort(box); };
+  ov.querySelector(".rv-skip").onclick = () => { try { SFX.tap(); } catch (e) {} alles(); };
+  box.querySelectorAll("[data-rv-zu]").forEach(b => b.onclick = () => { try { SFX.tap(); } catch (e) {} ende(); });
+  if (rvRuhig()) { alles(); return; }
+  (ablauf.schritte || []).forEach(([t, fn]) => uhren.push(setTimeout(() => { try { fn(box); } catch (e) {} }, t)));
+}
+/* Zahl hochzählen (weich abbremsend) */
+function rvZaehlen(el, ziel, dauer) {
+  if (!el) return; const t0 = performance.now();
+  const f = t => { const x = Math.min(1, (t - t0) / dauer), y = 1 - Math.pow(1 - x, 3); el.textContent = szZahl(ziel * y); if (x < 1 && document.body.contains(el)) requestAnimationFrame(f); else el.textContent = szZahl(ziel); };
+  requestAnimationFrame(f);
+}
+function rvSchaetz(f, e, fertig) {
+  const l = szListe(e), ich = l.find(x => x.pid === S.pid), gr = [1, 2, 3].map(p => l.filter(x => x.pl === p));
+  const werte = [...l.map(x => x.w), e.a, e.med == null ? e.a : e.med], lo = Math.min(...werte), hi = Math.max(...werte), sp = Math.max(1, hi - lo) * 0.08;
+  const x = v => ((v - (lo - sp)) / ((hi + sp) - (lo - sp)) * 100).toFixed(1) + "%";
+  const punkte = l.map((p, i) => `<i class="rv-pt${p.pid === S.pid ? " ich" : ""}${p.pl <= 3 ? " top" : ""}" style="left:${x(p.w)};--d:${(i * 0.09).toFixed(2)}s"></i>`).join("");
+  const kw = f.t ? "Testfrage" : "KW " + (+String(f.wk).slice(6) || "");
+  const html = `<small class="rv-kw">${SZ_SYM(30)} Schätzfrage der Woche · ${kw}</small><h2 class="rv-t">Auflösung</h2>
+    <p class="rv-f">${esc(e.f)}</p>
+    <div class="rv-zahl"><b id="rvZ">0</b> <i>${esc(e.e)}</i></div><div class="rv-st">${esc(e.s || "")}</div>
+    ${l.length ? `<div class="rv-strahl"><span class="rv-linie"></span>${punkte}<span class="rv-ziel" style="left:${x(e.a)}"></span>${e.med != null ? `<span class="rv-gem" style="left:${x(e.med)}" title="Gemeinde"></span>` : ""}</div>
+    <div class="rv-leg"><span class="a">Antwort</span><span class="g">Gemeinde ${szZahl(e.med)}</span>${ich ? `<span class="d">Du ${szZahl(ich.w)}</span>` : ""}</div>` : ""}
+    ${l.length ? rvPodest(gr, g => "± " + szZahl(g.d)) : `<p class="rv-f">Diesmal hat niemand geschätzt.</p>`}
+    <p class="rv-ich">${ich ? (ich.pl <= 3 ? `Du bist auf <b>Platz ${ich.pl}</b> ${["🥇", "🥈", "🥉"][ich.pl - 1]}` : `Du bist auf Platz ${ich.pl} – ${szZahl(ich.d)} daneben`) : `${l.length} ${l.length === 1 ? "Spieler hat" : "Spieler haben"} geschätzt`}</p>
+    <button class="btn primary rv-los" data-rv-zu>Zur Auflösung</button>`;
+  rvZeigen(html, fertig, {
+    sofort: b => { const z = b.querySelector("#rvZ"); if (z) z.textContent = szZahl(e.a); },
+    schritte: [[100, b => b.classList.add("s1")], [900, b => { b.classList.add("s2"); rvZaehlen(b.querySelector("#rvZ"), e.a, 1700); }],
+      [2700, b => { b.classList.add("s3"); try { SFX.level(); } catch (x) {} }], [3500, b => b.classList.add("s4")],
+      [4300, b => b.classList.add("s5")], [5100, b => { b.classList.add("s6"); b.closest(".rv-ov").querySelector(".rv-skip").hidden = true; try { SFX.badge(); rain(ich && ich.pl <= 3 ? 110 : 60); } catch (x) {} }]]
+  });
+}
+/* Biblionär der Woche: einmal je Woche für ALLE (wer mitgespielt hat oder nicht), sobald die Vorwoche fertig ist. Danach folgt
+   für Platz 1–3 wie bisher die Preisübergabe (bibPreisUebergabe wartet, solange .rv-ov offen ist). */
+const bibAufloesungFaellig = () => !!(S.lbName && !S.offlineOnly && typeof bwAufloesWoche === "function" && S.bwRv !== bwAufloesWoche());
+async function bibAufloesungPruefen(klick) {
+  if (!S.lbName || S.offlineOnly || (current !== "home" && !klick) || gesperrt || typeof bwAufloesWoche !== "function") return;
+  const vw = bwAufloesWoche(); if (S.bwRv === vw) return;
+  const v = bibVorwocheListe && bibVorwocheListe.wk === vw ? bibVorwocheListe : await bibVorwocheLaden(); if (!v || (current !== "home" && !klick)) return;
+  if (!v.rows.length) { S.bwRv = vw; save(); bibSiegerPruefen().catch(() => {}); return; }
+  if (document.querySelector(".modal, .sm-ov, .sm-tour, .truhe-fx, .rv-ov, .bwp") || document.body.classList.contains("spiel-laeuft")) { setTimeout(() => bibAufloesungPruefen().catch(() => {}), 4000); return; }
+  S.bwRv = vw; save();
+  const rows = v.rows.map(r => ({ pid: r.id, name: r.name || "?", p: +r.p || 0 })), stufen = [...new Set(rows.map(r => r.p))];
+  rows.forEach(r => { r.pl = stufen.indexOf(r.p) + 1; });
+  const gr = [1, 2, 3].map(p => rows.filter(r => r.pl === p)), ich = rows.find(r => r.pid === S.pid), kw = +String(vw).split("-W")[1] || "";
+  const html = `<small class="rv-kw">Biblionär der Woche · KW ${kw}</small><div class="rv-logo"><img src="icons/biblionaer-logo.webp" alt="" width="150" height="142"></div>
+    <h2 class="rv-t">Die Sieger der Woche</h2><p class="rv-f">${rows.length} ${rows.length === 1 ? "Spieler hat" : "Spieler haben"} mitgespielt – gleiche Fragen für alle.</p>
+    ${rvPodest(gr, g => pkt(g.p) + " Punkte")}
+    ${rows.length < 3 ? `<p class="rv-hinw">Preise gibt es ab 3 Teilnehmern.</p>` : `<p class="rv-hinw">Preise: Gold-, Silber- und Bronzekrug</p>`}
+    <p class="rv-ich">${ich ? (ich.pl <= 3 ? `Du bist auf <b>Platz ${ich.pl}</b> ${["🥇", "🥈", "🥉"][ich.pl - 1]}` : `Du bist auf Platz ${ich.pl} mit ${pkt(ich.p)} Punkten`) : "Diese Woche wieder mitspielen?"}</p>
+    <button class="btn primary rv-los" data-rv-zu>${ich && ich.pl <= 3 && rows.length >= 3 ? "Weiter zum Preis" : "Weiter"}</button>`;
+  rvZeigen(html, () => { try { bibSiegerPruefen(); if (current === "home") go("home"); } catch (e) {} }, {
+    schritte: [[100, b => b.classList.add("s1")], [800, b => { b.classList.add("s2"); try { SFX.level(); } catch (x) {} }], [1900, b => b.classList.add("s3")],
+      [2400, b => b.classList.add("s4")], [3200, b => b.classList.add("s5")], [4000, b => { b.classList.add("s6"); b.closest(".rv-ov").querySelector(".rv-skip").hidden = true; try { SFX.badge(); rain(ich && ich.pl <= 3 ? 110 : 60); } catch (x) {} }]]
+  });
 }
