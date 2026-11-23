@@ -1119,6 +1119,29 @@ function xqSenden() {
    bis die App neu startete. Die Rangliste bekam die XP trotzdem, und in der XP-Prüfung standen sie als „ohne Quelle“.
    Jetzt holt sich das Gerät den Stand aus der Datenbank, mischt ihn ein (je Quelle der höhere Wert) und sendet einmal erneut. */
 let xqNachLaeuft = 0, xqFehler = null;
+/* 10.49: Gelungene Abgleiche je Spieler und Tag auf dem Gerät sammeln. Gemeldet wird erst am Folgetag EINE Sammelmeldung – und nur,
+   wenn wirklich etwas in der Datenbank nachgetragen wurde. Fälle „Gerät war nur veraltet, Datenbank hatte schon alles“ zählen nur mit. */
+function xqzSammeln(grund, neu) {
+  if (!S.pid) return; const k = "bq-xqz-" + S.pid, h = today(); let z = null;
+  try { z = JSON.parse(localStorage.getItem(k) || "null"); } catch (e) {}
+  if (z && z.t !== h) { xqzMelden(z); z = null; }
+  z = z || { t: h, name: S.lbName || "", n: 0, still: 0, neu: {}, gr: [] };
+  z.n++; if (!neu.length) z.still++;
+  neu.forEach(x => { const a = z.neu[x.k]; z.neu[x.k] = [a ? Math.min(a[0], x.vorher) : x.vorher, a ? Math.max(a[1], x.jetzt) : x.jetzt]; });
+  if (!z.gr.includes(grund)) z.gr.push(grund);
+  try { localStorage.setItem(k, JSON.stringify(z)); } catch (e) {}
+}
+function xqzMelden(z) {
+  if (!z || !Object.keys(z.neu || {}).length) return; /* nur veraltete Geräte, nichts fehlte → keine Meldung */
+  const nt = Object.entries(z.neu).map(([q, [a, b]]) => `${XQ_QUELLEN[q] || q} ${a}→${b}`).join(", ");
+  postkastenMelden("status", `XP-Zählung nachgeholt (Tageszusammenfassung ${z.t}) – Spieler ${z.name || S.lbName || "?"}, Profil ${S.pid}, Version ${APP_VERSION}. ${z.n}× abgeglichen (${z.gr.join(", ")}), davon ${z.still}× ohne Nachtrag. Nachgetragen: ${nt}.`, "xqz-tag-" + S.pid + "-" + z.t);
+}
+function xqzVortagMelden() {
+  if (!S.pid) return; const k = "bq-xqz-" + S.pid; let z = null;
+  try { z = JSON.parse(localStorage.getItem(k) || "null"); } catch (e) {}
+  if (!z || z.t === today()) return;
+  xqzMelden(z); try { localStorage.removeItem(k); } catch (e) {}
+}
 /* 6.85: Bildet die Firebase-Regeln für „xpquellen“ nach und nennt jede Regel, die dieser Stand gegenüber dem Stand in der Datenbank (a) verletzen würde.
    Die Datenbank selbst meldet nur „permission-denied“ – so wird sichtbar, WARUM sie ablehnt. */
 const xqPayload = x => ({ name: S.lbName || "", alt: (x && x.alt) | 0, q: (x && x.q) || {}, n: (x && x.n) || {}, m: (x && x.m) || {}, tag: (x && x.tag) || {}, std: (x && x.std) || {}, bel: Array.isArray(x && x.bel) ? x.bel.slice(-100) : [] });
@@ -1214,7 +1237,7 @@ async function xqAbgleichMitMeldung(grund) {
   const gt = r.geraet ? ` Gerät ${r.geraet.uid || "?"}: ${r.geraet.drin === true ? "im Profil eingetragen (Ursache liegt woanders)" : r.geraet.drin === false ? (r.geraet.neu ? "war NICHT im Profil eingetragen, neu verbunden – Speichern trotzdem abgelehnt" : "NICHT im Profil eingetragen, neu verbinden fehlgeschlagen") : "Profil nicht lesbar"}.` : "";
   if (!r.ok) postkastenMelden("datenbank", `XP-Zählung speichern fehlgeschlagen (${r.code}${r.msg ? ": " + r.msg : ""}) – ${wer}. Verletzt: ${xqUnterschiedText(r.vorher)}. Nach dem Mischen: ${xqUnterschiedText(r.diffs)}.${gt}${r.gleich ? " Einzeln speichern nicht nötig: Die Datenbank hat schon denselben Stand – es fehlen keine XP." : r.ok_teile ? ` Einzeln gespeichert: ${r.ok_teile.join(", ") || "nichts"}. Abgelehnt: ${r.abgelehnt.join(", ") || "nichts"}.` : ""}`, "xqz-fehl-" + r.code + "-" + S.pid);
   else if (r.neuVerbunden) postkastenMelden("status", `XP-Zählung gespeichert, nachdem das Gerät neu verbunden wurde (${grund}) – ${wer}, Gerät ${(r.geraet && r.geraet.uid) || "?"}.`, "xqz-nv-" + S.pid);
-  else if (r.neu.length || r.vorher.length) postkastenMelden("status", `XP-Zählung nachgeholt (${grund}) – ${wer}. Neu in der Datenbank: ${r.neu.map(x => `${XQ_QUELLEN[x.k] || x.k} ${x.vorher}→${x.jetzt}`).join(", ") || "–"}. Der alte Stand hätte verletzt: ${xqUnterschiedText(r.vorher)}.`, "xqz-ok-" + S.pid);
+  else if (r.neu.length || r.vorher.length) xqzSammeln(grund, r.neu); /* 10.49: keine Einzelmeldung mehr, nur Tages-Sammelmeldung bei echtem Nachtrag */
   return r;
 }
 /* 6.81: Ein anderes Gerät desselben Spielers hat die Zählung schon weitergeschrieben (Regeln: Summen nur steigend, Anfangsbestand nur
@@ -1230,11 +1253,25 @@ async function xqNachholen(e) {
   xqNachLaeuft = Date.now();
   try { await xqAbgleichMitMeldung("nach abgelehnter Speicherung"); } catch (e2) { /* still – nächster Versuch beim nächsten Senden */ }
 }
+/* 10.49: Ist die Datenbank weiter als dieses Gerät (anderes Gerät, Safari und Home-Bildschirm-App mit getrenntem Speicher …),
+   den höheren Stand still übernehmen. So lehnt die Datenbank das nächste Speichern nicht mehr ab und es entsteht keine Meldung. Kein Schreibzugriff. */
+const XQ_PRUEF_ABSTAND = 30 * 60000;
+function xqServerUebernehmen(srv) {
+  if (gesperrt || !srv || !srv.q || !S.xq || !S.xq.q) return false;
+  const hinten = Object.entries(srv.q).some(([k, v]) => (v | 0) > ((S.xq.q[k]) | 0)) || ((srv.alt | 0) < (S.xq.alt | 0)) || (Array.isArray(srv.bel) && srv.bel.length > ((S.xq.bel || []).length));
+  if (!hinten) return false;
+  const vorne = Object.entries(S.xq.q).some(([k, v]) => (+v || 0) > ((srv.q[k]) | 0));
+  S.xq = xqMischen(S.xq, srv);
+  if (!vorne) S.xqSync = JSON.stringify(S.xq); /* Gerät hat nichts Eigenes mehr – kein erneutes Speichern nötig */
+  save(); return true;
+}
 /* 6.85: Beim Start einmal prüfen, ob die Datenbank alles hat, was dieses Gerät gezählt hat – sonst nachholen */
 async function xqStartPruefung() {
   const L = window.LB; if (gesperrt || !L || !L.ok || !L.xpHolen || !S.xq || !S.xq.q || !S.pid || !S.lbName || S.offlineOnly) return;
-  const spK = "bq-xqsp-" + S.pid; try { if (Date.now() - (+localStorage.getItem(spK) || 0) < 6 * 36e5) return; localStorage.setItem(spK, String(Date.now())); } catch (e) {} /* 9.52: höchstens alle 6 Std. */
+  /* 10.49: höchstens alle 30 Min. (vorher 6 Std.) – auch nach Rückkehr in die App, damit ein Gerät nie mit veraltetem Stand speichert */
+  const spK = "bq-xqsp-" + S.pid; try { if (Date.now() - (+localStorage.getItem(spK) || 0) < XQ_PRUEF_ABSTAND) return; localStorage.setItem(spK, String(Date.now())); } catch (e) {}
   let srv = null; try { await L.signIn(); srv = await L.xpHolen(S.pid); } catch (e) { return; }
+  xqServerUebernehmen(srv);
   // 6.88: Der Verwalter hat einen Abgleich angefordert (für diesen Spieler oder alle) – einmal je Anforderung ausführen
   try {
     const ts = L.abgleichHolen ? await L.abgleichHolen(S.pid) : 0, key = "bq-abg-" + S.pid;
@@ -3276,11 +3313,13 @@ document.addEventListener("visibilitychange", async () => {
   letzterAbgleich = Date.now(); const L = window.LB;
   if (L && L.ok && S.lbName && S.pid && S.ownersSet) { try { const r = await L.loadState(S.pid); if (r) { zusammenfuehren(r); save(); renderHud(); if (current === "home") go("home"); } } catch (e) {} }
 });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") setTimeout(() => xqStartPruefung().catch(() => {}), 2500); }); /* 10.49 */
 addEventListener("lb-ready", () => {
   lbStart();
   jokerLaden().catch(() => {});  /* 9.11: Willi und Aaron für freigeschaltete Mitglieder */
   setTimeout(() => andereSpielerNachsenden().catch(() => {}), 3000);  /* 6.83 (B) */
   setTimeout(() => xqStartPruefung().catch(() => {}), 6000);  /* 6.85 */
+  setTimeout(() => { try { xqzVortagMelden(); } catch (e) {} }, 9000);  /* 10.49 */
   aufnahmenPruefen();
   setTimeout(() => { try { nachPruefen(); } catch (e) {} }, 1500);
   if (current === "name") { const e = $("bAltSub"); if (e && window.LB && window.LB.ok) e.textContent = "Meinen Namen aus der Rangliste auswählen"; return; }
