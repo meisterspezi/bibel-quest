@@ -1954,8 +1954,10 @@ VIEWS.home = () => {
     : bereit
     ? `<button class="tz-truhe bereit" id="truheBtn" aria-label="Schatztruhe mit drei Schlüsseln öffnen">${truheZu(3)}<span class="tz-lohn">Öffnen!</span></button>`
     : `<div class="tz-truhe" aria-label="Schatztruhe – ${erledigt} von 3 Schlüsseln">${truheZu(erledigt)}<span class="tz-keys">${[0, 1, 2].map(i => `<i class="${i < erledigt ? "an" : ""}">${SCHLUESSEL}</i>`).join("")}</span><span class="tz-lohn">+${AUFGABE_BONUS_XP} XP</span><span class="tz-lohn">+${AUFGABE_BONUS}${TAL_MUENZE}${typeof smTruheManna === "function" && smTruheManna() ? ` +${smTruheManna()}${SM_GOLD_SVG}` : ""}</span></div>`;
-  const siegel = (() => { const f = Object.entries(KETTEN).map(([id, k]) => ({ id, k, t: S.meister[id] || [] })).filter(x => x.t.length && siegelRest(x.t) <= 5).sort((a, b) => siegelRest(a.t) - siegelRest(b.t))[0];
-      return f ? `<button class="erinnerung" data-go="spielen">${siegelHtml(siegelStufe(f.t), siegelFrisch(f.t), true)}<span><b>${siegelFrisch(f.t) ? `Dein Siegel „${esc(f.k.name)}“ verblasst in ${siegelRest(f.t)} Tag(en)` : `Dein Siegel „${esc(f.k.name)}“ ist verblasst`}</b><span class="small muted">Jetzt die Kette wiederholen und auffrischen${siegelFrisch(f.t) ? "" : ` (+${AUFFRISCH_TAL} Talente)`}</span></span></button>` : ""; })();
+  /* 10.55: Hinweis mit × schließen – kommt für dieses Siegel nicht wieder, bis es aufgefrischt wurde (S.siegelZu[id] = letzter Eintrag) */
+  const siegelZuKey = t => String(Math.max(...t));
+  const siegel = (() => { const zu = S.siegelZu || {}, f = Object.entries(KETTEN).map(([id, k]) => ({ id, k, t: S.meister[id] || [] })).filter(x => x.t.length && siegelRest(x.t) <= 5 && zu[x.id] !== siegelZuKey(x.t)).sort((a, b) => siegelRest(a.t) - siegelRest(b.t))[0];
+      return f ? `<div class="erinnerung-w"><button class="er-x" data-siegelzu="${f.id}" data-zukey="${esc(siegelZuKey(f.t))}" aria-label="Hinweis schließen">×</button><button class="erinnerung" data-go="spielen">${siegelHtml(siegelStufe(f.t), siegelFrisch(f.t), true)}<span><b>${siegelFrisch(f.t) ? `Dein Siegel „${esc(f.k.name)}“ verblasst in ${siegelRest(f.t)} Tag(en)` : `Dein Siegel „${esc(f.k.name)}“ ist verblasst`}</b><span class="small muted">Jetzt die Kette wiederholen und auffrischen${siegelFrisch(f.t) ? "" : ` (+${AUFFRISCH_TAL} Talente)`}</span></span></button></div>` : ""; })();
   /* 9.15: Startseite – vier Kacheln 2×2, Logo ragt oben heraus */
   const ktKachel = (go, c, logo, titel, sub, n = 0, subAttr = "") => `<button class="kt" data-go="${go}" style="--c:${c}" aria-label="${titel}${n ? ` – ${n} ${n === 1 ? "Duell wartet" : "Duelle warten"}` : ""}"><span class="kt-logo${/^<svg/.test(logo) && !logo.includes('id="dlR"') ? " med" : ""}">${logo}</span><span class="kt-tx"><b>${titel}</b><small${subAttr}>${sub}</small></span>${n ? `<i class="kt-n">${n}</i>` : ""}</button>`;
   const ezZeile = (go, ar, ic, t, sub, ecke = "") => `<button class="ez" data-ar="${ar}" data-go="${go}"><span class="ez-ic">${ic}</span><span class="ez-tx"><b>${t}</b><small>${sub}</small></span>${ecke}<i class="ez-pf">›</i></button>`;
@@ -1985,6 +1987,7 @@ VIEWS.home = () => {
   </div>`;
   wireGo();
   $("fbLinkStart").onclick = () => { SFX.tap(); feedbackOeffnen(); };
+  screen.querySelectorAll("[data-siegelzu]").forEach(b => b.onclick = ev => { ev.stopPropagation(); SFX.tap(); S.siegelZu = Object.assign({}, S.siegelZu, { [b.dataset.siegelzu]: b.dataset.zukey }); save(); const w = b.closest(".erinnerung-w"); if (w) w.remove(); });
   const tb = $("truheBtn"); if (tb) tb.onclick = () => truheOeffnen(tb);
   const tk = $("truheKopf"); if (tk) tk.onclick = () => truheOeffnen(tk);
   const td = $("torDuell"); if (td) td.onclick = () => { SFX.tap(); go("duelle"); };
@@ -3124,6 +3127,7 @@ function zusammenfuehren(r) {
   S.szGesehen = [...new Set([...(S.szGesehen || []), ...(Array.isArray(r.szGesehen) ? r.szGesehen : [])])].slice(-30);
   ["szTitelBis", "szAnk", "szAnkB"].forEach(k => { S[k] = Math.max(+S[k] || 0, +r[k] || 0); });
   if (typeof r.bwRv === "string" && r.bwRv > (S.bwRv || "")) S.bwRv = r.bwRv; /* 10.54 Biblionär-Auflösung gesehen */
+  if (r.siegelZu && typeof r.siegelZu === "object") S.siegelZu = Object.assign({}, r.siegelZu, S.siegelZu || {}); /* 10.55 */
   if (r.sz && typeof r.sz === "object") S.sz = Object.assign({}, r.sz, S.sz || {});
   S.duArten = [...new Set([...(S.duArten || []), ...(Array.isArray(r.duArten) ? r.duArten : [])])]; S.duKetteVoll = !!(S.duKetteVoll || r.duKetteVoll);
   S.duGes = [...new Set([...(S.duGes || []), ...(Array.isArray(r.duGes) ? r.duGes : [])])].slice(-150);
