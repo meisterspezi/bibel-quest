@@ -1,4 +1,4 @@
-const APP_VERSION = "10.53";
+const APP_VERSION = "10.54";
 /* 9.60 Beta-Kanal: Die App liegt zweimal online – Live (…/bibel-quest/) und Beta (…/bibel-quest/beta/). Beide nutzen denselben Spielstand
    und dieselbe Datenbank. BETA ist wahr, wenn diese Kopie aus dem Ordner beta/ läuft; VERSION_TEXT steht in Feedback und Meldungen. */
 const BETA = location.pathname.includes("/beta/");
@@ -96,7 +96,8 @@ const VERS_QUELLE = "Schlachter 2000";
    Ohne Eintrag für den aktuellen Monat erscheint wieder der „Vers des Tages“. */
 const MONATSVERSE = {
   "2026-10": ["Seid in allem dankbar; denn das ist der Wille Gottes in Christus Jesus für euch.", "1. Thessalonicher 5,18"],
-  "2026-11": ["Ob ihr nun esst oder trinkt oder sonst etwas tut — tut alles zur Ehre Gottes!", "1. Korinther 10,31"]
+  "2026-11": ["Ob ihr nun esst oder trinkt oder sonst etwas tut — tut alles zur Ehre Gottes!", "1. Korinther 10,31"],
+  "2026-12": ["Und wenn ich hingehe und euch eine Stätte bereite, so komme ich wieder und werde euch zu mir nehmen, damit auch ihr seid, wo ich bin.", "Johannes 14,3"]
 };
 /* Wechselnder „Vers des Tages“ – das einzige Bibelzitat auf der Startseite */
 const VERS_DES_TAGES = ["leuchte", "herz", "honig", "lust", "josua", "kind", "nuetze", "brot", "ewig", "lebendig", "lieder"];

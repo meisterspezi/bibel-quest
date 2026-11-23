@@ -3123,6 +3123,7 @@ function zusammenfuehren(r) {
   S.szLohn = [...new Set([...(S.szLohn || []), ...(Array.isArray(r.szLohn) ? r.szLohn : [])])].slice(-60);
   S.szGesehen = [...new Set([...(S.szGesehen || []), ...(Array.isArray(r.szGesehen) ? r.szGesehen : [])])].slice(-30);
   ["szTitelBis", "szAnk", "szAnkB"].forEach(k => { S[k] = Math.max(+S[k] || 0, +r[k] || 0); });
+  if (typeof r.bwRv === "string" && r.bwRv > (S.bwRv || "")) S.bwRv = r.bwRv; /* 10.54 Biblionär-Auflösung gesehen */
   if (r.sz && typeof r.sz === "object") S.sz = Object.assign({}, r.sz, S.sz || {});
   S.duArten = [...new Set([...(S.duArten || []), ...(Array.isArray(r.duArten) ? r.duArten : [])])]; S.duKetteVoll = !!(S.duKetteVoll || r.duKetteVoll);
   S.duGes = [...new Set([...(S.duGes || []), ...(Array.isArray(r.duGes) ? r.duGes : [])])].slice(-150);
@@ -5246,6 +5247,7 @@ async function bibVorwocheLaden() {
 }
 async function bibSiegerPruefen() {
   const vw = bibVorwoche();
+  if (typeof bibAufloesungFaellig === "function" && bibAufloesungFaellig()) return; /* 10.54: erst die Auflösungs-Animation, danach der Preis */
   if (S.bwGeprueft === vw || !S.pid || !(S.bwK === vw || S.bwVK === vw)) return;
   const v = await bibVorwocheLaden(); if (!v) return;
   S.bwGeprueft = vw;

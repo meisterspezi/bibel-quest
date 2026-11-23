@@ -1112,7 +1112,7 @@ function bwPreisHtml(art) {
 function bibPreisUebergabe(vw, punkte, vorschau, versuch, platz) {
   platz = [1, 2, 3].includes(+platz) ? +platz : 1;
   if (document.querySelector(".bwp")) return;
-  if ((document.querySelector(".modal") || document.querySelector(".sm-ov")) && (versuch | 0) < 40) { setTimeout(() => bibPreisUebergabe(vw, punkte, vorschau, (versuch | 0) + 1, platz), 1500); return; }
+  if ((document.querySelector(".modal") || document.querySelector(".sm-ov") || document.querySelector(".rv-ov")) && (versuch | 0) < 40) { setTimeout(() => bibPreisUebergabe(vw, punkte, vorschau, (versuch | 0) + 1, platz), 1500); return; }
   const rm = smRm(), kw = String(vw || weekKey()).split("-W")[1], ov = document.createElement("div");
   const st = ["gold", "silber", "bronze"][platz - 1], typ = ["ggold", "geschenk", "gbronze"][platz - 1], name = { gold: "Goldkrug", silber: "Silberkrug", bronze: "Bronzekrug" }[st];
   const vorteil = { gold: "1 Goldkarte sicher, doppelte Gold-Chance", silber: "1 Silberkarte sicher, doppelte Silber-Chance", bronze: "zusätzlich zu deinen Krügen am Tag" }[st];
