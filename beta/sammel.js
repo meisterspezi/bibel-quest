@@ -157,6 +157,8 @@ const BW_KRUG_AB = "2026-W47";
 function smPreisZahl(platz) {
   const w = new Set((Array.isArray(S.bwPreise) ? S.bwPreise : []).filter(x => typeof x === "string" && x.endsWith(":" + platz) && x >= BW_KRUG_AB).map(x => x.split(":")[0]));
   if (platz === 1) (Array.isArray(S.bwSiege) ? S.bwSiege : []).forEach(x => { if (typeof x === "string" && x >= BW_KRUG_AB) w.add(x); });
+  /* 10.52: Schätzfrage der Woche – Platz 1/2/3 (S.szPreise "2026-W50:1"), eigener Schlüssel „sz-…“ damit nichts mit dem Biblionär zusammenfällt */
+  (Array.isArray(S.szPreise) ? S.szPreise : []).forEach(x => { if (typeof x === "string" && x.endsWith(":" + platz)) w.add("sz-" + x.split(":")[0]); });
   return w.size;
 }
 const smBibKruege = () => smPreisZahl(1);
