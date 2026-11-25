@@ -1331,7 +1331,7 @@ function rbGlocke(ac, ziel, n, t, v = .12) { rbTon(ac, ziel, { f: rbHz(n), t, d:
 function rbMusik(ac, ausgang, plan, t0) {
   const dauer = plan.reduce((a, x) => a + x[1], 0), hall = rbHall(ac), hallG = ac.createGain(); hallG.gain.value = .45; hall.connect(hallG); hallG.connect(ausgang);
   const bus = ac.createGain(); bus.connect(ausgang); bus.connect(hall);
-  bus.gain.setValueAtTime(0, t0); bus.gain.linearRampToValueAtTime(1, t0 + 1.2); bus.gain.setValueAtTime(1, t0 + dauer - 1.6); bus.gain.linearRampToValueAtTime(0, t0 + dauer + .6);
+  bus.gain.setValueAtTime(0, t0); bus.gain.linearRampToValueAtTime(1, t0 + 1.2); bus.gain.setValueAtTime(1, t0 + dauer - 1.8); bus.gain.linearRampToValueAtTime(0, t0 + dauer - .05);
   /* Akkordfolge D – A – h – G (I–V–vi–IV), festlich-warm, ca. 72 bpm */
   const AK = [[62, 66, 69, 50], [61, 64, 69, 45], [62, 66, 71, 47], [62, 67, 71, 43]], lang = 2.2;
   for (let i = 0, t = 0; t < dauer - .5; i++, t += lang) {
@@ -1353,47 +1353,80 @@ function rbMusik(ac, ausgang, plan, t0) {
     if (id === "outro") { const tt = ts + .55; [50, 57, 62, 66, 69, 74].forEach(n => rbTon(ac, bus, { f: rbHz(n), t: tt, d: 3.2, typ: "triangle", v: .06, a: .05, r: 2.2, filter: 1800 })); [74, 78, 81, 86].forEach((n, k) => rbGlocke(ac, bus, n, tt + k * .09, .08)); } /* Schlussakkord */
     s += d; });
 }
+/* 10.70: Video Bild für Bild über WebCodecs rechnen und mit mp4-muxer als normales MP4 schreiben (Gesamtlänge im Dateikopf).
+   Die frühere Echtzeit-Aufnahme (MediaRecorder) lieferte ein fragmentiertes MP4 – WhatsApp auf Android las davon nur die ersten ~3 Sekunden. */
+async function rbVideoCodec() {
+  if (!window.VideoEncoder || !window.VideoFrame) return null;
+  for (const codec of ["avc1.42001f", "avc1.4d0028", "avc1.640028"]) { try { const s = await VideoEncoder.isConfigSupported({ codec, width: 720, height: 1280, bitrate: 5e6, framerate: 30 }); if (s && s.supported) return codec; } catch (e) {} }
+  return null;
+}
+async function rbAacOk() { if (!window.AudioEncoder || !window.AudioData || !window.OfflineAudioContext) return false; try { const s = await AudioEncoder.isConfigSupported({ codec: "mp4a.40.2", sampleRate: 48000, numberOfChannels: 2, bitrate: 128000 }); return !!(s && s.supported); } catch (e) { return false; } }
+function rbMuxerLaden() { return window.Mp4Muxer ? Promise.resolve(true) : new Promise(res => { const s = document.createElement("script"); s.src = "mp4-muxer.js"; s.onload = () => res(!!window.Mp4Muxer); s.onerror = () => res(false); document.head.appendChild(s); }); }
+async function rbVideoErzeugen(V, plan, dauer, R, cx, onProg, abgebrochen, vcodec, ton) {
+  const FPS = 30, W = 720, H = 1280, N = Math.ceil(dauer * FPS);
+  const muxer = new Mp4Muxer.Muxer({ target: new Mp4Muxer.ArrayBufferTarget(), video: { codec: "avc", width: W, height: H, frameRate: FPS },
+    audio: ton ? { codec: "aac", numberOfChannels: 2, sampleRate: 48000 } : undefined, fastStart: "in-memory", firstTimestampBehavior: "offset" });
+  let fehler = null;
+  if (ton) {
+    const oac = new OfflineAudioContext(2, Math.ceil(dauer * 48000), 48000), aus = oac.createGain(); aus.gain.value = .9; aus.connect(oac.destination);
+    rbMusik(oac, aus, plan, .02); const buf = await oac.startRendering();
+    const ae = new AudioEncoder({ output: (c, m) => muxer.addAudioChunk(c, m), error: e => { fehler = e; } });
+    ae.configure({ codec: "mp4a.40.2", sampleRate: 48000, numberOfChannels: 2, bitrate: 128000 });
+    const l = buf.getChannelData(0), r = buf.getChannelData(1), STEP = 4800;
+    for (let i = 0; i < buf.length; i += STEP) { const n = Math.min(STEP, buf.length - i), d = new Float32Array(n * 2); d.set(l.subarray(i, i + n), 0); d.set(r.subarray(i, i + n), n);
+      const ad = new AudioData({ format: "f32-planar", sampleRate: 48000, numberOfFrames: n, numberOfChannels: 2, timestamp: Math.round(i / 48000 * 1e6), data: d }); ae.encode(ad); ad.close(); }
+    await ae.flush(); ae.close();
+  }
+  const ve = new VideoEncoder({ output: (c, m) => muxer.addVideoChunk(c, m), error: e => { fehler = e; } });
+  ve.configure({ codec: vcodec, width: W, height: H, bitrate: 5e6, framerate: FPS, avc: { format: "avc" } });
+  for (let i = 0; i < N; i++) {
+    if (abgebrochen() || fehler) break;
+    rbFrame(cx, W, H, plan, Math.min(dauer - .01, i / FPS), V, R);
+    const f = new VideoFrame(cx.canvas, { timestamp: Math.round(i * 1e6 / FPS), duration: Math.round(1e6 / FPS) });
+    ve.encode(f, { keyFrame: i % 60 === 0 }); f.close();
+    while (ve.encodeQueueSize > 6) await new Promise(res => setTimeout(res, 4));
+    if (i % 3 === 0) { onProg(i / N); await new Promise(res => requestAnimationFrame(() => res())); }
+  }
+  await ve.flush(); ve.close();
+  if (fehler) throw fehler; if (abgebrochen()) return null;
+  muxer.finalize(); return new Blob([muxer.target.buffer], { type: "video/mp4" });
+}
 async function rbVideoStart() {
   if (document.querySelector(".rbv-ov")) return;
-  const V = rbVideoDaten(), plan = rbPlan(V), dauer = plan.reduce((a, x) => a + x[1], 0), typ = rbMp4Typ(), tonTyp = typ && rbMp4TonTyp();
-  let ac = null; if (tonTyp) try { ac = new (window.AudioContext || window.webkitAudioContext)(); ac.resume(); } catch (e) { ac = null; } /* 10.69: im Tipp anlegen, sonst bleibt der Ton stumm */
+  const V = rbVideoDaten(), plan = rbPlan(V), dauer = plan.reduce((a, x) => a + x[1], 0);
   const ov = document.createElement("div"); ov.className = "rbv-ov";
-  ov.innerHTML = `<div class="rbv-box"><canvas class="rbv-cv" width="720" height="1280"></canvas><div class="rbv-bar"><i></i></div><p class="rbv-t">${typ ? "Dein Video wird erstellt …" : "Deine Bilderserie wird erstellt …"}</p><div class="rbv-kn"><button class="btn" data-a="zu">Abbrechen</button></div></div>`;
+  ov.innerHTML = `<div class="rbv-box"><canvas class="rbv-cv" width="720" height="1280"></canvas><div class="rbv-bar"><i></i></div><p class="rbv-t">Dein Video wird erstellt …</p><div class="rbv-kn"><button class="btn" data-a="zu">Abbrechen</button></div></div>`;
   document.body.appendChild(ov);
   const cv = ov.querySelector("canvas"), cx = cv.getContext("2d"), bar = ov.querySelector(".rbv-bar i"), txt = ov.querySelector(".rbv-t"), kn = ov.querySelector(".rbv-kn");
-  let ab = false; const zu = () => { ab = true; ov.remove(); document.removeEventListener("visibilitychange", weg); try { if (ac) ac.close(); } catch (e) {} };
-  const weg = () => { if (document.visibilityState === "hidden" && !fertig) { ab = true; txt.textContent = "Aufnahme unterbrochen – bitte die App geöffnet lassen und neu starten."; } };
-  let fertig = false; document.addEventListener("visibilitychange", weg);
+  let ab = false, url = null; const zu = () => { ab = true; ov.remove(); if (url) URL.revokeObjectURL(url); };
   kn.querySelector('[data-a="zu"]').onclick = () => { SFX.tap(); zu(); };
+  const knoepfe = (html, fn) => { kn.innerHTML = html + `<button class="btn" data-a="zu">Schließen</button>`; kn.querySelector('[data-a="zu"]').onclick = () => { SFX.tap(); zu(); }; fn(); };
   try { await document.fonts.ready; } catch (e) {}
   const R = { icon: await smBild("icons/icon-192.png"), qr: await smQr(smLink()) };
-  const knoepfe = (html, fn) => { kn.innerHTML = html + `<button class="btn" data-a="zu">Schließen</button>`; kn.querySelector('[data-a="zu"]').onclick = () => { SFX.tap(); zu(); }; fn(); };
-  if (typ) {
-    const vst = cv.captureStream(30); let st = vst, ausgang = null;
-    if (ac) try { const ziel = ac.createMediaStreamDestination(); ausgang = ac.createGain(); ausgang.gain.value = .9; ausgang.connect(ziel); ausgang.connect(ac.destination); st = new MediaStream([...vst.getVideoTracks(), ...ziel.stream.getAudioTracks()]); } catch (e) { ausgang = null; st = vst; }
-    const rec = new MediaRecorder(st, { mimeType: ausgang ? tonTyp : typ, videoBitsPerSecond: 5e6, audioBitsPerSecond: 128e3 }), teile = [];
-    rec.ondataavailable = e => { if (e.data && e.data.size) teile.push(e.data); };
-    const gestoppt = new Promise(r => { rec.onstop = r; });
-    rbFrame(cx, 720, 1280, plan, 0, V, R); rec.start(500);
-    const t0 = performance.now(); if (ausgang) try { rbMusik(ac, ausgang, plan, ac.currentTime + .02); } catch (e) {}
-    await new Promise(res => { const schritt = () => { const T = (performance.now() - t0) / 1000;
-      if (ab || T >= dauer) { rbFrame(cx, 720, 1280, plan, dauer - .01, V, R); res(); return; }
-      rbFrame(cx, 720, 1280, plan, T, V, R); bar.style.width = (T / dauer * 100).toFixed(1) + "%"; requestAnimationFrame(schritt); }; requestAnimationFrame(schritt); });
-    await new Promise(r => setTimeout(r, ausgang ? 700 : 300)); rec.stop(); await gestoppt; st.getTracks().forEach(x => x.stop()); vst.getTracks().forEach(x => x.stop()); try { if (ac) ac.close(); } catch (e) {}
-    if (ab) return; fertig = true; bar.style.width = "100%";
-    const blob = new Blob(teile, { type: "video/mp4" }), datei = new File([blob], `mein-bibeljahr-${V.D.jahr}.mp4`, { type: "video/mp4" });
-    rbVideoLetzt = { blob, groesse: blob.size, dauer };
-    txt.textContent = `Dein Video ist fertig (${Math.round(dauer)} Sekunden).`;
-    knoepfe(`<button class="btn primary" data-a="teilen">${svg("share") || ""} Video teilen</button>`, () => { kn.querySelector('[data-a="teilen"]').onclick = async () => { SFX.tap(); if (await rbTeilenDateien([datei], rbTeilText(V.D, V.du), V.D)) zu(); }; });
-  } else {
-    const dateien = []; let s = 0;
-    for (const [id, d] of plan) { if (ab) return; const c2 = document.createElement("canvas"); c2.width = 1080; c2.height = 1920; rbFrame(c2.getContext("2d"), 1080, 1920, plan, s + d - .5, V, R);
-      rbFrame(cx, 720, 1280, plan, s + d - .5, V, R); const b = await new Promise(r => c2.toBlob(r, "image/png")); if (b) dateien.push(new File([b], `mein-bibeljahr-${V.D.jahr}-${dateien.length + 1}.png`, { type: "image/png" }));
-      s += d; bar.style.width = (s / dauer * 100).toFixed(1) + "%"; await new Promise(r => setTimeout(r, 50)); }
-    fertig = true; rbVideoLetzt = { serie: dateien.length };
-    txt.textContent = `Dein Handy kann hier kein Video erzeugen – du teilst dein Jahr als Bilderserie (${dateien.length} Bilder). Im WhatsApp-Status laufen sie nacheinander ab.`;
-    knoepfe(`<button class="btn primary" data-a="teilen">${svg("share") || ""} Bilder teilen</button>`, () => { kn.querySelector('[data-a="teilen"]').onclick = async () => { SFX.tap(); if (await rbTeilenDateien(dateien, rbTeilText(V.D, V.du), V.D)) zu(); }; });
+  const vcodec = await rbVideoCodec(), muxOk = vcodec && await rbMuxerLaden(), ton = muxOk && await rbAacOk();
+  rbFrame(cx, 720, 1280, plan, 1.6, V, R); if (ton) txt.textContent = "Musik wird erzeugt …"; /* sofort ein Bild statt schwarzer Fläche */
+  if (muxOk) {
+    let blob = null;
+    try { blob = await rbVideoErzeugen(V, plan, dauer, R, cx, p => { bar.style.width = (p * 100).toFixed(1) + "%"; if (p > 0) txt.textContent = "Dein Video wird erstellt …"; }, () => ab, vcodec, ton); }
+    catch (e) { console.warn("Video:", e); blob = null; }
+    if (ab) return;
+    if (blob) {
+      bar.style.width = "100%"; const datei = new File([blob], `mein-bibeljahr-${V.D.jahr}.mp4`, { type: "video/mp4" });
+      rbVideoLetzt = { blob, groesse: blob.size, dauer, ton };
+      url = URL.createObjectURL(blob); const vid = document.createElement("video"); vid.className = "rbv-cv"; vid.src = url; vid.controls = true; vid.playsInline = true; vid.loop = true; cv.replaceWith(vid);
+      txt.textContent = `Dein Video ist fertig (${Math.round(dauer)} Sekunden${ton ? ", mit Musik" : ""}). Tippe aufs Video für die Vorschau.`;
+      knoepfe(`<button class="btn primary" data-a="teilen">${svg("share") || ""} Video teilen</button>`, () => { kn.querySelector('[data-a="teilen"]').onclick = async () => { SFX.tap(); try { vid.pause(); } catch (e) {} if (await rbTeilenDateien([datei], rbTeilText(V.D, V.du), V.D)) zu(); }; });
+      return;
+    }
   }
+  /* Ersatz: Bilderserie (Story-Bilder) */
+  const dateien = []; let s = 0; txt.textContent = "Deine Bilderserie wird erstellt …";
+  for (const [id, d] of plan) { if (ab) return; const c2 = document.createElement("canvas"); c2.width = 1080; c2.height = 1920; rbFrame(c2.getContext("2d"), 1080, 1920, plan, s + d - .5, V, R);
+    rbFrame(cx, 720, 1280, plan, s + d - .5, V, R); const b = await new Promise(r => c2.toBlob(r, "image/png")); if (b) dateien.push(new File([b], `mein-bibeljahr-${V.D.jahr}-${dateien.length + 1}.png`, { type: "image/png" }));
+    s += d; bar.style.width = (s / dauer * 100).toFixed(1) + "%"; await new Promise(r => setTimeout(r, 50)); }
+  rbVideoLetzt = { serie: dateien.length };
+  txt.textContent = `Dein Handy kann hier kein Video erzeugen – du teilst dein Jahr als Bilderserie (${dateien.length} Bilder). Im WhatsApp-Status laufen sie nacheinander ab.`;
+  knoepfe(`<button class="btn primary" data-a="teilen">${svg("share") || ""} Bilder teilen</button>`, () => { kn.querySelector('[data-a="teilen"]').onclick = async () => { SFX.tap(); if (await rbTeilenDateien(dateien, rbTeilText(V.D, V.du), V.D)) zu(); }; });
 }
 let rbVideoLetzt = null;
 
