@@ -3583,11 +3583,46 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .ad-g-b i{font:700 1.2rem Georgia,serif;font-style:normal;color:#f2c14e88}.ad-g small{font-size:.62rem;font-weight:700;white-space:nowrap}
 .bl-t.so.jetzt>path:not([fill="transparent"]){animation:adPuls 1.4s ease-in-out infinite}
 /* 10.44: Gemeinsam Bethlehem schmücken */
-.sch-box{width:100%;max-width:360px;border-radius:18px;padding:12px 14px;background:linear-gradient(#1c2458,#10153a);box-shadow:0 0 0 1.5px #f2c14e55;display:flex;flex-direction:column;gap:6px}
-.sch-k b{display:block;font:700 1.05rem Georgia,serif;color:#f2c14e}.sch-k small{color:#c8d0ee;font-size:.78rem}
-.sch-bar{height:12px;border-radius:8px;background:#ffffff18;overflow:hidden}.sch-bar i{display:block;height:100%;background:linear-gradient(90deg,#f2c14e,#ffe9a0);border-radius:8px}
-.sch-z{display:flex;justify-content:space-between;gap:8px;font-size:.74rem;color:#c8d0ee}.sch-z span:last-child{white-space:nowrap;font-weight:700}
-.sch-knopf{width:100%;margin-top:2px}.sch-knopf[disabled]{opacity:.6}.sch-info{font-size:.72rem;color:#b8c0d8;text-align:center}
+.sch-karte{position:relative;width:100%;max-width:360px;display:grid;grid-template-columns:54px minmax(0,1fr) auto;align-items:center;gap:10px;padding:8px 10px 8px 8px;border-radius:16px;cursor:pointer;overflow:hidden;
+  background:radial-gradient(120% 140% at 0% 0%,#2a2f6a 0,#151a44 55%,#0e1230 100%);box-shadow:0 0 0 1.5px #f2c14e66,inset 0 0 0 1px #ffffff10,0 6px 18px #0006}
+.sch-karte::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(1px 1px at 22% 30%,#fff9 50%,transparent 51%),radial-gradient(1px 1px at 63% 18%,#fff7 50%,transparent 51%),radial-gradient(1.2px 1.2px at 88% 70%,#fff8 50%,transparent 51%),radial-gradient(1px 1px at 46% 85%,#fff5 50%,transparent 51%)}
+.sch-karte::after{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:repeating-linear-gradient(90deg,#d8344a 0 14px,#f2c14e 14px 18px,#2f8a46 18px 32px,#f2c14e 32px 36px);opacity:.85}
+.sch-karte:active{transform:scale(.99)}
+.sch-med{position:relative;width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#f2c14e calc(var(--p)*1%),#ffffff1c 0)}
+.sch-med::before{content:"";position:absolute;inset:4px;border-radius:50%;background:radial-gradient(circle at 50% 40%,#2a2f6a,#0e1230)}
+.sch-med svg{position:relative;width:38px;height:38px;filter:drop-shadow(0 0 4px #f2c14e88)}
+.sch-st{position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);font:800 .6rem/1 var(--display,system-ui);font-style:normal;color:#1b2a55;background:#f2c14e;border-radius:8px;padding:2px 5px;white-space:nowrap}
+.sch-du{position:absolute;top:-4px;left:-6px;font:800 .55rem/1 system-ui;font-style:normal;color:#fff;background:#d8344a;border:1.5px solid #fff;border-radius:8px;padding:2px 4px;white-space:nowrap}
+.sch-mitte{display:flex;flex-direction:column;min-width:0;gap:1px;position:relative}
+.sch-mitte>b{font:700 .84rem Georgia,serif;letter-spacing:-.1px;color:#f2c14e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:370px){.sch-mitte>b{font-size:.76rem}}
+.sch-mitte>small{font-size:.72rem;color:#c8d0ee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sch-mitte>small b{color:#fff}.sch-mitte>small em{font-style:normal;color:#ffe9a0}
+.sch-kette{width:100%;height:24px;display:block;overflow:visible}
+.sch-plus{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;width:56px;height:52px;border:0;border-radius:14px;cursor:pointer;color:#1b2a55;background:linear-gradient(#fff3c4,#f2c14e 55%,#d9962a);box-shadow:0 0 0 1.5px #fff6 inset,0 0 14px #f2c14e66,0 3px 0 #8a5a10}
+.sch-plus b{font:900 1.15rem/1 var(--display,system-ui)}.sch-plus small{font:700 .58rem/1.2 system-ui;opacity:.85}
+.sch-plus:active{transform:translateY(2px);box-shadow:0 0 0 1.5px #fff6 inset,0 0 10px #f2c14e55,0 1px 0 #8a5a10}
+.sch-fertig,.sch-chip{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:52px;height:50px;border-radius:14px;position:relative}
+.sch-fertig{color:#5fe08a;font:900 1.3rem/1 system-ui;background:#5fe08a18;box-shadow:0 0 0 1.5px #5fe08a66 inset}.sch-fertig small{font:700 .56rem/1.3 system-ui;color:#c8d0ee}
+.sch-chip{font:600 .6rem/1.2 system-ui;color:#c8d0ee;background:#ffffff10;box-shadow:0 0 0 1.5px #f2c14e55 inset;padding:0 6px}.sch-chip b{font:800 .8rem/1.2 system-ui;color:#f2c14e}
+@media (prefers-reduced-motion:no-preference){.sch-b.an .sch-schein{animation:schFunk 2.4s ease-in-out infinite}.sch-b.an:nth-child(2n) .sch-schein{animation-delay:-1.2s}.sch-b.nx path{animation:schGlimm 1.8s ease-in-out infinite}.sch-plus{animation:schPuls 2.6s ease-in-out infinite}}
+@keyframes schFunk{50%{opacity:.08}}@keyframes schGlimm{50%{opacity:.85}}@keyframes schPuls{50%{box-shadow:0 0 0 1.5px #fff6 inset,0 0 22px #f2c14eaa,0 3px 0 #8a5a10}}
+.sch-flug{position:absolute;right:22px;top:14px;font:900 1.2rem/1 var(--display,system-ui);font-style:normal;color:#ffe9a0;text-shadow:0 0 10px #f2c14e;pointer-events:none;opacity:0}
+@media (prefers-reduced-motion:no-preference){.sch-karte.freude .sch-flug{animation:schFlug 1.3s ease-out}.sch-karte.freude:not(.hoch) .sch-b.nx path,.sch-karte.freude.hoch .sch-b.letzt path{animation:schBlitz .55s ease-out 3}.sch-karte.freude .sch-med{animation:schRing 1.2s ease-out}.sch-karte.freude.hoch{animation:schKarteHoch 1.6s ease-out}}
+@keyframes schFlug{0%{opacity:0;transform:translateY(8px) scale(.7)}25%{opacity:1;transform:translateY(0) scale(1.15)}100%{opacity:0;transform:translateY(-26px) scale(1)}}
+@keyframes schBlitz{0%{opacity:1;filter:brightness(2.4) drop-shadow(0 0 5px #fff)}100%{filter:none}}
+@keyframes schRing{30%{box-shadow:0 0 18px #f2c14ecc;transform:scale(1.07)}}
+@keyframes schKarteHoch{20%{box-shadow:0 0 0 2px #ffe9a0,0 0 28px #f2c14e99}}
+.sch-det{display:flex;flex-direction:column;gap:10px;text-align:left}.sch-det-k>span:last-child,.sch-dz span{align-items:flex-start}
+.sch-det-k{display:flex;gap:12px;align-items:center}.sch-det-k>span:last-child{display:flex;flex-direction:column}.sch-det-k b{font:700 1.08rem Georgia,serif;color:#f2c14e}.sch-det-k small{color:#c8d0ee;font-size:.78rem}
+.sch-med.gross{flex:none}
+.sch-det-zahlen{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.sch-det-zahlen span{display:flex;flex-direction:column;align-items:center;padding:6px 2px;border-radius:12px;background:#ffffff0c;font-size:.7rem;color:#b8c0d8}.sch-det-zahlen b{font:800 1.15rem/1.2 var(--display,system-ui);color:#fff}
+.sch-det-l{display:flex;flex-direction:column;gap:3px}
+.sch-dz{display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:8px;align-items:center;padding:4px 8px;border-radius:10px;background:#ffffff08}
+.sch-dz i{width:10px;height:12px;border-radius:50% 50% 45% 45%;background:#3a4170}.sch-dz.an i{background:var(--f);box-shadow:0 0 8px var(--f)}.sch-dz.nx{background:#f2c14e14;box-shadow:0 0 0 1px #f2c14e55 inset}.sch-dz.nx i{background:var(--f);opacity:.55}
+.sch-dz span{display:flex;flex-direction:column;min-width:0}.sch-dz b{font-size:.8rem;color:#e8ecff;font-weight:600}.sch-dz.an b{color:#fff}.sch-dz small{font-size:.64rem;color:#8f98c0}
+.sch-dz em{font-style:normal;font-size:.72rem;color:#8f98c0;white-space:nowrap}.sch-dz.an em{color:#5fe08a;font-weight:800}.sch-dz.nx em{color:#ffe9a0;font-weight:700}
+.sch-det-info{font-size:.72rem;line-height:1.5;color:#b8c0d8;text-align:center}.sch-det-info b{color:#f2c14e}
+.sch-det-start{text-align:center;font-weight:700;color:#ffe9a0;padding:8px;border-radius:12px;background:#f2c14e14}
 /* 10.47: Advents-Ankündigung im Stil der Patchnote-Grafik */
 .modal.ad2-m .card{max-width:380px;padding:0;overflow:hidden;border-color:#f2c14e66;box-shadow:0 0 60px #f2c14e30;max-height:94vh;max-height:94dvh;overflow-y:auto}
 .ad2{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 14px 14px;text-align:center}
