@@ -3713,16 +3713,29 @@ html .start-aufg.ev-da .bk-t{position:relative;margin-top:-10px;z-index:2}
 html .start-aufg.ev-da .bk-t h1{font:900 11.5px/15px var(--body)!important;letter-spacing:0!important;background:linear-gradient(180deg,#ffe58a,#e0a838)!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#2a1a00!important;-webkit-text-fill-color:#2a1a00;padding:0 7px;border-radius:9px;box-shadow:0 0 0 2px #0e1226;filter:none!important}
 html .start-aufg.ev-da .kt-heute{display:none!important}
 html .start-aufg.ev-da .ez-keys{display:none!important}
-html .start-aufg .ev-reihe{width:74%!important;right:-4px!important;top:-5px!important;display:grid!important;grid-template-columns:none;grid-template-rows:auto auto;grid-auto-flow:column;grid-auto-columns:calc(50% - 3px);gap:5px!important;padding:7px 2px 2px 4px!important;-webkit-mask-image:none!important;mask-image:none!important;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory}
-html .start-aufg .ev-m{width:auto!important;min-width:0;gap:0 6px!important;padding:2px 4px 2px 2px!important;border-radius:20px;background:#ffffff0a;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 45%,transparent);display:grid!important;grid-template-columns:30px minmax(0,1fr);grid-template-rows:auto auto;text-align:left;scroll-snap-align:start}
-html .start-aufg .ev-ring{grid-row:1/3;width:30px!important;height:30px!important;padding:2px!important;animation:none!important}
-html .start-aufg .ev-in{border-width:1px!important}
-html .start-aufg .ev-in svg,html .start-aufg .ev-in img{width:21px!important;height:21px!important}
-html .start-aufg .ev-m b{text-align:left!important;font-size:11px!important;line-height:1.1!important;align-self:end;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-html .start-aufg .ev-m small{text-align:left!important;font-size:9.5px!important;align-self:start;margin:0!important;overflow:hidden;text-overflow:ellipsis}
-html .start-aufg .ev-zahl{left:20px!important;right:auto!important;top:-4px!important;min-width:15px!important;height:15px!important;font-size:9px!important;line-height:15px!important}
-html .start-aufg .ev-ok{left:20px!important;right:auto!important;top:-3px!important}
-html .start-aufg .ev-neu{left:auto!important;right:6px!important;top:-7px!important}
+/* 10.63: Events als Ringe mit Namens-Plakette (Michaels Wahl „Vorschlag 3“, wie Laden/Album/Truhe). Größe je nach Anzahl (data-n):
+   1–2 groß mit Status darunter, 3 mittel, ab 4 klein ohne Status; ab 5 seitlich wischen. Plakette immer mittig unter dem Symbol.
+   Erledigt: grau mit grünem Haken. */
+html .start-aufg .ev-reihe{width:74%!important;right:-4px!important;top:-2px!important;display:flex!important;flex-direction:row;justify-content:space-evenly!important;align-items:flex-start;gap:0!important;padding:6px 2px 2px!important;-webkit-mask-image:none!important;mask-image:none!important;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory}
+html .start-aufg .ev-m{--r:58px;flex:none;width:96px!important;display:flex!important;flex-direction:column!important;align-items:center!important;gap:0!important;padding:0 0 2px!important;background:none!important;box-shadow:none!important;text-align:center;scroll-snap-align:start;overflow:visible}
+html .start-aufg .ev-ring{width:var(--r)!important;height:var(--r)!important;padding:3px!important;flex:none;box-shadow:0 0 12px -3px var(--c)}
+html .start-aufg .ev-in svg,html .start-aufg .ev-in img{width:calc(var(--r) * .68)!important;height:calc(var(--r) * .68)!important}
+html .start-aufg .ev-m b{position:relative;z-index:2;flex:none;align-self:center!important;margin:-8px 0 0!important;width:max-content;max-width:none;white-space:nowrap;padding:1px 7px!important;border-radius:9px;background:linear-gradient(180deg,color-mix(in srgb,var(--c) 55%,#fff),var(--c));color:#10142e!important;font:900 12px/15px var(--body)!important;box-shadow:0 0 0 2px #0e1226;text-align:center!important}
+html .start-aufg .ev-m small{margin-top:3px!important;font-size:11px!important;text-align:center!important;white-space:nowrap}
+html .start-aufg .ev-zahl,html .start-aufg .ev-ok{left:auto!important;right:calc(50% - var(--r) / 2 - 3px)!important;top:-2px!important}
+html .start-aufg .ev-ok{width:18px!important;height:18px!important;line-height:18px!important;font-size:11px!important;z-index:3}
+html .start-aufg .ev-neu{left:calc(50% - var(--r) / 2 - 8px)!important;right:auto!important;top:-5px!important}
+html .start-aufg[data-n="3"] .ev-m{--r:50px;width:86px!important}
+html .start-aufg[data-n="3"] .ev-m b{font-size:10.5px!important;line-height:14px!important}
+html .start-aufg[data-n="3"] .ev-m small{font-size:10px!important}
+html .start-aufg[data-n="4"] .ev-reihe,html .start-aufg[data-n="5"] .ev-reihe{justify-content:space-between!important;padding-left:2px!important;padding-right:2px!important;padding-top:8px!important}
+html .start-aufg[data-n="4"] .ev-m,html .start-aufg[data-n="5"] .ev-m{--r:42px;width:62px!important}
+html .start-aufg[data-n="4"] .ev-m b,html .start-aufg[data-n="5"] .ev-m b{font-size:9.5px!important;line-height:13px!important;padding:1px 5px!important}
+html .start-aufg[data-n="4"] .ev-m small,html .start-aufg[data-n="5"] .ev-m small{display:none!important}
+html .start-aufg .ev-m.grau .ev-ring{background:#4a5078!important;box-shadow:none!important;animation:none!important}
+html .start-aufg .ev-m.grau .ev-in{filter:grayscale(1) brightness(.7)!important}
+html .start-aufg .ev-m.grau b{background:linear-gradient(180deg,#b9bdd0,#8a90a8)!important;color:#1b1f33!important}
+html .start-aufg .ev-m.grau small{color:var(--muted)!important}
 html .ev-punkte{top:auto!important;bottom:-2px;right:34%!important}
 </style>
 </head>
