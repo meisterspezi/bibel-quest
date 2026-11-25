@@ -1964,9 +1964,9 @@ VIEWS.home = () => {
   /* 8.2: „Dein Tag“ entfällt – der Kopf IST die Tagesaufgabe (Truhe statt Sonne, Schlüssel rechts), darunter wie gewohnt der Kringel-Bogen.
      Antippen klappt die drei Aufgaben auf; ist die Truhe bereit, öffnet der Kopf direkt die Truhe. */
   const keysH = `<span class="ez-keys${S.dq.bonus ? " verbraucht" : ""}" aria-hidden="true">${[0, 1, 2].map(i => `<i class="${i < erledigt ? "an" : ""}">${SCHLUESSEL}</i>`).join("")}</span>`;
-  const kopfTitel = S.dq.bonus ? "Geöffnet!" : bereit ? "Öffnen!" : `Heute ${erledigt}/3`;
+  const kopfTitel = S.dq.bonus ? `<span class="kt-lang">Geöffnet!</span><span class="kt-kurz"><small class="kt-heute">Truhe</small>offen</span>` : bereit ? `<span class="kt-lang">Öffnen!</span><span class="kt-kurz"><small class="kt-heute">Truhe</small>öffnen</span>` : `<small class="kt-heute">Heute </small>${erledigt}/3`;  /* 10.60: „Heute“ eigenes Wort (in der schmalen Kopfzeile darüber) */
   const kopfSub = S.dq.bonus ? "Belohnung abgeholt" : bereit ? "Truhe antippen zum Öffnen" : typeof smTruheManna === "function" && smTruheManna() ? `3 Aufgaben = Truhe + ${smTruheManna()} Manna` : "3 Aufgaben = 1 Schatztruhe";
-  const kopfInnen = `<span class="bk-med truhe${S.dq.bonus ? " offen" : ""}">${S.dq.bonus ? TRUHE_AUF + `<i class="truhe-haken">${svg("check")}</i>` : truheZu(bereit ? 3 : erledigt)}</span><div class="bk-t"><h1>${kopfTitel}</h1><span>${kopfSub}</span></div>${keysH}`;
+  const kopfInnen = `<span class="bk-med truhe${S.dq.bonus ? " offen" : ""}" style="--p:${S.dq.bonus || bereit ? 100 : Math.round(erledigt / 3 * 100)}">${S.dq.bonus ? TRUHE_AUF + `<i class="truhe-haken">${svg("check")}</i>` : truheZu(bereit ? 3 : erledigt)}</span><div class="bk-t"><h1 class="${S.dq.bonus || bereit ? "kt-wort" : "kt-zahl"}">${kopfTitel}</h1><span>${kopfSub}</span></div>${keysH}`;
   const kopf = bereit
     ? `<div class="bkopf start-aufg" style="--bk:#f2c14e"><button class="bk-kopf bk-aufg bereit" id="truheKopf" aria-label="Schatztruhe mit drei Schlüsseln öffnen">${kopfInnen}</button></div>`
     : `<div class="bkopf start-aufg" style="--bk:#f2c14e"><details class="bk-aufg-d"><summary class="bk-kopf bk-aufg" aria-label="Tagesaufgaben: ${erledigt} von 3 geschafft">${kopfInnen}</summary>

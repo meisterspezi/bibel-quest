@@ -121,21 +121,33 @@ if (typeof TITEL !== "undefined" && !TITEL.some(t => t.id === "schaetzmeister"))
 
 /* ---------- 10.53: Medaillon-Reihe unter den Tagesaufgaben (Advent · Schätzfrage · Biblionär der Woche) ----------
    Leuchtender goldener Ring + rote Zahl, solange dort etwas wartet; grau mit Haken, wenn erledigt. */
+/* 10.60: Info-Leiste IN der Kopfzeile neben der Truhe (Michaels Wahl „C“): Feste (Advent, Ostern …), Wochenspiele (Schätzfrage,
+   Biblionär der Woche) und Sonderthemen (Bibeljahr). Nur was laut Termin gerade läuft. Zu viele Einträge → seitlich wischen, Punkte zeigen die Seiten.
+   Reihenfolge: Wartendes (rote Zahl/NEU) zuerst, dann nach ord, Erledigtes (grau) am Ende. Ohne Einträge bleibt die Truhe breit. */
 function evReihe() {
   let r = screen.querySelector(".ev-reihe"); if (r) return r;
   r = document.createElement("div"); r.className = "ev-reihe ev-wart"; r.setAttribute("aria-label", "Aktionen");
-  const kopf = screen.querySelector(".start-aufg"); if (kopf) kopf.insertAdjacentElement("afterend", r); else screen.prepend(r);
+  const kopf = screen.querySelector(".start-aufg"); if (kopf) kopf.appendChild(r); else screen.prepend(r);
   setTimeout(evFertig, 1500);  /* spätestens dann zeigen, auch wenn die Schätzfrage noch lädt */
   return r;
 }
-/* 10.54: Erst zeigen, wenn alle Medaillons ihren Stand haben (kein Springen). Sind ALLE erledigt (grau), wandert die Reihe
-   unter Biblionär und Arena – wer trotzdem hin will, scrollt. Wartet irgendwo etwas, steht sie oben unter den Tagesaufgaben. */
 function evFertig() {
   const r = screen.querySelector(".ev-reihe"); if (!r || current !== "home") return;
-  const m = [...r.children], alleGrau = m.length > 0 && m.every(x => x.classList.contains("grau"));
-  const ziel = alleGrau ? screen.querySelector(".kt-grid") : screen.querySelector(".start-aufg");
-  if (ziel && ziel.nextElementSibling !== r) ziel.insertAdjacentElement("afterend", r);
-  r.classList.toggle("unten", alleGrau); r.classList.remove("ev-wart");
+  const w = x => x.classList.contains("grau") ? 2 : x.querySelector(".ev-zahl,.ev-neu") ? 0 : 1;
+  [...r.children].sort((a, c) => (w(a) - w(c)) || (+a.dataset.ord - +c.dataset.ord)).forEach(x => r.appendChild(x));
+  r.classList.remove("ev-wart");
+  const k = r.closest(".start-aufg"); if (k) k.classList.toggle("ev-da", r.children.length > 0);
+  r.scrollLeft = 0; evPunkte(); r.onscroll = evPunkte;
+}
+function evPunkte() {
+  const r = screen.querySelector(".start-aufg .ev-reihe"), k = r && r.closest(".start-aufg"); if (!k) return;
+  let p = k.querySelector(".ev-punkte");
+  const n = Math.ceil((r.scrollWidth - 4) / Math.max(1, r.clientWidth));
+  r.classList.toggle("am-ende", r.scrollLeft + r.clientWidth >= r.scrollWidth - 4);
+  if (n < 2) { if (p) p.remove(); return; }
+  if (!p) { p = document.createElement("div"); p.className = "ev-punkte"; p.setAttribute("aria-hidden", "true"); k.appendChild(p); }
+  const akt = Math.round(r.scrollLeft / Math.max(1, r.scrollWidth - r.clientWidth) * (n - 1));
+  p.innerHTML = Array.from({ length: n }, (_, i) => `<i class="${i === akt ? "an" : ""}"></i>`).join("");
 }
 function evSetzen(id, o) {
   if (current !== "home") return;

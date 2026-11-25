@@ -1012,6 +1012,23 @@ function rbDaten() {
   return { jahr: rbSichtbar(), right: S.right | 0, xp: Math.round(S.xp), level: levelOf(S.xp), serie: S.bestStreak | 0, buecher, ber: liste.map(([k, v]) => [k, Math.round(v / summe * 100)]), lieb: liste.length ? liste[0][0] : "",
     kette: S.bestChain | 0, blitz: S.bestBlitz | 0, bib: S.bibRekord | 0, siege: S.duSiege | 0, duelle: S.duSpiele | 0, vers: VERSE[vk] || ["Dein Wort ist meines Fußes Leuchte und ein Licht auf meinem Weg.", "Psalm 119,105"], album: smGefunden(), gold: smGold() };
 }
+/* 10.60: kleines Overlay unter der Kopfzeile – drei Zahlen, „Ansehen“ und „Teilen“ */
+function rbPop(jahr) {
+  const alt = document.querySelector(".rb-pop"); if (alt) { alt.remove(); return; }
+  const kopf = screen.querySelector(".start-aufg"), btn = screen.querySelector('[data-ev="rb"]'); if (!kopf) { rbSeite = 0; go("rueckblick"); return; }
+  const m = smInit(); if (m.rb.p !== jahr) { m.rb.p = jahr; save(); const n = btn && btn.querySelector(".ev-neu"); if (n) n.remove(); }
+  const D = rbDaten(), p = document.createElement("div"); p.className = "rb-pop"; p.setAttribute("role", "dialog"); p.setAttribute("aria-label", "Dein Bibeljahr " + jahr);
+  p.innerHTML = `<h3>${SM_ALBUM_SVG}Dein Bibeljahr ${jahr}</h3><p>Dein Rückblick ist da${rbJahr() ? " – bis 6. Januar" : ""}.</p>
+    <div class="st"><span><b>${pkt(D.right)}</b>richtig</span><span><b>${D.buecher}/66</b>Bücher</span><span><b>${D.level}</b>Level</span></div>
+    <div class="bt"><button class="btn primary" data-a="los">Ansehen</button><button class="btn" data-a="teilen">Teilen</button></div>`;
+  kopf.appendChild(p);
+  if (btn) { const b = btn.getBoundingClientRect(), pr = p.getBoundingClientRect(); p.style.setProperty("--pfeil", Math.min(pr.width - 26, Math.max(12, pr.right - (b.left + b.width / 2) - 7)) + "px"); }
+  const zu = () => { p.remove(); document.removeEventListener("click", weg, true); };
+  const weg = e => { if (!p.contains(e.target) && !(btn && btn.contains(e.target))) zu(); };
+  setTimeout(() => document.addEventListener("click", weg, true), 0);
+  p.querySelector('[data-a="los"]').onclick = () => { SFX.tap(); zu(); rbSeite = 0; go("rueckblick"); };
+  p.querySelector('[data-a="teilen"]').onclick = () => { SFX.tap(); zu(); rbSeite = 99; /* letzte Seite = Teilen */ go("rueckblick"); };
+}
 const RB_FARBE = { Lernen: "#7fc8ff", Solo: "#c49bff", Biblionär: "#7be04a", Arena: "#ff8a5c" };
 let rbSeite = 0, rbFormat = "status", rbGemeinde = null;
 VIEWS.rueckblick = () => {
@@ -1079,11 +1096,9 @@ async function rbTeilenSeite(D) {
     alt(a);
     smAnkuendigen();
     const jahr = rbSichtbar(); if (!jahr || !S.lbName) return;
-    const kopf = screen.querySelector(".start-aufg");
-    const b = document.createElement("button"); b.className = "rb-banner"; b.innerHTML = `<span class="rb-banner-ic">${SM_ALBUM_SVG}</span><span><b>Dein Bibeljahr ${jahr}</b><small>Rückblick ansehen und teilen</small></span><i>›</i>`;
-    b.onclick = () => { SFX.tap(); rbSeite = 0; go("rueckblick"); };
-    if (kopf) kopf.insertAdjacentElement("afterend", b); else screen.prepend(b);
+    /* 10.60: statt Banner ein Eintrag in der Info-Leiste der Kopfzeile; Antippen öffnet ein kleines Overlay */
     const m = smInit();
+    if (typeof evSetzen === "function") evSetzen("rb", { ord: 0.5, farbe: "#b38cff", sym: SM_ALBUM_SVG, titel: "Bibeljahr", sub: String(jahr), neu: m.rb.p !== jahr, klick: () => rbPop(jahr) });
     if (rbJahr() && m.rb.f !== jahr) setTimeout(() => {
       if (current !== "home" || document.querySelector(".modal") || m.rb.f === jahr) return;
       m.rb.f = jahr; save();
