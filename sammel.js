@@ -771,7 +771,7 @@ async function smQr(url) { try { const q = qrcode(0, "M"); q.addData(url); q.mak
 function smRund(cx, x, y, w, h, r) { cx.beginPath(); cx.moveTo(x + r, y); cx.arcTo(x + w, y, x + w, y + h, r); cx.arcTo(x + w, y + h, x, y + h, r); cx.arcTo(x, y + h, x, y, r); cx.arcTo(x, y, x + w, y, r); cx.closePath(); }
 function smUmbruch(cx, text, x, y, maxB, zeile) { const w = String(text).split(" "); let l = "", n = 0; for (const t of w) { const p = l ? l + " " + t : t; if (cx.measureText(p).width > maxB && l) { cx.fillText(l, x, y + n * zeile); l = t; n++; } else l = p; } if (l) cx.fillText(l, x, y + n * zeile); return n + 1; }
 /* zeichnet Hintergrund, Kopf und Fuß (QR + Link) – inhalt(cx, W, y0, y1) füllt die Mitte */
-async function smZeichnen(format, titel, unter, inhalt) {
+async function smZeichnen(format, titel, unter, inhalt, link = smLink()) { /* 10.73: link für QR (Bibeljahr: kurzer Link) */
   try { await document.fonts.ready; } catch (e) {}
   const W = 1080, H = format === "quadrat" ? 1080 : 1920, cv = document.createElement("canvas"); cv.width = W; cv.height = H; const cx = cv.getContext("2d");
   const g = cx.createRadialGradient(W / 2, 0, 50, W / 2, H * .4, H); g.addColorStop(0, "#26306e"); g.addColorStop(.55, "#121838"); g.addColorStop(1, "#070a1d"); cx.fillStyle = g; cx.fillRect(0, 0, W, H);
@@ -784,10 +784,10 @@ async function smZeichnen(format, titel, unter, inhalt) {
   const fuss = q ? 250 : 360, y0 = kopf + ic + (q ? 40 : 70), y1 = H - fuss - 30;
   await inhalt(cx, W, y0, y1, q);
   /* Fuß: QR-Code + Einladung */
-  const qr = await smQr(smLink()), qs = q ? 190 : 260, fy = H - fuss;
+  const qr = await smQr(link), qs = q ? 190 : 260, fy = H - fuss;
   cx.fillStyle = "#ffffff"; smRund(cx, 70, fy, qs + 24, qs + 24, 24); cx.fill(); if (qr) cx.drawImage(qr, 82, fy + 12, qs, qs);
   cx.fillStyle = "#fff1c2"; cx.font = `800 ${q ? 40 : 50}px Lexend, sans-serif`; cx.fillText("Lerne die 66 Bücher", 70 + qs + 60, fy + (q ? 70 : 90));
-  cx.fillText("der Bibel – spiel mit!", 70 + qs + 60, fy + (q ? 120 : 155)); cx.fillStyle = "#a9b0d6"; cx.font = `600 ${q ? 28 : 34}px Lexend, sans-serif`; cx.fillText(String(smLink()).replace(/^https?:\/\//, "").replace(/[?#].*$/, "").replace(/\/beta\/?$/, "").replace(/\/$/, ""), 70 + qs + 60, fy + (q ? 172 : 225)); /* 10.72: Link statt „QR-Code scannen“ */
+  cx.fillText("der Bibel – spiel mit!", 70 + qs + 60, fy + (q ? 120 : 155)); cx.fillStyle = "#a9b0d6"; cx.font = `600 ${q ? 28 : 34}px Lexend, sans-serif`; cx.fillText(String(link).replace(/^https?:\/\//, "").replace(/[?#].*$/, "").replace(/\/beta\/?$/, "").replace(/\/$/, ""), 70 + qs + 60, fy + (q ? 172 : 225)); /* 10.72: Link statt „QR-Code scannen“ */
   return cv;
 }
 async function smTeilen(cv, name, text) {
@@ -1135,7 +1135,7 @@ VIEWS.rueckblick = () => {
       <button class="btn primary rbv-knopf" id="rbVideo"><i class="rbv-play" aria-hidden="true"></i> Als Video teilen${m.rb.g === D.jahr ? "" : " · +5 Manna"}</button>
       <button class="btn" id="rbTeilen">${svg("share") || ""} Als Bild teilen</button>
       ${fav ? `<button class="btn rbx-heraus" id="rbHeraus">${rbAv(fav.pid, fav.name, 26)} ${esc(fav.name)} zum Duell herausfordern</button>` : ""}
-      <p class="rbx-fuss">Wer über dein Bild einsteigt, zählt für dein Menschenfischer-Abzeichen.<br>${esc(smLink())}</p></div>` });
+      <p class="rbx-fuss">Wer über deinen Link einsteigt, zählt für dein Menschenfischer-Abzeichen.<br>${esc(rbLink())}</p></div>` });
   rbSeite = Math.max(0, Math.min(seiten.length - 1, rbSeite));
   const neu = screen.dataset.rbs !== String(rbSeite); screen.dataset.rbs = rbSeite;
   screen.innerHTML = `<div class="rb${neu ? " rb-neu" : ""}"><div class="rb-balken">${seiten.map((_, i) => `<i class="${i <= rbSeite ? "an" : ""}"></i>`).join("")}</div>
@@ -1208,7 +1208,7 @@ async function rbBild(D, format) {
       y += Math.max(0, (frei - hoehe()) / 2); /* Vers mittig im freien Bereich */
       cx.fillStyle = "#fff8e0"; cx.font = `italic 600 ${fs}px 'Source Serif 4', Georgia, serif`; n = smUmbruch(cx, "„" + D.vers[0] + "“", L, y + fs, B, fs * 1.35);
       cx.fillStyle = "#f2c14e"; F(700, 32); cx.fillText(D.vers[1], L, y + fs + n * fs * 1.35 + 14); }
-  });
+  }, rbLink());
 }
 async function rbTeilenSeite(D) {
   const m = smInit(), du = rbDuStat(D.jahr), fav = du.gegner[0];
@@ -1228,7 +1228,35 @@ async function rbTeilenSeite(D) {
    Ablauf: „Als Video teilen“ → Fenster zeigt die Aufnahme live → danach „Video teilen“ (Teilen braucht einen frischen Tipp). */
 const rbTeilText = (D, du) => `Mein Bibeljahr ${D.jahr} mit Bibelbuch-Quest: ${pkt(D.right)} richtige Antworten${du.summe ? ` und ${du.summe} Duelle` : ""} – und schon ${D.buecher} von 66 Bibelbüchern gelernt! Lern mit und spiel gegen mich!`;
 const rbLinkKurz = () => String(smLink()).replace(/^https?:\/\//, "").replace(/[?#].*$/, "").replace(/\/beta\/?$/, "").replace(/\/$/, "");
-const rbTextMitLink = () => smLink(); /* 10.72: nur der Link (mit Profil-Code für Menschenfischer), damit man ihn direkt kopieren kann */
+/* 10.73: kurzer Bibeljahr-Link ?j=<Code>. Der Code (≤ 7 Zeichen) wird aus der Spieler-Kennung berechnet; die App des neuen Spielers findet daraus
+   über die Spielerliste den Einlader (Menschenfischer). „j“ = Jahresrückblick → Herkunft wird gezählt (linkauf/herkunft, Auswertung im Postkasten). */
+const rbCode = pid => hash("bq|" + pid).toString(36);
+const rbLink = () => "https://meisterspezi.github.io/bibel-quest/?j=" + (S.lbName && S.pid ? rbCode(S.pid) : "x");
+const rbTextMitLink = () => rbLink(); /* 10.72: nur der Link */
+const RB_QUELLE = "bq-quelle";
+(function rbQuelleMerken() {
+  try { const sp = new URLSearchParams(location.search), j = sp.get("j"); if (!j || !/^[0-9a-z]{1,8}$/.test(j)) return;
+    const jahr = rbSichtbar() || (new Date().getMonth() < 6 ? new Date().getFullYear() - 1 : new Date().getFullYear());
+    localStorage.setItem(RB_QUELLE, JSON.stringify({ q: "bj" + jahr, c: j, t: Date.now(), neu: !S.lbName, auf: 0, her: 0 }));
+    history.replaceState(null, "", location.pathname);
+  } catch (e) {}
+})();
+let rbQuelleLaeuft = false;
+async function rbQuelleSenden() {
+  let st = null; try { st = JSON.parse(localStorage.getItem(RB_QUELLE) || "null"); } catch (e) {}
+  const L = window.LB; if (!st || rbQuelleLaeuft || !L || !L.ok) return;
+  if (Date.now() - (st.t || 0) > 30 * 864e5) { try { localStorage.removeItem(RB_QUELLE); } catch (e) {} return; }
+  rbQuelleLaeuft = true; const merken = () => { try { localStorage.setItem(RB_QUELLE, JSON.stringify(st)); } catch (e) {} };
+  try {
+    if (!st.auf && L.linkAuf) { try { await L.linkAuf({ q: st.q, c: st.c, neu: st.neu }); st.auf = 1; } catch (e) { if (e && e.code === "permission-denied") st.auf = 1; } merken(); }
+    if (st.neu && !st.von && st.c !== "x" && L.alleSpieler) { const l = await L.alleSpieler().catch(() => []); const r = (l || []).find(x => x && x.id && rbCode(x.id) === st.c && x.id !== S.pid);
+      if (r) { st.von = r.id; merken(); if (!S.eingeladenVon) { S.eingeladenVon = r.id; save(); try { if (S.lbName) lbSync(true); } catch (e) {} } } }
+    if (st.neu && !st.her && S.lbName && S.pid && L.herkunftSetzen) { try { await L.herkunftSetzen(S.pid, { q: st.q, c: st.c, von: st.von || "" }); st.her = 1; } catch (e) { if (e && e.code === "permission-denied") st.her = 1; } merken(); }
+    if (st.auf && (!st.neu || st.her)) try { localStorage.removeItem(RB_QUELLE); } catch (e) {}
+  } finally { rbQuelleLaeuft = false; }
+}
+addEventListener("lb-ready", () => setTimeout(rbQuelleSenden, 2500));
+setInterval(() => { try { if (localStorage.getItem(RB_QUELLE)) rbQuelleSenden(); } catch (e) {} }, 60000);
 function rbVideoDaten() { const D = rbDaten(), du = rbDuStat(D.jahr); return { D, solo: rbSolo(), du, fav: rbGegZeigen ? du.gegner[0] : null }; }
 function rbPlan(V) { const p = [["intro", 2.6], ["zahlen", 2.9], ["solo", 2.9], ["duell", 2.9]]; if (V.fav) p.push(["gegner", 2.7]); p.push(["outro", 3.8]); return p; }
 const rbEase = p => 1 - Math.pow(1 - Math.max(0, Math.min(1, p)), 3);
@@ -1414,7 +1442,7 @@ async function rbVideoStart() {
   kn.querySelector('[data-a="zu"]').onclick = () => { SFX.tap(); zu(); };
   const knoepfe = (html, fn) => { kn.innerHTML = html + `<button class="btn" data-a="zu">Schließen</button>`; kn.querySelector('[data-a="zu"]').onclick = () => { SFX.tap(); zu(); }; fn(); };
   try { await document.fonts.ready; } catch (e) {}
-  const R = { icon: await smBild("icons/icon-192.png"), qr: await smQr(smLink()) };
+  const R = { icon: await smBild("icons/icon-192.png"), qr: await smQr(rbLink()) };
   const vcodec = await rbVideoCodec(), muxOk = vcodec && await rbMuxerLaden(), ton = muxOk && await rbAacOk();
   rbFrame(cx, 720, 1280, plan, 1.6, V, R); if (ton) txt.textContent = "Musik wird erzeugt …"; /* sofort ein Bild statt schwarzer Fläche */
   if (muxOk) {
@@ -1441,6 +1469,27 @@ async function rbVideoStart() {
   knoepfe(`<button class="btn primary" data-a="teilen">${svg("share") || ""} Bilder teilen</button>`, () => { kn.querySelector('[data-a="teilen"]').onclick = async () => { SFX.tap(); if (await rbTeilenDateien(dateien, rbTeilText(V.D, V.du), V.D)) zu(); }; });
 }
 let rbVideoLetzt = null;
+
+/* ---------- 10.73: Verwalter-Ansicht „Bibeljahr-Link“ (Postkasten) – Öffnungen, neue Spieler, Einlader ---------- */
+VIEWS.rblink = () => {
+  const L = window.LB; if (!entwickler || !L || !L.ok || !L.linkStat) { go("home"); return; }
+  screen.innerHTML = `${backBtn("postfach", "Postkasten")}<h1>Bibeljahr-Link</h1><p class="small muted" style="margin:0 0 8px">Wer den Jahresrückblick geteilt hat und wer darüber in die App kam. Neue Spieler zählen erst, wenn sie ein Profil anlegen.</p><div id="rlInhalt"><p class="small muted">Lade …</p></div>`;
+  wireGo();
+  Promise.all([L.linkStat(), (L.alleSpielerVoll || L.alleSpieler)().catch(() => [])]).then(([st, spieler]) => {
+    if (current !== "rblink") return;
+    const nameVon = pid => { const r = (spieler || []).find(x => x.id === pid); return r ? r.name : pid ? "(gelöscht)" : "–"; };
+    const codeName = {}; (spieler || []).forEach(r => { if (r && r.id) codeName[rbCode(r.id)] = r.name; });
+    const tag = 864e5, jetzt = Date.now(), auf = st.auf || [], her = (st.her || []).sort((a, b) => b.z - a.z);
+    const n = (l, t) => l.filter(x => jetzt - x.z < t).length;
+    const jeCode = {}; auf.forEach(a => { const k = a.c || "x"; (jeCode[k] = jeCode[k] || { auf: 0, neu: 0, her: 0 }).auf++; if (a.neu) jeCode[k].neu++; });
+    her.forEach(h => { const k = h.c || "x"; (jeCode[k] = jeCode[k] || { auf: 0, neu: 0, her: 0 }).her++; });
+    const zeilenCode = Object.entries(jeCode).sort((a, b) => b[1].her - a[1].her || b[1].auf - a[1].auf);
+    const kachel = (z, t) => `<span><b>${pkt(z)}</b><i>${t}</i></span>`;
+    $("rlInhalt").innerHTML = `<div class="rl-kacheln">${kachel(auf.length, "× geöffnet")}${kachel(auf.filter(a => a.neu).length, "davon ohne Profil")}${kachel(her.length, "neue Spieler")}${kachel(n(auf, tag), "geöffnet (24 Std.)")}${kachel(n(her, tag), "neu (24 Std.)")}${kachel(n(her, 7 * tag), "neu (7 Tage)")}</div>
+      <div class="card"><h3 style="margin:0 0 6px">Neue Spieler über den Link</h3>${her.length ? her.map(h => `<div class="rl-z"><b>${esc(nameVon(h.pid))}</b><span class="small muted">${new Date(h.z).toLocaleDateString("de-DE")} · eingeladen von ${esc(h.von ? nameVon(h.von) : codeName[h.c] || "unbekannt")}</span></div>`).join("") : `<p class="small muted">Noch niemand.</p>`}</div>
+      <div class="card" style="margin-top:10px"><h3 style="margin:0 0 6px">Je geteiltem Link</h3>${zeilenCode.length ? zeilenCode.map(([c, z]) => `<div class="rl-z"><b>${esc(c === "x" ? "ohne Profil geteilt" : codeName[c] || "Code " + c)}</b><span class="small muted">${z.auf}× geöffnet (${z.neu} ohne Profil) · ${z.her} neue Spieler</span></div>`).join("") : `<p class="small muted">Noch keine Öffnungen.</p>`}</div>`;
+  }).catch(e => { if (current === "rblink") $("rlInhalt").innerHTML = `<p class="small muted">${e && e.code === "permission-denied" ? "Die neuen Firebase-Regeln (10.73) sind noch nicht veröffentlicht." : "Konnte nicht laden."}</p>`; });
+};
 
 /* Start: Banner und einmaliges Fenster */
 /* 10.60: statt Banner ein Eintrag in der Info-Leiste der Kopfzeile; Antippen öffnet ein kleines Overlay. 10.63: eigene Funktion (Nachtrag beim ersten Start) */
