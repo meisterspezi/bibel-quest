@@ -3702,6 +3702,28 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .hud .hud-kasse .sm-funk{display:none}
 .hud .hud-kasse .sm-neu{top:-8px!important;left:-6px!important;right:auto!important}
 .hud .hud-kasse .tb-punkt{z-index:3;top:0!important;right:0!important}
+
+/* 10.62: Kopfzeile kompakt (Michaels Wahl „Vorschlag 2 kompakt“): große Truhe links mit Ring, Plakette „1/3“ und Schlüsseln IN den Schlössern,
+   rechts bis zu 4 Einträge als 2×2-Kärtchen; ab dem 5. Eintrag seitlich wischen (zwei Zeilen bleiben). */
+html .start-aufg.ev-da .bk-aufg{width:26%!important;display:flex!important;flex-direction:column;align-items:center;gap:0;padding:0 0 10px!important;position:relative}
+html .start-aufg.ev-da .bk-kopf::after{right:-285%!important}
+html .start-aufg.ev-da .bk-med.truhe{width:58px!important;height:58px!important;padding:3.5px!important;box-shadow:0 0 16px -2px #f2c14e!important;margin-top:2px}
+html .start-aufg.ev-da .bk-med.truhe>svg{padding:3px!important}
+html .start-aufg.ev-da .bk-t{position:relative;margin-top:-10px;z-index:2}
+html .start-aufg.ev-da .bk-t h1{font:900 11.5px/15px var(--body)!important;letter-spacing:0!important;background:linear-gradient(180deg,#ffe58a,#e0a838)!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:#2a1a00!important;-webkit-text-fill-color:#2a1a00;padding:0 7px;border-radius:9px;box-shadow:0 0 0 2px #0e1226;filter:none!important}
+html .start-aufg.ev-da .kt-heute{display:none!important}
+html .start-aufg.ev-da .ez-keys{display:none!important}
+html .start-aufg .ev-reihe{width:74%!important;right:-4px!important;top:-5px!important;display:grid!important;grid-template-columns:none;grid-template-rows:auto auto;grid-auto-flow:column;grid-auto-columns:calc(50% - 3px);gap:5px!important;padding:7px 2px 2px 4px!important;-webkit-mask-image:none!important;mask-image:none!important;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory}
+html .start-aufg .ev-m{width:auto!important;min-width:0;gap:0 6px!important;padding:2px 4px 2px 2px!important;border-radius:20px;background:#ffffff0a;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 45%,transparent);display:grid!important;grid-template-columns:30px minmax(0,1fr);grid-template-rows:auto auto;text-align:left;scroll-snap-align:start}
+html .start-aufg .ev-ring{grid-row:1/3;width:30px!important;height:30px!important;padding:2px!important;animation:none!important}
+html .start-aufg .ev-in{border-width:1px!important}
+html .start-aufg .ev-in svg,html .start-aufg .ev-in img{width:21px!important;height:21px!important}
+html .start-aufg .ev-m b{text-align:left!important;font-size:11px!important;line-height:1.1!important;align-self:end;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html .start-aufg .ev-m small{text-align:left!important;font-size:9.5px!important;align-self:start;margin:0!important;overflow:hidden;text-overflow:ellipsis}
+html .start-aufg .ev-zahl{left:20px!important;right:auto!important;top:-4px!important;min-width:15px!important;height:15px!important;font-size:9px!important;line-height:15px!important}
+html .start-aufg .ev-ok{left:20px!important;right:auto!important;top:-3px!important}
+html .start-aufg .ev-neu{left:auto!important;right:6px!important;top:-7px!important}
+html .ev-punkte{top:auto!important;bottom:-2px;right:34%!important}
 </style>
 </head>
 <body>
