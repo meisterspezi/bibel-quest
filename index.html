@@ -3791,6 +3791,21 @@ html .start-aufg .ev-ok{top:-2px!important;right:calc(50% - var(--r) / 2 - 4px)!
 .rbx-partner{display:flex;flex-direction:column;gap:6px;width:100%;padding:10px 12px;border-radius:16px;background:#0e1230aa;text-align:left}
 .rbx-partner>i{font-style:normal;font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--rc)}
 .rbx-partner span{display:flex;align-items:center;gap:8px}.rbx-partner b{flex:1;font-size:.9rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rbx-partner em{font-style:normal;font-weight:900;color:var(--rc)}
+
+/* 10.66: letzte Rückblick-Seite – Bild im leuchtenden Rahmen, Schalter, Herausfordern */
+.rbx-teil{gap:10px!important;justify-content:flex-start!important}
+.rbx-teil-t{font:800 1.35rem var(--display)!important;letter-spacing:.04em;background:linear-gradient(180deg,#fff,#fff1c2 40%,#f2c14e 75%,#c9902a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.rbx-rahmen{padding:6px;border-radius:22px;background:conic-gradient(from 200deg,#f2c14e,#fff6dc,#ff7fa8,#c49bff,#7fc8ff,#f2c14e);box-shadow:0 0 40px -8px #f2c14e}
+.rbx-rahmen .rb-vorschau{border-radius:17px;overflow:hidden;background:#0e1226;min-height:120px;display:grid;place-items:center}
+.rbx-rahmen .rb-bild{display:block;border-radius:0!important}
+.rbx-schalter{display:flex;align-items:center;gap:10px;font-size:.85rem;font-weight:700;color:#ffd6e2;cursor:pointer}
+.rbx-schalter input{position:absolute;opacity:0;pointer-events:none}
+.rbx-schalter span{width:40px;height:22px;border-radius:11px;background:#3a4278;position:relative;transition:background .2s;flex:none}
+.rbx-schalter span::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s}
+.rbx-schalter input:checked+span{background:#ff7fa8}.rbx-schalter input:checked+span::after{transform:translateX(18px)}
+.rbx-heraus{display:inline-flex!important;align-items:center;justify-content:center;gap:8px;width:100%;border-color:#ff7fa8!important;color:#ffd6e2!important}
+.rbx-heraus .av{flex:none}
+.rbx-teil .rbx-fuss{line-height:1.4;word-break:break-all}
 </style>
 </head>
 <body>

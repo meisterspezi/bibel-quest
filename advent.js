@@ -281,14 +281,13 @@ VIEWS.advent = () => {
   const vorStart = h < 0 && adJetzt() < adTag(0);
   const kopf = vorStart ? `Startet am Sonntag, 29. November` : adNachEnde() ? "Danke fürs Mitfeiern – frohes neues Jahr!" : h >= 24 ? (adAnzahl() >= 25 || test ? "Frohe Weihnachten!" : "Frohe Weihnachten – verpasste Türen bis 6.1. nachholen") : `Noch ${24 - Math.max(0, h)} ${24 - Math.max(0, h) === 1 ? "Tag" : "Tage"} bis Heiligabend`;
   screen.innerHTML = `${backBtn("home", "Start")}<div class="ad-seite">
-    <div class="ad-titel"><b>Adventskalender</b><small>${kopf}</small></div>
+    <div class="ad-gesch-t">Die Weihnachtsgeschichte</div>
+    <div class="ad-gesch">${[0, 6, 13, 20, 24].map(nr => { const auf = adOffen(nr), T = ADVENT_TUEREN[nr]; return `<button class="ad-g${auf ? " auf" : ""}" data-gesch="${nr}"><span class="ad-g-b">${auf ? tkBildSvg("adv", T.bild) : `<i>${nr === 24 ? "★" : AD_SO[nr]}</i>`}</span><small>${nr === 24 ? "Heiligabend" : AD_SO[nr] + ". Advent"}</small></button>`; }).join("")}</div>
+    <div class="ad-titel ad-titel-klein"><small>${kopf}</small></div>
     ${test ? `<div class="ad-test">Vorschau mit Testdatum ${esc(adHeuteStr())} – keine Belohnungen. <button class="btn ghost mini" id="adTagZ">◀</button><button class="btn ghost mini" id="adTagV">▶</button><button class="btn ghost mini" id="adReset">Zurücksetzen</button></div>`
       : vorStart && (BETA || adLokal()) ? `<div class="ad-test">Beta-Vorschau: Im Testlabor ein Datum ab 29.11. wählen, um Türen zu öffnen.</div>` : ""}
     <div class="ad-buehne">${bethlehem({ heute: h, offen })}</div>
     ${schHtml()}
-    <div class="ad-gesch-t">Die Weihnachtsgeschichte</div>
-    <div class="ad-gesch">${[0, 6, 13, 20, 24].map(nr => { const auf = adOffen(nr), T = ADVENT_TUEREN[nr]; return `<button class="ad-g${auf ? " auf" : ""}" data-gesch="${nr}"><span class="ad-g-b">${auf ? tkBildSvg("adv", T.bild) : `<i>${nr === 24 ? "★" : AD_SO[nr]}</i>`}</span><small>${nr === 24 ? "Heiligabend" : AD_SO[nr] + ". Advent"}</small></button>`; }).join("")}</div>
-    <div class="ad-lohnreihe">${["adv-kranz1", "adv-kranz2", "adv-kranz3", "adv-kranz4", "adv-kranz5"].map((id, i) => `<span class="ad-l${adFrei(["adv-0", "adv-6", "adv-13", "adv-20", "adv-24"][i]) ? " frei" : ""}" title="${esc(RAHMEN.find(r => r.id === id).name)}">${avatarHtml({ name: S.lbName || "?", avatar: i === 4 ? "adv-krippe" : S.avatar, frame: id }, 30)}</span>`).join("")}</div>
 </div>`;
   wireGo();
   screen.querySelectorAll("[data-tuer]").forEach(t => t.addEventListener("click", () => adTuerTippen(+t.dataset.tuer)));

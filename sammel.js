@@ -1092,7 +1092,7 @@ function rbBalken(liste) {
 }
 const rbAv = (pid, name, gr) => { const r = (rbSpieler || []).find(x => x.id === pid) || { name }; return avatarHtml(Object.assign({ name }, r), gr); };
 
-let rbSeite = 0, rbFormat = "status", rbGemeinde = null;
+let rbSeite = 0, rbFormat = "status", rbGemeinde = null, rbGegZeigen = true, rbBildNr = 0;
 VIEWS.rueckblick = () => {
   const D = rbDaten(), m = smInit();
   if (!D.jahr) { go("home"); return; }
@@ -1120,16 +1120,21 @@ VIEWS.rueckblick = () => {
       <div class="rbx-mini rb-an" style="--d:520ms"><span class="g">${fav.s} Siege</span><span class="u">${fav.u} Remis</span><span class="r">${fav.l} Niederlagen</span></div>
       ${partner.length ? `<div class="rbx-partner rb-an" style="--d:700ms"><i>Weitere Duell-Partner</i>${partner.map(g => `<span>${rbAv(g.pid, g.name, 30)}<b>${esc(g.name)}</b><em>${g.n}×</em></span>`).join("")}</div>` : ""}
       <p class="rbx-fuss rb-an" style="--d:900ms">${du.gegner.length} verschiedene Gegner · „Eisen schärft Eisen“ (nach Sprüche 27,17)</p>`);
-  }
+  } else k("gegner", "#ff7fa8", `<small class="rb-an">Dein Lieblings-Gegner</small>${rbDu === null || rbDuLaedt ? `<p class="rbx-laedt">Deine Duelle werden geladen …</p>`
+    : `<p class="rb-an" style="--d:150ms">Noch kein Lieblings-Gegner – ${D.jahr + 1} wartet die Arena auf dich!</p><p class="rbx-fuss rb-an" style="--d:400ms">„Eisen schärft Eisen“ (nach Sprüche 27,17)</p>`}`); /* 10.66: Seite immer da, sonst verschieben sich die Seiten, wenn die Duelle nachladen */
   k("rekorde", "#66e0d0", `<small class="rb-an">Deine Rekorde</small><div class="rbx-kacheln">
     ${[[D.kette, "Bücher in der Kette"], [D.blitz, "Blitz-Rekord"], [D.bib, "Biblionär-Punkte"], [D.siege, "Duell-Siege"]].map(([z, t], i) => `<span class="rb-an" style="--d:${150 + i * 110}ms">${RB_ZAHL(z)}<i>${t}</i></span>`).join("")}</div>`);
   k("album", "#f2c14e", `<small class="rb-an">Sammelalbum</small><div class="rbx-gross rb-an" style="--d:150ms">${RB_ZAHL(D.album)}<span>von 66 Karten</span></div><p class="rb-an" style="--d:450ms">${D.gold} Manna liegen bereit – ${D.gold >= SM_KRUG_PREIS ? "genug für einen Krug!" : "spiel ein paar Runden für den nächsten Krug."}</p>`);
   k("gemeinsam", "#5fe0b0", `<small class="rb-an">Gemeinsam</small><div class="rbx-gross rb-an" style="--d:150ms">${rbGemeinde ? RB_ZAHL(rbGemeinde) : "<b>…</b>"}<span>XP haben alle zusammen gesammelt</span></div><p class="rb-an" style="--d:450ms">Danke, dass du Teil davon bist!</p>`);
   k("vers", "#fff1c2", `<small class="rb-an">Dein Vers für ${D.jahr + 1}</small><blockquote class="rb-an" style="--d:200ms">${esc(D.vers[0])}</blockquote><cite class="rb-an" style="--d:600ms">${esc(D.vers[1])}</cite>`, "rb-vers");
-  seiten.push({ id: "teilen", html: `<div class="rb-k rb-teil rbx" style="--rc:#f2c14e"><small>Teilen</small><h3>Zeig deinen Freunden dein Bibeljahr</h3>
-      <div class="rb-vorschau" id="rbVorschau"><span class="muted small">Bild wird erstellt …</span></div>
-      <p class="rb-link small">Mit dem Bild wird dieser Link geteilt:<br><b>${esc(smLink())}</b></p>
-      <button class="btn primary" id="rbTeilen">${svg("share") || ""} Teilen${m.rb.g === D.jahr ? "" : " · +5 Manna"}</button></div>` });
+  /* 10.66: letzte Seite hochwertiger – Bild im Rahmen, Schalter für den Lieblings-Gegner, Herausfordern, Menschenfischer-Hinweis */
+  seiten.push({ id: "teilen", html: `<div class="rb-k rb-teil rbx rbx-teil" style="--rc:#f2c14e"><span class="rbx-licht" aria-hidden="true"></span>
+      <small>Teilen</small><h3 class="rbx-teil-t">Dein Jahr als Bild</h3>
+      <div class="rbx-rahmen"><div class="rb-vorschau" id="rbVorschau"><span class="muted small">Bild wird erstellt …</span></div></div>
+      ${fav ? `<label class="rbx-schalter"><input type="checkbox" id="rbGeg" ${rbGegZeigen ? "checked" : ""}><span aria-hidden="true"></span>Lieblings-Gegner auf dem Bild zeigen</label>` : ""}
+      <button class="btn primary" id="rbTeilen">${svg("share") || ""} Teilen${m.rb.g === D.jahr ? "" : " · +5 Manna"}</button>
+      ${fav ? `<button class="btn rbx-heraus" id="rbHeraus">${rbAv(fav.pid, fav.name, 26)} ${esc(fav.name)} zum Duell herausfordern</button>` : ""}
+      <p class="rbx-fuss">Wer über dein Bild einsteigt, zählt für dein Menschenfischer-Abzeichen.<br>${esc(smLink())}</p></div>` });
   rbSeite = Math.max(0, Math.min(seiten.length - 1, rbSeite));
   const neu = screen.dataset.rbs !== String(rbSeite); screen.dataset.rbs = rbSeite;
   screen.innerHTML = `<div class="rb${neu ? " rb-neu" : ""}"><div class="rb-balken">${seiten.map((_, i) => `<i class="${i <= rbSeite ? "an" : ""}"></i>`).join("")}</div>
@@ -1150,30 +1155,71 @@ function rbAnimieren(neu) {
   screen.querySelectorAll(".rb-cnt").forEach(el => { const z = +el.dataset.z || 0; if (still || z < 2) return; const t0 = performance.now(), dauer = 900;
     const schritt = t => { const p = Math.min(1, (t - t0) / dauer), w = Math.round(z * (1 - Math.pow(1 - p, 3))); el.textContent = pkt(w); if (p < 1 && el.isConnected) requestAnimationFrame(schritt); }; el.textContent = "0"; requestAnimationFrame(schritt); });
 }
+/* 10.66: Teilen-Bild mit Grafiken – Zahlen-Kacheln, Solo-Ring (Spielarten), Duell-Bilanz-Balken, Lieblings-Gegner (abschaltbar), Vers */
 async function rbBild(D, format) {
   const name = S.lbName || ""; /* 9.86: Name immer aufs Bild */
+  const solo = rbSolo(), du = rbDuStat(D.jahr), fav = rbGegZeigen ? du.gegner[0] : null;
   return smZeichnen(format, `Mein Bibeljahr ${D.jahr}`, name ? `${name} · Bibelbuch-Quest` : "Bibelbuch-Quest", async (cx, W, y0, y1, q) => {
-    const z = [[pkt(D.right), "richtige Antworten"], [D.serie + " Tage", "längste Serie"], [D.buecher + " / 66", "Bücher gelernt"], [D.album + " / 66", "Album-Karten"]];
-    const bw = (W - 140 - 30) / 2, bh = q ? 170 : 230;
-    z.forEach(([w, t], k) => { const x = 70 + (k % 2) * (bw + 30), y = y0 + Math.floor(k / 2) * (bh + 30);
-      cx.fillStyle = "#1b2252"; smRund(cx, x, y, bw, bh, 32); cx.fill(); cx.strokeStyle = "#f2c14e55"; cx.lineWidth = 3; cx.stroke();
-      cx.textAlign = "center"; cx.fillStyle = "#ffffff"; cx.font = `900 ${q ? 72 : 96}px Lexend, sans-serif`; cx.fillText(w, x + bw / 2, y + bh * .52);
-      cx.fillStyle = "#f2c14e"; cx.font = `700 ${q ? 32 : 38}px Lexend, sans-serif`; cx.fillText(t, x + bw / 2, y + bh * .52 + (q ? 52 : 66)); });
-    let y = y0 + 2 * (bh + 30) + (q ? 10 : 40);
-    if (!q) {
-      if (D.lieb) { cx.textAlign = "left"; cx.fillStyle = "#c9d1ff"; cx.font = "700 40px Lexend, sans-serif"; cx.fillText("Lieblingsbereich: " + D.lieb, 70, y + 40); let x = 70;
-        D.ber.forEach(([k, p]) => { const w = (W - 140) * p / 100; cx.fillStyle = RB_FARBE[k] || "#888"; cx.fillRect(x, y + 70, Math.max(0, w - 4), 28); x += w; }); y += 150; }
-      cx.textAlign = "left"; cx.fillStyle = "#fff8e0"; cx.font = "italic 600 46px 'Source Serif 4', Georgia, serif"; const n = smUmbruch(cx, "„" + D.vers[0] + "“", 70, y + 50, W - 140, 62);
-      cx.fillStyle = "#f2c14e"; cx.font = "700 36px Lexend, sans-serif"; cx.fillText(D.vers[1], 70, y + 50 + n * 62 + 10);
+    const L = 70, B = W - 140, F = (gew, px, fam = "Lexend, sans-serif") => { cx.font = `${gew} ${px}px ${fam}`; };
+    const karte = (x, y, w, h, farbe) => { cx.fillStyle = "#151b48"; smRund(cx, x, y, w, h, 30); cx.fill(); cx.strokeStyle = farbe + "88"; cx.lineWidth = 3; cx.stroke();
+      const g = cx.createLinearGradient(x, y, x, y + 90); g.addColorStop(0, farbe + "33"); g.addColorStop(1, farbe + "00"); cx.fillStyle = g; smRund(cx, x, y, w, Math.min(h, 90), 30); cx.fill(); };
+    /* A: vier Zahlen-Kacheln */
+    const z = [[pkt(D.right), "richtige Antworten", "#7fc8ff"], [D.serie + " Tage", "längste Serie", "#ff9f5a"], [D.buecher + " / 66", "Bücher gelernt", "#5fe0b0"], [D.album + " / 66", "Album-Karten", "#f2c14e"]];
+    const kw = (B - 30) / 2, kh = q ? 120 : 150;
+    z.forEach(([w, t, f], k) => { const x = L + (k % 2) * (kw + 30), y = y0 + Math.floor(k / 2) * (kh + 24); karte(x, y, kw, kh, f);
+      cx.textAlign = "center"; cx.fillStyle = "#fff"; F(900, q ? 60 : 74); cx.fillText(w, x + kw / 2, y + kh * .55); cx.fillStyle = f; F(700, q ? 28 : 32); cx.fillText(t, x + kw / 2, y + kh * .55 + (q ? 40 : 50)); });
+    let y = y0 + 2 * (kh + 24) + 16;
+    if (q) return;
+    /* B: Solo-Ring und Duell-Bilanz nebeneinander */
+    const bh = 400, bw = (B - 30) / 2;
+    karte(L, y, bw, bh, "#c49bff"); cx.textAlign = "left"; cx.fillStyle = "#c49bff"; F(800, 34); cx.fillText("SOLO", L + 30, y + 56);
+    const sl = solo.liste.slice(0, 4), rx = L + 135, ry = y + 230, rr = 92;
+    if (sl.length) {
+      let w0 = -Math.PI / 2; const ges = sl.reduce((a, x) => a + x[2], 0) || 1, rest = Math.max(0, 100 - ges);
+      [...sl.map(x => [x[2], rbArt(x[0])[2]]), [rest, "#3a4278"]].forEach(([p, f]) => { if (p <= 0) return; const w1 = w0 + Math.PI * 2 * p / 100;
+        cx.beginPath(); cx.arc(rx, ry, rr, w0 + 0.03, w1 - 0.03); cx.strokeStyle = f; cx.lineWidth = 34; cx.lineCap = "butt"; cx.stroke(); w0 = w1; });
+      cx.textAlign = "center"; cx.fillStyle = "#fff"; F(900, 46); cx.fillText(solo.nachXp ? sl[0][2] + "%" : pkt(solo.summe), rx, ry + 8); cx.fillStyle = "#c9d1ff"; F(600, 24); cx.fillText(solo.nachXp ? rbArt(sl[0][0])[0] : "Runden", rx, ry + 40);
+      cx.textAlign = "left"; sl.forEach((x, i) => { const [nm, , f] = rbArt(x[0]), ly = y + 140 + i * 62; cx.fillStyle = f; cx.beginPath(); cx.arc(L + 268, ly - 9, 9, 0, Math.PI * 2); cx.fill();
+        cx.fillStyle = "#fff"; F(700, 26); cx.fillText(nm.length > 11 ? nm.slice(0, 10) + "…" : nm, L + 286, ly); cx.fillStyle = f; F(800, 26); cx.fillText(x[2] + " %", L + 286, ly + 30); });
+    } else { cx.fillStyle = "#c9d1ff"; F(600, 30); cx.textAlign = "center"; cx.fillText("Noch keine Runden", L + bw / 2, y + 220); }
+    const dx = L + bw + 30; karte(dx, y, bw, bh, "#ff8a5c"); cx.textAlign = "left"; cx.fillStyle = "#ff8a5c"; F(800, 34); cx.fillText("DUELLE", dx + 30, y + 56);
+    if (du.summe) {
+      cx.textAlign = "center"; cx.fillStyle = "#fff"; F(900, 96); cx.fillText(pkt(du.summe), dx + bw / 2, y + 170); cx.fillStyle = "#ffc9b0"; F(700, 28); cx.fillText(du.summe === 1 ? "Duell" : "Duelle", dx + bw / 2, y + 210);
+      const tw = bw - 60, tx = dx + 30, ty = y + 245, sum = (du.s + du.u + du.n) || 1; let xx = tx;
+      [[du.s, "#5fe08a"], [du.u, "#f2c14e"], [du.n, "#ff6b7a"]].forEach(([v, f]) => { const w = tw * v / sum; if (w > 0) { cx.fillStyle = f; smRund(cx, xx, ty, Math.max(8, w - 4), 34, 10); cx.fill(); } xx += w; });
+      [[du.s, "Siege", "#5fe08a"], [du.u, "Remis", "#f2c14e"], [du.n, "Niederl.", "#ff6b7a"]].forEach(([v, t, f], i) => { const cxp = tx + tw * (i + .5) / 3; cx.fillStyle = "#fff"; F(900, 40); cx.fillText(v, cxp, ty + 96); cx.fillStyle = f; F(700, 24); cx.fillText(t, cxp, ty + 126); });
+    } else { cx.textAlign = "center"; cx.fillStyle = "#ffc9b0"; F(600, 30); cx.fillText("Noch keine Duelle", dx + bw / 2, y + 210); }
+    y += bh + 30;
+    /* C: Lieblings-Gegner */
+    if (fav) {
+      const ch = 190; karte(L, y, B, ch, "#ff7fa8");
+      const ax = L + 105, ay = y + ch / 2, g = cx.createLinearGradient(ax - 75, ay - 75, ax + 75, ay + 75); g.addColorStop(0, "#fff6dc"); g.addColorStop(.5, "#ff7fa8"); g.addColorStop(1, "#f2c14e");
+      cx.fillStyle = g; cx.beginPath(); cx.arc(ax, ay, 72, 0, Math.PI * 2); cx.fill(); cx.fillStyle = "#1d2550"; cx.beginPath(); cx.arc(ax, ay, 62, 0, Math.PI * 2); cx.fill();
+      cx.textAlign = "center"; cx.fillStyle = "#fff"; F(900, 66); cx.fillText(String(fav.name || "?").trim().charAt(0).toUpperCase(), ax, ay + 23);
+      cx.textAlign = "left"; cx.fillStyle = "#ff7fa8"; F(800, 30); cx.fillText("MEIN LIEBLINGS-GEGNER", L + 210, y + 60);
+      cx.fillStyle = "#fff"; let fs = 58; do { F(900, fs); } while (cx.measureText(fav.name).width > B - 240 && --fs > 30); cx.fillText(fav.name, L + 210, y + 122);
+      cx.fillStyle = "#ffd6e2"; F(700, 32); cx.fillText(`${fav.n} ${fav.n === 1 ? "Duell" : "Duelle"} · Bilanz ${fav.s} : ${fav.l}`, L + 210, y + 166);
+      y += ch + 30;
     }
+    /* D: Vers */
+    const frei = y1 - y; if (frei > 120) { cx.textAlign = "left"; let fs = 44, n = 0; const hoehe = () => { cx.font = `italic 600 ${fs}px 'Source Serif 4', Georgia, serif`; const w = cx.measureText("„" + D.vers[0] + "“").width; return Math.ceil(w / B) * fs * 1.35 + 60; };
+      while (hoehe() > frei && fs > 28) fs -= 2;
+      y += Math.max(0, (frei - hoehe()) / 2); /* Vers mittig im freien Bereich */
+      cx.fillStyle = "#fff8e0"; cx.font = `italic 600 ${fs}px 'Source Serif 4', Georgia, serif`; n = smUmbruch(cx, "„" + D.vers[0] + "“", L, y + fs, B, fs * 1.35);
+      cx.fillStyle = "#f2c14e"; F(700, 32); cx.fillText(D.vers[1], L, y + fs + n * fs * 1.35 + 14); }
   });
 }
 async function rbTeilenSeite(D) {
-  const m = smInit();
-  const cv = await rbBild(D, rbFormat); if (current !== "rueckblick") return;
-  const v = $("rbVorschau"); if (v) { v.innerHTML = ""; cv.className = "rb-bild " + rbFormat; v.appendChild(cv); }
+  const m = smInit(), du = rbDuStat(D.jahr), fav = du.gegner[0];
+  const zeichnen = async () => { const nr = ++rbBildNr, cv = await rbBild(D, rbFormat); if (current !== "rueckblick" || nr !== rbBildNr) return null; /* nur das zuletzt gestartete Bild zählt */
+    const v = $("rbVorschau"); if (v) { v.innerHTML = ""; cv.className = "rb-bild " + rbFormat; v.appendChild(cv); } return cv; };
+  let cv = await zeichnen(); if (!cv) return;
+  if (rbDu === null || rbDuLaedt) return; /* Duelle laden noch – nach dem Laden wird die Seite neu gezeichnet */
+  const g = $("rbGeg"); if (g) g.onchange = async () => { rbGegZeigen = g.checked; SFX.tap(); cv = await zeichnen() || cv; };
+  const h = $("rbHeraus"); if (h && fav) h.onclick = () => { SFX.tap(); const r = (rbSpieler || []).find(x => x.id === fav.pid) || { id: fav.pid, name: fav.name }; if (typeof duTypWahl === "function") duTypWahl(r); };
   $("rbTeilen").onclick = async () => { SFX.tap();
-    const ok = await smTeilen(cv, `mein-bibeljahr-${D.jahr}.png`, `Mein Bibeljahr ${D.jahr} mit Bibelbuch-Quest: ${pkt(D.right)} richtige Antworten und schon ${D.buecher} von 66 Bibelbüchern gelernt! Lern mit und spiel gegen mich! 👇`);
+    const duText = du.summe ? ` und ${du.summe} Duelle` : "";
+    const ok = await smTeilen(cv, `mein-bibeljahr-${D.jahr}.png`, `Mein Bibeljahr ${D.jahr} mit Bibelbuch-Quest: ${pkt(D.right)} richtige Antworten${duText} – und schon ${D.buecher} von 66 Bibelbüchern gelernt! Lern mit und spiel gegen mich! 👇`);
     if (ok && m.rb.g !== D.jahr) { m.rb.g = D.jahr; save(); const x = smGoldGeben(5); if (x) toast(`Danke fürs Teilen! +${x} Manna`); } };
 }
 /* Start: Banner und einmaliges Fenster */
