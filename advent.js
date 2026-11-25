@@ -434,6 +434,7 @@ function schSpenden() {
   const nach = schStufe(schSumme());
   toast(`${svg("star", "#f2c14e")}<div><b>Danke fürs Schmücken!</b><div class="small muted">${test ? "Vorschau – keine Talente abgezogen" : `−${preis.toLocaleString("de-DE")} Talente`} · heute ${schHeute()}/${SCH_TAG_MAX}</div></div>`);
   if (nach > vorStufe) setTimeout(() => schNeueStufe(nach), 900);
+  schFreude = { t: Date.now(), hoch: nach > vorStufe };
   if (current === "advent") VIEWS.advent();
 }
 function schNeueStufe(st) {
@@ -443,6 +444,7 @@ function schNeueStufe(st) {
 }
 /* 10.56: kompakte, festliche Karte – Lichterkette mit 8 Lampen (= Stufen), Ring = Weg zur nächsten Stufe; Antippen öffnet die Details */
 const SCH_FARBEN = ["#ff5a6e", "#f2c14e", "#5fe08a", "#6fb4ff"];
+let schFreude = null; /* nach dem Spenden: nächste (bzw. neu erreichte) Lampe leuchtet kurz auf */
 function schWerte() {
   const s = schSumme(), st = schStufe(s), nx = SCH_STUFEN[st], vor = st ? SCH_STUFEN[st - 1].n : 0, test = adTest();
   return { s, st, nx, vor, pct: nx ? Math.max(0, Math.min(100, Math.round((s - vor) / (nx.n - vor) * 100))) : 100,
@@ -454,7 +456,7 @@ function schKette(st, pct) {
   let draht = `M0 5`; for (let i = 0; i <= n; i++) { const x = Math.min(w, i * dx + (i ? 0 : 0)); if (i) draht += `Q${(x - dx / 2).toFixed(1)} 13 ${x.toFixed(1)} 5`; }
   const birnen = SCH_STUFEN.map((_, i) => { const x = x0 + i * dx, y = 9.6, f = SCH_FARBEN[i % 4], an = i < st, naechste = i === st;
     const glas = an ? f : naechste ? f : "#3a4170", op = an ? 1 : naechste ? .28 + pct / 100 * .5 : 1;
-    return `<g class="sch-b${an ? " an" : ""}${naechste ? " nx" : ""}" style="--f:${f}" transform="translate(${x.toFixed(1)} ${y})">${an ? `<circle cy="7" r="8.5" fill="${f}" opacity=".32" class="sch-schein"/>` : ""}<rect x="-2.2" y="-1.2" width="4.4" height="3" rx=".8" fill="#8a7a5a"/><path d="M0 1.6c-3.6 0-4.6 3.6-4.6 5.6 0 3.2 2.2 5.6 4.6 5.6s4.6-2.4 4.6-5.6c0-2-1-5.6-4.6-5.6z" fill="${glas}" opacity="${op.toFixed(2)}" stroke="${an ? "#fff6" : "#ffffff22"}" stroke-width=".6"/>${an ? `<ellipse cx="-1.6" cy="5" rx="1" ry="1.8" fill="#fff" opacity=".7"/>` : ""}</g>`; }).join("");
+    return `<g class="sch-b${an ? " an" : ""}${naechste ? " nx" : ""}${i === st - 1 ? " letzt" : ""}" style="--f:${f}" transform="translate(${x.toFixed(1)} ${y})">${an ? `<circle cy="7" r="8.5" fill="${f}" opacity=".32" class="sch-schein"/>` : ""}<rect x="-2.2" y="-1.2" width="4.4" height="3" rx=".8" fill="#8a7a5a"/><path d="M0 1.6c-3.6 0-4.6 3.6-4.6 5.6 0 3.2 2.2 5.6 4.6 5.6s4.6-2.4 4.6-5.6c0-2-1-5.6-4.6-5.6z" fill="${glas}" opacity="${op.toFixed(2)}" stroke="${an ? "#fff6" : "#ffffff22"}" stroke-width=".6"/>${an ? `<ellipse cx="-1.6" cy="5" rx="1" ry="1.8" fill="#fff" opacity=".7"/>` : ""}</g>`; }).join("");
   return `<svg class="sch-kette" viewBox="0 0 ${w} 26" preserveAspectRatio="none" aria-hidden="true"><path d="${draht}" stroke="#2c6a3a" stroke-width="1.6" fill="none"/><path d="${draht}" stroke="#7bd08a" stroke-width=".5" fill="none" opacity=".5"/>${birnen}</svg>`;
 }
 function schStern(st) {
@@ -463,14 +465,15 @@ function schStern(st) {
 }
 function schHtml() {
   const W = schWerte(), { s, st, nx, pct, laeuft, h, preis, eigen } = W;
-  const zeile = nx ? `Noch <b>${nx.n - s}</b> bis <em>${esc(nx.name)}</em>` : `<em>Alles geschmückt – Ehre sei Gott!</em>`;
+  const zeile = `<b>${s.toLocaleString("de-DE")}</b> gemeinsam · ` + (nx ? `noch <b>${nx.n - s}</b> bis <em>${esc(nx.name)}</em>` : `<em>alles geschmückt!</em>`);
+  const fr = schFreude && Date.now() - schFreude.t < 3000 ? schFreude : null; schFreude = null;
   const rechts = laeuft ? (h >= SCH_TAG_MAX ? `<span class="sch-fertig">✓<small>heute ${h}/${SCH_TAG_MAX}</small></span>`
       : `<button class="sch-plus" id="schLos" aria-label="1 Schmuckstück spenden für ${preis} Talente"><b>+1</b><small>${preis.toLocaleString("de-DE")} T</small></button>`)
     : `<span class="sch-chip">${W.vorStart ? "ab<b>29.11.</b>" : "Danke<b>♥</b>"}</span>`;
-  return `<div class="sch-karte" id="schKarte" role="button" tabindex="0" aria-label="Bethlehem schmücken – Details">
+  return `<div class="sch-karte${fr ? " freude" + (fr.hoch ? " hoch" : "") : ""}" id="schKarte" role="button" tabindex="0" aria-label="Bethlehem schmücken – Details">
     <span class="sch-med" style="--p:${pct}">${schStern(st)}<i class="sch-st">${st}/${SCH_STUFEN.length}</i>${eigen ? `<i class="sch-du">Du ${eigen}</i>` : ""}</span>
-    <span class="sch-mitte"><b>Bethlehem schmücken</b>${schKette(st, pct)}<small>${zeile}</small></span>
-    ${rechts}</div>`;
+    <span class="sch-mitte"><b>Gemeinsam Bethlehem schmücken</b>${schKette(st, pct)}<small>${zeile}</small></span>
+    ${rechts}${fr ? `<i class="sch-flug">+1</i>` : ""}</div>`;
 }
 function schDetails() {
   const W = schWerte(), { s, st, nx, pct, laeuft, h, preis, eigen, sv, test } = W;

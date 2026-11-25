@@ -3594,7 +3594,8 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .sch-st{position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);font:800 .6rem/1 var(--display,system-ui);font-style:normal;color:#1b2a55;background:#f2c14e;border-radius:8px;padding:2px 5px;white-space:nowrap}
 .sch-du{position:absolute;top:-4px;left:-6px;font:800 .55rem/1 system-ui;font-style:normal;color:#fff;background:#d8344a;border:1.5px solid #fff;border-radius:8px;padding:2px 4px;white-space:nowrap}
 .sch-mitte{display:flex;flex-direction:column;min-width:0;gap:1px;position:relative}
-.sch-mitte>b{font:700 .98rem Georgia,serif;color:#f2c14e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sch-mitte>b{font:700 .84rem Georgia,serif;letter-spacing:-.1px;color:#f2c14e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:370px){.sch-mitte>b{font-size:.76rem}}
 .sch-mitte>small{font-size:.72rem;color:#c8d0ee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sch-mitte>small b{color:#fff}.sch-mitte>small em{font-style:normal;color:#ffe9a0}
 .sch-kette{width:100%;height:24px;display:block;overflow:visible}
 .sch-plus{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;width:56px;height:52px;border:0;border-radius:14px;cursor:pointer;color:#1b2a55;background:linear-gradient(#fff3c4,#f2c14e 55%,#d9962a);box-shadow:0 0 0 1.5px #fff6 inset,0 0 14px #f2c14e66,0 3px 0 #8a5a10}
@@ -3605,6 +3606,12 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .sch-chip{font:600 .6rem/1.2 system-ui;color:#c8d0ee;background:#ffffff10;box-shadow:0 0 0 1.5px #f2c14e55 inset;padding:0 6px}.sch-chip b{font:800 .8rem/1.2 system-ui;color:#f2c14e}
 @media (prefers-reduced-motion:no-preference){.sch-b.an .sch-schein{animation:schFunk 2.4s ease-in-out infinite}.sch-b.an:nth-child(2n) .sch-schein{animation-delay:-1.2s}.sch-b.nx path{animation:schGlimm 1.8s ease-in-out infinite}.sch-plus{animation:schPuls 2.6s ease-in-out infinite}}
 @keyframes schFunk{50%{opacity:.08}}@keyframes schGlimm{50%{opacity:.85}}@keyframes schPuls{50%{box-shadow:0 0 0 1.5px #fff6 inset,0 0 22px #f2c14eaa,0 3px 0 #8a5a10}}
+.sch-flug{position:absolute;right:22px;top:14px;font:900 1.2rem/1 var(--display,system-ui);font-style:normal;color:#ffe9a0;text-shadow:0 0 10px #f2c14e;pointer-events:none;opacity:0}
+@media (prefers-reduced-motion:no-preference){.sch-karte.freude .sch-flug{animation:schFlug 1.3s ease-out}.sch-karte.freude:not(.hoch) .sch-b.nx path,.sch-karte.freude.hoch .sch-b.letzt path{animation:schBlitz .55s ease-out 3}.sch-karte.freude .sch-med{animation:schRing 1.2s ease-out}.sch-karte.freude.hoch{animation:schKarteHoch 1.6s ease-out}}
+@keyframes schFlug{0%{opacity:0;transform:translateY(8px) scale(.7)}25%{opacity:1;transform:translateY(0) scale(1.15)}100%{opacity:0;transform:translateY(-26px) scale(1)}}
+@keyframes schBlitz{0%{opacity:1;filter:brightness(2.4) drop-shadow(0 0 5px #fff)}100%{filter:none}}
+@keyframes schRing{30%{box-shadow:0 0 18px #f2c14ecc;transform:scale(1.07)}}
+@keyframes schKarteHoch{20%{box-shadow:0 0 0 2px #ffe9a0,0 0 28px #f2c14e99}}
 .sch-det{display:flex;flex-direction:column;gap:10px;text-align:left}.sch-det-k>span:last-child,.sch-dz span{align-items:flex-start}
 .sch-det-k{display:flex;gap:12px;align-items:center}.sch-det-k>span:last-child{display:flex;flex-direction:column}.sch-det-k b{font:700 1.08rem Georgia,serif;color:#f2c14e}.sch-det-k small{color:#c8d0ee;font-size:.78rem}
 .sch-med.gross{flex:none}
