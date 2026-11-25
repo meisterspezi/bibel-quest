@@ -3687,6 +3687,21 @@ html.handy-quer:not(.quer-ok) .tabbar{display:none}
 .rb-pop .st span{background:#0e1226;border-radius:8px;padding:5px 2px;text-align:center;font-size:.68rem;color:#cfd6ff}
 .rb-pop .st b{display:block;font-size:.95rem;color:#fff}
 .rb-pop .bt{display:flex;gap:6px}.rb-pop .bt button{flex:1;margin:0;padding:8px 0;font-size:.85rem}
+
+/* 10.61: Laden + Sammelalbum als Medaillons (Michaels Wahl „Vorschlag 1“) – gleiche Formensprache wie Spieler-Ring, Truhen-Ring und Info-Leiste.
+   Ring in der Bereichsfarbe (Laden Türkis, Album Gold), Symbol in der Mitte, Zahl als Plakette darunter. Gilt auch bei .eng (Symbole bleiben). */
+.hud .hud-kasse{gap:10px;margin-right:2px}
+.hud .hud-kasse .pill.hud-tal,.hud .hud-kasse .pill.hud-gold{width:44px!important;height:44px!important;padding:0!important;border:0!important;border-radius:50%!important;background:conic-gradient(from 200deg,var(--kr),#fff6dc,var(--kr),#f2c14e,var(--kr))!important;box-shadow:0 0 12px -3px var(--kr);overflow:visible;display:grid!important;place-items:center;min-height:0}
+.hud .hud-kasse .pill.hud-tal{--kr:#3fd4c4}.hud .hud-kasse .pill.hud-gold{--kr:#f2c14e}
+.hud .hud-kasse .pill.hud-tal::before,.hud .hud-kasse .pill.hud-gold::before{content:"";position:absolute;inset:3px;border-radius:50%;background:radial-gradient(circle at 50% 35%,#1d2550,#0e1430);border:1.5px solid #0e1226}
+.hud .hud-kasse .hud-shop,.hud .hud-kasse .hud-album{position:absolute!important;left:50%!important;top:46%!important;transform:translate(-50%,-50%)!important;display:grid!important;border:0!important;padding:0!important;margin:0!important;z-index:1}
+.hud .hud-kasse .hud-shop svg,.hud .hud-kasse .hud-album svg{width:26px!important;height:26px!important}
+.hud .hud-kasse .pill.hud-tal>svg,.hud .hud-kasse .pill.hud-gold>svg{display:none!important}
+.hud .hud-kasse #hTal,.hud .hud-kasse #hGold{position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);z-index:2;min-width:22px;padding:1px 6px;border-radius:9px;background:linear-gradient(180deg,#ffe58a,#e0a838);color:#2a1a00!important;font:900 11.5px/14px var(--body);text-align:center;box-shadow:0 0 0 2px #0e1226;white-space:nowrap}
+.hud .hud-kasse .pill.hud-tal #hTal{background:linear-gradient(180deg,#9ff5ea,#2fb8aa);color:#062a26!important}
+.hud .hud-kasse .sm-funk{display:none}
+.hud .hud-kasse .sm-neu{top:-8px!important;left:-6px!important;right:auto!important}
+.hud .hud-kasse .tb-punkt{z-index:3;top:0!important;right:0!important}
 </style>
 </head>
 <body>
