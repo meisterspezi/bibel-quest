@@ -390,17 +390,17 @@ function adAblauf() {
    Jeder spendet Schmuckstücke (Preis 1 Talent × Level – seit 10.57, vorher 10 ×, höchstens 5 am Tag, 29.11.–24.12.). Jedes Schmuckstück zählt für alle gleich.
    Eigener Stand: S.sch = { g: gespendet gesamt, t: Tag (dayNum), h: heute, s: an den Server gemeldet, log: [ms…], gs: zuletzt gesehene Stufe }.
    Server: schmuck/{pid} = { n } → Sammel-Job summiert in rangliste (schmuck, schmuckSp) → localStorage „bq-schmuck“. */
-/* 10.58: gleich große Stufen (je ~37 Schmuckstücke) und frühestes Datum je Stufe (ab) → Bethlehem wird gleichmäßig bis Heiligabend festlich;
+/* 10.59: Stufen je 20 Schmuckstücke (gesamt 160); 10.58: gleich große Stufen und frühestes Datum je Stufe (ab) → Bethlehem wird gleichmäßig bis Heiligabend festlich;
    was früher gespendet wird, liegt als „Vorrat“ bereit. Höchstens 2 am Tag (2. Stück kostet doppelt), gemeinsames Tagesziel 12 → +1 Manna für alle Spender des Tages. */
 const SCH_STUFEN = [
-  { n: 38, ab: "2026-12-2", name: "Öllampen in den Fenstern", vers: "Matthäus 5,16" },
-  { n: 75, ab: "2026-12-5", name: "Palmzweige an den Türen", vers: "Johannes 12,13" },
-  { n: 113, ab: "2026-12-8", name: "Festtücher über den Gassen", vers: "Psalm 118,24" },
-  { n: 150, ab: "2026-12-11", name: "Laterne und Stroh am Stall", vers: "Lukas 2,7" },
-  { n: 188, ab: "2026-12-14", name: "Hirtenfeuer und Herde", vers: "Lukas 2,8" },
-  { n: 225, ab: "2026-12-17", name: "Sternenglanz über der Stadt", vers: "Matthäus 2,9" },
-  { n: 263, ab: "2026-12-20", name: "Engel über dem Hirtenfeld", vers: "Lukas 2,13" },
-  { n: 300, ab: "2026-12-24", name: "Der Engelchor singt", vers: "Lukas 2,14" }];
+  { n: 20, ab: "2026-12-2", name: "Öllampen in den Fenstern", vers: "Matthäus 5,16" },
+  { n: 40, ab: "2026-12-5", name: "Palmzweige an den Türen", vers: "Johannes 12,13" },
+  { n: 60, ab: "2026-12-8", name: "Festtücher über den Gassen", vers: "Psalm 118,24" },
+  { n: 80, ab: "2026-12-11", name: "Laterne und Stroh am Stall", vers: "Lukas 2,7" },
+  { n: 100, ab: "2026-12-14", name: "Hirtenfeuer und Herde", vers: "Lukas 2,8" },
+  { n: 120, ab: "2026-12-17", name: "Sternenglanz über der Stadt", vers: "Matthäus 2,9" },
+  { n: 140, ab: "2026-12-20", name: "Engel über dem Hirtenfeld", vers: "Lukas 2,13" },
+  { n: 160, ab: "2026-12-24", name: "Der Engelchor singt", vers: "Lukas 2,14" }];
 const SCH_TAG_MAX = 2, SCH_ZIEL_TAG = 12, SCH_ENDE = "2026-12-24";
 const schPreis = () => Math.max(1, levelOf(S.xp)) * Math.min(SCH_TAG_MAX, schHeute() + 1); /* 1. Stück 1× Level, 2. Stück 2× Level */
 const schAbTag = x => dayNum(x.ab);
