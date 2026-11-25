@@ -154,7 +154,9 @@ function evSetzen(id, o) {
   const r = evReihe(); let b = r.querySelector(`[data-ev="${id}"]`);
   if (!b) { b = document.createElement("button"); b.dataset.ev = id; r.appendChild(b); }
   b.className = "ev-m" + (o.grau ? " grau" : ""); b.style.setProperty("--c", o.farbe || "#f2c14e"); b.dataset.ord = o.ord || 9;
-  b.innerHTML = `<span class="ev-ring"><span class="ev-in">${o.sym}</span></span>${o.zahl ? `<span class="ev-zahl">${esc(o.zahl)}</span>` : o.grau ? `<span class="ev-ok">✓</span>` : ""}${o.neu ? `<span class="ev-neu">NEU</span>` : ""}<b>${esc(o.titel)}</b><small>${esc(o.sub || "")}</small>`;
+  /* 10.64: Restzeit in die rote Bubble („noch 5 Tage“ → „5 T“), damit unter der Plakette kein Text mehr in den Bogen läuft; eine Zahl (z. B. Türchen) bleibt */
+  const tage = !o.grau && (!o.zahl || o.zahl === "!") && /noch (\d+) Tag/.exec(o.sub || ""); if (tage) o = Object.assign({}, o, { zahl: tage[1] + " T", lang: true });
+  b.innerHTML = `<span class="ev-ring"><span class="ev-in">${o.sym}</span></span>${o.zahl ? `<span class="ev-zahl${o.lang ? " lang" : ""}">${esc(o.zahl)}</span>` : o.grau ? `<span class="ev-ok">✓</span>` : ""}${o.neu ? `<span class="ev-neu">NEU</span>` : ""}<b>${esc(o.titel)}</b><small>${esc(o.sub || "")}</small>`;
   b.setAttribute("aria-label", `${o.titel}: ${o.sub || ""}${o.zahl ? " – wartet" : ""}`);
   b.onclick = () => { SFX.tap(); o.klick(); };
   [...r.children].sort((a, c) => (+a.dataset.ord) - (+c.dataset.ord)).forEach(x => r.appendChild(x));
