@@ -136,7 +136,7 @@ function evFertig() {
   const w = x => x.classList.contains("grau") ? 2 : x.querySelector(".ev-zahl,.ev-neu") ? 0 : 1;
   [...r.children].sort((a, c) => (w(a) - w(c)) || (+a.dataset.ord - +c.dataset.ord)).forEach(x => r.appendChild(x));
   r.classList.remove("ev-wart");
-  const k = r.closest(".start-aufg"); if (k) k.classList.toggle("ev-da", r.children.length > 0);
+  const k = r.closest(".start-aufg"); if (k) { k.classList.toggle("ev-da", r.children.length > 0); k.dataset.n = Math.min(5, r.children.length); } /* 10.63: Darstellung je nach Anzahl */
   r.scrollLeft = 0; evPunkte(); r.onscroll = evPunkte;
 }
 function evPunkte() {
@@ -295,6 +295,15 @@ function szAnkuendigen(versuch = 0) {
     m.dataset.frei = "1"; m.classList.add("sz-info-m");
   }, versuch ? 2500 : 4200);
 }
+/* 10.63: Beim ersten Start zeichnet spiel.js die Startseite, BEVOR sammel.js/advent.js/schaetz.js geladen sind – deren Einträge fehlten dann,
+   bis man erneut auf „Start“ tippte (das Neuzeichnen nach dem Datenbank-Start entfällt, solange ein Fenster offen ist). Hier ohne Neuzeichnen nachtragen. */
+function evNachtragen() {
+  if (current !== "home" || !screen.querySelector(".start-aufg") || screen.querySelector(".ev-reihe")) return;
+  try { if (typeof rbEv === "function") rbEv(); } catch (e) {}
+  try { if (typeof adBanner === "function") adBanner(); } catch (e) {}
+  try { bibEv(); szKachel().catch(() => {}).finally(() => setTimeout(evFertig, 0)); } catch (e) {}
+}
+setTimeout(evNachtragen, 0);
 (function szStart() { const alt = VIEWS.home; VIEWS.home = function (a) { alt(a); try { bibEv(); szTitelPruefen(); szKachel().catch(() => {}).finally(() => setTimeout(evFertig, 0)); szAnkuendigen(); setTimeout(() => bibAufloesungPruefen().catch(() => {}), 1800); } catch (e) {} }; })();
 if (typeof TAB_VON !== "undefined") Object.assign(TAB_VON, { schaetz: "home", szverwaltung: "" });
 

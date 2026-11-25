@@ -1090,15 +1090,20 @@ async function rbTeilenSeite(D) {
     if (ok && m.rb.g !== D.jahr) { m.rb.g = D.jahr; save(); const x = smGoldGeben(5); if (x) toast(`Danke fürs Teilen! +${x} Manna`); } };
 }
 /* Start: Banner und einmaliges Fenster */
+/* 10.60: statt Banner ein Eintrag in der Info-Leiste der Kopfzeile; Antippen öffnet ein kleines Overlay. 10.63: eigene Funktion (Nachtrag beim ersten Start) */
+function rbEv() {
+  const jahr = rbSichtbar(); if (!jahr || !S.lbName || current !== "home") return 0;
+  const m = smInit();
+  if (typeof evSetzen === "function") evSetzen("rb", { ord: 0.5, farbe: "#b38cff", sym: SM_ALBUM_SVG, titel: "Bibeljahr", sub: String(jahr), neu: m.rb.p !== jahr, klick: () => rbPop(jahr) });
+  return jahr;
+}
 (function rbStart() {
   const alt = VIEWS.home;
   VIEWS.home = function (a) {
     alt(a);
     smAnkuendigen();
-    const jahr = rbSichtbar(); if (!jahr || !S.lbName) return;
-    /* 10.60: statt Banner ein Eintrag in der Info-Leiste der Kopfzeile; Antippen öffnet ein kleines Overlay */
+    const jahr = rbEv(); if (!jahr) return;
     const m = smInit();
-    if (typeof evSetzen === "function") evSetzen("rb", { ord: 0.5, farbe: "#b38cff", sym: SM_ALBUM_SVG, titel: "Bibeljahr", sub: String(jahr), neu: m.rb.p !== jahr, klick: () => rbPop(jahr) });
     if (rbJahr() && m.rb.f !== jahr) setTimeout(() => {
       if (current !== "home" || document.querySelector(".modal") || m.rb.f === jahr) return;
       m.rb.f = jahr; save();
