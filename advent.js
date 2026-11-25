@@ -387,7 +387,7 @@ function adAblauf() {
 (function adStart() { const alt = VIEWS.home; VIEWS.home = function (a) { alt(a); try { adAblauf(); adBanner(); adAnkuendigen(); } catch (e) {} }; })();
 
 /* ---------- 10.44: Gemeinsam Bethlehem schmücken ----------
-   Jeder spendet Schmuckstücke (Preis 10 Talente × Level, höchstens 5 am Tag, 29.11.–24.12.). Jedes Schmuckstück zählt für alle gleich.
+   Jeder spendet Schmuckstücke (Preis 1 Talent × Level – seit 10.57, vorher 10 ×, höchstens 5 am Tag, 29.11.–24.12.). Jedes Schmuckstück zählt für alle gleich.
    Eigener Stand: S.sch = { g: gespendet gesamt, t: Tag (dayNum), h: heute, s: an den Server gemeldet, log: [ms…], gs: zuletzt gesehene Stufe }.
    Server: schmuck/{pid} = { n } → Sammel-Job summiert in rangliste (schmuck, schmuckSp) → localStorage „bq-schmuck“. */
 const SCH_STUFEN = [
@@ -400,7 +400,7 @@ const SCH_STUFEN = [
   { n: 235, name: "Engel über dem Hirtenfeld", vers: "Lukas 2,13" },
   { n: 300, name: "Der Engelchor singt", vers: "Lukas 2,14" }];
 const SCH_TAG_MAX = 5, SCH_ENDE = "2026-12-24";
-const schPreis = () => 10 * Math.max(1, levelOf(S.xp));
+const schPreis = () => Math.max(1, levelOf(S.xp));
 function schEcht() { if (!S.sch || typeof S.sch !== "object") S.sch = {}; const m = S.sch; ["g", "t", "h", "s", "gs"].forEach(k => { m[k] = Math.max(0, +m[k] || 0); }); if (!Array.isArray(m.log)) m.log = []; return m; }
 function schTest() { try { return JSON.parse(sessionStorage.getItem("bq-sch-test") || "null") || { g: 0, h: 0, t: 0, extra: 0 }; } catch (e) { return { g: 0, h: 0, t: 0, extra: 0 }; } }
 const schLaeuft = () => adJetzt() >= adTag(0) && adJetzt() <= dayNum(SCH_ENDE);
@@ -485,7 +485,7 @@ function schDetails() {
     <div class="sch-det-zahlen"><span><b>${s}</b>gemeinsam</span><span><b>${sv.sp || (eigen ? 1 : 0)}</b>Spieler</span><span><b>${eigen}</b>von dir</span></div>
     <div class="sch-det-l">${liste}</div>
     <div class="sch-det-info">Jedes Schmuckstück zählt für alle gleich – je mehr mitmachen, desto schneller wird Bethlehem festlich.<br>
-      Preis 10 × dein Level = <b>${preis.toLocaleString("de-DE")} Talente</b> · höchstens ${SCH_TAG_MAX} am Tag · 29.11.–24.12.<br>
+      Preis 1 Talent × dein Level = <b>${preis.toLocaleString("de-DE")} Talente</b> · höchstens ${SCH_TAG_MAX} am Tag · 29.11.–24.12.<br>
       Ab 1 Schmuckstück: Rahmen „Festliches Bethlehem“${eigen ? " ✓" : ""}</div>
     ${laeuft ? `<button class="btn primary" id="schDLos"${h >= SCH_TAG_MAX ? " disabled" : ""}>${h >= SCH_TAG_MAX ? `Heute schon ${SCH_TAG_MAX}× geschmückt ✓` : `1 Schmuckstück spenden · ${preis.toLocaleString("de-DE")} Talente`}</button>`
       : `<div class="sch-det-start">${W.vorStart ? "Los geht's am 1. Advent (29.11.)" : "Danke an alle, die mitgeschmückt haben!"}</div>`}
