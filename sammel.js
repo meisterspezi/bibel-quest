@@ -1136,17 +1136,17 @@ VIEWS.rueckblick = () => {
       ${fav ? `<label class="rbx-schalter"><input type="checkbox" id="rbGeg" ${rbGegZeigen ? "checked" : ""}><span aria-hidden="true"></span>Lieblings-Gegner auf dem Bild zeigen</label>` : ""}
       <button class="btn primary rbv-knopf" id="rbVideo"><i class="rbv-play" aria-hidden="true"></i> Als Video teilen${m.rb.g === D.jahr ? "" : " · +5 Manna"}</button>
       <button class="btn" id="rbTeilen">${svg("share") || ""} Als Bild teilen</button>
-      ${fav ? `<button class="btn rbx-heraus" id="rbHeraus">${rbAv(fav.pid, fav.name, 26)} ${esc(fav.name)} zum Duell herausfordern</button>` : ""}
       <p class="rbx-fuss">Wer über deinen Link einsteigt, zählt für dein Menschenfischer-Abzeichen.<br>${esc(rbLink())}</p></div>` });
   rbSeite = Math.max(0, Math.min(seiten.length - 1, rbSeite));
   const neu = screen.dataset.rbs !== String(rbSeite); screen.dataset.rbs = rbSeite;
   screen.innerHTML = `<div class="rb${neu ? " rb-neu" : ""}"><div class="rb-balken">${seiten.map((_, i) => `<i class="${i <= rbSeite ? "an" : ""}"></i>`).join("")}</div>
     <button class="rb-zu" data-go="home" aria-label="Rückblick schließen">${svg("nein")}</button>
     <div class="rb-buehne" id="rbBuehne">${seiten[rbSeite].html}</div>
-    <div class="rb-nav"><button class="btn" id="rbZur" ${rbSeite ? "" : "hidden"}>Zurück</button><button class="btn primary" id="rbWeiter" ${rbSeite < seiten.length - 1 ? "" : "hidden"}>Weiter</button></div></div>`;
+    <div class="rb-nav"><button class="btn" id="rbZur" ${rbSeite ? "" : "hidden"}>Zurück</button><button class="btn rb-teil-kurz" id="rbTeilKurz" ${rbSeite < seiten.length - 1 ? "" : "hidden"} aria-label="Rückblick als Video teilen">${svg("share") || ""} Teilen</button><button class="btn primary" id="rbWeiter" ${rbSeite < seiten.length - 1 ? "" : "hidden"}>Weiter</button></div></div>`;
   wireGo();
   const weiter = d => { const n = rbSeite + d; if (n < 0 || n >= seiten.length) return; rbSeite = n; SFX.tap(); VIEWS.rueckblick(); };
   $("rbWeiter").onclick = () => weiter(1); $("rbZur").onclick = () => weiter(-1);
+  $("rbTeilKurz").onclick = () => { SFX.tap(); rbVideoStart(); }; /* 10.75: Teilen auf jeder Folie */
   $("rbBuehne").onclick = e => { if (e.target.closest("button,input,label")) return; weiter(1); };
   let x0 = null; $("rbBuehne").ontouchstart = e => { x0 = e.touches[0].clientX; }; $("rbBuehne").ontouchend = e => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 50) weiter(dx < 0 ? 1 : -1); x0 = null; };
   rbAnimieren(neu);
@@ -1433,6 +1433,11 @@ async function rbVideoErzeugen(V, plan, dauer, R, cx, onProg, abgebrochen, vcode
   if (fehler) throw fehler; if (abgebrochen()) return null;
   muxer.finalize(); return new Blob([muxer.target.buffer], { type: "video/mp4" });
 }
+/* 10.75: fertiges Video für den Tag auf dem Gerät merken (IndexedDB; die Cache-Speicher räumt der Service Worker bei jedem Update ab) */
+function rbIdb() { return new Promise((res, rej) => { try { const r = indexedDB.open("bq-rbvideo", 1); r.onupgradeneeded = () => r.result.createObjectStore("v"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } }); }
+async function rbVideoHolen(k) { try { const db = await rbIdb(); return await new Promise(res => { const q = db.transaction("v").objectStore("v").get(k); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); }); } catch (e) { return null; } }
+async function rbVideoMerken(k, o) { try { const db = await rbIdb(); await new Promise(res => { const tx = db.transaction("v", "readwrite"), st = tx.objectStore("v"); st.clear(); st.put(o, k); tx.oncomplete = res; tx.onerror = res; tx.onabort = res; }); } catch (e) {} }
+const rbVideoSchluessel = () => `${S.pid || "x"}|${today()}|${rbGegZeigen ? 1 : 0}`;
 async function rbVideoStart() {
   if (document.querySelector(".rbv-ov")) return;
   const V = rbVideoDaten(), plan = rbPlan(V), dauer = plan.reduce((a, x) => a + x[1], 0); V.vollIntro = true;
@@ -1443,6 +1448,16 @@ async function rbVideoStart() {
   let ab = false, url = null; const zu = () => { ab = true; ov.remove(); if (url) URL.revokeObjectURL(url); };
   kn.querySelector('[data-a="zu"]').onclick = () => { SFX.tap(); zu(); };
   const knoepfe = (html, fn) => { kn.innerHTML = html + `<button class="btn" data-a="zu">Schließen</button>`; kn.querySelector('[data-a="zu"]').onclick = () => { SFX.tap(); zu(); }; fn(); };
+  const fertig = (blob, ton, dauerS, alt) => {
+    bar.style.width = "100%"; const datei = new File([blob], `mein-bibeljahr-${V.D.jahr}.mp4`, { type: "video/mp4" });
+    rbVideoLetzt = { blob, groesse: blob.size, dauer: dauerS, ton, alt: !!alt };
+    url = URL.createObjectURL(blob); const vid = document.createElement("video"); vid.className = "rbv-cv"; vid.src = url; vid.controls = true; vid.playsInline = true; vid.loop = true; cv.replaceWith(vid);
+    txt.textContent = alt ? "Dein Video von heute ist schon fertig. Tippe aufs Video für die Vorschau." : `Dein Video ist fertig (${Math.round(dauerS)} Sekunden${ton ? ", mit Musik" : ""}). Tippe aufs Video für die Vorschau.`;
+    knoepfe(`<button class="btn primary" data-a="teilen">${svg("share") || ""} Video teilen</button>`, () => { kn.querySelector('[data-a="teilen"]').onclick = async () => { SFX.tap(); try { vid.pause(); } catch (e) {} if (await rbTeilenDateien([datei], rbTeilText(V.D, V.du), V.D)) zu(); }; });
+  };
+  const schluessel = rbVideoSchluessel(), frueher = await rbVideoHolen(schluessel);
+  if (ab) return;
+  if (frueher && frueher.blob && frueher.blob.size > 1000) { fertig(frueher.blob, frueher.ton, frueher.dauer, true); return; } /* 10.75: heute schon erstellt → nicht nochmal */
   try { await document.fonts.ready; } catch (e) {}
   const R = { icon: await smBild("icons/icon-192.png"), qr: await smQr(rbLink()) };
   const vcodec = await rbVideoCodec(), muxOk = vcodec && await rbMuxerLaden(), ton = muxOk && await rbAacOk();
@@ -1453,11 +1468,8 @@ async function rbVideoStart() {
     catch (e) { console.warn("Video:", e); blob = null; }
     if (ab) return;
     if (blob) {
-      bar.style.width = "100%"; const datei = new File([blob], `mein-bibeljahr-${V.D.jahr}.mp4`, { type: "video/mp4" });
-      rbVideoLetzt = { blob, groesse: blob.size, dauer, ton };
-      url = URL.createObjectURL(blob); const vid = document.createElement("video"); vid.className = "rbv-cv"; vid.src = url; vid.controls = true; vid.playsInline = true; vid.loop = true; cv.replaceWith(vid);
-      txt.textContent = `Dein Video ist fertig (${Math.round(dauer)} Sekunden${ton ? ", mit Musik" : ""}). Tippe aufs Video für die Vorschau.`;
-      knoepfe(`<button class="btn primary" data-a="teilen">${svg("share") || ""} Video teilen</button>`, () => { kn.querySelector('[data-a="teilen"]').onclick = async () => { SFX.tap(); try { vid.pause(); } catch (e) {} if (await rbTeilenDateien([datei], rbTeilText(V.D, V.du), V.D)) zu(); }; });
+      rbVideoMerken(schluessel, { blob, ton, dauer, z: Date.now() });
+      fertig(blob, ton, dauer, false);
       return;
     }
   }
@@ -1498,7 +1510,7 @@ VIEWS.rblink = () => {
 function rbEv() {
   const jahr = rbSichtbar(); if (!jahr || !S.lbName || current !== "home") return 0;
   const m = smInit();
-  if (typeof evSetzen === "function") evSetzen("rb", { ord: 0.5, farbe: "#b38cff", sym: SM_ALBUM_SVG, titel: "Bibeljahr", sub: String(jahr), neu: m.rb.p !== jahr, klick: () => rbPop(jahr) });
+  if (typeof evSetzen === "function") evSetzen("rb", { ord: 0.5, farbe: "#b38cff", sym: SM_ALBUM_SVG, titel: "Bibeljahr", sub: String(jahr), neu: m.rb.p !== jahr, klick: () => { if (m.rb.p !== jahr) { m.rb.p = jahr; save(); } rbSeite = 0; go("rueckblick"); } }); /* 10.75: direkt in den Rückblick */
   return jahr;
 }
 (function rbStart() {
