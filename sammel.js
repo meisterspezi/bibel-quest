@@ -787,7 +787,7 @@ async function smZeichnen(format, titel, unter, inhalt) {
   const qr = await smQr(smLink()), qs = q ? 190 : 260, fy = H - fuss;
   cx.fillStyle = "#ffffff"; smRund(cx, 70, fy, qs + 24, qs + 24, 24); cx.fill(); if (qr) cx.drawImage(qr, 82, fy + 12, qs, qs);
   cx.fillStyle = "#fff1c2"; cx.font = `800 ${q ? 40 : 50}px Lexend, sans-serif`; cx.fillText("Lerne die 66 Bücher", 70 + qs + 60, fy + (q ? 70 : 90));
-  cx.fillText("der Bibel – spiel mit!", 70 + qs + 60, fy + (q ? 120 : 155)); cx.fillStyle = "#a9b0d6"; cx.font = `600 ${q ? 28 : 34}px Lexend, sans-serif`; cx.fillText("Bibelbuch-Quest · QR-Code scannen", 70 + qs + 60, fy + (q ? 172 : 225));
+  cx.fillText("der Bibel – spiel mit!", 70 + qs + 60, fy + (q ? 120 : 155)); cx.fillStyle = "#a9b0d6"; cx.font = `600 ${q ? 28 : 34}px Lexend, sans-serif`; cx.fillText(String(smLink()).replace(/^https?:\/\//, "").replace(/[?#].*$/, "").replace(/\/beta\/?$/, "").replace(/\/$/, ""), 70 + qs + 60, fy + (q ? 172 : 225)); /* 10.72: Link statt „QR-Code scannen“ */
   return cv;
 }
 async function smTeilen(cv, name, text) {
@@ -1228,7 +1228,7 @@ async function rbTeilenSeite(D) {
    Ablauf: „Als Video teilen“ → Fenster zeigt die Aufnahme live → danach „Video teilen“ (Teilen braucht einen frischen Tipp). */
 const rbTeilText = (D, du) => `Mein Bibeljahr ${D.jahr} mit Bibelbuch-Quest: ${pkt(D.right)} richtige Antworten${du.summe ? ` und ${du.summe} Duelle` : ""} – und schon ${D.buecher} von 66 Bibelbüchern gelernt! Lern mit und spiel gegen mich!`;
 const rbLinkKurz = () => String(smLink()).replace(/^https?:\/\//, "").replace(/[?#].*$/, "").replace(/\/beta\/?$/, "").replace(/\/$/, "");
-const rbTextMitLink = text => `${text}\n\n👉 Hier mitspielen:\n${smLink()}`; /* 10.71: klickbarer Link in eigener Zeile (Profil-Code bleibt für Menschenfischer) */
+const rbTextMitLink = () => smLink(); /* 10.72: nur der Link (mit Profil-Code für Menschenfischer), damit man ihn direkt kopieren kann */
 function rbVideoDaten() { const D = rbDaten(), du = rbDuStat(D.jahr); return { D, solo: rbSolo(), du, fav: rbGegZeigen ? du.gegner[0] : null }; }
 function rbPlan(V) { const p = [["intro", 2.6], ["zahlen", 2.9], ["solo", 2.9], ["duell", 2.9]]; if (V.fav) p.push(["gegner", 2.7]); p.push(["outro", 3.8]); return p; }
 const rbEase = p => 1 - Math.pow(1 - Math.max(0, Math.min(1, p)), 3);
@@ -1306,16 +1306,22 @@ function rbRingSzene(cx, V, t, R, titel, farbe, liste, zahl, zahlT, topT, leer) 
     cx.save(); cx.globalAlpha *= a; cx.fillStyle = "#151b48"; smRund(cx, 120, y - 62, 840, 82, 41); cx.fill(); cx.fillStyle = f; cx.beginPath(); cx.arc(175, y - 21, 18, 0, Math.PI * 2); cx.fill();
     cx.textAlign = "left"; cx.fillStyle = "#fff"; cx.font = "700 46px Lexend, sans-serif"; cx.fillText(nm, 215, y - 5); cx.textAlign = "right"; cx.fillStyle = f; cx.font = "900 46px Lexend, sans-serif"; cx.fillText(e[2] + " %", 920, y - 5); cx.textAlign = "center"; cx.restore(); });
 }
+/* 10.72: GitHub-Link in jeder Szene als goldenes Band unten */
+function rbLinkBand(cx) {
+  const lk = rbLinkKurz(); cx.save(); cx.textAlign = "center"; cx.font = "700 38px Lexend, sans-serif"; const w = Math.min(960, cx.measureText(lk).width + 70);
+  cx.fillStyle = "#0e1230d9"; smRund(cx, 540 - w / 2, 1752, w, 72, 36); cx.fill(); cx.strokeStyle = "#f2c14e99"; cx.lineWidth = 3; cx.stroke(); cx.fillStyle = "#f2c14e"; cx.fillText(lk, 540, 1801); cx.restore();
+}
 function rbFrame(cx, Wpx, Hpx, plan, T, V, R) {
   cx.setTransform(Wpx / 1080, 0, 0, Hpx / 1920, 0, 0); cx.globalAlpha = 1; rbHintergrund(cx, T);
   let s = 0; for (let i = 0; i < plan.length; i++) { const [id, d] = plan[i]; if (T < s + d || i === plan.length - 1) { const t = Math.min(d, T - s);
-    const a = Math.min(i ? Math.min(1, t / .35) : 1, i < plan.length - 1 ? Math.min(1, (d - t) / .35) : 1); cx.save(); cx.globalAlpha = Math.max(0, a); RB_SZENE[id](cx, V, t, R); cx.restore(); return; } s += d; }
+    const a = Math.min(i ? Math.min(1, t / .35) : 1, i < plan.length - 1 ? Math.min(1, (d - t) / .35) : 1); cx.save(); cx.globalAlpha = Math.max(0, a); RB_SZENE[id](cx, V, t, R); cx.restore();
+    if (id !== "outro") rbLinkBand(cx); return; } s += d; }
 }
 async function rbTeilenDateien(dateien, text, D) {
   const m = smInit(); let ok = false;
   try { if (navigator.canShare && navigator.canShare({ files: dateien })) { await navigator.share({ files: dateien, text: rbTextMitLink(text) }); ok = true; } } catch (e) { if (e && e.name === "AbortError") return false; }
   if (!ok) { dateien.forEach(f => { try { const a = document.createElement("a"); a.href = URL.createObjectURL(f); a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); } catch (e) {} });
-    try { await navigator.clipboard.writeText(rbTextMitLink(text)); toast(`${dateien.length > 1 ? "Bilder" : "Datei"} gespeichert, Text mit Link kopiert – jetzt in WhatsApp einfügen.`); } catch (e) { toast("Gespeichert."); } ok = true; }
+    try { await navigator.clipboard.writeText(rbTextMitLink(text)); toast(`${dateien.length > 1 ? "Bilder" : "Datei"} gespeichert, Link kopiert – jetzt in WhatsApp einfügen.`); } catch (e) { toast("Gespeichert."); } ok = true; }
   if (ok && m.rb.g !== D.jahr) { m.rb.g = D.jahr; save(); const x = smGoldGeben(5); if (x) toast(`Danke fürs Teilen! +${x} Manna`); }
   return ok;
 }
