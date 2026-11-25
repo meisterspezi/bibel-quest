@@ -390,26 +390,49 @@ function adAblauf() {
    Jeder spendet Schmuckstücke (Preis 1 Talent × Level – seit 10.57, vorher 10 ×, höchstens 5 am Tag, 29.11.–24.12.). Jedes Schmuckstück zählt für alle gleich.
    Eigener Stand: S.sch = { g: gespendet gesamt, t: Tag (dayNum), h: heute, s: an den Server gemeldet, log: [ms…], gs: zuletzt gesehene Stufe }.
    Server: schmuck/{pid} = { n } → Sammel-Job summiert in rangliste (schmuck, schmuckSp) → localStorage „bq-schmuck“. */
+/* 10.58: gleich große Stufen (je ~37 Schmuckstücke) und frühestes Datum je Stufe (ab) → Bethlehem wird gleichmäßig bis Heiligabend festlich;
+   was früher gespendet wird, liegt als „Vorrat“ bereit. Höchstens 2 am Tag (2. Stück kostet doppelt), gemeinsames Tagesziel 12 → +1 Manna für alle Spender des Tages. */
 const SCH_STUFEN = [
-  { n: 15, name: "Öllampen in den Fenstern", vers: "Matthäus 5,16" },
-  { n: 35, name: "Palmzweige an den Türen", vers: "Johannes 12,13" },
-  { n: 60, name: "Festtücher über den Gassen", vers: "Psalm 118,24" },
-  { n: 95, name: "Laterne und Stroh am Stall", vers: "Lukas 2,7" },
-  { n: 135, name: "Hirtenfeuer und Herde", vers: "Lukas 2,8" },
-  { n: 180, name: "Sternenglanz über der Stadt", vers: "Matthäus 2,9" },
-  { n: 235, name: "Engel über dem Hirtenfeld", vers: "Lukas 2,13" },
-  { n: 300, name: "Der Engelchor singt", vers: "Lukas 2,14" }];
-const SCH_TAG_MAX = 5, SCH_ENDE = "2026-12-24";
-const schPreis = () => Math.max(1, levelOf(S.xp));
-function schEcht() { if (!S.sch || typeof S.sch !== "object") S.sch = {}; const m = S.sch; ["g", "t", "h", "s", "gs"].forEach(k => { m[k] = Math.max(0, +m[k] || 0); }); if (!Array.isArray(m.log)) m.log = []; return m; }
+  { n: 38, ab: "2026-12-2", name: "Öllampen in den Fenstern", vers: "Matthäus 5,16" },
+  { n: 75, ab: "2026-12-5", name: "Palmzweige an den Türen", vers: "Johannes 12,13" },
+  { n: 113, ab: "2026-12-8", name: "Festtücher über den Gassen", vers: "Psalm 118,24" },
+  { n: 150, ab: "2026-12-11", name: "Laterne und Stroh am Stall", vers: "Lukas 2,7" },
+  { n: 188, ab: "2026-12-14", name: "Hirtenfeuer und Herde", vers: "Lukas 2,8" },
+  { n: 225, ab: "2026-12-17", name: "Sternenglanz über der Stadt", vers: "Matthäus 2,9" },
+  { n: 263, ab: "2026-12-20", name: "Engel über dem Hirtenfeld", vers: "Lukas 2,13" },
+  { n: 300, ab: "2026-12-24", name: "Der Engelchor singt", vers: "Lukas 2,14" }];
+const SCH_TAG_MAX = 2, SCH_ZIEL_TAG = 12, SCH_ENDE = "2026-12-24";
+const schPreis = () => Math.max(1, levelOf(S.xp)) * Math.min(SCH_TAG_MAX, schHeute() + 1); /* 1. Stück 1× Level, 2. Stück 2× Level */
+const schAbTag = x => dayNum(x.ab);
+const schDatum = x => { const t = x.ab.split("-"); return `${t[2]}.${t[1]}.`; };
+function schEcht() { if (!S.sch || typeof S.sch !== "object") S.sch = {}; const m = S.sch; ["g", "t", "h", "s", "gs", "vt"].forEach(k => { m[k] = Math.max(0, +m[k] || 0); }); if (!Array.isArray(m.log)) m.log = []; if (!Array.isArray(m.zt)) m.zt = []; return m; }
 function schTest() { try { return JSON.parse(sessionStorage.getItem("bq-sch-test") || "null") || { g: 0, h: 0, t: 0, extra: 0 }; } catch (e) { return { g: 0, h: 0, t: 0, extra: 0 }; } }
 const schLaeuft = () => adJetzt() >= adTag(0) && adJetzt() <= dayNum(SCH_ENDE);
-function schServer() { try { return JSON.parse(localStorage.getItem("bq-schmuck") || "null") || { s: 0, sp: 0, t: 0 }; } catch (e) { return { s: 0, sp: 0, t: 0 }; } }
+function schServer() { try { return JSON.parse(localStorage.getItem("bq-schmuck") || "null") || { s: 0, sp: 0, t: 0, h: 0, d: 0, hg: 0 }; } catch (e) { return { s: 0, sp: 0, t: 0, h: 0, d: 0, hg: 0 }; } }
 /* Summe = Server + eigene Spenden, die der Job noch nicht gezählt hat (Testmodus: plus Vorschau-Spenden) */
 function schSumme() { const sv = schServer(), m = schEcht(); let s = sv.s + m.log.filter(z => z > (sv.t || 0)).length; if (adTest()) { const t = schTest(); s += t.g + t.extra; } return Math.max(0, s); }
-const schStufe = s => SCH_STUFEN.filter(x => s >= x.n).length;
+const schStufeMenge = s => SCH_STUFEN.filter(x => s >= x.n).length;
+/* Stufe = genug Schmuck UND Datum erreicht (Vorschau-Datum im Testmodus) */
+const schStufe = s => SCH_STUFEN.filter(x => s >= x.n && adJetzt() >= schAbTag(x)).length;
+/* Gemeinsam heute gespendet: Zählung des Sammel-Jobs (Berliner Tag) + eigene, noch nicht gezählte Spenden von heute */
+function schHeuteAlle() { const sv = schServer(), m = schEcht(), heute = adJetzt();
+  if (adTest()) { const t = schTest(); return (t.t === heute ? t.h : 0) + (t.extraH | 0); }
+  const offen = m.t === heute ? Math.min(m.h, m.log.filter(z => z > (sv.t || 0)).length) : 0;
+  return (sv.d === heute ? +sv.h || 0 : 0) + offen; }
+/* Tagesziel erreicht und selbst gespendet → +1 Manna (einmal je Tag; auch für gestern, falls es erst spät gezählt wurde) */
+function schZielPruefen() {
+  if (adTest() || !schLaeuft() && adJetzt() !== dayNum(SCH_ENDE) + 1) return;
+  const m = schEcht(), sv = schServer(), heute = adJetzt(), lohn = [];
+  if (m.t === heute && m.h > 0 && schHeuteAlle() >= SCH_ZIEL_TAG && !m.zt.includes(heute)) lohn.push(heute);
+  const gestern = heute - 1, gespGestern = (m.t === gestern && m.h > 0) || m.vt === gestern;
+  if (gespGestern && sv.d === heute && (+sv.hg || 0) >= SCH_ZIEL_TAG && !m.zt.includes(gestern)) lohn.push(gestern);
+  if (!lohn.length) return;
+  m.zt = [...m.zt, ...lohn].slice(-30); const x = mannaPlus(lohn.length); save();
+  setTimeout(() => toast(`${svg("star", "#f2c14e")}<div><b>Tagesziel geschafft!</b><div class="small muted">Gemeinsam ${SCH_ZIEL_TAG} Schmuckstücke${lohn.length > 1 ? " (auch gestern)" : ""}${x ? ` · +${x} Manna` : ""}</div></div>`), 700);
+}
 function schHeute() { if (adTest()) { const t = schTest(); return t.t === adJetzt() ? t.h : 0; } const m = schEcht(); return m.t === adJetzt() ? m.h : 0; }
-function schMischen(r) { if (!r || !r.sch) return; const m = schEcht(), o = r.sch; m.g = Math.max(m.g, +o.g || 0); m.s = Math.max(m.s, +o.s || 0); m.gs = Math.max(m.gs, +o.gs || 0);
+function schMischen(r) { if (!r || !r.sch) return; const m = schEcht(), o = r.sch; m.g = Math.max(m.g, +o.g || 0); m.s = Math.max(m.s, +o.s || 0); m.gs = Math.max(m.gs, +o.gs || 0); m.vt = Math.max(m.vt, +o.vt || 0);
+  m.zt = [...new Set([...m.zt, ...(Array.isArray(o.zt) ? o.zt : [])])].sort((a, b) => a - b).slice(-30);
   if ((+o.t || 0) > m.t) { m.t = +o.t; m.h = +o.h || 0; } else if (+o.t === m.t) m.h = Math.max(m.h, +o.h || 0);
   m.log = [...new Set([...m.log, ...(Array.isArray(o.log) ? o.log : [])])].sort((a, b) => a - b).slice(-30); }
 /* An den Server melden – höchstens +5 je Speichern (Regel), Rest beim nächsten Mal */
@@ -429,12 +452,13 @@ function schSpenden() {
   if (!test && typeof BQ_UHR !== "undefined" && !BQ_UHR.gesichert() && !BQ_UHR.lokal) { toast("<div>Zum Schmücken kurz mit dem Internet verbinden.</div>"); return; }
   const vorStufe = schStufe(schSumme());
   if (test) { const t = schTest(); if (t.t !== adJetzt()) { t.t = adJetzt(); t.h = 0; } t.h++; t.g++; sessionStorage.setItem("bq-sch-test", JSON.stringify(t)); }
-  else { const m = schEcht(); if (m.t !== adJetzt()) { m.t = adJetzt(); m.h = 0; } m.h++; m.g++; m.log = [...m.log, Date.now()].slice(-30); S.tal = (S.tal | 0) - preis; save(); renderHud(); lbSync(); schSenden(); }
+  else { const m = schEcht(); if (m.t !== adJetzt()) { if (m.h > 0) m.vt = m.t; m.t = adJetzt(); m.h = 0; } m.h++; m.g++; m.log = [...m.log, Date.now()].slice(-30); S.tal = (S.tal | 0) - preis; save(); renderHud(); lbSync(); schSenden(); }
   SFX.coin(); try { burst && burst(); } catch (e) {}
   const nach = schStufe(schSumme());
   toast(`${svg("star", "#f2c14e")}<div><b>Danke fürs Schmücken!</b><div class="small muted">${test ? "Vorschau – keine Talente abgezogen" : `−${preis.toLocaleString("de-DE")} Talente`} · heute ${schHeute()}/${SCH_TAG_MAX}</div></div>`);
   if (nach > vorStufe) setTimeout(() => schNeueStufe(nach), 900);
   schFreude = { t: Date.now(), hoch: nach > vorStufe };
+  if (!test) schZielPruefen();
   if (current === "advent") VIEWS.advent();
 }
 function schNeueStufe(st) {
@@ -447,7 +471,8 @@ const SCH_FARBEN = ["#ff5a6e", "#f2c14e", "#5fe08a", "#6fb4ff"];
 let schFreude = null; /* nach dem Spenden: nächste (bzw. neu erreichte) Lampe leuchtet kurz auf */
 function schWerte() {
   const s = schSumme(), st = schStufe(s), nx = SCH_STUFEN[st], vor = st ? SCH_STUFEN[st - 1].n : 0, test = adTest();
-  return { s, st, nx, vor, pct: nx ? Math.max(0, Math.min(100, Math.round((s - vor) / (nx.n - vor) * 100))) : 100,
+  const wartet = !!nx && s >= nx.n; /* genug Schmuck, Stufe kommt erst an ihrem Datum */
+  return { s, st, nx, vor, wartet, vorrat: nx ? Math.max(0, s - nx.n) : 0, ht: schHeuteAlle(), pct: nx ? Math.max(0, Math.min(100, Math.round((s - vor) / (nx.n - vor) * 100))) : 100,
     laeuft: schLaeuft(), h: schHeute(), preis: schPreis(), test, sv: schServer(), eigen: test ? schTest().g : schEcht().g, vorStart: adJetzt() < adTag(0) };
 }
 /* Lichterkette: Draht mit Durchhang, 8 Glühbirnen – erreichte leuchten, die nächste glimmt */
@@ -465,41 +490,46 @@ function schStern(st) {
 }
 function schHtml() {
   const W = schWerte(), { s, st, nx, pct, laeuft, h, preis, eigen } = W;
-  const zeile = `<b>${s.toLocaleString("de-DE")}</b> gemeinsam · ` + (nx ? `noch <b>${nx.n - s}</b> bis <em>${esc(nx.name)}</em>` : `<em>alles geschmückt!</em>`);
+  const zeile = `<b>${s.toLocaleString("de-DE")}</b> gemeinsam · ` + (!nx ? `<em>alles geschmückt!</em>` : W.wartet ? `bereit! <em>${esc(nx.name)} am ${schDatum(nx)}</em>` : `noch <b>${nx.n - s}</b> bis <em>${esc(nx.name)}</em>`);
+  const ziel = W.laeuft ? `<span class="sch-ziel${W.ht >= SCH_ZIEL_TAG ? " ok" : ""}"><span>Heute</span><i style="--z:${Math.min(100, Math.round(W.ht / SCH_ZIEL_TAG * 100))}%"></i><b>${Math.min(W.ht, 99)}/${SCH_ZIEL_TAG}</b><span>${W.ht >= SCH_ZIEL_TAG ? "✓ +1 Manna" : "→ +1 Manna"}</span></span>` : "";
   const fr = schFreude && Date.now() - schFreude.t < 3000 ? schFreude : null; schFreude = null;
   const rechts = laeuft ? (h >= SCH_TAG_MAX ? `<span class="sch-fertig">✓<small>heute ${h}/${SCH_TAG_MAX}</small></span>`
       : `<button class="sch-plus" id="schLos" aria-label="1 Schmuckstück spenden für ${preis} Talente"><b>+1</b><small>${preis.toLocaleString("de-DE")} T</small></button>`)
     : `<span class="sch-chip">${W.vorStart ? "ab<b>29.11.</b>" : "Danke<b>♥</b>"}</span>`;
   return `<div class="sch-karte${fr ? " freude" + (fr.hoch ? " hoch" : "") : ""}" id="schKarte" role="button" tabindex="0" aria-label="Bethlehem schmücken – Details">
     <span class="sch-med" style="--p:${pct}">${schStern(st)}<i class="sch-st">${st}/${SCH_STUFEN.length}</i>${eigen ? `<i class="sch-du">Du ${eigen}</i>` : ""}</span>
-    <span class="sch-mitte"><b>Gemeinsam Bethlehem schmücken</b>${schKette(st, pct)}<small>${zeile}</small></span>
+    <span class="sch-mitte"><b>Gemeinsam Bethlehem schmücken</b>${schKette(st, pct)}<small>${zeile}</small>${ziel}</span>
     ${rechts}${fr ? `<i class="sch-flug">+1</i>` : ""}</div>`;
 }
 function schDetails() {
   const W = schWerte(), { s, st, nx, pct, laeuft, h, preis, eigen, sv, test } = W;
-  const liste = SCH_STUFEN.map((x, i) => { const an = i < st, naechste = i === st;
-    return `<div class="sch-dz${an ? " an" : ""}${naechste ? " nx" : ""}" style="--f:${SCH_FARBEN[i % 4]}"><i></i><span><b>${esc(x.name)}</b><small>${esc(x.vers)}</small></span><em>${an ? "✓" : naechste ? `noch ${x.n - s}` : x.n}</em></div>`; }).join("");
+  const liste = SCH_STUFEN.map((x, i) => { const an = i < st, naechste = i === st, genug = s >= x.n;
+    return `<div class="sch-dz${an ? " an" : ""}${naechste ? " nx" : ""}" style="--f:${SCH_FARBEN[i % 4]}"><i></i><span><b>${esc(x.name)}</b><small>${x.n} Schmuck · ab ${schDatum(x)} · ${esc(x.vers)}</small></span><em>${an ? "✓" : genug ? "bereit" : naechste ? `noch ${x.n - s}` : x.n}</em></div>`; }).join("");
   const m = modal(`<div class="sch-det">
     <div class="sch-det-k"><span class="sch-med gross" style="--p:${pct}">${schStern(st)}<i class="sch-st">${st}/${SCH_STUFEN.length}</i></span>
       <span><b>Gemeinsam Bethlehem schmücken</b><small>${st ? `Stufe ${st}: ${esc(SCH_STUFEN[st - 1].name)}` : "Noch ungeschmückt"}</small></span></div>
-    <div class="sch-det-zahlen"><span><b>${s}</b>gemeinsam</span><span><b>${sv.sp || (eigen ? 1 : 0)}</b>Spieler</span><span><b>${eigen}</b>von dir</span></div>
+    <div class="sch-det-zahlen"><span><b>${s}</b>gemeinsam</span><span><b>${W.ht}/${SCH_ZIEL_TAG}</b>heute</span><span><b>${sv.sp || (eigen ? 1 : 0)}</b>Spieler</span><span><b>${eigen}</b>von dir</span></div>
+    ${W.vorrat || W.wartet ? `<div class="sch-det-start">${W.vorrat} Schmuck im Vorrat – „${esc(nx.name)}“ kommt am ${schDatum(nx)}</div>` : ""}
     <div class="sch-det-l">${liste}</div>
-    <div class="sch-det-info">Jedes Schmuckstück zählt für alle gleich – je mehr mitmachen, desto schneller wird Bethlehem festlich.<br>
-      Preis 1 Talent × dein Level = <b>${preis.toLocaleString("de-DE")} Talente</b> · höchstens ${SCH_TAG_MAX} am Tag · 29.11.–24.12.<br>
+    <div class="sch-det-info">Jedes Schmuckstück zählt für alle gleich. Jede Stufe hat ihr Datum – so wird Bethlehem Schritt für Schritt bis Heiligabend festlich.<br>
+      <b>Tagesziel:</b> ${SCH_ZIEL_TAG} Schmuckstücke gemeinsam – geschafft, bekommt jeder, der an dem Tag gespendet hat, +1 Manna.<br>
+      Höchstens ${SCH_TAG_MAX} am Tag: 1. Stück 1 × Level, 2. Stück 2 × Level (jetzt <b>${preis.toLocaleString("de-DE")} Talente</b>) · 29.11.–24.12.<br>
       Ab 1 Schmuckstück: Rahmen „Festliches Bethlehem“${eigen ? " ✓" : ""}</div>
     ${laeuft ? `<button class="btn primary" id="schDLos"${h >= SCH_TAG_MAX ? " disabled" : ""}>${h >= SCH_TAG_MAX ? `Heute schon ${SCH_TAG_MAX}× geschmückt ✓` : `1 Schmuckstück spenden · ${preis.toLocaleString("de-DE")} Talente`}</button>`
       : `<div class="sch-det-start">${W.vorStart ? "Los geht's am 1. Advent (29.11.)" : "Danke an alle, die mitgeschmückt haben!"}</div>`}
-    ${test ? `<div class="ad-test">Vorschau Schmuck: <button class="btn ghost mini" id="schMinus">−50</button><button class="btn ghost mini" id="schPlus">+50</button></div>` : ""}
+    ${test ? `<div class="ad-test">Vorschau Schmuck: <button class="btn ghost mini" id="schMinus">−50</button><button class="btn ghost mini" id="schPlus">+50</button><button class="btn ghost mini" id="schHPlus">heute +4</button></div>` : ""}
     <button class="btn ghost" data-close="">Schließen</button></div>`);
   m.dataset.frei = "1";
   const zu = () => m.remove();
   if (m.querySelector("#schDLos")) m.querySelector("#schDLos").onclick = () => { zu(); schSpenden(); };
   const v = d => { const t = schTest(); t.extra = Math.max(0, (t.extra | 0) + d); sessionStorage.setItem("bq-sch-test", JSON.stringify(t)); zu(); VIEWS.advent(); schDetails(); };
-  if (m.querySelector("#schPlus")) { m.querySelector("#schPlus").onclick = () => v(50); m.querySelector("#schMinus").onclick = () => v(-50); }
+  if (m.querySelector("#schPlus")) { m.querySelector("#schPlus").onclick = () => v(50); m.querySelector("#schMinus").onclick = () => v(-50);
+    m.querySelector("#schHPlus").onclick = () => { const t = schTest(); t.extraH = (t.extraH | 0) + 4; t.extra = (t.extra | 0) + 4; sessionStorage.setItem("bq-sch-test", JSON.stringify(t)); zu(); VIEWS.advent(); schDetails(); }; }
 }
 function schVerdrahten() {
   if ($("schLos")) $("schLos").onclick = e => { e.stopPropagation(); schSpenden(); };
   const k = $("schKarte"); if (k) { k.onclick = () => { SFX.tap(); schDetails(); }; k.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); schDetails(); } }; }
+  schZielPruefen();
   const st = schStufe(schSumme()); if (!adTest() && st > schEcht().gs && schEcht().g + schServer().s > 0) setTimeout(() => schNeueStufe(st), 600);
   schSenden();
   /* Summe auffrischen (Rangliste ist zwischengespeichert – meist kein Lesezugriff) */

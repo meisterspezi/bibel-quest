@@ -46,6 +46,11 @@ export function skZahlen(sk) {  // [Gold, Silber, Bronze]
 export const abVon = sk => (sk ? skZahlen(sk).join(".") : "");
 const abPunkte = ab => { const [g, s0, b] = String(ab || "").split(".").map(Number); return (g || 0) * 3 + (s0 || 0) * 2 + (b || 0); };
 // Kalenderwoche wie in der App (weekKey, deutsche Zeit): "2026-W47"
+/* 10.58: Berliner Kalendertag als Zahl (Tage seit 1970) – gleich wie dayNum(today()) in der App */
+export function tagNr(ms0) {
+  const t = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(ms0));
+  return Math.round(Date.parse(t + "T00:00:00Z") / 864e5);
+}
 export function wocheVon(ms0) {
   const t = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(ms0));
   const d = new Date(t + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + 3 - ((d.getUTCDay() + 6) % 7));
@@ -120,6 +125,10 @@ export async function sammeln(db, opt = {}) {
   sch.docs.forEach(d => { const n = Math.max(0, Math.min(1000, (d.data().n | 0))); if (n) schMap[d.id] = n; });
   const schNeu = JSON.stringify(schMap) !== JSON.stringify(schAlt || {});
   const schSumme = Object.values(schMap).reduce((a, n) => a + n, 0), schSpender = Object.keys(schMap).length;
+  // 10.58: gemeinsam heute gespendet (Berliner Tag) – Basis = Summe beim ersten Lauf des Tages; gestern bleibt für das Tagesziel sichtbar
+  const tagN = tagNr(jetzt), s0 = job.schmuckTag && typeof job.schmuckTag === "object" ? job.schmuckTag : null;
+  const schTag = !s0 ? { d: tagN, b: schSumme, g: 0 } : s0.d === tagN ? { ...s0 } : { d: tagN, b: s0.e != null ? s0.e : s0.b, g: s0.d === tagN - 1 ? Math.max(0, (s0.e != null ? s0.e : s0.b) - s0.b) : 0 };
+  schTag.e = schSumme; const schHeute = Math.max(0, schSumme - schTag.b);
   const skNeu = JSON.stringify(skMap) !== skVor || !alOk;
   // 10.2 Album-Woche: Punkte zu Wochenbeginn bzw. beim ersten Sehen in dieser Woche (Basis für „Album diese Woche“)
   // 10.7: zusätzlich der Stand je Stufe zu Wochenbeginn (awb = "Gold.Silber.Bronze") – für „neue Karten diese Woche“
@@ -136,10 +145,10 @@ export async function sammeln(db, opt = {}) {
   const alStand = skNeu ? jetzt : (ms(alDoc.exists ? alDoc.data().stand : null) || jetzt);
   const zeilen = [...karte.values()].sort((a, b) => (a[0] < b[0] ? -1 : 1)), teile = teilen(zeilen);
   const b = db.batch(), ts = Timestamp.fromMillis(jetzt);
-  teile.forEach((z, i) => b.set(R.doc("spieler-" + i), { stand: ts, teil: i, teile: teile.length, anzahl: zeilen.length, alStand, schmuck: schSumme, schmuckSp: schSpender, daten: JSON.stringify({ f: FELDER, z }) }));
+  teile.forEach((z, i) => b.set(R.doc("spieler-" + i), { stand: ts, teil: i, teile: teile.length, anzahl: zeilen.length, alStand, schmuck: schSumme, schmuckSp: schSpender, schmuckHeute: schHeute, schmuckTag: tagN, schmuckGestern: schTag.g, daten: JSON.stringify({ f: FELDER, z }) }));
   alt.filter(d => +d.id.slice(8) >= teile.length).forEach(d => b.delete(d.ref));
   if (skNeu) b.set(ALref, { stand: ts, anzahl: Object.keys(skMap).length, daten: JSON.stringify(skMap) });
-  b.set(jobRef, { stand: jetzt, ...(voll ? { voll: jetzt } : {}), ...(awNeu ? { albumWoche: { wk, b: awB, s: awS } } : {}), ...(schNeu || !schAlt ? { schmuck: schMap } : {}) }, { merge: true });
+  b.set(jobRef, { stand: jetzt, ...(voll ? { voll: jetzt } : {}), ...(awNeu ? { albumWoche: { wk, b: awB, s: awS } } : {}), ...(schNeu || !schAlt ? { schmuck: schMap } : {}), schmuckTag: schTag }, { merge: true });
   await b.commit();
   let schaetz = []; try { schaetz = await schaetzAuswerten(db); } catch (e) { schaetz = ["Schätzfrage: " + e.message]; }  // 10.52
   return { schaetz, art: (voll ? "voll" : "Änderungen") + (albumAlle ? " + alle Alben" : ""), alben: Object.keys(skMap).length, schmuck: schSumme, spieler: zeilen.length, dokumente: teile.length, gelesen, bytes: teile.map(z => bytes(JSON.stringify(z))) };
