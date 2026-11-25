@@ -1313,14 +1313,55 @@ async function rbTeilenDateien(dateien, text, D) {
   if (ok && m.rb.g !== D.jahr) { m.rb.g = D.jahr; save(); const x = smGoldGeben(5); if (x) toast(`Danke fürs Teilen! +${x} Manna`); }
   return ok;
 }
+/* ---------- 10.69: Ton fürs Bibeljahr-Video (Michaels Wahl: eigene festlich-warme Melodie, immer mit Ton) ----------
+   Alles wird im Handy erzeugt (Web Audio, keine Rechte-Fragen): weiche Streicher-Akkorde, Glockenspiel, Bass, Hall;
+   Effekte: Glanz-Klang bei jeder Szene, Ticken beim Hochzählen, Fanfare beim Lieblings-Gegner, Schlussakkord beim QR-Code. */
+const rbMp4TonTyp = () => { try { return ["video/mp4;codecs=avc1.42E01E,mp4a.40.2", "video/mp4;codecs=avc1,mp4a.40.2", "video/mp4;codecs=avc1.42E01E,opus"].find(t => MediaRecorder.isTypeSupported(t)) || null; } catch (e) { return null; } };
+const rbHz = n => 440 * Math.pow(2, (n - 69) / 12);
+function rbHall(ac) { const len = ac.sampleRate * 2.6, b = ac.createBuffer(2, len, ac.sampleRate);
+  for (let k = 0; k < 2; k++) { const d = b.getChannelData(k); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
+  const c = ac.createConvolver(); c.buffer = b; return c; }
+function rbTon(ac, ziel, { f, t, d, typ = "sine", v = .2, a = .01, r = null, filter = null }) {
+  const o = ac.createOscillator(), g = ac.createGain(); o.type = typ; o.frequency.setValueAtTime(f, t);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + a); g.gain.setTargetAtTime(0, t + (r === null ? a : Math.max(a, d - r)), r === null ? d / 4 : r / 3);
+  let n = o; if (filter) { const fl = ac.createBiquadFilter(); fl.type = "lowpass"; fl.frequency.value = filter; o.connect(fl); n = fl; }
+  n.connect(g); g.connect(ziel); o.start(t); o.stop(t + d + 1.5);
+}
+function rbGlocke(ac, ziel, n, t, v = .12) { rbTon(ac, ziel, { f: rbHz(n), t, d: 1.6, v, a: .005 }); rbTon(ac, ziel, { f: rbHz(n) * 2.76, t, d: .6, v: v * .25, a: .003 }); rbTon(ac, ziel, { f: rbHz(n) * 5.4, t, d: .25, v: v * .1, a: .002 }); }
+function rbMusik(ac, ausgang, plan, t0) {
+  const dauer = plan.reduce((a, x) => a + x[1], 0), hall = rbHall(ac), hallG = ac.createGain(); hallG.gain.value = .45; hall.connect(hallG); hallG.connect(ausgang);
+  const bus = ac.createGain(); bus.connect(ausgang); bus.connect(hall);
+  bus.gain.setValueAtTime(0, t0); bus.gain.linearRampToValueAtTime(1, t0 + 1.2); bus.gain.setValueAtTime(1, t0 + dauer - 1.6); bus.gain.linearRampToValueAtTime(0, t0 + dauer + .6);
+  /* Akkordfolge D – A – h – G (I–V–vi–IV), festlich-warm, ca. 72 bpm */
+  const AK = [[62, 66, 69, 50], [61, 64, 69, 45], [62, 66, 71, 47], [62, 67, 71, 43]], lang = 2.2;
+  for (let i = 0, t = 0; t < dauer - .5; i++, t += lang) {
+    const [x, y, z, b] = AK[i % 4], ts = t0 + t, d = Math.min(lang + .6, dauer - t + .4);
+    [x, y, z].forEach(n => { rbTon(ac, bus, { f: rbHz(n), t: ts, d, typ: "triangle", v: .045, a: .6, r: .9, filter: 1400 }); rbTon(ac, bus, { f: rbHz(n) * 1.003, t: ts, d, typ: "sawtooth", v: .012, a: .8, r: .9, filter: 900 }); });
+    rbTon(ac, bus, { f: rbHz(b), t: ts, d, typ: "sine", v: .09, a: .3, r: .8 });
+    const arp = [x + 12, y + 12, z + 12, y + 12]; arp.forEach((n, k) => { const tt = ts + k * (lang / 4); if (tt < t0 + dauer - .8) rbGlocke(ac, bus, n, tt, .05 + (k === 0 ? .02 : 0)); });
+  }
+  /* Effekte zu den Szenen */
+  let s = 0;
+  plan.forEach(([id, d], i) => { const ts = t0 + s;
+    if (i) [74, 78, 81, 86, 90].forEach((n, k) => rbGlocke(ac, bus, n, ts + .05 + k * .045, .06)); /* Glanz-Klang */
+    if (i) { const len = ac.sampleRate * .5, nb = ac.createBuffer(1, len, ac.sampleRate), dd = nb.getChannelData(0); for (let j = 0; j < len; j++) dd[j] = (Math.random() * 2 - 1) * (1 - j / len);
+      const q = ac.createBufferSource(), hp = ac.createBiquadFilter(), g = ac.createGain(); q.buffer = nb; hp.type = "highpass"; hp.frequency.value = 6000; g.gain.value = .05; q.connect(hp); hp.connect(g); g.connect(bus); q.start(ts); }
+    if (id === "zahlen" || id === "solo" || id === "duell") { const von = id === "zahlen" ? .3 : .2, bis = id === "zahlen" ? 2.1 : 1.6; /* Ticken beim Hochzählen, wird langsamer */
+      for (let t = von, k = 0; t < bis; k++, t += .055 + k * .0016) rbTon(ac, bus, { f: 2600 + (k % 2) * 300, t: ts + t, d: .03, typ: "square", v: .018, a: .001, filter: 4000 }); }
+    if (id === "gegner") [[62, 0], [66, .14], [69, .28], [74, .46]].forEach(([n, o]) => { /* Fanfare */
+      rbTon(ac, bus, { f: rbHz(n), t: ts + .25 + o, d: o === .46 ? 1.4 : .5, typ: "sawtooth", v: .07, a: .02, r: .3, filter: 2200 }); rbTon(ac, bus, { f: rbHz(n - 12), t: ts + .25 + o, d: .5, typ: "triangle", v: .05, a: .02 }); });
+    if (id === "outro") { const tt = ts + .55; [50, 57, 62, 66, 69, 74].forEach(n => rbTon(ac, bus, { f: rbHz(n), t: tt, d: 3.2, typ: "triangle", v: .06, a: .05, r: 2.2, filter: 1800 })); [74, 78, 81, 86].forEach((n, k) => rbGlocke(ac, bus, n, tt + k * .09, .08)); } /* Schlussakkord */
+    s += d; });
+}
 async function rbVideoStart() {
   if (document.querySelector(".rbv-ov")) return;
-  const V = rbVideoDaten(), plan = rbPlan(V), dauer = plan.reduce((a, x) => a + x[1], 0), typ = rbMp4Typ();
+  const V = rbVideoDaten(), plan = rbPlan(V), dauer = plan.reduce((a, x) => a + x[1], 0), typ = rbMp4Typ(), tonTyp = typ && rbMp4TonTyp();
+  let ac = null; if (tonTyp) try { ac = new (window.AudioContext || window.webkitAudioContext)(); ac.resume(); } catch (e) { ac = null; } /* 10.69: im Tipp anlegen, sonst bleibt der Ton stumm */
   const ov = document.createElement("div"); ov.className = "rbv-ov";
   ov.innerHTML = `<div class="rbv-box"><canvas class="rbv-cv" width="720" height="1280"></canvas><div class="rbv-bar"><i></i></div><p class="rbv-t">${typ ? "Dein Video wird erstellt …" : "Deine Bilderserie wird erstellt …"}</p><div class="rbv-kn"><button class="btn" data-a="zu">Abbrechen</button></div></div>`;
   document.body.appendChild(ov);
   const cv = ov.querySelector("canvas"), cx = cv.getContext("2d"), bar = ov.querySelector(".rbv-bar i"), txt = ov.querySelector(".rbv-t"), kn = ov.querySelector(".rbv-kn");
-  let ab = false; const zu = () => { ab = true; ov.remove(); document.removeEventListener("visibilitychange", weg); };
+  let ab = false; const zu = () => { ab = true; ov.remove(); document.removeEventListener("visibilitychange", weg); try { if (ac) ac.close(); } catch (e) {} };
   const weg = () => { if (document.visibilityState === "hidden" && !fertig) { ab = true; txt.textContent = "Aufnahme unterbrochen – bitte die App geöffnet lassen und neu starten."; } };
   let fertig = false; document.addEventListener("visibilitychange", weg);
   kn.querySelector('[data-a="zu"]').onclick = () => { SFX.tap(); zu(); };
@@ -1328,15 +1369,17 @@ async function rbVideoStart() {
   const R = { icon: await smBild("icons/icon-192.png"), qr: await smQr(smLink()) };
   const knoepfe = (html, fn) => { kn.innerHTML = html + `<button class="btn" data-a="zu">Schließen</button>`; kn.querySelector('[data-a="zu"]').onclick = () => { SFX.tap(); zu(); }; fn(); };
   if (typ) {
-    const st = cv.captureStream(30), rec = new MediaRecorder(st, { mimeType: typ, videoBitsPerSecond: 5e6 }), teile = [];
+    const vst = cv.captureStream(30); let st = vst, ausgang = null;
+    if (ac) try { const ziel = ac.createMediaStreamDestination(); ausgang = ac.createGain(); ausgang.gain.value = .9; ausgang.connect(ziel); ausgang.connect(ac.destination); st = new MediaStream([...vst.getVideoTracks(), ...ziel.stream.getAudioTracks()]); } catch (e) { ausgang = null; st = vst; }
+    const rec = new MediaRecorder(st, { mimeType: ausgang ? tonTyp : typ, videoBitsPerSecond: 5e6, audioBitsPerSecond: 128e3 }), teile = [];
     rec.ondataavailable = e => { if (e.data && e.data.size) teile.push(e.data); };
     const gestoppt = new Promise(r => { rec.onstop = r; });
     rbFrame(cx, 720, 1280, plan, 0, V, R); rec.start(500);
-    const t0 = performance.now();
+    const t0 = performance.now(); if (ausgang) try { rbMusik(ac, ausgang, plan, ac.currentTime + .02); } catch (e) {}
     await new Promise(res => { const schritt = () => { const T = (performance.now() - t0) / 1000;
       if (ab || T >= dauer) { rbFrame(cx, 720, 1280, plan, dauer - .01, V, R); res(); return; }
       rbFrame(cx, 720, 1280, plan, T, V, R); bar.style.width = (T / dauer * 100).toFixed(1) + "%"; requestAnimationFrame(schritt); }; requestAnimationFrame(schritt); });
-    await new Promise(r => setTimeout(r, 300)); rec.stop(); await gestoppt; st.getTracks().forEach(x => x.stop());
+    await new Promise(r => setTimeout(r, ausgang ? 700 : 300)); rec.stop(); await gestoppt; st.getTracks().forEach(x => x.stop()); vst.getTracks().forEach(x => x.stop()); try { if (ac) ac.close(); } catch (e) {}
     if (ab) return; fertig = true; bar.style.width = "100%";
     const blob = new Blob(teile, { type: "video/mp4" }), datei = new File([blob], `mein-bibeljahr-${V.D.jahr}.mp4`, { type: "video/mp4" });
     rbVideoLetzt = { blob, groesse: blob.size, dauer };
