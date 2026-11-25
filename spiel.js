@@ -1844,12 +1844,14 @@ const SCHLUESSEL = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 1
 const SCHLOSS = (bereit) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 11V8a4.5 4.5 0 0 1 9 0v3" fill="none" stroke="${bereit ? "#e8d9a8" : "#9aa1b8"}" stroke-width="2.6"/><rect x="4.5" y="10.5" width="15" height="11" rx="2.6" fill="${bereit ? "#f2c14e" : "#8a90a8"}" stroke="${bereit ? "#7a4e0c" : "#3c4158"}" stroke-width="1"/><path d="M6 12.5h12" stroke="#fff" stroke-opacity=".45" stroke-width="1"/><circle cx="12" cy="15" r="1.7" fill="#2a1d02"/><path d="M12 16v2.6" stroke="#2a1d02" stroke-width="1.6" stroke-linecap="round"/></svg>`;
 const SCHLOSS_X = [16, 32, 48];
 /* Geschlossene Truhe; k = Zahl der Schlüssel (0–3) färbt die Schlösser golden, k < 0 = ohne Schlösser (für die Animation) */
-const truheZu = (k = 0) => `<svg viewBox="0 0 64 64" aria-hidden="true">${TRUHE_DEFS}${TRUHE_KORPUS}
+/* 10.62: stecken = true → in jedem goldenen (erledigten) Schloss steckt ein Schlüssel, der Griff hängt nach unten */
+const TRUHE_STECK = x => `<g class="tr-steck"><path d="M${x} 36V41.5" stroke="#7a4e0c" stroke-width="2.6" stroke-linecap="round"/><path d="M${x} 36V41.5" stroke="#f2c14e" stroke-width="1.4" stroke-linecap="round"/><circle cx="${x}" cy="45.2" r="4" fill="#f2c14e" stroke="#7a4e0c" stroke-width=".9"/><circle cx="${x}" cy="45.2" r="1.5" fill="#3a2a08"/><path d="M${x - 2.6} 43.6a3 3 0 0 1 2-1.2" stroke="#fff8d8" stroke-width=".8" fill="none" stroke-linecap="round"/></g>`;
+const truheZu = (k = 0, stecken = false) => `<svg viewBox="0 0 64 64" aria-hidden="true">${TRUHE_DEFS}${TRUHE_KORPUS}
   <path d="M7 33V25C7 15 17 10 32 10S57 15 57 25V33Z" fill="url(#trHolz)" stroke="#3a1f0c" stroke-width="1.6"/>
   <path d="M13 31V16.5M18 31V13.6M46 31V13.6M51 31V16.5" stroke="#7a4e0c" stroke-width=".6"/>
   <path d="M13 32V16Q15.5 14.2 18 13.3V32ZM46 32V13.3Q48.5 14.2 51 16V32Z" fill="url(#trGold)" stroke="#7a4e0c" stroke-width=".7"/>
   <path d="M12 21C16 15 24 13 32 13" stroke="#fff" stroke-opacity=".35" stroke-width="2" fill="none" stroke-linecap="round"/>
-  ${k < 0 ? "" : SCHLOSS_X.map((x, i) => `<g transform="translate(${x - 6.5} 28) scale(.54)">${SCHLOSS(i < k).replace(/<\/?svg[^>]*>/g, "")}</g>`).join("")}</svg>`;
+  ${k < 0 ? "" : SCHLOSS_X.map((x, i) => `<g transform="translate(${x - 6.5} 28) scale(.54)">${SCHLOSS(i < k).replace(/<\/?svg[^>]*>/g, "")}</g>${stecken && i < k ? TRUHE_STECK(x) : ""}`).join("")}</svg>`;
 const TRUHE_ZU = truheZu(3);
 const TRUHE_AUF = `<svg viewBox="0 0 64 64" aria-hidden="true">${TRUHE_DEFS}
   <ellipse cx="32" cy="24" rx="30" ry="24" fill="url(#trLicht)"/>
@@ -1966,7 +1968,7 @@ VIEWS.home = () => {
   const keysH = `<span class="ez-keys${S.dq.bonus ? " verbraucht" : ""}" aria-hidden="true">${[0, 1, 2].map(i => `<i class="${i < erledigt ? "an" : ""}">${SCHLUESSEL}</i>`).join("")}</span>`;
   const kopfTitel = S.dq.bonus ? `<span class="kt-lang">Geöffnet!</span><span class="kt-kurz"><small class="kt-heute">Truhe</small>offen</span>` : bereit ? `<span class="kt-lang">Öffnen!</span><span class="kt-kurz"><small class="kt-heute">Truhe</small>öffnen</span>` : `<small class="kt-heute">Heute </small>${erledigt}/3`;  /* 10.60: „Heute“ eigenes Wort (in der schmalen Kopfzeile darüber) */
   const kopfSub = S.dq.bonus ? "Belohnung abgeholt" : bereit ? "Truhe antippen zum Öffnen" : typeof smTruheManna === "function" && smTruheManna() ? `3 Aufgaben = Truhe + ${smTruheManna()} Manna` : "3 Aufgaben = 1 Schatztruhe";
-  const kopfInnen = `<span class="bk-med truhe${S.dq.bonus ? " offen" : ""}" style="--p:${S.dq.bonus || bereit ? 100 : Math.round(erledigt / 3 * 100)}">${S.dq.bonus ? TRUHE_AUF + `<i class="truhe-haken">${svg("check")}</i>` : truheZu(bereit ? 3 : erledigt)}</span><div class="bk-t"><h1 class="${S.dq.bonus || bereit ? "kt-wort" : "kt-zahl"}">${kopfTitel}</h1><span>${kopfSub}</span></div>${keysH}`;
+  const kopfInnen = `<span class="bk-med truhe${S.dq.bonus ? " offen" : ""}" style="--p:${S.dq.bonus || bereit ? 100 : Math.round(erledigt / 3 * 100)}">${S.dq.bonus ? TRUHE_AUF + `<i class="truhe-haken">${svg("check")}</i>` : truheZu(bereit ? 3 : erledigt, true)}</span><div class="bk-t"><h1 class="${S.dq.bonus || bereit ? "kt-wort" : "kt-zahl"}">${kopfTitel}</h1><span>${kopfSub}</span></div>${keysH}`;
   const kopf = bereit
     ? `<div class="bkopf start-aufg" style="--bk:#f2c14e"><button class="bk-kopf bk-aufg bereit" id="truheKopf" aria-label="Schatztruhe mit drei Schlüsseln öffnen">${kopfInnen}</button></div>`
     : `<div class="bkopf start-aufg" style="--bk:#f2c14e"><details class="bk-aufg-d"><summary class="bk-kopf bk-aufg" aria-label="Tagesaufgaben: ${erledigt} von 3 geschafft">${kopfInnen}</summary>
