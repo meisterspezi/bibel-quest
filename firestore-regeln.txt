@@ -1,5 +1,5 @@
 rules_version = '2';
-// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Stand 23.11.2026 – Version 10.52 – Schätzfrage der Woche: Sammlungen schaetzfrage, schaetzantwort, schaetzung, schaetzteil, schaetzergebnis; Version 10.44 – neue Sammlung schmuck (Bethlehem schmücken); Version 10.38 – Duell-Art kette/plagen (Plagen in Ägypten); Version 10.2 – album: zusätzlich sk = Album-Stand (22 Zeichen) und neue Sammlung albumliste (nur lesen) für Album-Rangliste und Schaufenster; Version 9.85 – Sammlung album (Zahl der Goldkarten des Sammelalbums gl, seit 10.0); Duell-Sticker wieder entfernt; Profil und Spielstand löschen nur noch das Gerät, das das Profil angelegt hat, oder der Verwalter; Version 9.71 – Duell-Sticker (duelle.st); 9.60 – Beta-Tester-Liste (einstellungen/beta); 9.56 – Sammel-Rangliste (rangliste, jobstand); 9.55 – XP-Protokoll als Paket; 9.53 – Talente-Zählung entfernt; 9.52 – Stiftshütte entfernt; 9.28 – Sammlung gemlog (Protokoll Beitritt/Austritt); 9.13.2 – Gemeindename bis 50 Zeichen; 9.12 – Ketten-Duelle gebote/schoepfung; 9.11 – Gespräche (dialoge), Freischaltung: Gemeinden mit pruef, Sammlungen antraege, freigabe, geheim; 9.7 – Sammlung nachrichten, Gemeinden mit Passwort pw und Logo logo; 9.0 – Sammlungen gemeinden + mitglied; 7.3 – Sammlung bethlehem (Weg nach Bethlehem, Advent); 6.95 – Sammlung talente (Talente-Zählung, nur der Verwalter liest); 6.88 – xpquellen: Regel vereinfacht (Limit 1000 Auswertungen pro Schreibzugriff, ab der 4. Quelle wurde abgelehnt); 6.80 – Sammlungen bibversuch (Biblionär-Wochenrunde einmal je Serverwoche) und spendenxp (XP für Spenden einmal je Talent); 6.79 – xpquellen: neue Quelle spende (Stiftshütte); 6.78 – Sammlung tagestruhe (Schatztruhe einmal je Serverdatum); 6.76 – xpquellen: neue Quelle abgleich; 6.75 – Sammlung xpprotokoll (Einzelprotokoll der XP-Vergaben, nur anlegen); 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
+// Sicherheitsregeln für die Gemeinde-Rangliste der Bibelbuch-Quest (Stand 25.11.2026 – Version 10.73 – Bibeljahr-Link: Sammlungen linkauf (Öffnungen) und herkunft (Herkunft neuer Spieler), lesen nur der Verwalter; Version 10.52 – Schätzfrage der Woche: Sammlungen schaetzfrage, schaetzantwort, schaetzung, schaetzteil, schaetzergebnis; Version 10.44 – neue Sammlung schmuck (Bethlehem schmücken); Version 10.38 – Duell-Art kette/plagen (Plagen in Ägypten); Version 10.2 – album: zusätzlich sk = Album-Stand (22 Zeichen) und neue Sammlung albumliste (nur lesen) für Album-Rangliste und Schaufenster; Version 9.85 – Sammlung album (Zahl der Goldkarten des Sammelalbums gl, seit 10.0); Duell-Sticker wieder entfernt; Profil und Spielstand löschen nur noch das Gerät, das das Profil angelegt hat, oder der Verwalter; Version 9.71 – Duell-Sticker (duelle.st); 9.60 – Beta-Tester-Liste (einstellungen/beta); 9.56 – Sammel-Rangliste (rangliste, jobstand); 9.55 – XP-Protokoll als Paket; 9.53 – Talente-Zählung entfernt; 9.52 – Stiftshütte entfernt; 9.28 – Sammlung gemlog (Protokoll Beitritt/Austritt); 9.13.2 – Gemeindename bis 50 Zeichen; 9.12 – Ketten-Duelle gebote/schoepfung; 9.11 – Gespräche (dialoge), Freischaltung: Gemeinden mit pruef, Sammlungen antraege, freigabe, geheim; 9.7 – Sammlung nachrichten, Gemeinden mit Passwort pw und Logo logo; 9.0 – Sammlungen gemeinden + mitglied; 7.3 – Sammlung bethlehem (Weg nach Bethlehem, Advent); 6.95 – Sammlung talente (Talente-Zählung, nur der Verwalter liest); 6.88 – xpquellen: Regel vereinfacht (Limit 1000 Auswertungen pro Schreibzugriff, ab der 4. Quelle wurde abgelehnt); 6.80 – Sammlungen bibversuch (Biblionär-Wochenrunde einmal je Serverwoche) und spendenxp (XP für Spenden einmal je Talent); 6.79 – xpquellen: neue Quelle spende (Stiftshütte); 6.78 – Sammlung tagestruhe (Schatztruhe einmal je Serverdatum); 6.76 – xpquellen: neue Quelle abgleich; 6.75 – Sammlung xpprotokoll (Einzelprotokoll der XP-Vergaben, nur anlegen); 6.74 – xpquellen: Protokoll der täglichen Belohnung „bel“; 6.73 – Sammlung xpquellen (XP je Quelle); 6.68 – Sammlung stiftshuette; 6.65 – Geräteliste bis 20; 6.61 – Verwalter nur über Geräteliste einstellungen/entwickler.geraete; 6.59 – Beitreten ohne erneute Werteprüfung, Verwalter-Profil nicht per Auswahl; 6.40 – Wer wird Biblionär?: Duell-Art quiz, Rekord bib, Sammlung biblionaer; seit 6.37 bleiben fertige Duelle erhalten)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -447,6 +447,26 @@ service cloud.firestore {
     // und jederzeit zu "gast" oder in eine Gemeinde ohne pruef wechseln. Ohne Eintrag gilt "fbg", solange fbg kein pruef hat.
     // 9.85 Sammelalbum: Anzahl der Goldkarten je Spieler (seit 10.0; früher Glanz-Karten) (der Sammel-Job trägt sie in die Rangliste ein)
     // 10.2: sk = Album-Stand kompakt (22 Zeichen, je Zeichen 3 Bücher à 2 Bit; optional, damit ältere App-Versionen weiter nur gl schreiben können)
+    // 10.73: Bibeljahr-Link – jedes Öffnen über den geteilten Link (q = Quelle, c = Kurzcode des Einladers, neu = noch ohne Profil)
+    match /linkauf/{id} {
+      allow read, delete: if istEntwickler();
+      allow create: if angemeldet()
+        && request.resource.data.keys().hasOnly(['q', 'c', 'neu', 'z'])
+        && request.resource.data.q is string && request.resource.data.q.size() <= 12
+        && request.resource.data.c is string && request.resource.data.c.size() <= 8
+        && request.resource.data.neu is bool && request.resource.data.z == request.time;
+    }
+    // 10.73: Herkunft eines neuen Spielers (einmal anlegen, nicht ändern)
+    match /herkunft/{pid} {
+      allow read, delete: if istEntwickler();
+      allow create: if angemeldet() && besitzer(pid)
+        && request.resource.data.keys().hasOnly(['q', 'c', 'von', 'z'])
+        && request.resource.data.q is string && request.resource.data.q.size() <= 12
+        && request.resource.data.c is string && request.resource.data.c.size() <= 8
+        && request.resource.data.von is string && request.resource.data.von.size() <= 64
+        && request.resource.data.z == request.time;
+    }
+
     match /album/{pid} {
       allow read: if istEntwickler();
       allow create, update: if angemeldet() && besitzer(pid)

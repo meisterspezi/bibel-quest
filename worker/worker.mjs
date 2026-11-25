@@ -200,6 +200,8 @@ async function tageszahlen(env) {
   if (!teile.length) return sagen(env, env.K_METRIK, ":warning: Tageszahlen: Die Sammel-Rangliste fehlt (läuft der Sammel-Job?).");
   const z = zahlenAus(teile, jetzt), gestern = new Date(jetzt - TAG);
   const [duelle, feedback, vor] = await Promise.all([fsZahl(env, "duelle", "erstellt", "GREATER_THAN", gestern), fsZahl(env, "feedback", "zeit", "GREATER_THAN", gestern), fsHolen(env, "jobstand/metrik")]);
+  /* 10.73: Bibeljahr-Link – Öffnungen und neue Spieler in 24 Std. */
+  const [lkAuf, lkNeu] = await Promise.all([fsZahl(env, "linkauf", "z", "GREATER_THAN", gestern).catch(() => 0), fsZahl(env, "herkunft", "z", "GREATER_THAN", gestern).catch(() => 0)]);
   const neu = vor && Number.isFinite(vor.gesamt) ? z.gesamt - vor.gesamt : null;
   await fsSetzen(env, "jobstand/metrik", { gesamt: z.gesamt, zeit: new Date(jetzt) });
   const datum = new Intl.DateTimeFormat("de-DE", { timeZone: "Europe/Berlin", weekday: "long", day: "numeric", month: "long" }).format(jetzt);
@@ -207,6 +209,7 @@ async function tageszahlen(env) {
   return sagen(env, env.K_METRIK, [`:bar_chart: *Bibelbuch-Quest – ${datum}*`,
     `*${z.heute}* aktive Spieler in den letzten 24 Stunden · *${z.woche}* in 7 Tagen · *${z.gesamt}* insgesamt${neu === null ? "" : ` (${neu >= 0 ? "+" : ""}${neu} seit gestern)`}`,
     `*${duelle}* neue Duelle · *${feedback}* Meldungen/Feedback`,
+    lkAuf || lkNeu ? `Bibeljahr-Link: *${lkAuf}*× geöffnet · *${lkNeu}* neue Spieler darüber` : "",
     gemText ? `Aktiv je Gemeinde: ${gemText}` : "",
     z.top.length ? `Wochen-XP: ${z.top.map((r, i) => `${i + 1}. ${esc(r.name)} (${Number(r.weekXp).toLocaleString("de-DE")})`).join(" · ")}` : ""].filter(Boolean).join("\n"));
 }

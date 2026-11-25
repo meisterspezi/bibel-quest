@@ -331,6 +331,13 @@ if (!configured) {
       if (!s) s = await fs.getDocs(fs.query(duelle, meine));
       return s.docs.map(duDaten).sort((x, y) => y.erstellt - x.erstellt).slice(0, DU_MAX);
     };
+    // 10.73: Bibeljahr-Link – Öffnung zählen (linkauf), Herkunft eines neuen Spielers (herkunft/{pid}), Auswertung nur für den Verwalter
+    LB.linkAuf = async (o) => { await LB.signIn(); await fs.addDoc(fs.collection(db, "linkauf"), { q: String(o.q || "").slice(0, 12), c: String(o.c || "").slice(0, 8), neu: !!o.neu, z: fs.serverTimestamp() }); };
+    LB.herkunftSetzen = async (pid, o) => { await LB.signIn(); await fs.setDoc(ref("herkunft", pid), { q: String(o.q || "").slice(0, 12), c: String(o.c || "").slice(0, 8), von: String(o.von || "").slice(0, 64), z: fs.serverTimestamp() }); };
+    LB.linkStat = async () => {
+      const [a, h] = await Promise.all([fs.getDocs(fs.collection(db, "linkauf")), fs.getDocs(fs.collection(db, "herkunft"))]);
+      return { auf: a.docs.map(d => ({ id: d.id, ...d.data(), z: zeitMs(d.data().z) })), her: h.docs.map(d => ({ pid: d.id, ...d.data(), z: zeitMs(d.data().z) })) };
+    };
     // 10.65: Duelle seit einem Zeitpunkt für den Jahresrückblick (die App fragt höchstens 1× am Tag, Ergebnis wird auf dem Gerät gemerkt)
     LB.duelleSeit = async (pid, seitMs, max = 400) => {
       const meine = fs.where("teil", "array-contains", pid); let s = null;
