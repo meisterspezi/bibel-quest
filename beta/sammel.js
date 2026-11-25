@@ -1221,12 +1221,14 @@ async function rbTeilenSeite(D) {
   const v = $("rbVideo"); if (v) v.onclick = () => { SFX.tap(); rbVideoStart(); };
   $("rbTeilen").onclick = async () => { SFX.tap();
     const duText = du.summe ? ` und ${du.summe} Duelle` : "";
-    const ok = await smTeilen(cv, `mein-bibeljahr-${D.jahr}.png`, `Mein Bibeljahr ${D.jahr} mit Bibelbuch-Quest: ${pkt(D.right)} richtige Antworten${duText} – und schon ${D.buecher} von 66 Bibelbüchern gelernt! Lern mit und spiel gegen mich! 👇`);
-    if (ok && m.rb.g !== D.jahr) { m.rb.g = D.jahr; save(); const x = smGoldGeben(5); if (x) toast(`Danke fürs Teilen! +${x} Manna`); } };
+    const b = await new Promise(r => cv.toBlob(r, "image/png")); if (!b) return; void duText;
+    await rbTeilenDateien([new File([b], `mein-bibeljahr-${D.jahr}.png`, { type: "image/png" })], rbTeilText(D, du), D); };
 }
 /* ---------- 10.68: Bibeljahr als animiertes Video (MP4, ca. 16 s) – kann das Handy kein MP4, als Bilderserie (Story-Bilder) ----------
    Ablauf: „Als Video teilen“ → Fenster zeigt die Aufnahme live → danach „Video teilen“ (Teilen braucht einen frischen Tipp). */
-const rbTeilText = (D, du) => `Mein Bibeljahr ${D.jahr} mit Bibelbuch-Quest: ${pkt(D.right)} richtige Antworten${du.summe ? ` und ${du.summe} Duelle` : ""} – und schon ${D.buecher} von 66 Bibelbüchern gelernt! Lern mit und spiel gegen mich! 👇`;
+const rbTeilText = (D, du) => `Mein Bibeljahr ${D.jahr} mit Bibelbuch-Quest: ${pkt(D.right)} richtige Antworten${du.summe ? ` und ${du.summe} Duelle` : ""} – und schon ${D.buecher} von 66 Bibelbüchern gelernt! Lern mit und spiel gegen mich!`;
+const rbLinkKurz = () => String(smLink()).replace(/^https?:\/\//, "").replace(/[?#].*$/, "").replace(/\/beta\/?$/, "").replace(/\/$/, "");
+const rbTextMitLink = text => `${text}\n\n👉 Hier mitspielen:\n${smLink()}`; /* 10.71: klickbarer Link in eigener Zeile (Profil-Code bleibt für Menschenfischer) */
 function rbVideoDaten() { const D = rbDaten(), du = rbDuStat(D.jahr); return { D, solo: rbSolo(), du, fav: rbGegZeigen ? du.gegner[0] : null }; }
 function rbPlan(V) { const p = [["intro", 2.6], ["zahlen", 2.9], ["solo", 2.9], ["duell", 2.9]]; if (V.fav) p.push(["gegner", 2.7]); p.push(["outro", 3.8]); return p; }
 const rbEase = p => 1 - Math.pow(1 - Math.max(0, Math.min(1, p)), 3);
@@ -1246,7 +1248,8 @@ function rbKopfZ(cx, V, R) {
 }
 const RB_SZENE = {
   intro(cx, V, t, R) {
-    const s = rbFeder(t / 1); cx.save(); cx.translate(540, 760); cx.scale(s, s);
+    if (V.vollIntro) t += 2.2; /* 10.71: Video startet mit fertigem Intro (Vorschaubild in WhatsApp) */
+    const s = rbFeder(t / 1) * (V.vollIntro ? 1 + .025 * Math.sin(t * 2.4) : 1); cx.save(); cx.translate(540, 760); cx.scale(s, s);
     cx.shadowColor = "#f2c14e"; cx.shadowBlur = 70; const g = cx.createRadialGradient(0, -40, 20, 0, 0, 190); g.addColorStop(0, "#2a3370"); g.addColorStop(1, "#10143a");
     cx.fillStyle = g; cx.beginPath(); cx.arc(0, 0, 180, 0, Math.PI * 2); cx.fill(); cx.shadowBlur = 0; cx.strokeStyle = "#f2c14e"; cx.lineWidth = 12; cx.stroke();
     if (R.icon) cx.drawImage(R.icon, -115, -115, 230, 230); cx.restore();
@@ -1285,9 +1288,12 @@ const RB_SZENE = {
     cx.save(); cx.globalAlpha *= a; cx.textAlign = "left"; cx.fillStyle = "#f2c14e"; cx.font = "800 40px Lexend, sans-serif"; cx.fillText(`MEIN VERS FÜR ${D.jahr + 1}`, 70, 330);
     cx.fillStyle = "#fff8e0"; cx.font = "italic 600 54px 'Source Serif 4', Georgia, serif"; const n = smUmbruch(cx, "„" + D.vers[0] + "“", 70, 410, 940, 74);
     cx.fillStyle = "#f2c14e"; cx.font = "700 40px Lexend, sans-serif"; cx.fillText(D.vers[1], 70, 410 + n * 74 + 20); cx.restore();
-    if (R.qr) { cx.save(); cx.translate(540, 1210); cx.scale(q, q); cx.shadowColor = "#f2c14e"; cx.shadowBlur = 60; cx.fillStyle = "#fff"; smRund(cx, -250, -250, 500, 500, 40); cx.fill(); cx.shadowBlur = 0; cx.drawImage(R.qr, -225, -225, 450, 450); cx.restore(); }
-    cx.save(); cx.globalAlpha *= c; cx.textAlign = "center"; cx.fillStyle = "#fff1c2"; cx.font = "800 58px Lexend, sans-serif"; cx.fillText("Lerne die 66 Bücher der Bibel", 540, 1570); cx.fillText("– spiel mit!", 540, 1645);
-    cx.fillStyle = "#a9b0d6"; cx.font = "600 38px Lexend, sans-serif"; cx.fillText("Bibelbuch-Quest · QR-Code scannen", 540, 1730); cx.restore();
+    if (R.qr) { cx.save(); cx.translate(540, 1170); cx.scale(q, q); cx.shadowColor = "#f2c14e"; cx.shadowBlur = 60; cx.fillStyle = "#fff"; smRund(cx, -250, -250, 500, 500, 40); cx.fill(); cx.shadowBlur = 0; cx.drawImage(R.qr, -225, -225, 450, 450); cx.restore(); }
+    cx.save(); cx.globalAlpha *= c; cx.textAlign = "center"; cx.fillStyle = "#fff1c2"; cx.font = "800 58px Lexend, sans-serif"; cx.fillText("Lerne die 66 Bücher der Bibel", 540, 1520); cx.fillText("– spiel mit!", 540, 1592);
+    /* 10.71: Link gut lesbar unter dem QR-Code (klickbar ist er nur im Text neben dem Video) */
+    const lk = rbLinkKurz(); cx.font = "800 46px Lexend, sans-serif"; const lw = Math.min(980, cx.measureText(lk).width + 80);
+    cx.fillStyle = "#151b48"; smRund(cx, 540 - lw / 2, 1650, lw, 92, 46); cx.fill(); cx.strokeStyle = "#f2c14e"; cx.lineWidth = 4; cx.stroke(); cx.fillStyle = "#f2c14e"; cx.fillText(lk, 540, 1712);
+    cx.fillStyle = "#a9b0d6"; cx.font = "600 36px Lexend, sans-serif"; cx.fillText("QR-Code scannen oder Link öffnen", 540, 1820); cx.restore();
   }
 };
 function rbRingSzene(cx, V, t, R, titel, farbe, liste, zahl, zahlT, topT, leer) {
@@ -1307,9 +1313,9 @@ function rbFrame(cx, Wpx, Hpx, plan, T, V, R) {
 }
 async function rbTeilenDateien(dateien, text, D) {
   const m = smInit(); let ok = false;
-  try { if (navigator.canShare && navigator.canShare({ files: dateien })) { await navigator.share({ files: dateien, text: text + "\n" + smLink() }); ok = true; } } catch (e) { if (e && e.name === "AbortError") return false; }
+  try { if (navigator.canShare && navigator.canShare({ files: dateien })) { await navigator.share({ files: dateien, text: rbTextMitLink(text) }); ok = true; } } catch (e) { if (e && e.name === "AbortError") return false; }
   if (!ok) { dateien.forEach(f => { try { const a = document.createElement("a"); a.href = URL.createObjectURL(f); a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); } catch (e) {} });
-    try { await navigator.clipboard.writeText(text + "\n" + smLink()); toast(`${dateien.length > 1 ? "Bilder" : "Datei"} gespeichert, Text mit Link kopiert – jetzt in WhatsApp einfügen.`); } catch (e) { toast("Gespeichert."); } ok = true; }
+    try { await navigator.clipboard.writeText(rbTextMitLink(text)); toast(`${dateien.length > 1 ? "Bilder" : "Datei"} gespeichert, Text mit Link kopiert – jetzt in WhatsApp einfügen.`); } catch (e) { toast("Gespeichert."); } ok = true; }
   if (ok && m.rb.g !== D.jahr) { m.rb.g = D.jahr; save(); const x = smGoldGeben(5); if (x) toast(`Danke fürs Teilen! +${x} Manna`); }
   return ok;
 }
@@ -1393,7 +1399,7 @@ async function rbVideoErzeugen(V, plan, dauer, R, cx, onProg, abgebrochen, vcode
 }
 async function rbVideoStart() {
   if (document.querySelector(".rbv-ov")) return;
-  const V = rbVideoDaten(), plan = rbPlan(V), dauer = plan.reduce((a, x) => a + x[1], 0);
+  const V = rbVideoDaten(), plan = rbPlan(V), dauer = plan.reduce((a, x) => a + x[1], 0); V.vollIntro = true;
   const ov = document.createElement("div"); ov.className = "rbv-ov";
   ov.innerHTML = `<div class="rbv-box"><canvas class="rbv-cv" width="720" height="1280"></canvas><div class="rbv-bar"><i></i></div><p class="rbv-t">Dein Video wird erstellt …</p><div class="rbv-kn"><button class="btn" data-a="zu">Abbrechen</button></div></div>`;
   document.body.appendChild(ov);
