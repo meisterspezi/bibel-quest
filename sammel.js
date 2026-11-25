@@ -1185,9 +1185,11 @@ async function rbBild(D, format) {
     const dx = L + bw + 30; karte(dx, y, bw, bh, "#ff8a5c"); cx.textAlign = "left"; cx.fillStyle = "#ff8a5c"; F(800, 34); cx.fillText("DUELLE", dx + 30, y + 56);
     if (du.summe) {
       cx.textAlign = "center"; cx.fillStyle = "#fff"; F(900, 96); cx.fillText(pkt(du.summe), dx + bw / 2, y + 170); cx.fillStyle = "#ffc9b0"; F(700, 28); cx.fillText(du.summe === 1 ? "Duell" : "Duelle", dx + bw / 2, y + 210);
-      const tw = bw - 60, tx = dx + 30, ty = y + 245, sum = (du.s + du.u + du.n) || 1; let xx = tx;
-      [[du.s, "#5fe08a"], [du.u, "#f2c14e"], [du.n, "#ff6b7a"]].forEach(([v, f]) => { const w = tw * v / sum; if (w > 0) { cx.fillStyle = f; smRund(cx, xx, ty, Math.max(8, w - 4), 34, 10); cx.fill(); } xx += w; });
-      [[du.s, "Siege", "#5fe08a"], [du.u, "Remis", "#f2c14e"], [du.n, "Niederl.", "#ff6b7a"]].forEach(([v, t, f], i) => { const cxp = tx + tw * (i + .5) / 3; cx.fillStyle = "#fff"; F(900, 40); cx.fillText(v, cxp, ty + 96); cx.fillStyle = f; F(700, 24); cx.fillText(t, cxp, ty + 126); });
+      /* 10.67: nur die gespielten Spielmodi (keine Siege/Niederlagen auf dem Bild – niemand soll bloßgestellt werden) */
+      const al = du.arten.slice(0, 4); cx.textAlign = "left";
+      al.forEach((x, i) => { const [nm, , f] = rbArt(x[0]), ly = y + 262 + i * 34, cxp = dx + 40 + (i % 2) * (bw - 60) / 2, lyy = y + 262 + Math.floor(i / 2) * 70;
+        cx.fillStyle = f; cx.beginPath(); cx.arc(cxp + 9, lyy - 9, 9, 0, Math.PI * 2); cx.fill();
+        cx.fillStyle = "#fff"; F(700, 26); cx.fillText(nm.length > 10 ? nm.slice(0, 9) + "…" : nm, cxp + 26, lyy); cx.fillStyle = f; F(800, 26); cx.fillText(x[2] + " %", cxp + 26, lyy + 30); });
     } else { cx.textAlign = "center"; cx.fillStyle = "#ffc9b0"; F(600, 30); cx.fillText("Noch keine Duelle", dx + bw / 2, y + 210); }
     y += bh + 30;
     /* C: Lieblings-Gegner */
@@ -1198,7 +1200,7 @@ async function rbBild(D, format) {
       cx.textAlign = "center"; cx.fillStyle = "#fff"; F(900, 66); cx.fillText(String(fav.name || "?").trim().charAt(0).toUpperCase(), ax, ay + 23);
       cx.textAlign = "left"; cx.fillStyle = "#ff7fa8"; F(800, 30); cx.fillText("MEIN LIEBLINGS-GEGNER", L + 210, y + 60);
       cx.fillStyle = "#fff"; let fs = 58; do { F(900, fs); } while (cx.measureText(fav.name).width > B - 240 && --fs > 30); cx.fillText(fav.name, L + 210, y + 122);
-      cx.fillStyle = "#ffd6e2"; F(700, 32); cx.fillText(`${fav.n} ${fav.n === 1 ? "Duell" : "Duelle"} · Bilanz ${fav.s} : ${fav.l}`, L + 210, y + 166);
+      cx.fillStyle = "#ffd6e2"; F(700, 32); cx.fillText(`${fav.n} ${fav.n === 1 ? "Duell" : "Duelle"} gegeneinander`, L + 210, y + 166);
       y += ch + 30;
     }
     /* D: Vers */
