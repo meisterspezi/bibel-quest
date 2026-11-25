@@ -6380,7 +6380,7 @@ async function updPruefen(sofort) {
 }
 function updRuhig() {
   if (!UPD_RUHIG.includes(current) || document.body.classList.contains("spiel-laeuft") || gesperrt) return false;
-  if (document.querySelector(".modal, .sm-ov, .truhe-fx, .sm-tour, .sm-flug, .sb-ov")) return false;
+  if (document.querySelector(".modal, .sm-ov, .truhe-fx, .sm-tour, .sm-flug, .sb-ov, .rbv-ov")) return false; /* 10.68: nicht während der Video-Aufnahme */
   const a = document.activeElement; return !(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
 }
 function updVersuchen() {

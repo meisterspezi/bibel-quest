@@ -1132,7 +1132,8 @@ VIEWS.rueckblick = () => {
       <small>Teilen</small><h3 class="rbx-teil-t">Dein Jahr als Bild</h3>
       <div class="rbx-rahmen"><div class="rb-vorschau" id="rbVorschau"><span class="muted small">Bild wird erstellt …</span></div></div>
       ${fav ? `<label class="rbx-schalter"><input type="checkbox" id="rbGeg" ${rbGegZeigen ? "checked" : ""}><span aria-hidden="true"></span>Lieblings-Gegner auf dem Bild zeigen</label>` : ""}
-      <button class="btn primary" id="rbTeilen">${svg("share") || ""} Teilen${m.rb.g === D.jahr ? "" : " · +5 Manna"}</button>
+      <button class="btn primary rbv-knopf" id="rbVideo"><i class="rbv-play" aria-hidden="true"></i> Als Video teilen${m.rb.g === D.jahr ? "" : " · +5 Manna"}</button>
+      <button class="btn" id="rbTeilen">${svg("share") || ""} Als Bild teilen</button>
       ${fav ? `<button class="btn rbx-heraus" id="rbHeraus">${rbAv(fav.pid, fav.name, 26)} ${esc(fav.name)} zum Duell herausfordern</button>` : ""}
       <p class="rbx-fuss">Wer über dein Bild einsteigt, zählt für dein Menschenfischer-Abzeichen.<br>${esc(smLink())}</p></div>` });
   rbSeite = Math.max(0, Math.min(seiten.length - 1, rbSeite));
@@ -1155,6 +1156,21 @@ function rbAnimieren(neu) {
   screen.querySelectorAll(".rb-cnt").forEach(el => { const z = +el.dataset.z || 0; if (still || z < 2) return; const t0 = performance.now(), dauer = 900;
     const schritt = t => { const p = Math.min(1, (t - t0) / dauer), w = Math.round(z * (1 - Math.pow(1 - p, 3))); el.textContent = pkt(w); if (p < 1 && el.isConnected) requestAnimationFrame(schritt); }; el.textContent = "0"; requestAnimationFrame(schritt); });
 }
+/* 10.68: Karte mit Ring (Anteile der Spielarten), Zahl in der Mitte und Legende – für Solo und Duelle gleich */
+function rbRing(cx, mx, my, r, dicke, liste, p = 1) {
+  const sl = liste.slice(0, 4), ges = sl.reduce((a, x) => a + x[2], 0), rest = Math.max(0, 100 - ges); let w0 = -Math.PI / 2;
+  cx.beginPath(); cx.arc(mx, my, r, 0, Math.PI * 2); cx.strokeStyle = "#ffffff12"; cx.lineWidth = dicke; cx.stroke();
+  [...sl.map(x => [x[2], rbArt(x[0])[2]]), [rest, "#3a4278"]].forEach(([q, f]) => { if (q <= 0) return; const w1 = w0 + Math.PI * 2 * q / 100 * p;
+    if (w1 - w0 > 0.07) { cx.beginPath(); cx.arc(mx, my, r, w0 + 0.03, w1 - 0.03); cx.strokeStyle = f; cx.lineWidth = dicke; cx.lineCap = "butt"; cx.stroke(); } w0 = w1; });
+}
+function rbRingKarte(cx, F, karte, x, y, bw, bh, titel, farbe, liste, mitte, mitteT, leer) {
+  karte(x, y, bw, bh, farbe); cx.textAlign = "left"; cx.fillStyle = farbe; F(800, 34); cx.fillText(titel, x + 30, y + 56);
+  const sl = liste.slice(0, 4); if (!sl.length) { cx.fillStyle = "#c9d1ff"; F(600, 30); cx.textAlign = "center"; cx.fillText(leer, x + bw / 2, y + 220); return; }
+  const rx = x + 135, ry = y + 230; rbRing(cx, rx, ry, 92, 34, sl);
+  cx.textAlign = "center"; cx.fillStyle = "#fff"; F(900, 46); cx.fillText(mitte || "", rx, ry + 8); cx.fillStyle = "#c9d1ff"; F(600, 24); cx.fillText(mitteT || "", rx, ry + 40);
+  cx.textAlign = "left"; sl.forEach((e, i) => { const [nm, , f] = rbArt(e[0]), ly = y + 140 + i * 62; cx.fillStyle = f; cx.beginPath(); cx.arc(x + 268, ly - 9, 9, 0, Math.PI * 2); cx.fill();
+    cx.fillStyle = "#fff"; F(700, 26); cx.fillText(nm.length > 11 ? nm.slice(0, 10) + "…" : nm, x + 286, ly); cx.fillStyle = f; F(800, 26); cx.fillText(e[2] + " %", x + 286, ly + 30); });
+}
 /* 10.66: Teilen-Bild mit Grafiken – Zahlen-Kacheln, Solo-Ring (Spielarten), Duell-Bilanz-Balken, Lieblings-Gegner (abschaltbar), Vers */
 async function rbBild(D, format) {
   const name = S.lbName || ""; /* 9.86: Name immer aufs Bild */
@@ -1170,27 +1186,10 @@ async function rbBild(D, format) {
       cx.textAlign = "center"; cx.fillStyle = "#fff"; F(900, q ? 60 : 74); cx.fillText(w, x + kw / 2, y + kh * .55); cx.fillStyle = f; F(700, q ? 28 : 32); cx.fillText(t, x + kw / 2, y + kh * .55 + (q ? 40 : 50)); });
     let y = y0 + 2 * (kh + 24) + 16;
     if (q) return;
-    /* B: Solo-Ring und Duell-Bilanz nebeneinander */
+    /* B: Solo- und Duell-Ring nebeneinander (10.68: Duelle im gleichen Stil, ohne Siege/Niederlagen) */
     const bh = 400, bw = (B - 30) / 2;
-    karte(L, y, bw, bh, "#c49bff"); cx.textAlign = "left"; cx.fillStyle = "#c49bff"; F(800, 34); cx.fillText("SOLO", L + 30, y + 56);
-    const sl = solo.liste.slice(0, 4), rx = L + 135, ry = y + 230, rr = 92;
-    if (sl.length) {
-      let w0 = -Math.PI / 2; const ges = sl.reduce((a, x) => a + x[2], 0) || 1, rest = Math.max(0, 100 - ges);
-      [...sl.map(x => [x[2], rbArt(x[0])[2]]), [rest, "#3a4278"]].forEach(([p, f]) => { if (p <= 0) return; const w1 = w0 + Math.PI * 2 * p / 100;
-        cx.beginPath(); cx.arc(rx, ry, rr, w0 + 0.03, w1 - 0.03); cx.strokeStyle = f; cx.lineWidth = 34; cx.lineCap = "butt"; cx.stroke(); w0 = w1; });
-      cx.textAlign = "center"; cx.fillStyle = "#fff"; F(900, 46); cx.fillText(solo.nachXp ? sl[0][2] + "%" : pkt(solo.summe), rx, ry + 8); cx.fillStyle = "#c9d1ff"; F(600, 24); cx.fillText(solo.nachXp ? rbArt(sl[0][0])[0] : "Runden", rx, ry + 40);
-      cx.textAlign = "left"; sl.forEach((x, i) => { const [nm, , f] = rbArt(x[0]), ly = y + 140 + i * 62; cx.fillStyle = f; cx.beginPath(); cx.arc(L + 268, ly - 9, 9, 0, Math.PI * 2); cx.fill();
-        cx.fillStyle = "#fff"; F(700, 26); cx.fillText(nm.length > 11 ? nm.slice(0, 10) + "…" : nm, L + 286, ly); cx.fillStyle = f; F(800, 26); cx.fillText(x[2] + " %", L + 286, ly + 30); });
-    } else { cx.fillStyle = "#c9d1ff"; F(600, 30); cx.textAlign = "center"; cx.fillText("Noch keine Runden", L + bw / 2, y + 220); }
-    const dx = L + bw + 30; karte(dx, y, bw, bh, "#ff8a5c"); cx.textAlign = "left"; cx.fillStyle = "#ff8a5c"; F(800, 34); cx.fillText("DUELLE", dx + 30, y + 56);
-    if (du.summe) {
-      cx.textAlign = "center"; cx.fillStyle = "#fff"; F(900, 96); cx.fillText(pkt(du.summe), dx + bw / 2, y + 170); cx.fillStyle = "#ffc9b0"; F(700, 28); cx.fillText(du.summe === 1 ? "Duell" : "Duelle", dx + bw / 2, y + 210);
-      /* 10.67: nur die gespielten Spielmodi (keine Siege/Niederlagen auf dem Bild – niemand soll bloßgestellt werden) */
-      const al = du.arten.slice(0, 4); cx.textAlign = "left";
-      al.forEach((x, i) => { const [nm, , f] = rbArt(x[0]), ly = y + 262 + i * 34, cxp = dx + 40 + (i % 2) * (bw - 60) / 2, lyy = y + 262 + Math.floor(i / 2) * 70;
-        cx.fillStyle = f; cx.beginPath(); cx.arc(cxp + 9, lyy - 9, 9, 0, Math.PI * 2); cx.fill();
-        cx.fillStyle = "#fff"; F(700, 26); cx.fillText(nm.length > 10 ? nm.slice(0, 9) + "…" : nm, cxp + 26, lyy); cx.fillStyle = f; F(800, 26); cx.fillText(x[2] + " %", cxp + 26, lyy + 30); });
-    } else { cx.textAlign = "center"; cx.fillStyle = "#ffc9b0"; F(600, 30); cx.fillText("Noch keine Duelle", dx + bw / 2, y + 210); }
+    rbRingKarte(cx, F, karte, L, y, bw, bh, "SOLO", "#c49bff", solo.liste, solo.nachXp ? solo.liste[0] && solo.liste[0][2] + "%" : pkt(solo.summe), solo.nachXp ? solo.liste[0] && rbArt(solo.liste[0][0])[0] : "Runden", "Noch keine Runden");
+    rbRingKarte(cx, F, karte, L + bw + 30, y, bw, bh, "DUELLE", "#ff8a5c", du.arten, pkt(du.summe), du.summe === 1 ? "Duell" : "Duelle", "Noch keine Duelle");
     y += bh + 30;
     /* C: Lieblings-Gegner */
     if (fav) {
@@ -1219,11 +1218,142 @@ async function rbTeilenSeite(D) {
   if (rbDu === null || rbDuLaedt) return; /* Duelle laden noch – nach dem Laden wird die Seite neu gezeichnet */
   const g = $("rbGeg"); if (g) g.onchange = async () => { rbGegZeigen = g.checked; SFX.tap(); cv = await zeichnen() || cv; };
   const h = $("rbHeraus"); if (h && fav) h.onclick = () => { SFX.tap(); const r = (rbSpieler || []).find(x => x.id === fav.pid) || { id: fav.pid, name: fav.name }; if (typeof duTypWahl === "function") duTypWahl(r); };
+  const v = $("rbVideo"); if (v) v.onclick = () => { SFX.tap(); rbVideoStart(); };
   $("rbTeilen").onclick = async () => { SFX.tap();
     const duText = du.summe ? ` und ${du.summe} Duelle` : "";
     const ok = await smTeilen(cv, `mein-bibeljahr-${D.jahr}.png`, `Mein Bibeljahr ${D.jahr} mit Bibelbuch-Quest: ${pkt(D.right)} richtige Antworten${duText} – und schon ${D.buecher} von 66 Bibelbüchern gelernt! Lern mit und spiel gegen mich! 👇`);
     if (ok && m.rb.g !== D.jahr) { m.rb.g = D.jahr; save(); const x = smGoldGeben(5); if (x) toast(`Danke fürs Teilen! +${x} Manna`); } };
 }
+/* ---------- 10.68: Bibeljahr als animiertes Video (MP4, ca. 16 s) – kann das Handy kein MP4, als Bilderserie (Story-Bilder) ----------
+   Ablauf: „Als Video teilen“ → Fenster zeigt die Aufnahme live → danach „Video teilen“ (Teilen braucht einen frischen Tipp). */
+const rbTeilText = (D, du) => `Mein Bibeljahr ${D.jahr} mit Bibelbuch-Quest: ${pkt(D.right)} richtige Antworten${du.summe ? ` und ${du.summe} Duelle` : ""} – und schon ${D.buecher} von 66 Bibelbüchern gelernt! Lern mit und spiel gegen mich! 👇`;
+function rbVideoDaten() { const D = rbDaten(), du = rbDuStat(D.jahr); return { D, solo: rbSolo(), du, fav: rbGegZeigen ? du.gegner[0] : null }; }
+function rbPlan(V) { const p = [["intro", 2.6], ["zahlen", 2.9], ["solo", 2.9], ["duell", 2.9]]; if (V.fav) p.push(["gegner", 2.7]); p.push(["outro", 3.8]); return p; }
+const rbEase = p => 1 - Math.pow(1 - Math.max(0, Math.min(1, p)), 3);
+const rbFeder = p => { p = Math.max(0, Math.min(1, p)); return 1 + 2.7 * Math.pow(p - 1, 3) + 1.7 * Math.pow(p - 1, 2); };
+const rbMp4Typ = () => { try { if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) return null; return ["video/mp4;codecs=avc1.42E01E", "video/mp4;codecs=avc1", "video/mp4"].find(t => MediaRecorder.isTypeSupported(t)) || null; } catch (e) { return null; } };
+function rbHintergrund(cx, T) {
+  const W = 1080, H = 1920, g = cx.createRadialGradient(W / 2, 0, 50, W / 2, H * .4, H); g.addColorStop(0, "#26306e"); g.addColorStop(.55, "#121838"); g.addColorStop(1, "#070a1d"); cx.fillStyle = g; cx.fillRect(0, 0, W, H);
+  cx.save(); cx.translate(W / 2, 760); cx.rotate(T * .07); cx.fillStyle = "rgba(242,193,78,0.045)";
+  for (let i = 0; i < 18; i++) { cx.rotate(Math.PI * 2 / 18); cx.beginPath(); cx.moveTo(0, 0); cx.lineTo(-70, -1500); cx.lineTo(70, -1500); cx.closePath(); cx.fill(); } cx.restore();
+  for (let i = 0; i < 46; i++) { const x = (i * 197 + 40) % W, y = (i * 331 + 90) % H, a = .18 + .22 * Math.sin(T * 2.2 + i * 1.7); cx.fillStyle = `rgba(255,246,220,${Math.max(0, a)})`; cx.beginPath(); cx.arc(x, y, 2 + i % 3, 0, Math.PI * 2); cx.fill(); }
+  cx.strokeStyle = "#f2c14e66"; cx.lineWidth = 6; smRund(cx, 24, 24, W - 48, H - 48, 48); cx.stroke();
+}
+function rbKopfZ(cx, V, R) {
+  if (R.icon) cx.drawImage(R.icon, 70, 90, 120, 120);
+  cx.textAlign = "left"; cx.fillStyle = "#f2c14e"; cx.font = "800 64px Cinzel, Georgia, serif"; cx.fillText(`Mein Bibeljahr ${V.D.jahr}`, 220, 160);
+  cx.fillStyle = "#c9d1ff"; cx.font = "600 36px Lexend, sans-serif"; cx.fillText(`${S.lbName || ""} · Bibelbuch-Quest`, 222, 205);
+}
+const RB_SZENE = {
+  intro(cx, V, t, R) {
+    const s = rbFeder(t / 1); cx.save(); cx.translate(540, 760); cx.scale(s, s);
+    cx.shadowColor = "#f2c14e"; cx.shadowBlur = 70; const g = cx.createRadialGradient(0, -40, 20, 0, 0, 190); g.addColorStop(0, "#2a3370"); g.addColorStop(1, "#10143a");
+    cx.fillStyle = g; cx.beginPath(); cx.arc(0, 0, 180, 0, Math.PI * 2); cx.fill(); cx.shadowBlur = 0; cx.strokeStyle = "#f2c14e"; cx.lineWidth = 12; cx.stroke();
+    if (R.icon) cx.drawImage(R.icon, -115, -115, 230, 230); cx.restore();
+    const a1 = rbEase((t - .5) / .8), a2 = rbEase((t - .8) / .9), a3 = rbEase((t - 1.2) / .8);
+    cx.textAlign = "center"; cx.globalAlpha *= 1; cx.save(); cx.globalAlpha *= a1; cx.fillStyle = "#fff1c2"; cx.font = "800 86px Cinzel, Georgia, serif"; cx.fillText("MEIN BIBELJAHR", 540, 1100 + (1 - a1) * 40); cx.restore();
+    cx.save(); cx.globalAlpha *= a2; const gy = cx.createLinearGradient(0, 1160, 0, 1380); gy.addColorStop(0, "#ffffff"); gy.addColorStop(.45, "#fff1c2"); gy.addColorStop(.8, "#f2c14e"); gy.addColorStop(1, "#c9902a");
+    cx.fillStyle = gy; cx.font = "900 250px Cinzel, Georgia, serif"; cx.translate(540, 1370); const sk = .8 + .2 * a2; cx.scale(sk, sk); cx.fillText(String(V.D.jahr), 0, 0); cx.restore();
+    cx.save(); cx.globalAlpha *= a3; cx.fillStyle = "#c9d1ff"; cx.font = "600 46px Lexend, sans-serif"; cx.fillText(S.lbName ? `${S.lbName} · Bibelbuch-Quest` : "Bibelbuch-Quest", 540, 1480); cx.restore();
+  },
+  zahlen(cx, V, t, R) {
+    rbKopfZ(cx, V, R); const D = V.D;
+    cx.textAlign = "center"; cx.fillStyle = "#7fc8ff"; cx.font = "800 62px Cinzel, Georgia, serif"; cx.fillText("Mein Jahr in Zahlen", 540, 430);
+    [[D.right, "richtige Antworten", "#7fc8ff"], [D.serie, "Tage längste Serie", "#ff9f5a"], [D.buecher, "von 66 Büchern gelernt", "#5fe0b0"], [D.album, "von 66 Album-Karten", "#f2c14e"]].forEach(([z, txt, f], k) => {
+      const e = rbEase((t - .15 - k * .18) / .7), x = 70 + (k % 2) * 485, y = 520 + Math.floor(k / 2) * 400 + (1 - e) * 80, w = 455, h = 360;
+      cx.save(); cx.globalAlpha *= e; cx.fillStyle = "#151b48"; smRund(cx, x, y, w, h, 36); cx.fill(); cx.strokeStyle = f + "aa"; cx.lineWidth = 4; cx.stroke();
+      const g = cx.createLinearGradient(x, y, x, y + 140); g.addColorStop(0, f + "40"); g.addColorStop(1, f + "00"); cx.fillStyle = g; smRund(cx, x, y, w, 140, 36); cx.fill();
+      const n = Math.round((+z || 0) * rbEase((t - .3 - k * .18) / 1.3)); cx.fillStyle = "#fff"; cx.font = "900 120px Lexend, sans-serif"; cx.fillText(pkt(n), x + w / 2, y + 205);
+      cx.fillStyle = f; cx.font = "700 36px Lexend, sans-serif"; cx.fillText(txt, x + w / 2, y + 285); cx.restore(); });
+  },
+  solo(cx, V, t, R) { rbRingSzene(cx, V, t, R, "Solo", "#c49bff", V.solo.liste, V.solo.nachXp ? (V.solo.liste[0] ? V.solo.liste[0][2] : 0) : V.solo.summe, V.solo.nachXp ? "% " + (V.solo.liste[0] ? rbArt(V.solo.liste[0][0])[0] : "") : "Runden", "Mein Lieblingsspiel", "Noch keine Solo-Runden"); },
+  duell(cx, V, t, R) { rbRingSzene(cx, V, t, R, "Duelle", "#ff8a5c", V.du.arten, V.du.summe, V.du.summe === 1 ? "Duell" : "Duelle", "Meine liebste Duell-Art", "Noch keine Duelle"); },
+  gegner(cx, V, t, R) {
+    rbKopfZ(cx, V, R); const f = V.fav, s = rbFeder(t / .9);
+    cx.textAlign = "center"; cx.fillStyle = "#ff7fa8"; cx.font = "800 52px Lexend, sans-serif"; cx.fillText("MEIN LIEBLINGS-GEGNER", 540, 470);
+    cx.save(); cx.translate(540, 860); cx.scale(s, s); cx.shadowColor = "#ff7fa8"; cx.shadowBlur = 80;
+    const g = cx.createLinearGradient(-230, -230, 230, 230); g.addColorStop(0, "#fff6dc"); g.addColorStop(.5, "#ff7fa8"); g.addColorStop(1, "#f2c14e"); cx.fillStyle = g; cx.beginPath(); cx.arc(0, 0, 230, 0, Math.PI * 2); cx.fill();
+    cx.shadowBlur = 0; cx.fillStyle = "#1d2550"; cx.beginPath(); cx.arc(0, 0, 200, 0, Math.PI * 2); cx.fill();
+    cx.fillStyle = "#fff"; cx.font = "900 210px Lexend, sans-serif"; cx.fillText(String(f.name || "?").trim().charAt(0).toUpperCase(), 0, 75); cx.restore();
+    const a = rbEase((t - .6) / .7), b = rbEase((t - 1) / .7);
+    cx.save(); cx.globalAlpha *= a; cx.fillStyle = "#fff"; let fs = 104; do { cx.font = `900 ${fs}px Lexend, sans-serif`; } while (cx.measureText(f.name).width > 900 && --fs > 40); cx.fillText(f.name, 540, 1250);
+    cx.fillStyle = "#ffd6e2"; cx.font = "700 50px Lexend, sans-serif"; cx.fillText(`${f.n} ${f.n === 1 ? "Duell" : "Duelle"} gegeneinander`, 540, 1340); cx.restore();
+    cx.save(); cx.globalAlpha *= b; cx.fillStyle = "#c9d1ff"; cx.font = "italic 600 44px 'Source Serif 4', Georgia, serif"; cx.fillText("„Eisen schärft Eisen“", 540, 1480); cx.font = "600 32px Lexend, sans-serif"; cx.fillText("nach Sprüche 27,17", 540, 1530); cx.restore();
+  },
+  outro(cx, V, t, R) {
+    rbKopfZ(cx, V, R); const D = V.D, a = rbEase(t / .8), q = rbFeder((t - .5) / .9), c = rbEase((t - 1.1) / .7);
+    cx.save(); cx.globalAlpha *= a; cx.textAlign = "left"; cx.fillStyle = "#f2c14e"; cx.font = "800 40px Lexend, sans-serif"; cx.fillText(`MEIN VERS FÜR ${D.jahr + 1}`, 70, 330);
+    cx.fillStyle = "#fff8e0"; cx.font = "italic 600 54px 'Source Serif 4', Georgia, serif"; const n = smUmbruch(cx, "„" + D.vers[0] + "“", 70, 410, 940, 74);
+    cx.fillStyle = "#f2c14e"; cx.font = "700 40px Lexend, sans-serif"; cx.fillText(D.vers[1], 70, 410 + n * 74 + 20); cx.restore();
+    if (R.qr) { cx.save(); cx.translate(540, 1210); cx.scale(q, q); cx.shadowColor = "#f2c14e"; cx.shadowBlur = 60; cx.fillStyle = "#fff"; smRund(cx, -250, -250, 500, 500, 40); cx.fill(); cx.shadowBlur = 0; cx.drawImage(R.qr, -225, -225, 450, 450); cx.restore(); }
+    cx.save(); cx.globalAlpha *= c; cx.textAlign = "center"; cx.fillStyle = "#fff1c2"; cx.font = "800 58px Lexend, sans-serif"; cx.fillText("Lerne die 66 Bücher der Bibel", 540, 1570); cx.fillText("– spiel mit!", 540, 1645);
+    cx.fillStyle = "#a9b0d6"; cx.font = "600 38px Lexend, sans-serif"; cx.fillText("Bibelbuch-Quest · QR-Code scannen", 540, 1730); cx.restore();
+  }
+};
+function rbRingSzene(cx, V, t, R, titel, farbe, liste, zahl, zahlT, topT, leer) {
+  rbKopfZ(cx, V, R); cx.textAlign = "center"; cx.fillStyle = farbe; cx.font = "800 80px Cinzel, Georgia, serif"; cx.fillText(titel, 540, 420);
+  if (!liste.length) { cx.fillStyle = "#c9d1ff"; cx.font = "600 52px Lexend, sans-serif"; cx.fillText(leer, 540, 900); return; }
+  const top = rbArt(liste[0][0]); cx.save(); cx.globalAlpha *= rbEase((t - .2) / .6); cx.fillStyle = "#c9d1ff"; cx.font = "600 42px Lexend, sans-serif"; cx.fillText(`${topT}: `, 540, 500); cx.fillStyle = top[2]; cx.font = "800 54px Lexend, sans-serif"; cx.fillText(top[0], 540, 565); cx.restore();
+  const p = rbEase((t - .2) / 1.4); cx.save(); cx.shadowColor = farbe; cx.shadowBlur = 40; rbRing(cx, 540, 920, 250, 92, liste, p); cx.restore();
+  cx.fillStyle = "#fff"; cx.font = "900 150px Lexend, sans-serif"; cx.fillText(pkt(Math.round((+zahl || 0) * p)), 540, 945); cx.fillStyle = "#c9d1ff"; cx.font = "700 46px Lexend, sans-serif"; cx.fillText(zahlT, 540, 1010);
+  liste.slice(0, 4).forEach((e, i) => { const [nm, , f] = rbArt(e[0]), a = rbEase((t - .9 - i * .15) / .5), y = 1340 + i * 96;
+    cx.save(); cx.globalAlpha *= a; cx.fillStyle = "#151b48"; smRund(cx, 120, y - 62, 840, 82, 41); cx.fill(); cx.fillStyle = f; cx.beginPath(); cx.arc(175, y - 21, 18, 0, Math.PI * 2); cx.fill();
+    cx.textAlign = "left"; cx.fillStyle = "#fff"; cx.font = "700 46px Lexend, sans-serif"; cx.fillText(nm, 215, y - 5); cx.textAlign = "right"; cx.fillStyle = f; cx.font = "900 46px Lexend, sans-serif"; cx.fillText(e[2] + " %", 920, y - 5); cx.textAlign = "center"; cx.restore(); });
+}
+function rbFrame(cx, Wpx, Hpx, plan, T, V, R) {
+  cx.setTransform(Wpx / 1080, 0, 0, Hpx / 1920, 0, 0); cx.globalAlpha = 1; rbHintergrund(cx, T);
+  let s = 0; for (let i = 0; i < plan.length; i++) { const [id, d] = plan[i]; if (T < s + d || i === plan.length - 1) { const t = Math.min(d, T - s);
+    const a = Math.min(i ? Math.min(1, t / .35) : 1, i < plan.length - 1 ? Math.min(1, (d - t) / .35) : 1); cx.save(); cx.globalAlpha = Math.max(0, a); RB_SZENE[id](cx, V, t, R); cx.restore(); return; } s += d; }
+}
+async function rbTeilenDateien(dateien, text, D) {
+  const m = smInit(); let ok = false;
+  try { if (navigator.canShare && navigator.canShare({ files: dateien })) { await navigator.share({ files: dateien, text: text + "\n" + smLink() }); ok = true; } } catch (e) { if (e && e.name === "AbortError") return false; }
+  if (!ok) { dateien.forEach(f => { try { const a = document.createElement("a"); a.href = URL.createObjectURL(f); a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); } catch (e) {} });
+    try { await navigator.clipboard.writeText(text + "\n" + smLink()); toast(`${dateien.length > 1 ? "Bilder" : "Datei"} gespeichert, Text mit Link kopiert – jetzt in WhatsApp einfügen.`); } catch (e) { toast("Gespeichert."); } ok = true; }
+  if (ok && m.rb.g !== D.jahr) { m.rb.g = D.jahr; save(); const x = smGoldGeben(5); if (x) toast(`Danke fürs Teilen! +${x} Manna`); }
+  return ok;
+}
+async function rbVideoStart() {
+  if (document.querySelector(".rbv-ov")) return;
+  const V = rbVideoDaten(), plan = rbPlan(V), dauer = plan.reduce((a, x) => a + x[1], 0), typ = rbMp4Typ();
+  const ov = document.createElement("div"); ov.className = "rbv-ov";
+  ov.innerHTML = `<div class="rbv-box"><canvas class="rbv-cv" width="720" height="1280"></canvas><div class="rbv-bar"><i></i></div><p class="rbv-t">${typ ? "Dein Video wird erstellt …" : "Deine Bilderserie wird erstellt …"}</p><div class="rbv-kn"><button class="btn" data-a="zu">Abbrechen</button></div></div>`;
+  document.body.appendChild(ov);
+  const cv = ov.querySelector("canvas"), cx = cv.getContext("2d"), bar = ov.querySelector(".rbv-bar i"), txt = ov.querySelector(".rbv-t"), kn = ov.querySelector(".rbv-kn");
+  let ab = false; const zu = () => { ab = true; ov.remove(); document.removeEventListener("visibilitychange", weg); };
+  const weg = () => { if (document.visibilityState === "hidden" && !fertig) { ab = true; txt.textContent = "Aufnahme unterbrochen – bitte die App geöffnet lassen und neu starten."; } };
+  let fertig = false; document.addEventListener("visibilitychange", weg);
+  kn.querySelector('[data-a="zu"]').onclick = () => { SFX.tap(); zu(); };
+  try { await document.fonts.ready; } catch (e) {}
+  const R = { icon: await smBild("icons/icon-192.png"), qr: await smQr(smLink()) };
+  const knoepfe = (html, fn) => { kn.innerHTML = html + `<button class="btn" data-a="zu">Schließen</button>`; kn.querySelector('[data-a="zu"]').onclick = () => { SFX.tap(); zu(); }; fn(); };
+  if (typ) {
+    const st = cv.captureStream(30), rec = new MediaRecorder(st, { mimeType: typ, videoBitsPerSecond: 5e6 }), teile = [];
+    rec.ondataavailable = e => { if (e.data && e.data.size) teile.push(e.data); };
+    const gestoppt = new Promise(r => { rec.onstop = r; });
+    rbFrame(cx, 720, 1280, plan, 0, V, R); rec.start(500);
+    const t0 = performance.now();
+    await new Promise(res => { const schritt = () => { const T = (performance.now() - t0) / 1000;
+      if (ab || T >= dauer) { rbFrame(cx, 720, 1280, plan, dauer - .01, V, R); res(); return; }
+      rbFrame(cx, 720, 1280, plan, T, V, R); bar.style.width = (T / dauer * 100).toFixed(1) + "%"; requestAnimationFrame(schritt); }; requestAnimationFrame(schritt); });
+    await new Promise(r => setTimeout(r, 300)); rec.stop(); await gestoppt; st.getTracks().forEach(x => x.stop());
+    if (ab) return; fertig = true; bar.style.width = "100%";
+    const blob = new Blob(teile, { type: "video/mp4" }), datei = new File([blob], `mein-bibeljahr-${V.D.jahr}.mp4`, { type: "video/mp4" });
+    rbVideoLetzt = { blob, groesse: blob.size, dauer };
+    txt.textContent = `Dein Video ist fertig (${Math.round(dauer)} Sekunden).`;
+    knoepfe(`<button class="btn primary" data-a="teilen">${svg("share") || ""} Video teilen</button>`, () => { kn.querySelector('[data-a="teilen"]').onclick = async () => { SFX.tap(); if (await rbTeilenDateien([datei], rbTeilText(V.D, V.du), V.D)) zu(); }; });
+  } else {
+    const dateien = []; let s = 0;
+    for (const [id, d] of plan) { if (ab) return; const c2 = document.createElement("canvas"); c2.width = 1080; c2.height = 1920; rbFrame(c2.getContext("2d"), 1080, 1920, plan, s + d - .5, V, R);
+      rbFrame(cx, 720, 1280, plan, s + d - .5, V, R); const b = await new Promise(r => c2.toBlob(r, "image/png")); if (b) dateien.push(new File([b], `mein-bibeljahr-${V.D.jahr}-${dateien.length + 1}.png`, { type: "image/png" }));
+      s += d; bar.style.width = (s / dauer * 100).toFixed(1) + "%"; await new Promise(r => setTimeout(r, 50)); }
+    fertig = true; rbVideoLetzt = { serie: dateien.length };
+    txt.textContent = `Dein Handy kann hier kein Video erzeugen – du teilst dein Jahr als Bilderserie (${dateien.length} Bilder). Im WhatsApp-Status laufen sie nacheinander ab.`;
+    knoepfe(`<button class="btn primary" data-a="teilen">${svg("share") || ""} Bilder teilen</button>`, () => { kn.querySelector('[data-a="teilen"]').onclick = async () => { SFX.tap(); if (await rbTeilenDateien(dateien, rbTeilText(V.D, V.du), V.D)) zu(); }; });
+  }
+}
+let rbVideoLetzt = null;
+
 /* Start: Banner und einmaliges Fenster */
 /* 10.60: statt Banner ein Eintrag in der Info-Leiste der Kopfzeile; Antippen öffnet ein kleines Overlay. 10.63: eigene Funktion (Nachtrag beim ersten Start) */
 function rbEv() {
