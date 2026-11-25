@@ -331,6 +331,14 @@ if (!configured) {
       if (!s) s = await fs.getDocs(fs.query(duelle, meine));
       return s.docs.map(duDaten).sort((x, y) => y.erstellt - x.erstellt).slice(0, DU_MAX);
     };
+    // 10.65: Duelle seit einem Zeitpunkt für den Jahresrückblick (die App fragt höchstens 1× am Tag, Ergebnis wird auf dem Gerät gemerkt)
+    LB.duelleSeit = async (pid, seitMs, max = 400) => {
+      const meine = fs.where("teil", "array-contains", pid); let s = null;
+      if (duIndex) try { s = await fs.getDocs(fs.query(duelle, meine, fs.where("erstellt", ">", fs.Timestamp.fromMillis(seitMs)), fs.orderBy("erstellt", "desc"), fs.limit(max))); }
+        catch (e) { if (!e || e.code !== "failed-precondition") throw e; duIndex = false; LB.duIndexFehlt = true; }
+      if (!s) s = await fs.getDocs(fs.query(duelle, meine));
+      return s.docs.map(duDaten).filter(d => d.erstellt > seitMs).sort((x, y) => y.erstellt - x.erstellt).slice(0, max);
+    };
     // „Biblionär der Woche“ (6.40): eigene Sammlung biblionaer/{Woche}_{pid} = { pid, wk, p, name, av, fr, lv }
     // (nicht im Ranglisten-Eintrag, weil dessen Regel an der Grenze von 1000 Rechenschritten ist)
     const bibliothek = fs.collection(db, "biblionaer");

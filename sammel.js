@@ -235,6 +235,7 @@ function smGeschenk(grund, st) {
 }
 /* Wird von addXp nach jeder XP-Vergabe aufgerufen */
 function sammelNachXp(n, quelle, info, vorher, nachher) {
+  if (quelle === "vers") try { rbzZaehlen("vers"); } catch (e) {} /* 10.65: Jahreszähler */
   if (!smFrei()) return;
   const m = smInit(); let g = 0; info = info || {};
   if (quelle === "lektion") g += smLektionManna(info.lr || 0); /* 10.31: Lektionen nur 1 Manna je 10 richtig sortierte Bücher */
@@ -1030,39 +1031,125 @@ function rbPop(jahr) {
   p.querySelector('[data-a="teilen"]').onclick = () => { SFX.tap(); zu(); rbSeite = 99; /* letzte Seite = Teilen */ go("rueckblick"); };
 }
 const RB_FARBE = { Lernen: "#7fc8ff", Solo: "#c49bff", Biblionär: "#7be04a", Arena: "#ff8a5c" };
+/* ---------- 10.65: Jahreszähler (Runden je Spielart) – gezählt über spielWdh, Lernvers über die XP-Quelle ---------- */
+const rbzJahr = () => { try { return datumVon(edTag()).getFullYear(); } catch (e) { return new Date().getFullYear(); } };
+function rbz() { const j = rbzJahr(); if (!S.rbz || S.rbz.j !== j || typeof S.rbz.s !== "object") S.rbz = { j, s: {} }; return S.rbz; }
+function rbzZaehlen(key) { if (!key || typeof gesperrt !== "undefined" && gesperrt) return; const k = /^lektion-/.test(key) ? "lektion" : key, z = rbz(); z.s[k] = (z.s[k] | 0) + 1; }
+function rbzMischen(r) { if (!r || !r.rbz || typeof r.rbz.s !== "object") return; const z = rbz(); if (r.rbz.j !== z.j) return; Object.entries(r.rbz.s).forEach(([k, v]) => { z.s[k] = Math.max(z.s[k] | 0, v | 0); }); }
+if (typeof spielWdh === "function") { const rbzWdhOrig = spielWdh; spielWdh = function (key, stufen) { try { rbzZaehlen(key); } catch (e) {} return rbzWdhOrig(key, stufen); }; }
+
+/* Spielarten mit Name, Symbol und Farbe (Solo-Schlüssel aus spielWdh, Duell-Schlüssel aus DU_TYPEN) */
+const RB_ART = {
+  lektion: ["Lektionen", "book", "#5c9dff"], vers: ["Lernvers", "scroll", "#7fc8ff"], luecke: ["Lückentext", "mikro", "#c49bff"], blitz: ["Blitz", "bolt", "#ff8a5c"],
+  "kette-bibel": ["Kette Bibel", "kette-bibel", "#ffb54a"], "kette-at": ["Kette AT", "kette-at", "#ffd27a"], "kette-nt": ["Kette NT", "kette-nt", "#ff9f3a"], "kette-rueck": ["Rückwärts", "kette-rueck", "#e0a050"],
+  "tk-gebote": ["Zehn Gebote", "tafeln", "#b38cff"], "tk-schoepfung": ["Schöpfung", "schoepfung", "#5fe0b0"], "tk-plagen": ["Plagen", "plagen", "#e8475f"],
+  "kette-gebote": ["Zehn Gebote", "tafeln", "#b38cff"], "kette-schoepfung": ["Schöpfung", "schoepfung", "#5fe0b0"], "kette-plagen": ["Plagen", "plagen", "#e8475f"],
+  "bib-solo": ["Biblionär", "biblionaer", "#7be04a"], quiz: ["Biblionär", "biblionaer", "#7be04a"]
+};
+const rbArt = k => RB_ART[k] || [(typeof DU_TYPEN !== "undefined" && DU_TYPEN[k] && DU_TYPEN[k].name) || k, "star", "#9aa3d6"];
+/* Solo: Runden je Spielart; zu wenig gezählt (Zähler erst seit 10.65) → Anteil nach XP-Quellen */
+function rbSolo() {
+  const s = rbz().s, liste = Object.entries(s).filter(([k, v]) => v > 0 && RB_ART[k]);
+  const summe = liste.reduce((a, [, v]) => a + v, 0);
+  if (summe >= 10) return { nachXp: false, summe, liste: liste.sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, v, Math.round(v / summe * 100)]) };
+  const q = (S.xq && S.xq.q) || {}, x = [["lektion", q.lektion], ["vers", q.vers], ["luecke", q.luecke], ["blitz", q.blitz], ["kette-bibel", q.kette], ["bib-solo", q.bib]].filter(([, v]) => +v > 0);
+  const xs = x.reduce((a, [, v]) => a + +v, 0) || 1;
+  return { nachXp: true, summe: xs, liste: x.sort((a, b) => b[1] - a[1]).map(([k, v]) => [k === "kette-bibel" ? "kette" : k, Math.round(v), Math.round(v / xs * 100)]) };
+}
+RB_ART.kette = ["Ketten", "kette-bibel", "#ffb54a"];
+/* Duelle des Jahres: 1× am Tag aus der Datenbank (bis 400), sonst die Duelle auf dem Gerät */
+let rbDu = null, rbDuLaedt = false, rbSpieler = null;
+function rbDuLaden(jahr) {
+  if (rbDu || rbDuLaedt) return;
+  const key = "bq-rbdu:" + (S.pid || "x"), tag = today();
+  try { const c = JSON.parse(localStorage.getItem(key) || "null"); if (c && c.t === tag && c.j === jahr && Array.isArray(c.d)) { rbDu = c.d; return; } } catch (e) {}
+  const kurz = d => { const ich = S.pid, opp = (d.teil || []).find(p => p !== ich) || "", erg = d.ergebnisse || {}; return { t: duTypVon(d), a: d.art, e: d.erstellt, o: opp, n: (d.namen || {})[opp] || (d.von === ich ? d.anName : d.vonName) || "?", m: erg[ich] || null, g: erg[opp] || null }; };
+  const lokal = () => (Array.isArray(duListe) ? duListe : []).map(kurz);
+  const L = window.LB;
+  if (!L || !L.ok || !L.duelleSeit || !S.pid) { rbDu = lokal(); return; }
+  rbDuLaedt = true;
+  L.duelleSeit(S.pid, Date.UTC(jahr, 0, 1) - 3600e3, 400).then(l => { rbDu = l.map(kurz); try { localStorage.setItem(key, JSON.stringify({ t: tag, j: jahr, d: rbDu })); } catch (e) {} })
+    .catch(() => { rbDu = lokal(); }).finally(() => { rbDuLaedt = false; if (current === "rueckblick") VIEWS.rueckblick(); });
+}
+function rbDuStat(jahr) {
+  const von = Date.UTC(jahr, 0, 1) - 3600e3, bis = Date.UTC(jahr + 1, 0, 1) - 3600e3;
+  const l = (rbDu || []).filter(d => d.t && d.m && d.e >= von && d.e < bis);
+  const art = {}, geg = {}; let s = 0, u = 0, n = 0;
+  l.forEach(d => {
+    art[d.t] = (art[d.t] | 0) + 1;
+    const g = geg[d.o] || (geg[d.o] = { pid: d.o, name: d.n, n: 0, s: 0, u: 0, l: 0, zuletzt: 0 }); g.n++; g.zuletzt = Math.max(g.zuletzt, d.e); if (d.n && d.n !== "?") g.name = d.n;
+    if (d.g) { const v = duVgl(d.m, d.g, d.a); if (v > 0) { s++; g.s++; } else if (v < 0) { n++; g.l++; } else { u++; g.u++; } }
+  });
+  const summe = l.length, arten = Object.entries(art).sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, v, Math.round(v / (summe || 1) * 100)]);
+  const gegner = Object.values(geg).filter(g => g.pid).sort((a, b) => b.n - a.n || b.zuletzt - a.zuletzt);
+  return { summe, s, u, n, arten, gegner };
+}
+const RB_ZAHL = (z, txt = pkt(z)) => `<b class="rb-cnt" data-z="${+z || 0}">${txt}</b>`;
+function rbBalken(liste) {
+  return `<div class="rbx-bars">${liste.slice(0, 7).map(([k, v, p], i) => { const [name, ic, farbe] = rbArt(k);
+    return `<div class="rbx-bar rb-an" style="--c:${farbe};--d:${200 + i * 90}ms"><span class="rbx-ic">${svg(ic) || ""}</span><span class="rbx-bn">${esc(name)}</span><span class="rbx-track"><i style="--p:${Math.max(3, p)}%"></i></span><b>${p} %</b></div>`; }).join("")}
+    ${liste.length > 7 ? `<div class="rbx-mehr rb-an" style="--d:900ms">+ ${liste.length - 7} weitere</div>` : ""}</div>`;
+}
+const rbAv = (pid, name, gr) => { const r = (rbSpieler || []).find(x => x.id === pid) || { name }; return avatarHtml(Object.assign({ name }, r), gr); };
+
 let rbSeite = 0, rbFormat = "status", rbGemeinde = null;
 VIEWS.rueckblick = () => {
   const D = rbDaten(), m = smInit();
   if (!D.jahr) { go("home"); return; }
-  if (rbGemeinde === null && window.LB && LB.alleSpieler) { rbGemeinde = 0; LB.alleSpieler().then(l => { rbGemeinde = (l || []).reduce((a, r) => a + (+r.xp || 0), 0); if (current === "rueckblick" && rbSeite === 6) VIEWS.rueckblick(); }).catch(() => {}); }
-  const name = S.lbName || "du";
-  const ring = D.ber.length ? `conic-gradient(${D.ber.reduce((a, [k, p], i) => { const s = a.s, e = s + p; a.t.push(`${RB_FARBE[k] || "#888"} ${s}% ${e}%`); a.s = e; return a; }, { s: 0, t: [] }).t.join(",")})` : "#2a3266";
-  const seiten = [
-    `<div class="rb-k rb-intro"><span class="rb-ic">${SM_ALBUM_SVG}</span><small>Bibelbuch-Quest</small><h2>Dein Bibeljahr ${D.jahr}</h2><p>Schön, dass du dabei warst, ${esc(name)}!<br>Tippe, um dein Jahr anzusehen.</p></div>`,
-    `<div class="rb-k"><small>In Zahlen</small><div class="rb-zahlen"><span><b>${pkt(D.right)}</b>richtige Antworten</span><span><b>${pkt(D.xp)}</b>XP gesammelt</span><span><b>${D.level}</b>Level erreicht</span><span><b>${D.buecher}</b>von 66 Büchern gelernt</span></div></div>`,
-    `<div class="rb-k"><small>Treue</small><div class="rb-gross"><b>${D.serie}</b><span>${D.serie === 1 ? "Tag" : "Tage"} in Folge</span></div><p>So lange war deine längste Serie. Dranbleiben lohnt sich – auch ${D.jahr + 1}!</p></div>`,
-    `<div class="rb-k"><small>Dein Lieblingsbereich</small><div class="rb-ringw"><div class="rb-ring" style="background:${ring}"></div><span>${esc(D.lieb || "–")}</span></div><div class="rb-leg">${D.ber.map(([k, p]) => `<span style="--c:${RB_FARBE[k] || "#888"}"><i></i>${esc(k)} ${p} %</span>`).join("")}</div></div>`,
-    `<div class="rb-k"><small>Deine Rekorde</small><div class="rb-zahlen"><span><b>${D.kette}</b>Bücher in der Kette</span><span><b>${D.blitz}</b>Blitz-Rekord</span><span><b>${pkt(D.bib)}</b>Biblionär-Punkte</span><span><b>${D.siege}</b>Duell-Siege von ${D.duelle}</span></div></div>`,
-    `<div class="rb-k"><small>Sammelalbum</small><div class="rb-gross"><b>${D.album}</b><span>von 66 Karten</span></div><p>${D.gold} Manna liegen bereit – ${D.gold >= SM_KRUG_PREIS ? "genug für einen Krug!" : "spiel ein paar Runden für den nächsten Krug."}</p></div>`,
-    `<div class="rb-k"><small>Gemeinsam</small><div class="rb-gross"><b>${rbGemeinde ? pkt(rbGemeinde) : "…"}</b><span>XP haben alle zusammen gesammelt</span></div><p>Danke, dass du Teil davon bist!</p></div>`,
-    `<div class="rb-k rb-vers"><small>Dein Vers für ${D.jahr + 1}</small><blockquote>${esc(D.vers[0])}</blockquote><cite>${esc(D.vers[1])}</cite></div>`,
-    `<div class="rb-k rb-teil"><small>Teilen</small><h3>Zeig deinen Freunden dein Bibeljahr</h3>
+  if (rbGemeinde === null && window.LB && LB.alleSpieler) { rbGemeinde = 0; LB.alleSpieler().then(l => { rbSpieler = l || []; rbGemeinde = (l || []).reduce((a, r) => a + (+r.xp || 0), 0); if (current === "rueckblick") VIEWS.rueckblick(); }).catch(() => {}); }
+  rbDuLaden(D.jahr);
+  const name = S.lbName || "du", solo = rbSolo(), du = rbDuStat(D.jahr), fav = du.gegner[0];
+  const seiten = [];
+  const k = (id, farbe, html, kl = "") => seiten.push({ id, html: `<div class="rb-k rbx ${kl}" style="--rc:${farbe}"><span class="rbx-licht" aria-hidden="true"></span>${html}</div>` });
+  k("intro", "#f2c14e", `<span class="rbx-emblem rb-an" style="--d:80ms">${SM_ALBUM_SVG}</span><small class="rb-an" style="--d:200ms">Bibelbuch-Quest</small>
+    <h2 class="rbx-titel rb-an" style="--d:320ms">Dein Bibeljahr<span>${D.jahr}</span></h2><p class="rb-an" style="--d:520ms">Schön, dass du dabei warst, ${esc(name)}!</p><em class="rbx-tipp rb-an" style="--d:900ms">Tippe, um dein Jahr zu sehen ›</em>`, "rbx-intro");
+  k("zahlen", "#7fc8ff", `<small class="rb-an">Dein Jahr in Zahlen</small><div class="rbx-kacheln">
+    ${[[D.right, "richtige Antworten"], [D.xp, "XP gesammelt"], [D.level, "Level erreicht", "Level"], [D.buecher, "von 66 Büchern gelernt"]].map(([z, t], i) => `<span class="rb-an" style="--d:${150 + i * 110}ms">${RB_ZAHL(z)}<i>${t}</i></span>`).join("")}</div>`);
+  k("treue", "#ff9f5a", `<small class="rb-an">Treue</small><div class="rbx-gross rb-an" style="--d:150ms">${RB_ZAHL(D.serie)}<span>${D.serie === 1 ? "Tag" : "Tage"} in Folge</span></div><p class="rb-an" style="--d:450ms">So lange war deine längste Serie. Dranbleiben lohnt sich – auch ${D.jahr + 1}!</p>`);
+  const sTop = solo.liste[0];
+  k("solo", "#c49bff", `<small class="rb-an">Solo · Deine Spielarten</small>${sTop ? `<div class="rbx-top rb-an" style="--d:120ms;--c:${rbArt(sTop[0])[2]}"><span class="rbx-ic gross">${svg(rbArt(sTop[0])[1]) || ""}</span><span><i>Dein Lieblingsspiel</i><b>${esc(rbArt(sTop[0])[0])}</b></span></div>${rbBalken(solo.liste)}
+    <p class="rbx-fuss rb-an" style="--d:1000ms">${solo.nachXp ? "Anteile nach gesammelten XP" : `${pkt(solo.summe)} Solo-Runden gespielt`}</p>` : `<p class="rb-an">Noch keine Solo-Runden – ${D.jahr + 1} ist dein Jahr!</p>`}`);
+  k("duell", "#ff8a5c", `<small class="rb-an">Duelle · Deine Spielarten</small>${rbDu === null || rbDuLaedt ? `<p class="rbx-laedt">Deine Duelle werden geladen …</p>` : du.summe ? `
+    <div class="rbx-bilanz rb-an" style="--d:120ms"><span class="g">${RB_ZAHL(du.s)}<i>Siege</i></span><span class="u">${RB_ZAHL(du.u)}<i>Remis</i></span><span class="r">${RB_ZAHL(du.n)}<i>Niederlagen</i></span></div>
+    ${rbBalken(du.arten)}<p class="rbx-fuss rb-an" style="--d:1000ms">${pkt(du.summe)} Duelle · ${S.duGesendet | 0} Herausforderungen gesendet · ${S.duAngenommen | 0} angenommen</p>` : `<p class="rb-an">Noch keine Duelle – fordere ${D.jahr + 1} jemanden heraus!</p>`}`);
+  if (fav) {
+    const partner = du.gegner.slice(1, 4);
+    k("gegner", "#ff7fa8", `<small class="rb-an">Dein Lieblings-Gegner</small>
+      <div class="rbx-fav rb-an" style="--d:150ms"><span class="rbx-fav-av">${rbAv(fav.pid, fav.name, 92)}</span><b class="rbx-fav-name">${esc(fav.name)}</b></div>
+      <p class="rbx-fav-z rb-an" style="--d:380ms">${RB_ZAHL(fav.n)} ${fav.n === 1 ? "Duell" : "Duelle"} gegeneinander</p>
+      <div class="rbx-mini rb-an" style="--d:520ms"><span class="g">${fav.s} Siege</span><span class="u">${fav.u} Remis</span><span class="r">${fav.l} Niederlagen</span></div>
+      ${partner.length ? `<div class="rbx-partner rb-an" style="--d:700ms"><i>Weitere Duell-Partner</i>${partner.map(g => `<span>${rbAv(g.pid, g.name, 30)}<b>${esc(g.name)}</b><em>${g.n}×</em></span>`).join("")}</div>` : ""}
+      <p class="rbx-fuss rb-an" style="--d:900ms">${du.gegner.length} verschiedene Gegner · „Eisen schärft Eisen“ (nach Sprüche 27,17)</p>`);
+  }
+  k("rekorde", "#66e0d0", `<small class="rb-an">Deine Rekorde</small><div class="rbx-kacheln">
+    ${[[D.kette, "Bücher in der Kette"], [D.blitz, "Blitz-Rekord"], [D.bib, "Biblionär-Punkte"], [D.siege, "Duell-Siege"]].map(([z, t], i) => `<span class="rb-an" style="--d:${150 + i * 110}ms">${RB_ZAHL(z)}<i>${t}</i></span>`).join("")}</div>`);
+  k("album", "#f2c14e", `<small class="rb-an">Sammelalbum</small><div class="rbx-gross rb-an" style="--d:150ms">${RB_ZAHL(D.album)}<span>von 66 Karten</span></div><p class="rb-an" style="--d:450ms">${D.gold} Manna liegen bereit – ${D.gold >= SM_KRUG_PREIS ? "genug für einen Krug!" : "spiel ein paar Runden für den nächsten Krug."}</p>`);
+  k("gemeinsam", "#5fe0b0", `<small class="rb-an">Gemeinsam</small><div class="rbx-gross rb-an" style="--d:150ms">${rbGemeinde ? RB_ZAHL(rbGemeinde) : "<b>…</b>"}<span>XP haben alle zusammen gesammelt</span></div><p class="rb-an" style="--d:450ms">Danke, dass du Teil davon bist!</p>`);
+  k("vers", "#fff1c2", `<small class="rb-an">Dein Vers für ${D.jahr + 1}</small><blockquote class="rb-an" style="--d:200ms">${esc(D.vers[0])}</blockquote><cite class="rb-an" style="--d:600ms">${esc(D.vers[1])}</cite>`, "rb-vers");
+  seiten.push({ id: "teilen", html: `<div class="rb-k rb-teil rbx" style="--rc:#f2c14e"><small>Teilen</small><h3>Zeig deinen Freunden dein Bibeljahr</h3>
       <div class="rb-vorschau" id="rbVorschau"><span class="muted small">Bild wird erstellt …</span></div>
       <p class="rb-link small">Mit dem Bild wird dieser Link geteilt:<br><b>${esc(smLink())}</b></p>
-      <button class="btn primary" id="rbTeilen">${svg("share") || ""} Teilen${m.rb.g === D.jahr ? "" : " · +5 Manna"}</button></div>`
-  ];
+      <button class="btn primary" id="rbTeilen">${svg("share") || ""} Teilen${m.rb.g === D.jahr ? "" : " · +5 Manna"}</button></div>` });
   rbSeite = Math.max(0, Math.min(seiten.length - 1, rbSeite));
-  screen.innerHTML = `<div class="rb"><div class="rb-balken">${seiten.map((_, k) => `<i class="${k <= rbSeite ? "an" : ""}"></i>`).join("")}</div>
+  const neu = screen.dataset.rbs !== String(rbSeite); screen.dataset.rbs = rbSeite;
+  screen.innerHTML = `<div class="rb${neu ? " rb-neu" : ""}"><div class="rb-balken">${seiten.map((_, i) => `<i class="${i <= rbSeite ? "an" : ""}"></i>`).join("")}</div>
     <button class="rb-zu" data-go="home" aria-label="Rückblick schließen">${svg("nein")}</button>
-    <div class="rb-buehne" id="rbBuehne">${seiten[rbSeite]}</div>
+    <div class="rb-buehne" id="rbBuehne">${seiten[rbSeite].html}</div>
     <div class="rb-nav"><button class="btn" id="rbZur" ${rbSeite ? "" : "hidden"}>Zurück</button><button class="btn primary" id="rbWeiter" ${rbSeite < seiten.length - 1 ? "" : "hidden"}>Weiter</button></div></div>`;
   wireGo();
   const weiter = d => { const n = rbSeite + d; if (n < 0 || n >= seiten.length) return; rbSeite = n; SFX.tap(); VIEWS.rueckblick(); };
   $("rbWeiter").onclick = () => weiter(1); $("rbZur").onclick = () => weiter(-1);
   $("rbBuehne").onclick = e => { if (e.target.closest("button,input,label")) return; weiter(1); };
   let x0 = null; $("rbBuehne").ontouchstart = e => { x0 = e.touches[0].clientX; }; $("rbBuehne").ontouchend = e => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 50) weiter(dx < 0 ? 1 : -1); x0 = null; };
+  rbAnimieren(neu);
   if (rbSeite === seiten.length - 1) rbTeilenSeite(D);
 };
+/* Zahlen zählen hoch (nur beim ersten Zeigen einer Seite, nicht bei reduzierter Bewegung) */
+function rbAnimieren(neu) {
+  const still = !neu || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  screen.querySelectorAll(".rb-cnt").forEach(el => { const z = +el.dataset.z || 0; if (still || z < 2) return; const t0 = performance.now(), dauer = 900;
+    const schritt = t => { const p = Math.min(1, (t - t0) / dauer), w = Math.round(z * (1 - Math.pow(1 - p, 3))); el.textContent = pkt(w); if (p < 1 && el.isConnected) requestAnimationFrame(schritt); }; el.textContent = "0"; requestAnimationFrame(schritt); });
+}
 async function rbBild(D, format) {
   const name = S.lbName || ""; /* 9.86: Name immer aufs Bild */
   return smZeichnen(format, `Mein Bibeljahr ${D.jahr}`, name ? `${name} · Bibelbuch-Quest` : "Bibelbuch-Quest", async (cx, W, y0, y1, q) => {
