@@ -201,7 +201,7 @@ if (!configured) {
       /* 10.17: Wann wurde die Albumliste zuletzt geändert? (vom Job in jedes Teil geschrieben) – gemerkt auch für zwischengespeicherte Listen */
       const alSt = Math.max(0, ...teile.map(t => +t.alStand || 0)); if (alSt) try { localStorage.setItem("bq-albumstand", String(alSt)); } catch (e) {}
       /* 10.44: Bethlehem schmücken – Summe aller Schmuckstücke (vom Job in jedes Teil geschrieben) */
-      try { const st = teile.find(t => t.schmuck != null); if (st) localStorage.setItem("bq-schmuck", JSON.stringify({ s: +st.schmuck || 0, sp: +st.schmuckSp || 0, t: zeitMs(st.stand) })); } catch (e) {}
+      try { const st = teile.find(t => t.schmuck != null); if (st) localStorage.setItem("bq-schmuck", JSON.stringify({ s: +st.schmuck || 0, sp: +st.schmuckSp || 0, t: zeitMs(st.stand), h: +st.schmuckHeute || 0, d: +st.schmuckTag || 0, hg: +st.schmuckGestern || 0 })); } catch (e) {}
       const alter = Math.max(...teile.map(t => Date.now() - zeitMs(t.stand)));
       if (alter > SAMMEL_ALT) {
         if (alter <= SAMMEL_ALBUM_ALT) try { sammelAltAlbum = new Map();
