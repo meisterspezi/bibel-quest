@@ -1048,13 +1048,15 @@ const RB_ART = {
 };
 const rbArt = k => RB_ART[k] || [(typeof DU_TYPEN !== "undefined" && DU_TYPEN[k] && DU_TYPEN[k].name) || k, "star", "#9aa3d6"];
 /* Solo: Runden je Spielart; zu wenig gezählt (Zähler erst seit 10.65) → Anteil nach XP-Quellen */
+/* 10.74: Solo-Spiele zählen – Grundlage ist die Zahl der XP-Vergaben je Quelle (S.xq.n, seit 6.11.2026 ≈ gespielte Runden), die genaue Rundenzählung
+   (S.rbz, seit 10.65) gilt, wo sie höher ist; die Ketten werden nach der genauen Zählung auf die einzelnen Ketten aufgeteilt. */
 function rbSolo() {
-  const s = rbz().s, liste = Object.entries(s).filter(([k, v]) => v > 0 && RB_ART[k]);
-  const summe = liste.reduce((a, [, v]) => a + v, 0);
-  if (summe >= 10) return { nachXp: false, summe, liste: liste.sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, v, Math.round(v / summe * 100)]) };
-  const q = (S.xq && S.xq.q) || {}, x = [["lektion", q.lektion], ["vers", q.vers], ["luecke", q.luecke], ["blitz", q.blitz], ["kette-bibel", q.kette], ["bib-solo", q.bib]].filter(([, v]) => +v > 0);
-  const xs = x.reduce((a, [, v]) => a + +v, 0) || 1;
-  return { nachXp: true, summe: xs, liste: x.sort((a, b) => b[1] - a[1]).map(([k, v]) => [k === "kette-bibel" ? "kette" : k, Math.round(v), Math.round(v / xs * 100)]) };
+  const s = rbz().s, n = (S.xq && S.xq.n) || {}, erg = {};
+  [["lektion", "lektion"], ["vers", "vers"], ["luecke", "luecke"], ["blitz", "blitz"], ["bib-solo", "bib"]].forEach(([k, q]) => { erg[k] = Math.max(+n[q] || 0, s[k] | 0); });
+  const ketten = Object.entries(s).filter(([k, v]) => /^(kette-|tk-)/.test(k) && v > 0 && RB_ART[k]), kSum = ketten.reduce((a, [, v]) => a + v, 0), kGes = Math.max(+n.kette || 0, kSum);
+  if (kSum) ketten.forEach(([k, v]) => { erg[k] = Math.round(kGes * v / kSum); }); else if (kGes) erg.kette = kGes;
+  const liste = Object.entries(erg).filter(([, v]) => v > 0), summe = liste.reduce((a, [, v]) => a + v, 0);
+  return { nachXp: false, summe, liste: liste.sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, v, Math.round(v / (summe || 1) * 100)]) };
 }
 RB_ART.kette = ["Ketten", "kette-bibel", "#ffb54a"];
 /* Duelle des Jahres: 1× am Tag aus der Datenbank (bis 400), sonst die Duelle auf dem Gerät */
@@ -1108,7 +1110,7 @@ VIEWS.rueckblick = () => {
   k("treue", "#ff9f5a", `<small class="rb-an">Treue</small><div class="rbx-gross rb-an" style="--d:150ms">${RB_ZAHL(D.serie)}<span>${D.serie === 1 ? "Tag" : "Tage"} in Folge</span></div><p class="rb-an" style="--d:450ms">So lange war deine längste Serie. Dranbleiben lohnt sich – auch ${D.jahr + 1}!</p>`);
   const sTop = solo.liste[0];
   k("solo", "#c49bff", `<small class="rb-an">Solo · Deine Spielarten</small>${sTop ? `<div class="rbx-top rb-an" style="--d:120ms;--c:${rbArt(sTop[0])[2]}"><span class="rbx-ic gross">${svg(rbArt(sTop[0])[1]) || ""}</span><span><i>Dein Lieblingsspiel</i><b>${esc(rbArt(sTop[0])[0])}</b></span></div>${rbBalken(solo.liste)}
-    <p class="rbx-fuss rb-an" style="--d:1000ms">${solo.nachXp ? "Anteile nach gesammelten XP" : `${pkt(solo.summe)} Solo-Runden gespielt`}</p>` : `<p class="rb-an">Noch keine Solo-Runden – ${D.jahr + 1} ist dein Jahr!</p>`}`);
+    <p class="rbx-fuss rb-an" style="--d:1000ms">${solo.nachXp ? "Anteile nach gesammelten XP" : `${pkt(solo.summe)} Solo-Spiele gespielt`}</p>` : `<p class="rb-an">Noch keine Solo-Runden – ${D.jahr + 1} ist dein Jahr!</p>`}`);
   k("duell", "#ff8a5c", `<small class="rb-an">Duelle · Deine Spielarten</small>${rbDu === null || rbDuLaedt ? `<p class="rbx-laedt">Deine Duelle werden geladen …</p>` : du.summe ? `
     <div class="rbx-bilanz rb-an" style="--d:120ms"><span class="g">${RB_ZAHL(du.s)}<i>Siege</i></span><span class="u">${RB_ZAHL(du.u)}<i>Remis</i></span><span class="r">${RB_ZAHL(du.n)}<i>Niederlagen</i></span></div>
     ${rbBalken(du.arten)}<p class="rbx-fuss rb-an" style="--d:1000ms">${pkt(du.summe)} Duelle · ${S.duGesendet | 0} Herausforderungen gesendet · ${S.duAngenommen | 0} angenommen</p>` : `<p class="rb-an">Noch keine Duelle – fordere ${D.jahr + 1} jemanden heraus!</p>`}`);
@@ -1158,18 +1160,18 @@ function rbAnimieren(neu) {
 }
 /* 10.68: Karte mit Ring (Anteile der Spielarten), Zahl in der Mitte und Legende – für Solo und Duelle gleich */
 function rbRing(cx, mx, my, r, dicke, liste, p = 1) {
-  const sl = liste.slice(0, 4), ges = sl.reduce((a, x) => a + x[2], 0), rest = Math.max(0, 100 - ges); let w0 = -Math.PI / 2;
+  const sl = liste.slice(0, 5), ges = sl.reduce((a, x) => a + x[2], 0), rest = Math.max(0, 100 - ges); let w0 = -Math.PI / 2;
   cx.beginPath(); cx.arc(mx, my, r, 0, Math.PI * 2); cx.strokeStyle = "#ffffff12"; cx.lineWidth = dicke; cx.stroke();
   [...sl.map(x => [x[2], rbArt(x[0])[2]]), [rest, "#3a4278"]].forEach(([q, f]) => { if (q <= 0) return; const w1 = w0 + Math.PI * 2 * q / 100 * p;
     if (w1 - w0 > 0.07) { cx.beginPath(); cx.arc(mx, my, r, w0 + 0.03, w1 - 0.03); cx.strokeStyle = f; cx.lineWidth = dicke; cx.lineCap = "butt"; cx.stroke(); } w0 = w1; });
 }
 function rbRingKarte(cx, F, karte, x, y, bw, bh, titel, farbe, liste, mitte, mitteT, leer) {
   karte(x, y, bw, bh, farbe); cx.textAlign = "left"; cx.fillStyle = farbe; F(800, 34); cx.fillText(titel, x + 30, y + 56);
-  const sl = liste.slice(0, 4); if (!sl.length) { cx.fillStyle = "#c9d1ff"; F(600, 30); cx.textAlign = "center"; cx.fillText(leer, x + bw / 2, y + 220); return; }
+  const sl = liste.slice(0, 5); if (!sl.length) { cx.fillStyle = "#c9d1ff"; F(600, 30); cx.textAlign = "center"; cx.fillText(leer, x + bw / 2, y + 220); return; }
   const rx = x + 135, ry = y + 230; rbRing(cx, rx, ry, 92, 34, sl);
   cx.textAlign = "center"; cx.fillStyle = "#fff"; F(900, 46); cx.fillText(mitte || "", rx, ry + 8); cx.fillStyle = "#c9d1ff"; F(600, 24); cx.fillText(mitteT || "", rx, ry + 40);
-  cx.textAlign = "left"; sl.forEach((e, i) => { const [nm, , f] = rbArt(e[0]), ly = y + 140 + i * 62; cx.fillStyle = f; cx.beginPath(); cx.arc(x + 268, ly - 9, 9, 0, Math.PI * 2); cx.fill();
-    cx.fillStyle = "#fff"; F(700, 26); cx.fillText(nm.length > 11 ? nm.slice(0, 10) + "…" : nm, x + 286, ly); cx.fillStyle = f; F(800, 26); cx.fillText(e[2] + " %", x + 286, ly + 30); });
+  cx.textAlign = "left"; sl.forEach((e, i) => { const [nm, , f] = rbArt(e[0]), ly = y + 118 + i * 58; cx.fillStyle = f; cx.beginPath(); cx.arc(x + 268, ly - 8, 9, 0, Math.PI * 2); cx.fill();
+    cx.fillStyle = "#fff"; F(700, 24); cx.fillText(nm.length > 11 ? nm.slice(0, 10) + "…" : nm, x + 286, ly); cx.fillStyle = f; F(800, 24); cx.fillText(e[2] + " %", x + 286, ly + 26); });
 }
 /* 10.66: Teilen-Bild mit Grafiken – Zahlen-Kacheln, Solo-Ring (Spielarten), Duell-Bilanz-Balken, Lieblings-Gegner (abschaltbar), Vers */
 async function rbBild(D, format) {
@@ -1187,8 +1189,8 @@ async function rbBild(D, format) {
     let y = y0 + 2 * (kh + 24) + 16;
     if (q) return;
     /* B: Solo- und Duell-Ring nebeneinander (10.68: Duelle im gleichen Stil, ohne Siege/Niederlagen) */
-    const bh = 400, bw = (B - 30) / 2;
-    rbRingKarte(cx, F, karte, L, y, bw, bh, "SOLO", "#c49bff", solo.liste, solo.nachXp ? solo.liste[0] && solo.liste[0][2] + "%" : pkt(solo.summe), solo.nachXp ? solo.liste[0] && rbArt(solo.liste[0][0])[0] : "Runden", "Noch keine Runden");
+    const bh = 430, bw = (B - 30) / 2;
+    rbRingKarte(cx, F, karte, L, y, bw, bh, "SOLO", "#c49bff", solo.liste, pkt(solo.summe), solo.summe === 1 ? "Spiel" : "Spiele", "Noch keine Runden");
     rbRingKarte(cx, F, karte, L + bw + 30, y, bw, bh, "DUELLE", "#ff8a5c", du.arten, pkt(du.summe), du.summe === 1 ? "Duell" : "Duelle", "Noch keine Duelle");
     y += bh + 30;
     /* C: Lieblings-Gegner */
@@ -1258,7 +1260,7 @@ async function rbQuelleSenden() {
 addEventListener("lb-ready", () => setTimeout(rbQuelleSenden, 2500));
 setInterval(() => { try { if (localStorage.getItem(RB_QUELLE)) rbQuelleSenden(); } catch (e) {} }, 60000);
 function rbVideoDaten() { const D = rbDaten(), du = rbDuStat(D.jahr); return { D, solo: rbSolo(), du, fav: rbGegZeigen ? du.gegner[0] : null }; }
-function rbPlan(V) { const p = [["intro", 2.6], ["zahlen", 2.9], ["solo", 2.9], ["duell", 2.9]]; if (V.fav) p.push(["gegner", 2.7]); p.push(["outro", 3.8]); return p; }
+function rbPlan(V) { const p = [["intro", 2.6], ["zahlen", 3.9], ["solo", 3.9], ["duell", 3.9]]; if (V.fav) p.push(["gegner", 3.7]); /* 10.74: Ergebnisse je 1 s länger */ p.push(["outro", 3.8]); return p; }
 const rbEase = p => 1 - Math.pow(1 - Math.max(0, Math.min(1, p)), 3);
 const rbFeder = p => { p = Math.max(0, Math.min(1, p)); return 1 + 2.7 * Math.pow(p - 1, 3) + 1.7 * Math.pow(p - 1, 2); };
 const rbMp4Typ = () => { try { if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) return null; return ["video/mp4;codecs=avc1.42E01E", "video/mp4;codecs=avc1", "video/mp4"].find(t => MediaRecorder.isTypeSupported(t)) || null; } catch (e) { return null; } };
@@ -1297,7 +1299,7 @@ const RB_SZENE = {
       const n = Math.round((+z || 0) * rbEase((t - .3 - k * .18) / 1.3)); cx.fillStyle = "#fff"; cx.font = "900 120px Lexend, sans-serif"; cx.fillText(pkt(n), x + w / 2, y + 205);
       cx.fillStyle = f; cx.font = "700 36px Lexend, sans-serif"; cx.fillText(txt, x + w / 2, y + 285); cx.restore(); });
   },
-  solo(cx, V, t, R) { rbRingSzene(cx, V, t, R, "Solo", "#c49bff", V.solo.liste, V.solo.nachXp ? (V.solo.liste[0] ? V.solo.liste[0][2] : 0) : V.solo.summe, V.solo.nachXp ? "% " + (V.solo.liste[0] ? rbArt(V.solo.liste[0][0])[0] : "") : "Runden", "Mein Lieblingsspiel", "Noch keine Solo-Runden"); },
+  solo(cx, V, t, R) { rbRingSzene(cx, V, t, R, "Solo", "#c49bff", V.solo.liste, V.solo.summe, V.solo.summe === 1 ? "Spiel" : "Spiele", "Mein Lieblingsspiel", "Noch keine Solo-Spiele"); },
   duell(cx, V, t, R) { rbRingSzene(cx, V, t, R, "Duelle", "#ff8a5c", V.du.arten, V.du.summe, V.du.summe === 1 ? "Duell" : "Duelle", "Meine liebste Duell-Art", "Noch keine Duelle"); },
   gegner(cx, V, t, R) {
     rbKopfZ(cx, V, R); const f = V.fav, s = rbFeder(t / .9);
@@ -1330,9 +1332,9 @@ function rbRingSzene(cx, V, t, R, titel, farbe, liste, zahl, zahlT, topT, leer) 
   const top = rbArt(liste[0][0]); cx.save(); cx.globalAlpha *= rbEase((t - .2) / .6); cx.fillStyle = "#c9d1ff"; cx.font = "600 42px Lexend, sans-serif"; cx.fillText(`${topT}: `, 540, 500); cx.fillStyle = top[2]; cx.font = "800 54px Lexend, sans-serif"; cx.fillText(top[0], 540, 565); cx.restore();
   const p = rbEase((t - .2) / 1.4); cx.save(); cx.shadowColor = farbe; cx.shadowBlur = 40; rbRing(cx, 540, 920, 250, 92, liste, p); cx.restore();
   cx.fillStyle = "#fff"; cx.font = "900 150px Lexend, sans-serif"; cx.fillText(pkt(Math.round((+zahl || 0) * p)), 540, 945); cx.fillStyle = "#c9d1ff"; cx.font = "700 46px Lexend, sans-serif"; cx.fillText(zahlT, 540, 1010);
-  liste.slice(0, 4).forEach((e, i) => { const [nm, , f] = rbArt(e[0]), a = rbEase((t - .9 - i * .15) / .5), y = 1340 + i * 96;
-    cx.save(); cx.globalAlpha *= a; cx.fillStyle = "#151b48"; smRund(cx, 120, y - 62, 840, 82, 41); cx.fill(); cx.fillStyle = f; cx.beginPath(); cx.arc(175, y - 21, 18, 0, Math.PI * 2); cx.fill();
-    cx.textAlign = "left"; cx.fillStyle = "#fff"; cx.font = "700 46px Lexend, sans-serif"; cx.fillText(nm, 215, y - 5); cx.textAlign = "right"; cx.fillStyle = f; cx.font = "900 46px Lexend, sans-serif"; cx.fillText(e[2] + " %", 920, y - 5); cx.textAlign = "center"; cx.restore(); });
+  liste.slice(0, 5).forEach((e, i) => { const [nm, , f] = rbArt(e[0]), a = rbEase((t - .9 - i * .15) / .5), y = 1312 + i * 84; /* 10.74: Top 5 */
+    cx.save(); cx.globalAlpha *= a; cx.fillStyle = "#151b48"; smRund(cx, 120, y - 56, 840, 72, 36); cx.fill(); cx.fillStyle = f; cx.beginPath(); cx.arc(175, y - 20, 16, 0, Math.PI * 2); cx.fill();
+    cx.textAlign = "left"; cx.fillStyle = "#fff"; cx.font = "700 42px Lexend, sans-serif"; cx.fillText(nm, 215, y - 5); cx.textAlign = "right"; cx.fillStyle = f; cx.font = "900 42px Lexend, sans-serif"; cx.fillText(e[2] + " %", 920, y - 5); cx.textAlign = "center"; cx.restore(); });
 }
 /* 10.72: GitHub-Link in jeder Szene als goldenes Band unten */
 function rbLinkBand(cx) {
