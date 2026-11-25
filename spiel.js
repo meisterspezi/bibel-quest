@@ -6549,7 +6549,7 @@ function plAnkuendigen(versuch = 0) {
   if (!plFrei() || S.plAnk || !S.lbName || gesperrt) return;
   setTimeout(() => {
     if (S.plAnk || current !== "home") return;
-    if (document.querySelector(".modal, .sm-ov, .sm-tour, .truhe-fx") || document.body.classList.contains("spiel-laeuft")) { if (versuch < 6) plAnkuendigen(versuch + 1); return; }
+    if (document.querySelector(".modal, .sm-ov, .sm-tour, .truhe-fx, .rb-flug, .rb-hier-tipp") || document.body.classList.contains("spiel-laeuft")) { if (versuch < 6) plAnkuendigen(versuch + 1); return; }
     S.plAnk = 1; save();
     const bilder = [0, 3, 9].map(k => `<span class="pl-ank-b">${tkBildSvg("plagen", k)}</span>`).join("");
     modal(`<div class="rb-fenster pl-ank"><div class="pl-ank-f">${bilder}</div><small class="sm-ank-neu">NEU</small><h2>Plagen in Ägypten</h2>

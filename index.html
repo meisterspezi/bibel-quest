@@ -3827,6 +3827,39 @@ html .start-aufg .ev-ok{top:-2px!important;right:calc(50% - var(--r) / 2 - 4px)!
 /* 10.75: Teilen-Knopf auf jeder Rückblick-Folie */
 .rb-nav .rb-teil-kurz{display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:0 0 auto;padding-inline:14px;border-color:#f2c14e88;color:#fff1c2}
 .rb-nav .rb-teil-kurz svg{width:18px;height:18px}.rb-nav .rb-teil-kurz[hidden]{display:none}
+
+/* 10.76: Infografik zum Start des Bibeljahrs + Flug zum Symbol */
+.rbi-modal .modal-box,.rbi-modal>div{overflow:hidden}
+.rbi{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.rbi-buehne{position:relative;width:150px;height:150px;display:grid;place-items:center;margin:-4px 0 2px}
+.rbi-strahlen{position:absolute;inset:-40px;border-radius:50%;background:repeating-conic-gradient(from 0deg,#f2c14e33 0deg 7deg,transparent 7deg 20deg);-webkit-mask-image:radial-gradient(circle,#000 30%,transparent 70%);mask-image:radial-gradient(circle,#000 30%,transparent 70%)}
+.rbi-emblem{position:relative;width:110px;height:110px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 50% 35%,#2a3370,#10143a);box-shadow:0 0 0 4px #f2c14e,0 0 50px -4px #f2c14e}
+.rbi-emblem svg{width:64px;height:64px}
+.rbi-funken i{position:absolute;width:6px;height:6px;border-radius:50%;background:#fff6dc;box-shadow:0 0 10px #f2c14e;opacity:0}
+.rbi-funken i:nth-child(1){left:10%;top:20%}.rbi-funken i:nth-child(2){left:85%;top:15%}.rbi-funken i:nth-child(3){left:92%;top:70%}.rbi-funken i:nth-child(4){left:5%;top:75%}.rbi-funken i:nth-child(5){left:50%;top:-4%}.rbi-funken i:nth-child(6){left:48%;top:100%}
+.rbi-ober{font:800 .72rem var(--display);letter-spacing:.14em;text-transform:uppercase;color:#f2c14e}
+.rbi-titel{margin:0;display:flex;flex-direction:column;align-items:center;font:800 1.5rem/1.1 var(--display);letter-spacing:.04em;color:#fff1c2}
+.rbi-titel span{font-size:3rem;line-height:1;background:linear-gradient(180deg,#fff,#fff1c2 40%,#f2c14e 75%,#c9902a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.rbi-text{margin:0;font-size:.9rem;line-height:1.45;color:#dfe4ff}
+.rbi-kacheln{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;margin:2px 0 4px}
+.rbi-kacheln span{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:14px;background:#0e1230cc;border:1px solid color-mix(in srgb,var(--c) 55%,transparent);font-size:.8rem;font-weight:800;color:#fff;text-align:left}
+.rbi-kacheln b{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 50% 35%,#1d2550,#0e1430);box-shadow:0 0 0 2px var(--c);color:var(--c);font-size:.9rem}
+.rbi-kacheln b svg{width:18px;height:18px}
+.rbi .btn{width:100%}
+@media (prefers-reduced-motion:no-preference){
+  .rbi-strahlen{animation:rbiDreh 18s linear infinite}@keyframes rbiDreh{to{transform:rotate(360deg)}}
+  .rbi-emblem{animation:rbiPuls 2.4s ease-in-out infinite}@keyframes rbiPuls{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+  .rbi-funken i{animation:rbiFunk 2.6s ease-in-out infinite}.rbi-funken i:nth-child(2n){animation-delay:.9s}.rbi-funken i:nth-child(3n){animation-delay:1.7s}
+  @keyframes rbiFunk{0%,100%{opacity:0;transform:scale(.4)}50%{opacity:1;transform:scale(1.2)}}
+  .rbi>*{animation:rbAn .6s cubic-bezier(.2,.8,.2,1) both}.rbi>*:nth-child(2){animation-delay:.15s}.rbi>*:nth-child(3){animation-delay:.25s}.rbi>*:nth-child(4){animation-delay:.35s}.rbi>*:nth-child(5){animation-delay:.45s}.rbi>*:nth-child(n+6){animation-delay:.55s}
+}
+.rb-flug{position:fixed;z-index:400;width:120px;height:120px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 50% 35%,#2a3370,#10143a);box-shadow:0 0 0 4px #f2c14e,0 0 40px #f2c14e;pointer-events:none}
+.rb-flug svg{width:70px;height:70px}
+.ev-m.rb-hier .ev-ring{animation:rbHier 1s ease-in-out 4!important;box-shadow:0 0 0 4px #fff6dc,0 0 30px 6px #f2c14e!important}
+@keyframes rbHier{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+.rb-hier-tipp{position:absolute;z-index:40;padding:7px 12px;border-radius:12px;background:#f2c14e;color:#1b1400;font:800 .8rem var(--body);box-shadow:0 6px 18px #0008;transition:opacity .5s;white-space:nowrap}
+.rb-hier-tipp::before{content:"";position:absolute;left:50%;top:-6px;width:12px;height:12px;background:#f2c14e;transform:translateX(-50%) rotate(45deg)}
+.rb-hier-tipp.weg{opacity:0}
 </style>
 </head>
 <body>
