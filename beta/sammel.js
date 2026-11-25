@@ -1513,6 +1513,47 @@ function rbEv() {
   if (typeof evSetzen === "function") evSetzen("rb", { ord: 0.5, farbe: "#b38cff", sym: SM_ALBUM_SVG, titel: "Bibeljahr", sub: String(jahr), neu: m.rb.p !== jahr, klick: () => { if (m.rb.p !== jahr) { m.rb.p = jahr; save(); } rbSeite = 0; go("rueckblick"); } }); /* 10.75: direkt in den Rückblick */
   return jahr;
 }
+/* ---------- 10.76: Start des Bibeljahrs (26.12. 0 Uhr) – einmalige Infografik beim ersten Öffnen, danach fliegt das Symbol in die Kopfzeile ---------- */
+function rbAnkuendigen(jahr, versuch = 0) {
+  setTimeout(() => {
+    const m = smInit(); if (m.rb.f === jahr || current !== "home" || gesperrt) return;
+    if (document.querySelector(".modal, .sm-ov, .sm-tour, .truhe-fx, .rbv-ov") || document.body.classList.contains("spiel-laeuft")) { if (versuch < 8) rbAnkuendigen(jahr, versuch + 1); return; }
+    m.rb.f = jahr; save();
+    const name = S.lbName ? esc(S.lbName) : "du";
+    const md = modal(`<div class="rbi">
+      <div class="rbi-buehne" aria-hidden="true"><span class="rbi-strahlen"></span><span class="rbi-funken"><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="rbi-emblem">${SM_ALBUM_SVG}</span></div>
+      <small class="rbi-ober">Ab heute bis 6. Januar</small>
+      <h2 class="rbi-titel">Dein Bibeljahr<span>${jahr}</span></h2>
+      <p class="rbi-text">Schön, dass du dabei warst, ${name}! Dein ganz persönlicher Rückblick ist fertig.</p>
+      <div class="rbi-kacheln">
+        <span style="--c:#7fc8ff"><b>${svg("star") || "★"}</b>Deine Zahlen</span>
+        <span style="--c:#c49bff"><b>${svg("bolt") || "⚡"}</b>Solo &amp; Duelle</span>
+        <span style="--c:#ff7fa8"><b>${svg("people") || "♥"}</b>Lieblings-Gegner</span>
+        <span style="--c:#f2c14e"><b>${svg("share") || "↗"}</b>Als Video teilen</span>
+      </div>
+      <button class="btn primary" data-close="los">Rückblick ansehen</button><button class="btn ghost" data-close="">Später</button></div>`,
+      w => { if (w === "los") { rbSeite = 0; go("rueckblick"); } else rbZumSymbol(); });
+    md.dataset.frei = "1"; md.classList.add("rbi-modal");
+    try { SFX.badge(); } catch (e) {}
+  }, versuch ? 2000 : 1400);
+}
+/* Symbol fliegt aus der Bildmitte zum Bibeljahr-Eintrag in der Kopfzeile, der dann leuchtet und kurz „Hier startet dein Rückblick“ zeigt */
+function rbZumSymbol() {
+  const ziel = screen.querySelector('[data-ev="rb"] .ev-ring'); if (!ziel || current !== "home") return;
+  const leuchten = () => { const e = ziel.closest(".ev-m"); if (!e) return; e.classList.add("rb-hier");
+    const tip = document.createElement("div"); tip.className = "rb-hier-tipp"; tip.textContent = "Hier startet dein Rückblick"; document.body.appendChild(tip);
+    const r = ziel.getBoundingClientRect(); tip.style.left = Math.max(8, Math.min(innerWidth - 8 - tip.offsetWidth, r.left + r.width / 2 - tip.offsetWidth / 2)) + "px"; tip.style.top = (r.bottom + 30 + scrollY) + "px";
+    const fort = () => { tip.classList.add("weg"); e.classList.remove("rb-hier"); setTimeout(() => tip.remove(), 600); };
+    const pruef = setInterval(() => { if (document.querySelector(".modal") || current !== "home") { clearInterval(pruef); fort(); } }, 200); /* kein Hinweis über anderen Fenstern */
+    setTimeout(() => { clearInterval(pruef); fort(); }, 4200); };
+  if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) { leuchten(); return; }
+  const r = ziel.getBoundingClientRect(), gr = 120, x0 = innerWidth / 2 - gr / 2, y0 = innerHeight / 2 - gr / 2;
+  const f = document.createElement("div"); f.className = "rb-flug"; f.innerHTML = SM_ALBUM_SVG; f.style.left = x0 + "px"; f.style.top = y0 + "px"; document.body.appendChild(f);
+  const dx = r.left + r.width / 2 - (x0 + gr / 2), dy = r.top + r.height / 2 - (y0 + gr / 2), sk = r.width / gr;
+  const a = f.animate([{ transform: "translate(0,0) scale(1) rotate(0deg)", opacity: 1 }, { transform: `translate(${dx * .45}px,${dy * .2 - 60}px) scale(.8) rotate(-12deg)`, opacity: 1, offset: .45 },
+    { transform: `translate(${dx}px,${dy}px) scale(${sk}) rotate(0deg)`, opacity: .9 }], { duration: 1100, easing: "cubic-bezier(.5,0,.3,1)" });
+  a.onfinish = () => { f.remove(); try { SFX.tap(); } catch (e) {} leuchten(); };
+}
 (function rbStart() {
   const alt = VIEWS.home;
   VIEWS.home = function (a) {
@@ -1520,12 +1561,7 @@ function rbEv() {
     smAnkuendigen();
     const jahr = rbEv(); if (!jahr) return;
     const m = smInit();
-    if (rbJahr() && m.rb.f !== jahr) setTimeout(() => {
-      if (current !== "home" || document.querySelector(".modal") || m.rb.f === jahr) return;
-      m.rb.f = jahr; save();
-      modal(`<div class="rb-fenster"><span class="rb-ic">${SM_ALBUM_SVG}</span><h2>Dein Bibeljahr ${jahr}</h2><p>Sieh dir an, was du dieses Jahr in Bibelbuch-Quest geschafft hast – und teile es mit deinen Freunden.</p>
-        <button class="btn primary" data-close="los">Rückblick ansehen</button><button class="btn ghost" data-close="">Später</button></div>`, w => { if (w === "los") { rbSeite = 0; go("rueckblick"); } }).dataset.frei = "1";
-    }, 1200);
+    if (rbJahr() && m.rb.f !== jahr) rbAnkuendigen(jahr);
   };
   const altP = VIEWS.profil;
   if (altP) VIEWS.profil = function (a) { altP(a); const j = rbSichtbar(); if (!j) return; /* 10.3: Album steht im Profil-Reiter „Album“ */ const b = document.createElement("button"); b.className = "btn"; b.style.marginTop = "10px"; b.innerHTML = `${SM_ALBUM_SVG} ${j ? "Dein Bibeljahr " + j : "Sammelalbum"}`; b.onclick = () => { SFX.tap(); rbSeite = 0; go(j ? "rueckblick" : "album"); }; screen.appendChild(b); };
