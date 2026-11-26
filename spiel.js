@@ -1945,17 +1945,22 @@ VIEWS.home = () => {
   /* Tagesaufgaben kompakt: je Aufgabe eine Zeile mit kleinem Ring, rechts die Schatztruhe */
   const AUFG_ART = { runde: ["step", "spielen", "spielen"], xp: ["star", "home", "spielen"], right: ["target", "spielen", "blitz"], blitz: ["bolt", "spielen", "blitz"],
     station: ["book", "lernen", "lernen"], ketteGespielt: ["link", "spielen", "spielen"], lied: ["music", "lernen", "lied"], luecke: ["scroll", "spielen", "gap"], lernvers: ["scroll", "lernen", "verslektion"], duell: ["duell", "spielen", "duelle"] };
+  /* 10.77: Schatzliste „Schlüsselbrett“ – breite Zeilen (Ring, Balken, Schloss → Schlüssel), darunter das Truhen-Band */
+  const AUFG_FARBE = { lernen: "#7fc8ff", spielen: "#ffb54a", home: "#f2c14e" };
   const aufg = S.dq.items.map(it => { const a = AUFGABEN.find(x => x.id === it.id); if (!a) return ""; const pr = Math.min(it.prog, a.ziel);
-    const [ic, ar, ziel] = AUFG_ART[a.ev] || ["target", "spielen", "spielen"], C = 2 * Math.PI * 13;
-    return `<li><button class="tz ${it.done ? "done" : ""}" data-ar="${ar}" data-go="${ziel}"${ziel === "gap" ? ' data-arg="alle"' : ""} aria-label="${esc(a.text)}: ${pr} von ${a.ziel}${it.done ? ", erledigt" : ""}">
-      <span class="tz-ic"><svg class="tz-ring" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="none" stroke="#ffffff16" stroke-width="3"/><circle cx="16" cy="16" r="13" fill="none" stroke="var(--tq)" stroke-width="3" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - pr / a.ziel)}" transform="rotate(-90 16 16)"/></svg>${svg(ic)}</span>
-      <span class="tz-tx">${esc(a.text)}</span><span class="tz-z">${it.done ? SCHLUESSEL : `${pr}/${a.ziel}`}</span></button></li>`; }).join("");
+    const [ic, ar, ziel] = AUFG_ART[a.ev] || ["target", "spielen", "spielen"], C = 2 * Math.PI * 15, f = it.done ? "#5fe0b0" : AUFG_FARBE[ar] || "#ffb54a";
+    return `<li><button class="sb-z ${it.done ? "done" : ""}" data-ar="${ar}" data-go="${ziel}"${ziel === "gap" ? ' data-arg="alle"' : ""} style="--f:${f}" aria-label="${esc(a.text)}: ${pr} von ${a.ziel}${it.done ? ", erledigt" : ""}">
+      <span class="sb-ic"><svg class="sb-ring" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15" fill="none" stroke="#ffffff18" stroke-width="3.5"/><circle cx="18" cy="18" r="15" fill="none" stroke="var(--f)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - pr / a.ziel)}" transform="rotate(-90 18 18)"/></svg>${svg(ic)}</span>
+      <span class="sb-tx"><b>${esc(a.text)}</b><span class="sb-bar"><i style="width:${pr / a.ziel * 100}%"></i></span></span>
+      <span class="sb-n">${it.done ? "fertig" : `${pr}/${a.ziel}`}</span><span class="sb-halter">${it.done ? SCHLUESSEL : SCHLOSS(false)}</span></button></li>`; }).join("");
   const bereit = !S.dq.bonus && (S.dq.geschafft || erledigt === 3);
+  const tzMan = typeof smTruheManna === "function" ? smTruheManna() : 0;
+  const lohnH = `<span class="sb-l"><b>+${AUFGABE_BONUS_XP}</b> XP</span><span class="sb-l"><b>+${AUFGABE_BONUS}</b>${TAL_MUENZE}</span>${tzMan ? `<span class="sb-l"><b>+${tzMan}</b>${SM_GOLD_SVG}</span>` : ""}`;
   const truhe = S.dq.bonus
-    ? `<div class="tz-truhe erhalten" aria-label="Schatztruhe geöffnet: ${AUFGABE_BONUS_XP} XP, ${AUFGABE_BONUS} Talente${typeof smTruheManna === "function" && smTruheManna() ? ` und ${smTruheManna()} Manna` : ""} erhalten">${TRUHE_AUF}<span class="tz-lohn">${svg("check")} Erhalten</span></div>`
+    ? `<div class="sb-band erhalten" aria-label="Schatztruhe geöffnet: ${AUFGABE_BONUS_XP} XP, ${AUFGABE_BONUS} Talente${tzMan ? ` und ${tzMan} Manna` : ""} erhalten"><span class="sb-truhe">${TRUHE_AUF}</span><span class="sb-btx"><b>${svg("check")} Erhalten</b><small>${lohnH}</small></span></div>`
     : bereit
-    ? `<button class="tz-truhe bereit" id="truheBtn" aria-label="Schatztruhe mit drei Schlüsseln öffnen">${truheZu(3)}<span class="tz-lohn">Öffnen!</span></button>`
-    : `<div class="tz-truhe" aria-label="Schatztruhe – ${erledigt} von 3 Schlüsseln">${truheZu(erledigt)}<span class="tz-keys">${[0, 1, 2].map(i => `<i class="${i < erledigt ? "an" : ""}">${SCHLUESSEL}</i>`).join("")}</span><span class="tz-lohn">+${AUFGABE_BONUS_XP} XP</span><span class="tz-lohn">+${AUFGABE_BONUS}${TAL_MUENZE}${typeof smTruheManna === "function" && smTruheManna() ? ` +${smTruheManna()}${SM_GOLD_SVG}` : ""}</span></div>`;
+    ? `<button class="sb-band bereit" id="truheBtn" aria-label="Schatztruhe mit drei Schlüsseln öffnen"><span class="sb-truhe">${truheZu(3, true)}</span><span class="sb-btx"><b>Truhe öffnen!</b><small>${lohnH}</small></span></button>`
+    : `<div class="sb-band" aria-label="Schatztruhe – ${erledigt} von 3 Schlüsseln"><span class="sb-truhe">${truheZu(erledigt, true)}</span><span class="sb-btx"><b>Noch ${3 - erledigt} Schlüssel</b><small>${lohnH}</small></span></div>`;
   /* 10.55: Hinweis mit × schließen – kommt für dieses Siegel nicht wieder, bis es aufgefrischt wurde (S.siegelZu[id] = letzter Eintrag) */
   const siegelZuKey = t => String(Math.max(...t));
   const siegel = (() => { const zu = S.siegelZu || {}, f = Object.entries(KETTEN).map(([id, k]) => ({ id, k, t: S.meister[id] || [] })).filter(x => x.t.length && siegelRest(x.t) <= 5 && zu[x.id] !== siegelZuKey(x.t)).sort((a, b) => siegelRest(a.t) - siegelRest(b.t))[0];
@@ -1968,11 +1973,15 @@ VIEWS.home = () => {
   const keysH = `<span class="ez-keys${S.dq.bonus ? " verbraucht" : ""}" aria-hidden="true">${[0, 1, 2].map(i => `<i class="${i < erledigt ? "an" : ""}">${SCHLUESSEL}</i>`).join("")}</span>`;
   const kopfTitel = S.dq.bonus ? `<span class="kt-lang">Geöffnet!</span><span class="kt-kurz"><small class="kt-heute">Truhe</small>fertig</span>` : bereit ? `<span class="kt-lang">Öffnen!</span><span class="kt-kurz"><small class="kt-heute">Truhe</small>öffnen</span>` : `<small class="kt-heute">Heute </small>${erledigt}/3`;  /* 10.60: „Heute“ eigenes Wort (in der schmalen Kopfzeile darüber) */
   const kopfSub = S.dq.bonus ? "Belohnung abgeholt" : bereit ? "Truhe antippen zum Öffnen" : typeof smTruheManna === "function" && smTruheManna() ? `3 Aufgaben = Truhe + ${smTruheManna()} Manna` : "3 Aufgaben = 1 Schatztruhe";
-  const kopfInnen = `<span class="bk-med truhe${S.dq.bonus ? " offen" : ""}" style="--p:${S.dq.bonus || bereit ? 100 : Math.round(erledigt / 3 * 100)}">${S.dq.bonus ? TRUHE_AUF + `<i class="truhe-haken">✓</i>` : truheZu(bereit ? 3 : erledigt, true)}</span><div class="bk-t"><h1 class="${S.dq.bonus || bereit ? "kt-wort" : "kt-zahl"}">${kopfTitel}</h1><span>${kopfSub}</span></div>${keysH}`;
+  /* 10.78: Truhen-Karte (Michaels Wahl „1“ + Leuchten der „Bühne“) – bei 1–2 Events breiter mit Titel, Schlüssel-Haltern und Belohnung; Lichtstrahlen hinter der Truhe */
+  const ktInfo = `<span class="kt-info${S.dq.bonus ? " erhalten" : bereit ? " bereit" : ""}" aria-hidden="true"><b class="kt-i-t">${S.dq.bonus ? "Truhe geöffnet" : bereit ? "Truhe öffnen!" : "Schatztruhe"}</b>
+    <span class="kt-i-s">${[0, 1, 2].map(i => { const an = S.dq.bonus || i < erledigt; return `<i class="${an ? "an" : ""}">${an ? SCHLUESSEL : SCHLOSS(false)}</i>`; }).join("")}</span>
+</span>`;  /* 10.79: Belohnung (XP/Talente/Manna) neben der Truhe entfällt – Michaels Wunsch */
+  const kopfInnen = `<span class="kt-licht" aria-hidden="true"></span><span class="bk-med truhe${S.dq.bonus ? " offen" : ""}" style="--p:${S.dq.bonus || bereit ? 100 : Math.round(erledigt / 3 * 100)}">${S.dq.bonus ? TRUHE_AUF + `<i class="truhe-haken">✓</i>` : truheZu(bereit ? 3 : erledigt, true)}</span><div class="bk-t"><h1 class="${S.dq.bonus || bereit ? "kt-wort" : "kt-zahl"}">${kopfTitel}</h1><span>${kopfSub}</span></div>${keysH}${ktInfo}`;
   const kopf = bereit
     ? `<div class="bkopf start-aufg" style="--bk:#f2c14e"><button class="bk-kopf bk-aufg bereit" id="truheKopf" aria-label="Schatztruhe mit drei Schlüsseln öffnen">${kopfInnen}</button></div>`
     : `<div class="bkopf start-aufg" style="--bk:#f2c14e"><details class="bk-aufg-d"><summary class="bk-kopf bk-aufg" aria-label="Tagesaufgaben: ${erledigt} von 3 geschafft">${kopfInnen}</summary>
-        <section class="heute3 ${S.dq.bonus ? "fertig" : ""}" aria-label="Tagesaufgaben, ${erledigt} von 3 erledigt"><ul>${aufg}</ul>${truhe}</section></details></div>`;
+        <section class="heute3 sb ${S.dq.bonus ? "fertig" : ""}" aria-label="Tagesaufgaben, ${erledigt} von 3 erledigt"><ul>${aufg}</ul>${truhe}</section></details></div>`;
   screen.innerHTML = `<div class="stack start start2 start8">
     ${kopf}
     ${siegel}
