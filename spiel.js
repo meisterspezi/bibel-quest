@@ -4572,15 +4572,29 @@ VIEWS.duelle = () => {
   const warteZeile = d => { const n = tage(d.ablauf), weg = Math.min(100, Math.max(4, Math.round((1 - (d.ablauf - jetzt) / (DU_TAGE * 864e5)) * 100)));
     return `<li class="ar-zeile warte"><span class="du-medaille t-${art(d)}">${esc(duInitialen(d.anName))}</span><span class="ar-tx"><b>${esc(d.anName)}</b><span>${duMarke(d)} deine <b class="du-gold">${duZahl(d.art, d.vonErg)}</b></span><i class="du-uhr" aria-label="noch ${tageText(n)}"><i style="width:${weg}%"></i></i></span><span class="du-tage">${n}<small>${n === 1 ? "Tag" : "Tage"}</small></span><button class="ar-rev ar-stop${duStopGesperrt(d) ? " gesperrt" : ""}" data-stop="${d.id}" aria-label="${esc(duStopLabel(d))}">${duStopKnopfIc(d)}</button></li>`; };
   const titel = (ic, t, n) => `<div class="ar-label">${svg(ic)}<span>${t}</span>${n ? `<i>${n}</i>` : ""}</div>`;
+  /* 10.80: Arena-Bühne (Michaels Wahl „1“) – Kasten wie Solo/Biblionär, großes Arena-Medaillon „Neues Duell“ mit roten Strahlen und Sternlicht,
+     links Siege-Ring, rechts Quote-Ring; Duelle (Du bist dran / Wartet / Ergebnisse) im selben Kasten darunter */
+  const reihe = (ic, t, n) => `<div class="zv2-reihe"><span class="zv2-tit">${svg(ic)}${t}</span>${n ? `<i class="arb-n">${n}</i>` : ""}</div>`;
+  const siege = S.duSiege || 0, spiele = S.duSpiele || 0, quote = spiele ? Math.round(siege / spiele * 100) : 0;
+  const sterne = [[8, 18, 0, 13], [88, 12, .7, 10], [94, 62, 1.4, 14], [4, 70, 2.1, 9], [74, 90, .35, 8], [24, 92, 1.75, 11], [50, -4, 1.05, 9]]
+    .map(([x, y, d, g]) => `<i class="arb-stern" style="left:${x}%;top:${y}%;--d:${d}s;--g:${g}px"></i>`).join("");
   screen.innerHTML = `
     ${duArenaHtml(fuerMich)}
-    <button class="ar-start" id="duNeu">${svg("duell")}<b>Neues Duell</b>${svg("bolt")}</button>
-    ${duFehler ? `<p class="small muted">Die Arena konnte nicht geladen werden. <button class="lv-btn" id="duNeuLaden">Nochmal</button></p>` : ""}
-    ${duListe === null && !duFehler ? `<p class="small muted du-laden">${svg("duell")} Lade Arena …</p>` : ""}
-    ${fuerMich.length ? titel("bolt", "Du bist dran", fuerMich.length) + `<ul class="ar-liste">${fuerMich.map(dranKarte).join("")}</ul>` : ""}
-    ${warte.length ? titel("sun", "Wartet auf Gegner", warte.length) + `<ul class="ar-liste">${warte.map(warteZeile).join("")}</ul>` : ""}
-    ${fertig.length ? titel("crown", "Ergebnisse", "") + `<ul class="ar-liste">${fertig.map(zeile).join("")}</ul>${fertigAlle.length > DU_ERG_KURZ ? `<button class="ar-mehr" id="duAlle">${duAlle ? "Weniger zeigen" : `Alle ${fertigAlle.length} Ergebnisse`}</button>` : ""}` : ""}
-    ${duListe && !liste.length ? `<div class="du-leer"><span class="du-leer-ic">${DUELL_LOGO}</span><b>Die Arena ist bereit</b><p class="small muted">Fordere jemanden aus der Gemeinde heraus – schon das Absenden bringt „Mutig wie David“.</p></div>` : ""}`;
+    <div class="arb"><div class="zv2-buehne arb-b">
+      ${reihe("duell", "Herausfordern")}
+      <div class="arb-mitte">
+        <span class="arb-st gold"><b>${siege}</b><small>${siege === 1 ? "Sieg" : "Siege"}</small></span>
+        <button class="arb-neu" id="duNeu" aria-label="Neues Duell starten"><span class="arb-buehne" aria-hidden="true"><span class="arb-strahl"></span><span class="arb-glut"></span></span><span class="arb-sterne" aria-hidden="true">${sterne}</span>
+          <span class="arb-ring"><span class="arb-in">${DUELL_LOGO}</span></span><b>Neues Duell</b><small>Gegen die Gemeinde</small></button>
+        <span class="arb-st gruen"><b>${quote}%</b><small>Quote</small></span>
+      </div>
+      ${duFehler ? `<p class="small muted">Die Arena konnte nicht geladen werden. <button class="lv-btn" id="duNeuLaden">Nochmal</button></p>` : ""}
+      ${duListe === null && !duFehler ? `<p class="small muted du-laden">${svg("duell")} Lade Arena …</p>` : ""}
+      ${fuerMich.length ? reihe("bolt", "Du bist dran", fuerMich.length) + `<ul class="ar-liste">${fuerMich.map(dranKarte).join("")}</ul>` : ""}
+      ${warte.length ? reihe("sun", "Wartet auf Gegner", warte.length) + `<ul class="ar-liste">${warte.map(warteZeile).join("")}</ul>` : ""}
+      ${fertig.length ? reihe("crown", "Ergebnisse", "") + `<ul class="ar-liste">${fertig.map(zeile).join("")}</ul>${fertigAlle.length > DU_ERG_KURZ ? `<button class="ar-mehr" id="duAlle">${duAlle ? "Weniger zeigen" : `Alle ${fertigAlle.length} Ergebnisse`}</button>` : ""}` : ""}
+      ${duListe && !liste.length ? `<p class="small muted arb-leer">Fordere jemanden aus der Gemeinde heraus – schon das Absenden bringt „Mutig wie David“.</p>` : ""}
+    </div></div>`;
   if ($("duAlle")) $("duAlle").onclick = () => { SFX.tap(); duAlle = !duAlle; VIEWS.duelle(); };
   wireGo();
   $("duNeu").onclick = () => { SFX.tap(); go("zusammen"); };
