@@ -2122,18 +2122,26 @@ function zvGegnerHtml() {
       return `<li><button class="du-person" data-zvg="${esc(r.id)}" ${laeuft ? "disabled" : ""}>${avatarLv(r, 34)}<span class="du-tx"><b>${esc(r.name)}</b><span>${duUnterzeile(r, laeuft)}</span></span>${laeuft ? "" : `<span class="zv2-vor" aria-hidden="true">${svg(G.ic)}</span>`}</button></li>`; })}</ul>`}`}
   </section>`;
 }
+/* 10.81: Kopf „Neues Duell“ (Michaels Wahl „Schritt-Kopf mit VS“) statt „Zusammen“ – Arena-Logo mit ‹ zurück zur Arena, Schritte im Kopf, rechts VS-Medaillon */
+const ZK_VS = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><radialGradient id="zkvR" cx=".5" cy=".35" r=".65"><stop offset="0" stop-color="#3a2450"/><stop offset="1" stop-color="#140f2a"/></radialGradient><linearGradient id="zkvG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe58a"/><stop offset="1" stop-color="#e0a838"/></linearGradient></defs>
+  <circle cx="32" cy="32" r="30" fill="url(#zkvR)" stroke="#ff6b4a" stroke-width="3.5"/><path d="M32 6 26 30h7l-5 28 14-32h-8l6-20z" fill="#ff6b4a" opacity=".35"/>
+  <text x="32" y="41" text-anchor="middle" font-family="Cinzel,serif" font-weight="900" font-size="25" fill="url(#zkvG)" stroke="#5a2a08" stroke-width=".8">VS</text></svg>`;
+const zkSchritteHtml = () => { const st = zvWahl ? 2 : 1;
+  return [[1, "Spiel"], [2, "Gegner"], [3, "Duell!"]].map(([n, t]) => `<i class="${n < st ? "ok" : n === st ? "an" : ""}">${n < st ? "✓" : n}</i>${t}`).join("<em></em>"); };
+const zkKopf = () => `<div class="bkopf zk" style="--bk:#ff6b4a"><header class="bk-kopf"><button class="zk-zur" data-go="duelle" aria-label="Zurück zur Arena"><span class="zk-pfeil" aria-hidden="true">‹</span>${DUELL_LOGO}</button>
+  <div class="bk-t"><h1>Neues Duell</h1><span class="zk-schritte" id="zkSchritte">${zkSchritteHtml()}</span></div><span class="zk-vs">${ZK_VS}</span></header></div>`;
+function zkSchritt() { const e = $("zkSchritte"); if (e) e.innerHTML = zkSchritteHtml(); }
 const zvKachel = s => { const an = zvWahl === s.id; return spKachel2(s, `data-dtyp="${s.id}" aria-pressed="${an}"`, an); };
 VIEWS.zusammen = () => {
   const duN = duFuerMich().length, online = duOk(), dran = duDranHtml(), g = zvSpiele();
   if (!online) zvWahl = null;
-  screen.innerHTML = `${bereichKopf("gemeinde", { ic: "people", t: "Zusammen", sub: duN ? `${duN} ${duN === 1 ? "Duell wartet" : "Duelle warten"} auf dich!` : "Mit der Gemeinde spielen" })}
+  screen.innerHTML = `${zkKopf()}
   ${online ? "" : `<p class="small muted zus-hinweis">${window.LB && window.LB.ok ? "Für Duelle brauchst du einen Eintrag in der Gemeinde-Rangliste." : "Für Duelle brauchst du Internet."}</p>`}
   ${dran}
   <div class="zv ${online ? "" : "sp-aus"}"><div class="zv2-buehne sok-solo">
     <div class="zv2-reihe"><span class="zv2-tit">${svg("link")}Ketten</span></div><div class="sok-gitter sok-ketten">${[g[1], g[2], g[0], g[3]].map(zvKachel).join("")}</div>
     <div class="zv2-reihe"><span class="zv2-tit">${svg("star")}Themen</span></div><div class="sok-gitter sok-themen">${g.filter(s => s.grp in TKETTEN).map(zvKachel).join("")}</div>
     <div class="zv2-reihe"><span class="zv2-tit">${svg("bolt")}Blitz · Vers</span></div><div class="sok-gitter sok-bv">${g.filter(s => s.id === "blitz" || s.id === "vers").map(zvKachel).join("")}</div></div>
-    <p class="zv2-hinw"><span>1</span>Spiel antippen<i></i><span>2</span>Gegner wählen<i></i><span>3</span>Duell!</p>
     <div id="zvGegnerBox">${zvWahl ? zvGegnerHtml() : ""}</div></div>`;
   wireGo(); duDranVerdrahten(); zvVerdrahten();
   if (online) { if (duGegner === null) duGegnerLaden().then(() => { if (current === "zusammen") zvGegnerNeu(); }); if (duListe === null) duAktualisieren().then(() => { if (current === "zusammen") zvGegnerNeu(); }).catch(() => {}); }
@@ -2151,7 +2159,7 @@ function zvVerdrahten() {
     if (!duOk()) { toast(`${svg("duell", "var(--muted)")}<div>Für Duelle brauchst du Internet und einen Eintrag in der Rangliste.</div>`); return; }
     zvWahl = b.dataset.dtyp; duSuche = "";
     screen.querySelectorAll("[data-dtyp]").forEach(x => { const an = x === b; x.classList.toggle("an", an); x.setAttribute("aria-pressed", an); });
-    zvGegnerNeu(); const box = $("zvGegner");
+    zkSchritt(); zvGegnerNeu(); const box = $("zvGegner");
     if (box) { let ruhig = false; try { ruhig = matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {} box.scrollIntoView({ behavior: ruhig ? "auto" : "smooth", block: "start" }); } });
   zvGegnerVerdrahten();
 }

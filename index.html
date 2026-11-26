@@ -3947,6 +3947,21 @@ html .start-aufg.ev-da .bk-t{z-index:2}
 @keyframes arbGlut{50%{transform:scale(1.15);opacity:.75}}
 @keyframes arbPuls{50%{box-shadow:0 0 40px 0 #ff6b4a}}
 @keyframes arbFunk{0%,100%{opacity:0;transform:scale(.3) rotate(0)}45%{opacity:1;transform:scale(1) rotate(45deg)}70%{opacity:.85;transform:scale(.8) rotate(70deg)}}
+
+/* 10.81: Kopf „Neues Duell“ über der Duell-Auswahl (statt „Zusammen“) – Arena-Rot, Schritte im Kopf, VS-Medaillon */
+.zk .bk-kopf{grid-template-columns:58px minmax(0,1fr) 46px!important}
+.zk .bk-t h1{background:linear-gradient(180deg,#fff1c2,#f2c14e 60%,#c9861a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.zk-zur{position:relative;display:block;width:58px;height:58px;padding:0;border:0;background:none;cursor:pointer}
+.zk-zur svg{width:52px;height:52px;margin-left:6px;display:block;filter:drop-shadow(0 0 10px #ff6b4a88)}
+.zk-pfeil{position:absolute;left:-7px;top:50%;transform:translateY(-55%);font:900 1.6rem/1 var(--body);color:#ffb5a0;z-index:1;text-shadow:0 0 4px #000}
+.zk .zk-schritte{display:flex;align-items:center;gap:4px;font:800 .74rem var(--body);color:#c9cbe0;white-space:nowrap;margin-top:3px}
+.zk-schritte i{width:17px;height:17px;border-radius:50%;display:grid;place-items:center;font:900 10px var(--body);font-style:normal;background:#ffffff18;color:#c9cbe0}
+.zk-schritte i.an{background:linear-gradient(180deg,#ff8a6a,#e0463c);color:#fff;box-shadow:0 0 8px #ff6b4a}
+.zk-schritte i.ok{background:#2e8f68;color:#fff}
+.zk-schritte em{width:10px;height:2px;background:#ffffff30}
+.zk-vs svg{width:46px;height:46px;display:block;filter:drop-shadow(0 0 8px #ff6b4a88)}
+@media (max-width:359px){.zk .zk-schritte{font-size:.66rem;gap:3px}.zk-schritte em{width:6px}}
+@media (prefers-reduced-motion:no-preference){.zk-vs{animation:arSchweb 3.4s ease-in-out infinite}}
 </style>
 </head>
 <body>
