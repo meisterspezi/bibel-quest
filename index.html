@@ -3918,6 +3918,50 @@ html .start-aufg.ev-da .bk-t{z-index:2}
 .start-aufg .bk-aufg.bereit .kt-licht{background:radial-gradient(circle,#ffe58a66 0 24%,transparent 50%),repeating-conic-gradient(#f2c14e55 0 7deg,transparent 7deg 20deg)}
 @media (prefers-reduced-motion:no-preference){html .start-aufg.ev-da .kt-licht{animation:ktDreh 30s linear infinite}.start-aufg .bk-aufg.bereit .kt-licht{animation-duration:12s}}
 @keyframes ktDreh{to{transform:rotate(360deg)}}
+
+/* 10.80: Arena-Bühne – Startseite der Arena im Kasten-Stil von Solo/Biblionär, Medaillon mit roten Strahlen und Sternlicht (wie der Duell-Start) */
+.arb .zv2-buehne{padding-bottom:10px}
+.arb-n{margin-left:6px;min-width:18px;height:18px;border-radius:9px;background:#e0463c;color:#fff;font:900 11px/18px var(--body);text-align:center;font-style:normal;padding:0 5px}
+.arb .ar-liste{margin:4px 0 12px}.arb .ar-liste:last-child{margin-bottom:2px}
+.arb-leer{text-align:center;margin:2px 8px 6px}
+.arb{--gold:#f2c14e}.arb .zv2-tit svg{display:block}
+.arb-mitte{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;justify-items:center;margin:2px 0 14px;position:relative}
+.arb-st{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:64px;height:64px;border-radius:50%;border:3px solid var(--c);background:radial-gradient(circle at 50% 35%,#2a3370,#10143a);box-shadow:0 0 14px -4px var(--c)}
+.arb-st.gold{--c:#f2c14e}.arb-st.gruen{--c:#5fe0b0}
+.arb-st b{font:800 1.15rem var(--display);color:var(--c);line-height:1}.arb-st small{font-size:.66rem;color:#c9cbe0}
+.arb-neu{position:relative;isolation:isolate;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:0;color:inherit;font:inherit;cursor:pointer;padding:6px 4px 0}
+.arb-buehne{position:absolute;left:50%;top:58px;width:0;height:0;z-index:-1;pointer-events:none}
+.arb-strahl{position:absolute;left:-150px;top:-150px;width:300px;height:300px;border-radius:50%;background:repeating-conic-gradient(from 0deg,#e0463c55 0 6deg,transparent 6deg 20deg);-webkit-mask:radial-gradient(circle,#000 18%,transparent 64%);mask:radial-gradient(circle,#000 18%,transparent 64%)}
+.arb-glut{position:absolute;left:-90px;top:-90px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,#ff6b4a66,#e0463c22 45%,transparent 70%)}
+.arb-stern{position:absolute;width:var(--g);height:var(--g);margin:calc(var(--g) / -2);background:radial-gradient(circle,#fff 0 12%,transparent 13%),conic-gradient(from 45deg,transparent 0 20deg,#fff7e0 20deg 70deg,transparent 70deg 110deg,#fff7e0 110deg 160deg,transparent 160deg 200deg,#fff7e0 200deg 250deg,transparent 250deg 290deg,#fff7e0 290deg 340deg,transparent 340deg);-webkit-mask:radial-gradient(circle,#000 30%,transparent 72%);mask:radial-gradient(circle,#000 30%,transparent 72%);filter:drop-shadow(0 0 4px #ffb08a) drop-shadow(0 0 2px #fff)}
+.arb-sterne{position:absolute;left:-34px;right:-34px;top:-4px;height:132px;z-index:2;pointer-events:none}
+.arb-ring{position:relative;display:block;width:108px;height:108px;border-radius:50%;padding:5px;background:conic-gradient(from 200deg,#ffb54a,#ff6b4a,#e0463c,#ff8aa0,#ffb54a);box-shadow:0 0 26px -4px #ff6b4a}
+.arb-in{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;background:radial-gradient(circle at 50% 35%,#3a2450,#140f2a)}.arb-in svg{width:76px;height:76px}
+.arb-neu b{margin-top:6px;font:800 1rem var(--display);letter-spacing:.06em;color:#fff;text-shadow:0 1px 3px #000a}.arb-neu small{font-size:.72rem;color:#ffb5a0}
+@media (prefers-reduced-motion:no-preference){
+  .arb-strahl{animation:cdDreh 18s linear infinite}
+  .arb-glut{animation:arbGlut 2.4s ease-in-out infinite}
+  .arb-ring{animation:arbPuls 2.4s ease-in-out infinite}
+  .arb-stern{animation:arbFunk 2.8s ease-in-out infinite;animation-delay:var(--d)}
+}
+@keyframes arbGlut{50%{transform:scale(1.15);opacity:.75}}
+@keyframes arbPuls{50%{box-shadow:0 0 40px 0 #ff6b4a}}
+@keyframes arbFunk{0%,100%{opacity:0;transform:scale(.3) rotate(0)}45%{opacity:1;transform:scale(1) rotate(45deg)}70%{opacity:.85;transform:scale(.8) rotate(70deg)}}
+
+/* 10.81: Kopf „Neues Duell“ über der Duell-Auswahl (statt „Zusammen“) – Arena-Rot, Schritte im Kopf, VS-Medaillon */
+.zk .bk-kopf{grid-template-columns:58px minmax(0,1fr) 46px!important}
+.zk .bk-t h1{background:linear-gradient(180deg,#fff1c2,#f2c14e 60%,#c9861a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.zk-zur{position:relative;display:block;width:58px;height:58px;padding:0;border:0;background:none;cursor:pointer}
+.zk-zur svg{width:52px;height:52px;margin-left:6px;display:block;filter:drop-shadow(0 0 10px #ff6b4a88)}
+.zk-pfeil{position:absolute;left:-7px;top:50%;transform:translateY(-55%);font:900 1.6rem/1 var(--body);color:#ffb5a0;z-index:1;text-shadow:0 0 4px #000}
+.zk .zk-schritte{display:flex;align-items:center;gap:4px;font:800 .74rem var(--body);color:#c9cbe0;white-space:nowrap;margin-top:3px}
+.zk-schritte i{width:17px;height:17px;border-radius:50%;display:grid;place-items:center;font:900 10px var(--body);font-style:normal;background:#ffffff18;color:#c9cbe0}
+.zk-schritte i.an{background:linear-gradient(180deg,#ff8a6a,#e0463c);color:#fff;box-shadow:0 0 8px #ff6b4a}
+.zk-schritte i.ok{background:#2e8f68;color:#fff}
+.zk-schritte em{width:10px;height:2px;background:#ffffff30}
+.zk-vs svg{width:46px;height:46px;display:block;filter:drop-shadow(0 0 8px #ff6b4a88)}
+@media (max-width:359px){.zk .zk-schritte{font-size:.66rem;gap:3px}.zk-schritte em{width:6px}}
+@media (prefers-reduced-motion:no-preference){.zk-vs{animation:arSchweb 3.4s ease-in-out infinite}}
 </style>
 </head>
 <body>
