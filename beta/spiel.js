@@ -1974,10 +1974,9 @@ VIEWS.home = () => {
   const kopfTitel = S.dq.bonus ? `<span class="kt-lang">Geöffnet!</span><span class="kt-kurz"><small class="kt-heute">Truhe</small>fertig</span>` : bereit ? `<span class="kt-lang">Öffnen!</span><span class="kt-kurz"><small class="kt-heute">Truhe</small>öffnen</span>` : `<small class="kt-heute">Heute </small>${erledigt}/3`;  /* 10.60: „Heute“ eigenes Wort (in der schmalen Kopfzeile darüber) */
   const kopfSub = S.dq.bonus ? "Belohnung abgeholt" : bereit ? "Truhe antippen zum Öffnen" : typeof smTruheManna === "function" && smTruheManna() ? `3 Aufgaben = Truhe + ${smTruheManna()} Manna` : "3 Aufgaben = 1 Schatztruhe";
   /* 10.78: Truhen-Karte (Michaels Wahl „1“ + Leuchten der „Bühne“) – bei 1–2 Events breiter mit Titel, Schlüssel-Haltern und Belohnung; Lichtstrahlen hinter der Truhe */
-  const ktMan = typeof smTruheManna === "function" ? smTruheManna() : 0;
   const ktInfo = `<span class="kt-info${S.dq.bonus ? " erhalten" : bereit ? " bereit" : ""}" aria-hidden="true"><b class="kt-i-t">${S.dq.bonus ? "Truhe geöffnet" : bereit ? "Truhe öffnen!" : "Schatztruhe"}</b>
     <span class="kt-i-s">${[0, 1, 2].map(i => { const an = S.dq.bonus || i < erledigt; return `<i class="${an ? "an" : ""}">${an ? SCHLUESSEL : SCHLOSS(false)}</i>`; }).join("")}</span>
-    <span class="kt-i-l"><span><b>+${AUFGABE_BONUS_XP}</b> XP</span><span><b>+${AUFGABE_BONUS}</b>${TAL_MUENZE}</span>${ktMan ? `<span><b>+${ktMan}</b>${SM_GOLD_SVG}</span>` : ""}${S.dq.bonus ? `<em>✓</em>` : ""}</span></span>`;
+</span>`;  /* 10.79: Belohnung (XP/Talente/Manna) neben der Truhe entfällt – Michaels Wunsch */
   const kopfInnen = `<span class="kt-licht" aria-hidden="true"></span><span class="bk-med truhe${S.dq.bonus ? " offen" : ""}" style="--p:${S.dq.bonus || bereit ? 100 : Math.round(erledigt / 3 * 100)}">${S.dq.bonus ? TRUHE_AUF + `<i class="truhe-haken">✓</i>` : truheZu(bereit ? 3 : erledigt, true)}</span><div class="bk-t"><h1 class="${S.dq.bonus || bereit ? "kt-wort" : "kt-zahl"}">${kopfTitel}</h1><span>${kopfSub}</span></div>${keysH}${ktInfo}`;
   const kopf = bereit
     ? `<div class="bkopf start-aufg" style="--bk:#f2c14e"><button class="bk-kopf bk-aufg bereit" id="truheKopf" aria-label="Schatztruhe mit drei Schlüsseln öffnen">${kopfInnen}</button></div>`
