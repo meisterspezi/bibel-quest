@@ -762,7 +762,11 @@ const SFX = {
   badge() { [784, 988, 1175, 1568].forEach((f, i) => tone(f, i * .07, .22, "sine", .14)); },
   tick() { tone(1200, 0, .03, "square", .04); },
   beat(n) { tone(n % 2 ? 98 : 82, 0, .16, "sine", .1, 50); },
-  siegel() { tone(110, 0, .18, "sine", .16, 55); tone(1900, .02, .05, "square", .05, 600); tone(1400, .07, .05, "square", .04, 400); }
+  siegel() { tone(110, 0, .18, "sine", .16, 55); tone(1900, .02, .05, "square", .05, 600); tone(1400, .07, .05, "square", .04, 400); },
+  /* 10.82 Wappen-Duell */
+  prall() { tone(110, 0, .35, "sine", .3, 60); tone(70, 0, .45, "sine", .25); tone(1500, .01, .06, "square", .04, 500); },
+  knapp() { tone(392, .05, .35, "triangle", .14); tone(330, .3, .6, "triangle", .12); },
+  remis() { tone(523, .05, .3, "triangle", .15); tone(523, .32, .5, "triangle", .15); tone(784, .32, .5, "sine", .05); }
 };
 function renderMute() { $("muteBtn").innerHTML = svg(S.mute ? "mute" : "sound"); }
 $("muteBtn").onclick = () => { S.mute = !S.mute; save(); renderMute(); if (!S.mute) SFX.tap(); else vorlesenStop(); };
@@ -4267,48 +4271,97 @@ const duWert = (art, e) => (!e ? 0 : art === "quiz" ? e.p | 0 : e.r | 0);
 const duKurz = v => (v >= 1e6 ? (v / 1e6).toLocaleString("de-DE", { maximumFractionDigits: 1 }) + " Mio" : v >= 1e4 ? (v / 1e3).toLocaleString("de-DE", { maximumFractionDigits: 1 }) + "k" : pkt(v));
 const duZahl = (art, e) => duKurz(duWert(art, e));
 
-/* ---------- Auflösung „Siegelbruch“ (6.62): die Punkte des Gegners bleiben bis zum Ende versiegelt ----------
+/* ---------- Duell-Auflösung (6.62 „Siegelbruch“, seit 10.82 „Wappen-Duell“, siehe unten) ----------
    Erst zählt die eigene Zahl hoch, dann wackelt das Siegel, bricht, und die Gegner-Punkte zählen hoch.
    Die bessere Karte hebt sich und bekommt die Krone. Belohnungseffekte (Ton, Konfetti) nur für den Gewinner.
    Antippen überspringt die Animation. Genutzt am Duell-Ende (Gegenspieler) und einmalig beim Herausforderer. */
 const sbGroesse = p => (String(duKurz(p)).length > 7 ? " lang" : String(duP(p)).length > 5 ? " mittel" : "");
+/* 10.82 „Wappen-Duell“ (Michaels Wahl): Medaillon mit dem Symbol der Duell-Art, zwei Wappenschilde prallen zusammen,
+   beide Zahlen zählen gleichzeitig hoch, Krone für den Sieger (Remis: zwei kleine Kronen), Leuchten, Ton und ein Vers
+   (Schlachter 2000) passend zu Ausgang und Duell-Art. Antippen überspringt die Animation. Ersetzt den „Siegelbruch“. */
+const DW_FARBE = { vers: "#7fc8ff", kette: "#ffb54a", blitz: "#ff8a5c", quiz: "#7be04a" };
+const dwFarbe = (art, k) => (art === "kette" && TKETTEN[k] && ZV_FARBE[k]) || DW_FARBE[art] || "#f2c14e";
+const dwIc = (art, k) => (DU_TYPEN[art === "kette" ? "kette-" + k : art] || DU_TYPEN.vers).ic;
+const dwEinh = (art, k, e) => { const n = (e && e.n) | 0;
+  return art === "quiz" ? "Punkte" : art === "blitz" ? "richtig" : art === "kette" ? (TKETTEN[k] ? `von ${n}` : `von ${n} Büchern`) : `von ${n} richtig`; };
+function dwZus(art, k, e) { if (!e) return ""; const r = e.r | 0, n = e.n | 0;
+  if (art === "blitz") { const f = Math.max(0, n - r); return f ? `${f} Fehler` : "ohne Fehler"; }
+  if (art === "kette") { if (n && r >= n) return "ganze Kette!"; if (!r) return "";
+    if (TKETTEN[k]) { const it = TKETTEN[k].items[r - 1]; return it ? `bis „${it.t}“` : ""; }
+    const seq = (KETTEN[k] || KETTEN.bibel).seq, b = ALL[seq[r - 1]]; return b ? `bis ${b.b}` : ""; }
+  if (art === "quiz") return `${r} von 15 richtig`;
+  return e.p ? `${pkt(e.p)} Punkte` : ""; }
+/* Verse (Schlachter 2000, Wortlaut geprüft auf bibleserver.com am 28.11.2026; „…“ = gekürzt) */
+const DW_VERSE = {
+  nl: { blitz: [["Ich eile und säume nicht, deine Gebote zu befolgen.", "Psalm 119,60"], ["Die auf den HERRN harren, kriegen neue Kraft.", "Jesaja 40,31"]],
+    kette: [["Dein Wort ist meines Fußes Leuchte und ein Licht auf meinem Weg.", "Psalm 119,105"], ["Lasst uns mit Ausdauer laufen in dem Kampf, der vor uns liegt.", "Hebräer 12,1"]],
+    vers: [["Ich bewahre dein Wort in meinem Herzen, damit ich nicht gegen dich sündige.", "Psalm 119,11"], ["Lasst das Wort des Christus reichlich in euch wohnen in aller Weisheit.", "Kolosser 3,16"]],
+    quiz: [["Sie sind begehrenswerter als Gold und viel Feingold, süßer als Honig und Honigseim.", "Psalm 19,11"], ["Wenn du sie suchst wie Silber und nach ihr forschst wie nach Schätzen …", "Sprüche 2,4"]],
+    gebote: [["Wie habe ich dein Gesetz so lieb! Ich sinne darüber nach den ganzen Tag.", "Psalm 119,97"], ["Diese Worte, die ich dir heute gebiete, sollst du auf dem Herzen tragen.", "5. Mose 6,6"]],
+    schoepfung: [["Seine Barmherzigkeit ist nicht zu Ende; sie ist jeden Morgen neu.", "Klagelieder 3,22-23"], ["HERR, wie sind deine Werke so viele! Du hast sie alle in Weisheit gemacht.", "Psalm 104,24"]],
+    plagen: [["Der HERR wird für euch kämpfen, und ihr sollt still sein!", "2. Mose 14,14"], ["Fürchtet euch nicht! Steht fest und seht die Rettung des HERRN.", "2. Mose 14,13"], ["Der HERR ist meine Stärke und mein Lobgesang, und er wurde mir zum Heil!", "2. Mose 15,2"]],
+    alle: [["Der Gerechte fällt siebenmal und steht wieder auf.", "Sprüche 24,16"], ["Lasst uns aber im Gutestun nicht müde werden; denn zu seiner Zeit werden wir auch ernten.", "Galater 6,9"],
+      ["Ich vergesse, was dahinten ist, und strecke mich aus nach dem, was vor mir liegt.", "Philipper 3,13"], ["Ich vermag alles durch den, der mich stark macht, Christus.", "Philipper 4,13"],
+      ["Lass dir an meiner Gnade genügen, denn meine Kraft wird in der Schwachheit vollkommen!", "2. Korinther 12,9"], ["Er gibt dem Müden Kraft und Stärke genug dem Unvermögenden.", "Jesaja 40,29"],
+      ["Sei unerschrocken und sei nicht verzagt; denn der HERR, dein Gott, ist mit dir.", "Josua 1,9"]] },
+  sieg: { schoepfung: [["Und Gott sah alles, was er gemacht hatte; und siehe, es war sehr gut.", "1. Mose 1,31"]],
+    plagen: [["Der HERR ist meine Stärke und mein Lobgesang, und er wurde mir zum Heil!", "2. Mose 15,2"]],
+    alle: [["Nicht uns, o HERR, nicht uns, sondern deinem Namen gib Ehre", "Psalm 115,1"], ["Gott aber sei Dank, der uns den Sieg gibt durch unseren Herrn Jesus Christus!", "1. Korinther 15,57"],
+      ["Dies ist der Tag, den der HERR gemacht hat; wir wollen uns freuen und fröhlich sein in ihm!", "Psalm 118,24"], ["Und alles, was ihr tut, das tut von Herzen, als für den Herrn und nicht für Menschen …", "Kolosser 3,23"]] },
+  remis: { alle: [["Es ist besser, dass man zu zweit ist als allein, denn die beiden haben einen guten Lohn für ihre Mühe.", "Prediger 4,9"],
+    ["Siehe, wie fein und wie lieblich ist’s, wenn Brüder in Eintracht beisammen sind!", "Psalm 133,1"],
+    ["In der Bruderliebe seid herzlich gegeneinander; in der Ehrerbietung komme einer dem anderen zuvor!", "Römer 12,10"]] }
+};
+/* gleicher Vers für dasselbe Duell (aus der Duell-ID), sonst passend zur Art + allgemein */
+function dwVersHtml(aus, art, k, id) {
+  const Q = DW_VERSE[aus] || DW_VERSE.nl, key = art === "kette" && TKETTEN[k] ? k : art, eig = Q[key] || [], pool = eig.concat(Q.alle);
+  const v = pool[hash(String(id || Date.now()) + "|" + aus) % pool.length];
+  return `<div class="dw-vers sb-spaet ${aus}"><span class="dw-vi">${svg("scroll")}</span><div><q>${esc(v[0])}</q><small>${esc(v[1])}</small></div></div>`;
+}
+/* Niederlage freundlich: Titel nach Abstand, Zeile mit dem, was gefehlt hat */
+function dwNiederlage(art, du, er) {
+  const a = duWert(art, du), b = duWert(art, er), diff = Math.max(0, b - a), knapp = diff <= Math.max(a, b) * .3;
+  return { titel: knapp ? "Knapp vorbei!" : "Gut gekämpft!", zeile: `Nur ${art === "quiz" ? pkt(diff) + " Punkte" : diff + " richtig"} bis zum Sieg – hol dir die Revanche!` };
+}
 function sbHtml(o) {
-  return `<div class="sb-paar">
-    <div class="sb-k" id="sbDu"><span class="sb-krone">${svg("crown", "#f2c14e")}</span><span class="sb-n">Du</span><b class="sb-z${sbGroesse(duWert(o.art, o.du))}" id="sbZ1">0</b><small>${duErgText(o.art, o.du)}</small></div>
-    <div class="sb-k" id="sbEr"><span class="sb-krone">${svg("crown", "#f2c14e")}</span><span class="sb-n">${esc(o.gegner)}</span><b class="sb-z${sbGroesse(duWert(o.art, o.er))}" id="sbZ2">?</b><small>${duErgText(o.art, o.er)}</small>
-      <span class="sb-siegel" id="sbSiegel" aria-hidden="true"><i>?</i></span></div></div>`;
+  const sch = (id, zid, name, e, seite) => { const z = dwZus(o.art, o.k, e);
+    return `<div class="dw-slot ${seite}"><div class="dw-sch" id="${id}"><span class="dw-glanz"></span><span class="dw-kr">${svg("crown", "#f2c14e")}</span><span class="dw-n">${name}</span><b class="dw-z${sbGroesse(duWert(o.art, e))}" id="${zid}">0</b><span class="dw-einh">${esc(dwEinh(o.art, o.k, e))}</span>${z ? `<span class="dw-zus">${esc(z)}</span>` : ""}</div></div>`; };
+  return `<div class="dw" style="--dwc:${dwFarbe(o.art, o.k)}"><div class="dw-med"><span class="dw-strahl"></span><svg class="dw-ring" viewBox="0 0 118 118" aria-hidden="true"><circle cx="59" cy="59" r="54" class="dw-r0"/><circle cx="59" cy="59" r="54" class="dw-r1"/></svg><span class="dw-kern">${svg(dwIc(o.art, o.k))}</span></div>
+    <div class="dw-paar">${sch("sbDu", "sbZ1", "Du", o.du, "li")}${sch("sbEr", "sbZ2", esc(o.gegner), o.er, "re")}</div></div>`;
 }
 function sbStarten(root, o, fertig) {
   const ruhig = matchMedia("(prefers-reduced-motion: reduce)").matches, T = [], R = [];
   const q = sel => root.querySelector(sel); let fertigGemacht = false;
   const nach = (ms, f) => T.push(setTimeout(f, ms));
-  const zaehle = (el, ziel, ms, f) => { const t0 = performance.now();
-    const s = t => { const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3); el.textContent = duKurz(Math.round(ziel * e)); if (k < 1) R.push(requestAnimationFrame(s)); else f && f(); };
+  const zaehle = (el, ziel, ms) => { const t0 = performance.now();
+    const s = t => { const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3); el.textContent = duKurz(Math.round(ziel * e)); if (k < 1) R.push(requestAnimationFrame(s)); };
     R.push(requestAnimationFrame(s)); };
-  const splitter = karte => { for (let i = 0; i < 12; i++) { const sp = document.createElement("i"); sp.className = "sb-split"; karte.appendChild(sp);
-    const w = Math.random() * Math.PI * 2, d = 60 + Math.random() * 60;
-    sp.animate([{ transform: "translate(-50%,-50%)", opacity: 1 }, { transform: `translate(${Math.cos(w) * d}px,${Math.sin(w) * d + 40}px) rotate(${Math.random() * 360}deg)`, opacity: 0 }], { duration: 700, easing: "cubic-bezier(.2,.7,.4,1)", fill: "forwards" });
-    setTimeout(() => sp.remove(), 800); } };
-  const ende = () => {
+  const funken = () => { const p = q(".dw-paar"); if (!p || !p.animate) return;
+    for (let i = 0; i < 16; i++) { const f = document.createElement("i"); f.className = "dw-funke"; f.style.background = ["#fff", "#ffe39a", "var(--dwc)"][i % 3]; p.appendChild(f);
+      const w = Math.random() * Math.PI * 2, d = 40 + Math.random() * 60;
+      f.animate([{ transform: "translate(-50%,-50%)", opacity: 1 }, { transform: `translate(${Math.cos(w) * d}px,${Math.sin(w) * d + 30}px) rotate(${Math.random() * 540}deg)`, opacity: 0 }], { duration: 800 + Math.random() * 400, easing: "cubic-bezier(.15,.7,.4,1)", fill: "forwards" });
+      setTimeout(() => f.remove(), 1300); } };
+  const ende = sofort => {
     if (fertigGemacht) return; fertigGemacht = true; T.forEach(clearTimeout); R.forEach(cancelAnimationFrame); root.onclick = null;
     q("#sbZ1").textContent = duKurz(duWert(o.art, o.du)); q("#sbZ2").textContent = duKurz(duWert(o.art, o.er));
-    const sg = q("#sbSiegel"); if (sg) sg.remove();
-    const sieg = duVgl(o.du, o.er, o.art) > 0, remis = duVgl(o.du, o.er, o.art) === 0;
-    if (!remis) { q(sieg ? "#sbDu" : "#sbEr").classList.add("sieger"); q(sieg ? "#sbEr" : "#sbDu").classList.add("verlierer"); }
+    const v = duVgl(o.du, o.er, o.art), sieg = v > 0, remis = v === 0, w = q(".dw");
+    if (sofort) w.classList.add("dw-sofort");
+    w.classList.add("aus", sieg ? "sieg" : remis ? "remis" : "nl");
+    if (remis) { q("#sbDu").classList.add("remis"); q("#sbEr").classList.add("remis"); }
+    else { q(sieg ? "#sbDu" : "#sbEr").classList.add("sieger"); q(sieg ? "#sbEr" : "#sbDu").classList.add("verlierer"); }
     fertig(sieg, remis);
   };
-  if (ruhig) { ende(); return; }
-  root.onclick = e => { if (!e.target.closest("button")) ende(); };
-  zaehle(q("#sbZ1"), duWert(o.art, o.du), 900, () => {
-    nach(450, () => { const sg = q("#sbSiegel"); if (sg) sg.classList.add("wackel"); SFX.tick(); });
-    nach(1250, () => { const sg = q("#sbSiegel"); if (!sg) return; sg.classList.add("bricht"); SFX.siegel(); splitter(sg.parentElement);
-      zaehle(q("#sbZ2"), duWert(o.art, o.er), 1100, () => nach(250, ende)); });
-  });
+  if (ruhig) { ende(true); return; }
+  root.onclick = e => { if (!e.target.closest("button")) ende(true); };
+  nach(1000, () => { funken(); SFX.prall(); const w = q(".dw"); if (w && w.animate) w.animate([{ transform: "none" }, { transform: "translateX(-5px)" }, { transform: "translateX(4px)" }, { transform: "none" }], { duration: 220 }); });
+  nach(1050, () => { zaehle(q("#sbZ1"), duWert(o.art, o.du), 1100); zaehle(q("#sbZ2"), duWert(o.art, o.er), 1100);
+    for (let i = 0; i < 8; i++) nach(1.1 * 1000 * (1 - Math.pow(1 - i / 8, 1 / 3)), () => SFX.tick()); });
+  nach(2300, () => ende(false));
 }
-/* Titel, Zeile und Knöpfe erscheinen erst nach der Auflösung; Ton und Konfetti nur beim Sieg */
-function sbSchluss(root, sieg) {
+/* Titel, Zeile, Vers, Belohnung und Knöpfe erscheinen nach der Auflösung; Ton je Ausgang, Konfetti bei Sieg (bei Remis weniger) */
+function sbSchluss(root, sieg, remis) {
   root.querySelectorAll(".sb-spaet").forEach((el, i) => setTimeout(() => el.classList.add("zeig"), i * 220));
-  if (sieg) { SFX.win(); rain(90); }
+  if (sieg) { SFX.win(); rain(90); } else if (remis) { SFX.remis(); rain(40); } else SFX.knapp();
 }
 
 /* Herausforderer: fertige Duelle einmal als Auflösung zeigen (Warteschlange, nacheinander) */
@@ -4321,18 +4374,19 @@ function duAufloesVersuch() {
   const ov = document.createElement("div"); ov.className = "sb-ov"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");
   ov.innerHTML = `<div class="vl vl-ende du-ende sb-ende">
     <div class="sb-kopf"><small>Ergebnis ist da</small><b>${esc(duTypText(d))}-Duell gegen ${esc(d.anName)}</b></div>
-    ${sbHtml({ gegner: d.anName, du, er, art })}
-    <h1 class="sb-spaet sb-titel"></h1><p class="muted sb-spaet sb-zeile"></p>
+    ${sbHtml({ gegner: d.anName, du, er, art, k: d.k })}
+    <h1 class="sb-spaet sb-titel${sieg0 ? " dw-gold" : ""}"></h1><p class="muted sb-spaet sb-zeile"></p>${dwVersHtml(sieg0 ? "sieg" : remis0 ? "remis" : "nl", art, d.k, d.id)}
     ${tal || mn ? `<div class="vle-werte sb-spaet">${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>Talente</span></div>` : ""}${mn ? `<div><b>+${mn}</b><span>Manna</span></div>` : ""}</div>` : ""}
     <div class="sb-spaet sb-knoepfe"><button class="btn primary breit" id="sbWeiter">${duAufloesQ.length ? `Nächstes Ergebnis (${duAufloesQ.length})` : "Weiter"}</button>
     <button class="btn ghost breit" id="sbRev">${svg("bolt")} ${sieg0 ? "Nochmal duellieren" : "Revanche"}</button></div></div>`;
   document.body.appendChild(ov);
-  sbStarten(ov, { gegner: d.anName, du, er, art }, (sieg, remis) => {
-    ov.querySelector(".sb-titel").textContent = sieg ? "Gewonnen!" : remis ? "Unentschieden!" : "Knapp vorbei!";
+  sbStarten(ov, { gegner: d.anName, du, er, art, k: d.k }, (sieg, remis) => {
+    const nl = dwNiederlage(art, du, er);
+    ov.querySelector(".sb-titel").textContent = sieg ? "Gewonnen!" : remis ? "Unentschieden!" : nl.titel;
     if (!sieg && !remis) ov.querySelector(".sb-titel").classList.add("leise");
-    ov.querySelector(".sb-zeile").textContent = sieg ? (art === "quiz" && (du.r | 0) <= (er.r | 0) ? `Deine höhere Gewinnstufe entscheidet. Du hast ${d.anName} besiegt.` : `Du hast ${d.anName} besiegt.`) : remis ? (art === "quiz" ? "Genau dieselbe Gewinnstufe – Unentschieden!" : "Genau gleich viele richtige Antworten – egal, wer schneller war!") : `${d.anName} war diesmal besser – fordere eine Revanche!`;
+    ov.querySelector(".sb-zeile").textContent = sieg ? (art === "quiz" && (du.r | 0) <= (er.r | 0) ? `Deine höhere Gewinnstufe entscheidet. Du hast ${d.anName} besiegt.` : `Du hast ${d.anName} besiegt.`) : remis ? (art === "quiz" ? "Genau dieselbe Gewinnstufe – Unentschieden!" : "Genau gleich viele richtige Antworten – egal, wer schneller war!") : nl.zeile;
     if (!sieg) ov.querySelector("#sbRev").classList.add("puls");
-    sbSchluss(ov, sieg || remis); /* 9.13: Unentschieden wird wie ein Sieg gefeiert */
+    sbSchluss(ov, sieg, remis); /* 9.13: Unentschieden wird gefeiert (10.82: eigener Ton, etwas Konfetti) */
   });
   const zu = () => { ov.remove(); };
   ov.querySelector("#sbWeiter").onclick = () => { SFX.tap(); zu(); if (duAufloesQ.length) setTimeout(duAufloesVersuch, 150); else if (["duelle", "bib", "home"].includes(current)) go(current); };
@@ -4892,8 +4946,9 @@ async function duEnde() {
       const vgl = duVgl({ r: D.r, p: D.p }, D.gegnerErg, D.art); sieg = vgl > 0; remis = vgl === 0; if (D.id && !(S.duKorr || []).includes(D.id)) S.duKorr = [...(S.duKorr || []), D.id].slice(-30); /* 10.34 */
       /* Fairplay: wer eine Herausforderung annimmt, bekommt immer etwas – dazu Sieg/Remis */
       if (!D.talGegeben) { D.talGegeben = true; tal = Math.round((DU_FAIR_TAL + (sieg ? DU_SIEG_TAL : vgl === 0 ? DU_REMIS_TAL : 0)) * (D.gleichF != null ? D.gleichF : 1)); if (sieg) S.duSiege = (S.duSiege || 0) + 1; save(); mn = mannaPlus(sieg ? DU_SIEG_MANNA : vgl === 0 ? DU_REMIS_MANNA : 0); }
-      titel = sieg ? "Gewonnen!" : vgl === 0 ? "Unentschieden!" : "Knapp vorbei!";
-      zeile = sieg ? (D.art === "quiz" && D.r <= (D.gegnerErg.r | 0) ? `Deine höhere Gewinnstufe entscheidet. Du hast ${esc(D.gegner)} besiegt.` : `Du hast ${esc(D.gegner)} besiegt.`) : vgl === 0 ? (D.art === "quiz" ? "Genau dieselbe Gewinnstufe – Unentschieden!" : "Genau gleich viele richtige Antworten – egal, wer schneller war!") : `${esc(D.gegner)} war diesmal besser – fordere eine Revanche!`;
+      const nl = dwNiederlage(D.art, { p: D.p, r: D.r }, D.gegnerErg); /* 10.82: freundlicher bei Niederlage */
+      titel = sieg ? "Gewonnen!" : vgl === 0 ? "Unentschieden!" : nl.titel;
+      zeile = sieg ? (D.art === "quiz" && D.r <= (D.gegnerErg.r | 0) ? `Deine höhere Gewinnstufe entscheidet. Du hast ${esc(D.gegner)} besiegt.` : `Du hast ${esc(D.gegner)} besiegt.`) : vgl === 0 ? (D.art === "quiz" ? "Genau dieselbe Gewinnstufe – Unentschieden!" : "Genau gleich viele richtige Antworten – egal, wer schneller war!") : esc(nl.zeile);
     }
   } catch (e) {
     /* Hat der Herausforderer das Duell inzwischen abgebrochen? Dann gibt es nichts mehr zu senden. */
@@ -4914,14 +4969,14 @@ async function duEnde() {
   if (aufl) {
     screen.innerHTML = `<div class="vl vl-ende du-ende sb-ende">
     <div class="sb-kopf"><small>${duMarke({ art: D.art, k: D.k, opt: edOpt(D.ed) })}</small><b>Du gegen ${esc(D.gegner)}</b></div>
-    ${sbHtml({ gegner: D.gegner, du: { p: D.p, r: D.r, n }, er: D.gegnerErg, art: D.art })}
-    <h1 class="sb-spaet${sieg || remis ? "" : " leise"}">${titel}</h1><p class="muted sb-spaet">${zeile}${extra ? `<br><span class="small">${extra.replace(/^ · /, "")}</span>` : ""}</p>
+    ${sbHtml({ gegner: D.gegner, du: { p: D.p, r: D.r, n }, er: D.gegnerErg, art: D.art, k: D.k })}
+    <h1 class="sb-spaet${sieg ? " dw-gold" : remis ? "" : " leise"}">${titel}</h1><p class="muted sb-spaet">${zeile}${extra ? `<br><span class="small">${extra.replace(/^ · /, "")}</span>` : ""}</p>${dwVersHtml(sieg ? "sieg" : remis ? "remis" : "nl", D.art, D.k, D.id)}
     <div class="vle-werte sb-spaet"><div><b>+${xp}</b><span>XP</span></div>${tal ? `<div><b>+${tal}${TAL_MUENZE}</b><span>${tal > DU_FAIR_TAL ? "Talente" : "Fairplay"}</span></div>` : ""}${mn ? `<div><b>+${mn}</b><span>Manna</span></div>` : ""}</div>
     <div class="sb-spaet sb-knoepfe"><button class="btn ghost breit${sieg ? "" : " puls"}" id="duRevanche">${svg("bolt")} ${sieg ? "Nochmal duellieren" : "Revanche"}</button>
     <button class="btn primary breit" id="duFertig">${D.heim === "bib" ? "Zurück zu Biblionär" : "Zurück zu " + heimName("duelle")}</button></div></div>`;
     const wurzel = screen.querySelector(".sb-ende");
     /* XP/Level-Aufstieg erst nach der Auflösung, damit nichts das Ergebnis vorwegnimmt */
-    sbStarten(wurzel, { gegner: D.gegner, du: { p: D.p, r: D.r, n }, er: D.gegnerErg, art: D.art }, (s, r) => { sbSchluss(wurzel, s || r); xpGeben(900); });
+    sbStarten(wurzel, { gegner: D.gegner, du: { p: D.p, r: D.r, n }, er: D.gegnerErg, art: D.art, k: D.k }, (s, r) => { sbSchluss(wurzel, s, r); xpGeben(900); });
   } else
   screen.innerHTML = `<div class="vl vl-ende du-ende">
     <div class="vle-ic ${sieg ? "" : D.art === "quiz" ? "bib-ic" : "du"}">${svg(sieg ? "crown" : D.art === "quiz" ? "biblionaer" : "bolt")}</div>
