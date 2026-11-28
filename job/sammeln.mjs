@@ -130,6 +130,27 @@ export async function sammeln(db, opt = {}) {
   const schTag = !s0 ? { d: tagN, b: schSumme, g: 0 } : s0.d === tagN ? { ...s0 } : { d: tagN, b: s0.e != null ? s0.e : s0.b, g: s0.d === tagN - 1 ? Math.max(0, (s0.e != null ? s0.e : s0.b) - s0.b) : 0 };
   schTag.e = schSumme; const schHeute = Math.max(0, schSumme - schTag.b);
   const skNeu = JSON.stringify(skMap) !== skVor || !alOk;
+  // 10.84 Biblionär-Ranglisten (Woche, Vorwoche, „gesamt“ = Zahl der Spiele) aus biblionaer/{wk}_{pid}: nur geänderte Belege lesen,
+  //       einmal am Tag die drei Wochen ganz. Stand in jobstand (bib), Ergebnis als JSON {wk: {pid: Punkte}} im Ranglisten-Teil 0 –
+  //       die App braucht dafür keinen eigenen Lesezugriff mehr (vorher bis zu 200 je Öffnen der Biblionär-Rangliste).
+  const bibWk = wocheVon(jetzt), bibVw = wocheVon(jetzt - 7 * TAG), BIB_WKS = [bibWk, bibVw, "gesamt"];
+  /* als JSON-Text gespeichert: set(…, {merge}) würde Karten sonst nur ergänzen und gelöschte Einträge behalten */
+  let bibAlt = null; try { bibAlt = typeof job.bib === "string" ? JSON.parse(job.bib) : null; } catch (e) { bibAlt = null; }
+  const bibAlle = !bibAlt || !bibAlt.w || voll;
+  const bibW = {}; BIB_WKS.forEach(k => (bibW[k] = bibAlle ? {} : { ...((bibAlt.w || {})[k] || {}) }));
+  const bibDocs = bibAlle ? (await Promise.all(BIB_WKS.map(k => db.collection("biblionaer").where("wk", "==", k).get()))).flatMap(q => q.docs)
+    : (await db.collection("biblionaer").where("updated", ">", seit).get()).docs;
+  gelesen += Math.max(1, bibDocs.length);
+  bibDocs.forEach(d => { const x = d.data(), k = String(x.wk || ""), pid = String(x.pid || ""); if (bibW[k] && pid && karte.has(pid)) { const p = Math.max(0, Math.min(1000000, x.p | 0)); if (p) bibW[k][pid] = p; else delete bibW[k][pid]; } });
+  for (const k of BIB_WKS) for (const pid of Object.keys(bibW[k])) if (!karte.has(pid)) delete bibW[k][pid];
+  const bibNeu = JSON.stringify(bibW) !== JSON.stringify(bibAlt ? bibAlt.w : null);
+  // 10.84 Abgleich-Anforderungen des Verwalters (abgleich/{pid | _alle} = {ts}) – nur neue lesen, Liste in jobstand und im Ranglisten-Teil 0
+  let abgAlt = null; try { abgAlt = typeof job.abg === "string" ? JSON.parse(job.abg) : null; } catch (e) { abgAlt = null; }
+  const abgDocs = (await (abgAlt && !voll ? db.collection("abgleich").where("ts", ">", (stand || jetzt) - 5 * 60000) : db.collection("abgleich")).get()).docs;
+  gelesen += Math.max(1, abgDocs.length);
+  const abgMap = abgAlt && !voll ? { ...abgAlt } : {};
+  abgDocs.forEach(d => { const t = +d.data().ts || 0; if (t) abgMap[d.id] = Math.max(t, abgMap[d.id] || 0); });
+  const abgNeu = JSON.stringify(abgMap) !== JSON.stringify(abgAlt || {});
   // 10.2 Album-Woche: Punkte zu Wochenbeginn bzw. beim ersten Sehen in dieser Woche (Basis für „Album diese Woche“)
   // 10.7: zusätzlich der Stand je Stufe zu Wochenbeginn (awb = "Gold.Silber.Bronze") – für „neue Karten diese Woche“
   const wk = wocheVon(jetzt), iAw = FELDER.indexOf("aw"), iAwk = FELDER.indexOf("awk"), iAwb = FELDER.indexOf("awb");
@@ -145,10 +166,10 @@ export async function sammeln(db, opt = {}) {
   const alStand = skNeu ? jetzt : (ms(alDoc.exists ? alDoc.data().stand : null) || jetzt);
   const zeilen = [...karte.values()].sort((a, b) => (a[0] < b[0] ? -1 : 1)), teile = teilen(zeilen);
   const b = db.batch(), ts = Timestamp.fromMillis(jetzt);
-  teile.forEach((z, i) => b.set(R.doc("spieler-" + i), { stand: ts, teil: i, teile: teile.length, anzahl: zeilen.length, alStand, schmuck: schSumme, schmuckSp: schSpender, schmuckHeute: schHeute, schmuckTag: tagN, schmuckGestern: schTag.g, daten: JSON.stringify({ f: FELDER, z }) }));
+  teile.forEach((z, i) => b.set(R.doc("spieler-" + i), { stand: ts, teil: i, teile: teile.length, anzahl: zeilen.length, alStand, ...(i === 0 ? { bib: JSON.stringify(bibW), abg: JSON.stringify(abgMap) } : {}), schmuck: schSumme, schmuckSp: schSpender, schmuckHeute: schHeute, schmuckTag: tagN, schmuckGestern: schTag.g, daten: JSON.stringify({ f: FELDER, z }) }));
   alt.filter(d => +d.id.slice(8) >= teile.length).forEach(d => b.delete(d.ref));
   if (skNeu) b.set(ALref, { stand: ts, anzahl: Object.keys(skMap).length, daten: JSON.stringify(skMap) });
-  b.set(jobRef, { stand: jetzt, ...(voll ? { voll: jetzt } : {}), ...(awNeu ? { albumWoche: { wk, b: awB, s: awS } } : {}), ...(schNeu || !schAlt ? { schmuck: schMap } : {}), schmuckTag: schTag }, { merge: true });
+  b.set(jobRef, { stand: jetzt, ...(voll ? { voll: jetzt } : {}), ...(awNeu ? { albumWoche: { wk, b: awB, s: awS } } : {}), ...(schNeu || !schAlt ? { schmuck: schMap } : {}), schmuckTag: schTag, ...(bibNeu || !bibAlt ? { bib: JSON.stringify({ w: bibW }) } : {}), ...(abgNeu || !abgAlt ? { abg: JSON.stringify(abgMap) } : {}) }, { merge: true });
   await b.commit();
   let schaetz = []; try { schaetz = await schaetzAuswerten(db); } catch (e) { schaetz = ["Schätzfrage: " + e.message]; }  // 10.52
   return { schaetz, art: (voll ? "voll" : "Änderungen") + (albumAlle ? " + alle Alben" : ""), alben: Object.keys(skMap).length, schmuck: schSumme, spieler: zeilen.length, dokumente: teile.length, gelesen, bytes: teile.map(z => bytes(JSON.stringify(z))) };

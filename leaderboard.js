@@ -15,7 +15,33 @@ if (!configured) {
     const V = "10.12.2";
     const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
     const { getAuth, signInAnonymously } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-auth.js`);
-    const fs = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
+    const fs0 = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
+    // 10.84 Lese-Zähler: zählt nur auf diesem Gerät mit (localStorage, 7 Tage), wie viele Dokumente welche Sammlung gelesen/geschrieben hat.
+    //       Kostet selbst keinen Datenbank-Zugriff und wird nirgends hingeschickt. Ansicht für den Verwalter: Postkasten → Lese-Zähler.
+    //       Nicht zählbar: Lesezugriffe der Sicherheitsregeln (get/exists beim Schreiben) – meist +1 je Schreibzugriff.
+    const LZ_KEY = "bq-lesez"; let lz = null, lzT = 0;
+    const lzTag = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+    const lzLaden = () => { if (!lz) try { lz = JSON.parse(localStorage.getItem(LZ_KEY) || "{}") || {}; } catch (e) { lz = {}; } return lz; };
+    const lzSpeichern = () => { lzT = 0; try { const o = {}; Object.keys(lzLaden()).sort().slice(-7).forEach(k => (o[k] = lz[k])); lz = o; localStorage.setItem(LZ_KEY, JSON.stringify(o)); } catch (e) {} };
+    const lzPlus = (art, name, n) => { try { const t = lzTag(), z = lzLaden(), tg = (z[t] = z[t] || {}), k = art + ":" + name; tg[k] = (tg[k] || 0) + n; if (!lzT) lzT = setTimeout(lzSpeichern, 3000); } catch (e) {} };
+    const lzName = x => { try { let p = x && x.path; if (!p && x && x._query && x._query.path) p = x._query.path.canonicalString ? x._query.path.canonicalString() : (x._query.path.segments || []).join("/");
+      const t = String(p || "?").split("/").filter(Boolean); return t[0] === "einstellungen" || t[0] === "rangliste" || t[0] === "albumliste" ? t.slice(0, 2).join("/") : (t[0] || "?"); } catch (e) { return "?"; } };
+    const lzSchreiben = (f, nm) => async (r, ...a) => { const e = await f(r, ...a); lzPlus("S", nm || lzName(r), 1); return e; };
+    const fs = Object.assign({}, fs0, {
+      getDocs: async q => { const s = await fs0.getDocs(q); lzPlus("L", lzName(q), Math.max(1, s.size)); return s; },
+      getDoc: async r => { const s = await fs0.getDoc(r); lzPlus("L", lzName(r), 1); return s; },
+      getCountFromServer: async q => { const s = await fs0.getCountFromServer(q); lzPlus("L", lzName(q) + " (Anzahl)", 1); return s; },
+      onSnapshot: (q, ...rest) => {
+        const nm = "live " + lzName(q); let erst = true; const i = rest.findIndex(x => typeof x === "function");
+        if (i >= 0) { const f = rest[i]; rest[i] = snap => { try { if (!snap.metadata.hasPendingWrites && !snap.metadata.fromCache) {
+          const n = erst ? Math.max(1, snap.size) : snap.docChanges().filter(c => c.type !== "removed").length; erst = false; if (n) lzPlus("L", nm, n); } } catch (e) {} return f(snap); }; }
+        return fs0.onSnapshot(q, ...rest);
+      },
+      setDoc: lzSchreiben(fs0.setDoc), updateDoc: lzSchreiben(fs0.updateDoc), addDoc: lzSchreiben(fs0.addDoc), deleteDoc: lzSchreiben(fs0.deleteDoc),
+      writeBatch: d => { const b = fs0.writeBatch(d), c = b.commit.bind(b); b.commit = async () => { const r = await c(); lzPlus("S", "Paket", 1); return r; }; return b; }
+    });
+    LB.leseZaehler = () => { if (lzT) { clearTimeout(lzT); lzSpeichern(); } return JSON.parse(JSON.stringify(lzLaden())); };
+    LB.leseZaehlerLeeren = () => { lz = {}; try { localStorage.removeItem(LZ_KEY); } catch (e) {} };
     const app = initializeApp(CFG);
     const auth = getAuth(app);
     const db = fs.getFirestore(app);
@@ -141,8 +167,11 @@ if (!configured) {
     };
 
     // Feedback-Postfach (nur für den Entwickler – die Regeln prüfen das)
-    LB.entwicklerPid = async () => {
-      try { const d = await fs.getDoc(ref("einstellungen", "entwickler")); return d.exists() ? d.data().pid || null : null; } catch (e) { return null; }
+    // 10.84: höchstens 1× am Tag lesen (ändert sich praktisch nie) – auf dem Gerät gemerkt
+    LB.entwicklerPid = async (frisch) => {
+      try { const c = JSON.parse(localStorage.getItem("bq-entw") || "null"); if (!frisch && c && Date.now() - c.t < 864e5) return c.pid || null; } catch (e) {}
+      try { const d = await fs.getDoc(ref("einstellungen", "entwickler")), pid = d.exists() ? d.data().pid || null : null;
+        try { localStorage.setItem("bq-entw", JSON.stringify({ t: Date.now(), pid })); } catch (e) {} return pid; } catch (e) { return null; }
     };
     // 9.60 Beta-Kanal: einstellungen/beta = {pids: [Profile, die die Beta-Version nutzen dürfen]} – lesen jeder Angemeldete (einzeln), schreiben nur der Verwalter
     // 10.52: Schätzfrage der Woche
@@ -194,6 +223,16 @@ if (!configured) {
     //      beim direkten Lesen alle anderen 0 Album-Punkte (die Album-Werte stehen nur in der Sammel-Rangliste). Kein Lesezugriff mehr.
     const SAMMEL_ALBUM_ALT = 14 * 864e5, ALBUM_FELDER = ["gl", "ab", "aw", "awk", "awb"];
     let sammelAltAlbum = null;
+    const EX_KEY = "bq-sammel-extra";
+    /* Zusatzdaten der Sammel-Rangliste (Biblionär, Abgleich): nur, wenn frisch genug – sonst null (dann direkt lesen wie früher) */
+    const sammelExtra = async () => {
+      const lies = () => { try { const x = JSON.parse(localStorage.getItem(EX_KEY) || "null"); return x && x.st ? x : null; } catch (e) { return null; } };
+      let x = lies(); if (!x) { try { await LB.alleSpieler(); } catch (e) {} x = lies(); }
+      if (!x) return null;
+      const alter = Date.now() - x.st, verwalter = typeof entwickler !== "undefined" && !!entwickler;
+      return alter <= SAMMEL_ALT || (!verwalter && alter <= SAMMEL_ALBUM_ALT) ? x : null;
+    };
+    LB.sammelExtra = sammelExtra;
     const sammelLesen = async () => {
       sammelAltAlbum = null;
       const teile = (await fs.getDocs(fs.collection(db, "rangliste"))).docs.filter(d => d.id.startsWith("spieler-")).map(d => d.data());
@@ -203,7 +242,14 @@ if (!configured) {
       /* 10.44: Bethlehem schmücken – Summe aller Schmuckstücke (vom Job in jedes Teil geschrieben) */
       try { const st = teile.find(t => t.schmuck != null); if (st) localStorage.setItem("bq-schmuck", JSON.stringify({ s: +st.schmuck || 0, sp: +st.schmuckSp || 0, t: zeitMs(st.stand), h: +st.schmuckHeute || 0, d: +st.schmuckTag || 0, hg: +st.schmuckGestern || 0 })); } catch (e) {}
       const alter = Math.max(...teile.map(t => Date.now() - zeitMs(t.stand)));
-      if (alter > SAMMEL_ALT) {
+      /* 10.84: Biblionär-Ranglisten und Abgleich-Anforderungen stehen im Teil 0 (vom Job) – auf dem Gerät merken, damit sie auch bei
+         zwischengespeicherter Spielerliste ohne Lesezugriff verfügbar sind */
+      try { const t0 = teile.find(t => typeof t.bib === "string"); localStorage.setItem(EX_KEY, JSON.stringify(t0 ? { st: zeitMs(t0.stand), bib: JSON.parse(t0.bib || "{}"), abg: JSON.parse(t0.abg || "{}") } : { st: 0 })); } catch (e) {}
+      /* 10.84 Notbremse: Ist die Sammel-Rangliste veraltet (Worker/Job hakt), nutzen Spieler sie trotzdem weiter (bis 14 Tage) – sonst läse
+         jedes Gerät alle 30 Min. alle Spieler einzeln (bei 500 Spielern 500 Lesezugriffe). Nur der Verwalter liest dann direkt. */
+      const verwalter = typeof entwickler !== "undefined" && !!entwickler;
+      LB.sammelAlt = alter > SAMMEL_ALT ? alter : 0;
+      if (alter > SAMMEL_ALT && (verwalter || alter > SAMMEL_ALBUM_ALT)) {
         if (alter <= SAMMEL_ALBUM_ALT) try { sammelAltAlbum = new Map();
           for (const t of teile) { const p = JSON.parse(t.daten), ix = ALBUM_FELDER.map(k => p.f.indexOf(k));
             p.z.forEach(z => { const a = {}; ALBUM_FELDER.forEach((k, j) => { if (ix[j] >= 0 && z[ix[j]] !== "") a[k] = z[ix[j]]; }); if (Object.keys(a).length) sammelAltAlbum.set(z[0], a); }); }
@@ -272,7 +318,9 @@ if (!configured) {
     LB.xpListe = async () => { const q = await fs.getDocs(fs.collection(db, "xpquellen")); return q.docs.map(d => ({ pid: d.id, ...d.data() })); };
     LB.xpHolen = async (pid) => { await LB.signIn(); const s = await fs.getDoc(ref("xpquellen", pid)); return s.exists() ? s.data() : null; };  // 6.81
     LB.abgleichAnfordern = async (id) => { await LB.signIn(); await fs.setDoc(ref("abgleich", id), { ts: Date.now() }); };  // 6.88 (nur Verwalter)
-    LB.abgleichHolen = async (pid) => { await LB.signIn(); let t = 0; for (const id of [pid, "_alle"]) { try { const d = await fs.getDoc(ref("abgleich", id)); if (d.exists()) t = Math.max(t, +d.data().ts || 0); } catch (e) {} } return t; };  // 6.88
+    LB.abgleichHolen = async (pid) => {  // 6.88; 10.84: zuerst aus der Sammel-Rangliste (0 Lesezugriffe), sonst direkt (2)
+      try { const ex = await sammelExtra(); if (ex && ex.abg) return Math.max(+ex.abg[pid] || 0, +ex.abg._alle || 0); } catch (e) {}
+      await LB.signIn(); let t = 0; for (const id of [pid, "_alle"]) { try { const d = await fs.getDoc(ref("abgleich", id)); if (d.exists()) t = Math.max(t, +d.data().ts || 0); } catch (e) {} } return t; };
     LB.xpSetzen = async (pid, name, x) => { await LB.signIn(); await fs.setDoc(ref("xpquellen", pid), { pid, name, alt: x.alt | 0, q: x.q || {}, n: x.n || {}, m: x.m || {}, tag: x.tag || {}, std: x.std || {}, bel: Array.isArray(x.bel) ? x.bel.slice(-100) : [], updated: fs.serverTimestamp() }); };
     // 6.75: XP-Protokoll – je XP-Vergabe ein Dokument (nur anlegen, nie ändern): {pid, name, z:Zeit(ms, Uhr des Geräts), q:Quelle, x:XP, v:XP-Stand vorher,
     //       s:Spielzeit(Sek.), f:Fortschritt, fm:möglicher Höchstwert, d:Kurztext, ver:App-Version, gebucht:Serverzeit}. Dokument-ID: <pid>_<z>_<n>
@@ -422,7 +470,23 @@ if (!configured) {
     LB.gemLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("gemeinden", id)); };
 
     // 9.7 Nachrichten des Entwicklers an die Spieler (Patchnotes u. Ä.): nur der Verwalter schreibt, angemeldete Spieler lesen
-    LB.nachrichtenListe = async () => (await fs.getDocs(fs.query(fs.collection(db, "nachrichten"), fs.orderBy("zeit", "desc"), fs.limit(30)))).docs.map(d => { const x = d.data(); return { id: d.id, art: x.art || "info", titel: x.titel || "", text: x.text || "", g: x.g || "alle", ver: x.ver || "", zeit: x.zeit && x.zeit.toMillis ? x.zeit.toMillis() : 0 }; });
+    const nachZeile = d => { const x = d.data(); return { id: d.id, art: x.art || "info", titel: x.titel || "", text: x.text || "", g: x.g || "alle", ver: x.ver || "", zeit: x.zeit && x.zeit.toMillis ? x.zeit.toMillis() : 0 }; };
+    // 10.84: Nachrichten auf dem Gerät merken und nur neuere nachladen (ohne Neuigkeit 1 Lesezugriff statt bis zu 30).
+    //        Einmal am Tag (oder frisch = true) wird die ganze Liste geholt – so verschwinden vom Verwalter gelöschte Nachrichten.
+    const NACH_KEY = "bq-nachliste", NACH_VOLL = 24 * 36e5;
+    LB.nachrichtenListe = async (frisch) => {
+      let c = null; try { c = JSON.parse(localStorage.getItem(NACH_KEY) || "null"); } catch (e) {}
+      const voll = frisch || !c || !Array.isArray(c.d) || Date.now() - (c.v || 0) > NACH_VOLL;
+      let d;
+      if (voll) d = (await fs.getDocs(fs.query(fs.collection(db, "nachrichten"), fs.orderBy("zeit", "desc"), fs.limit(30)))).docs.map(nachZeile);
+      else {
+        const max = Math.max(0, ...c.d.map(n => n.zeit || 0));
+        const neu = (await fs.getDocs(fs.query(fs.collection(db, "nachrichten"), fs.where("zeit", ">", fs.Timestamp.fromMillis(max)), fs.orderBy("zeit", "desc"), fs.limit(30)))).docs.map(nachZeile);
+        const ids = new Set(neu.map(n => n.id)); d = neu.concat(c.d.filter(n => !ids.has(n.id))).sort((a, b) => b.zeit - a.zeit).slice(0, 30);
+      }
+      try { localStorage.setItem(NACH_KEY, JSON.stringify({ v: voll ? Date.now() : c.v, d })); } catch (e) {}
+      return d;
+    };
     LB.nachrichtSenden = async (n) => { await LB.signIn(); const d = { art: n.art === "patch" ? "patch" : "info", titel: String(n.titel).slice(0, 60), text: String(n.text).slice(0, 2000), g: String(n.g || "alle").slice(0, 30), zeit: fs.serverTimestamp() }; if (n.ver) d.ver = String(n.ver).slice(0, 20); await fs.addDoc(fs.collection(db, "nachrichten"), d); };
     LB.nachrichtLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("nachrichten", id)); };
 
@@ -442,7 +506,7 @@ if (!configured) {
       const f = LB[name]; if (!f) return;
       LB[name] = async (frisch) => {
         if (!frisch) { const c = zsHolen(name, ttl); if (c) return c; }
-        const d = await f(); zsMerken(name, d); return d;
+        const d = await f(frisch); zsMerken(name, d); return d;
       };
     };
     // Spielerliste 30 Min. (9.53; daraus auch Gegnerliste und alle Ranglisten), Gemeinden/Mitglieder/Nachrichten 60 Min., Advent 15 Min., Verwalter-Listen 30 Min. (nicht zeitkritisch)
@@ -455,7 +519,7 @@ if (!configured) {
     nachher("freigabeSetzen", "antragListe", "mitgliedListe"); nachher("freigabeEntfernen", "mitgliedListe");
     nachher("gemSetzen", "mitgliedListe"); nachher("gemAnlegen", "gemListe"); nachher("gemLoeschen", "gemListe", "mitgliedListe");
     nachher("dialogSenden", "dialogAlle"); nachher("dialogLoeschen", "dialogAlle");
-    nachher("nachrichtSenden", "nachrichtenListe"); nachher("nachrichtLoeschen", "nachrichtenListe");
+    nachher("nachrichtSenden", "nachrichtenListe"); nachher("nachrichtLoeschen", "nachrichtenListe"); ["nachrichtSenden", "nachrichtLoeschen"].forEach(n => { const f = LB[n]; LB[n] = async (...x) => { const r = await f(...x); try { localStorage.removeItem(NACH_KEY); } catch (e) {} return r; }; });
     nachher("bibWocheSetzen", "rl:bibWoche"); nachher("verwalterZusammenfuehren", "alleSpieler", "rl:"); /* „alleSpieler“ trifft auch alleSpielerVoll (gleicher Anfang) */
     // 9.56: Gemeinde-Zuordnungen kommen aus der Sammel-Rangliste (kein eigener Abruf); „frisch“ (Verwalter) und ohne Sammel-Rangliste direkt
     const mitglied0 = LB.mitgliedListe;
@@ -491,7 +555,17 @@ if (!configured) {
       else (async () => {
         try {
           let rows;
-          if (kind === "bibWoche") rows = (await fs.getDocs(fs.query(bibliothek, fs.where("wk", "==", week), fs.limit(200)))).docs.map(bibZeile);
+          if (kind === "bibWoche") {
+            /* 10.84: aus der Sammel-Rangliste (0 Lesezugriffe), eigener neuester Stand aus dem Spielstand; ohne frische Daten direkt wie früher */
+            const ex = await sammelExtra(), w = ex && ex.bib && ex.bib[week];
+            if (w) {
+              const alle = await LB.alleSpieler(), nach = new Map(alle.map(r => [r.id, r]));
+              rows = Object.entries(w).map(([pid, p]) => { const r = nach.get(pid) || {}; return { id: pid, name: r.name || "?", avatar: r.avatar, frame: r.frame, level: r.level || 1, bwK: week, bwP: p, p }; });
+              try { const ich = typeof S !== "undefined" && S.pid && S.lbName ? S : null;
+                const p = ich ? (week === "gesamt" ? ich.bibSpiele | 0 : week === ich.bwK ? ich.bwP | 0 : 0) : 0;
+                if (p > 0) { const e = rows.find(r => r.id === ich.pid); if (e) { e.p = e.bwP = Math.max(e.p, p); } else rows.push({ id: ich.pid, name: ich.lbName, avatar: ich.avatar, frame: ich.frame, level: (nach.get(ich.pid) || {}).level || 1, bwK: week, bwP: p, p }); } } catch (e) {}
+            } else rows = (await fs.getDocs(fs.query(bibliothek, fs.where("wk", "==", week), fs.limit(200)))).docs.map(bibZeile);
+          }
           else { /* aus der gemeinsamen Spielerliste (eine Abfrage für alle Ranglisten) – wie die Datenbank-Sortierung: nur Einträge mit dem Feld */
             const f = FELD[kind] || "xp", alle = await LB.alleSpieler();
             rows = kind === "woche" ? alle.filter(r => r.week === week) : kind === "album" || kind === "albumWoche" ? alle.filter(r => r.ab || r.gl) /* 10.2: sortiert die App */ : alle.filter(r => r[f] !== undefined).sort((a, b) => (b[f] || 0) - (a[f] || 0)).slice(0, 100);
