@@ -244,12 +244,20 @@ if (!configured) {
       return { ...x, id: d.id, an, vonName: namen[x.von] || "", anName: namen[an] || "", vonErg: erg[x.von] || null, anErg: erg[an] || null,
         erstellt: zeitMs(x.erstellt) || Date.now(), ablauf: zeitMs(x.ablauf), fertig: zeitMs(x.fertig) };
     };
+    // 10.83 Vorbereitung „Kombi“: gz = geändert am (Serverzeit) bei Anlegen, Ergebnis und Ablehnen. Später lädt die App bei einer Änderung
+    //       nur Duelle mit gz > letzter Abruf (Index teil + gz). Solange die Regeln 10.83 nicht veröffentlicht sind, wird ohne gz gespeichert.
+    let duGz = true;
+    const mitGz = async (fn) => {
+      if (duGz) try { return await fn({ gz: fs.serverTimestamp() }); } catch (e) { if (!e || e.code !== "permission-denied") throw e;
+        const r = await fn({}); duGz = false; return r; }   // klappt es ohne gz, sind nur die Regeln noch alt
+      return fn({});
+    };
     LB.duellAnlegen = async (d) => {
       await LB.signIn();
-      const r = await fs.addDoc(duelle, { v: 1, art: d.art || "vers", modus: d.modus || "1v1", von: d.von, teil: [d.von, d.an],
+      const r = await mitGz(gz => fs.addDoc(duelle, { v: 1, art: d.art || "vers", modus: d.modus || "1v1", von: d.von, teil: [d.von, d.an],
         namen: { [d.von]: d.vonName, [d.an]: d.anName }, k: d.k, seed: d.seed, ergebnisse: { [d.von]: d.vonErg },
         ...(d.ed ? { opt: d.ed === "weihnachten" ? { w: 1 } : { e: d.ed } } : {}), /* 9.63: Sonderedition (Weihnachten weiter als w: 1) */
-        status: "offen", erstellt: fs.serverTimestamp(), ablauf: fs.Timestamp.fromMillis(Date.now() + 3 * 864e5) });
+        status: "offen", erstellt: fs.serverTimestamp(), ablauf: fs.Timestamp.fromMillis(Date.now() + 3 * 864e5), ...gz }));
       return r.id;
     };
     /* eigenes Ergebnis eintragen; fertig = alle Teilnehmer haben gespielt (beim Eins-gegen-eins immer) */
@@ -257,7 +265,7 @@ if (!configured) {
       await LB.signIn();
       const felder = [new fs.FieldPath("ergebnisse", pid), erg, "am", pid, "status", fertig ? "fertig" : "offen"];
       if (fertig) felder.push("fertig", fs.serverTimestamp());
-      await fs.updateDoc(ref("duelle", id), ...felder);
+      await mitGz(gz => fs.updateDoc(ref("duelle", id), ...felder, ...(gz.gz ? ["gz", gz.gz] : [])));
     };
     // 7.3: Weg nach Bethlehem – Gaben je Spieler {pid, name, s: {"1".."8": Talente}, g: {"1".."8": Wegzehrung}}
     // 6.73: XP-Quellen je Spieler {pid, name, alt, q:{Quelle:XP}, n:{Quelle:Anzahl}, m:{Quelle:größte Vergabe}, tag:{Tag:XP}, std:{"Tag-Std":XP}, bel:[{z:Zeit(ms), x:XP, t:Talente, a:truhe|gestern, d:Truhen-Tag}]}
@@ -314,7 +322,7 @@ if (!configured) {
       try { await fs.setDoc(ref("bibversuch", id), { pid, name, w, wk: String(wk || "").slice(0, 10), z: Date.now(), ver: String(ver || "").slice(0, 12), gebucht: fs.serverTimestamp() }); return "ok"; }
       catch (e) { return e && e.code === "permission-denied" ? "tag" : "netz"; }
     };
-    LB.duellAblehnen = async (id, pid) => { await LB.signIn(); await fs.updateDoc(ref("duelle", id), { status: "abgelehnt", am: pid }); };
+    LB.duellAblehnen = async (id, pid) => { await LB.signIn(); await mitGz(gz => fs.updateDoc(ref("duelle", id), { status: "abgelehnt", am: pid, ...gz })); };
     LB.duellLoeschen = async (id) => { await LB.signIn(); await fs.deleteDoc(ref("duelle", id)); };
     // 9.54: Bisher „limit(60)“ ohne Sortierung – Firestore lieferte dann 60 BELIEBIGE Duelle (nach zufälliger Dokument-ID), nicht die neuesten.
     //       Wer mehr als 60 Duelle hatte, sah neue Herausforderungen, Annahmen und Ergebnisse nur noch zufällig.
@@ -331,6 +339,24 @@ if (!configured) {
       if (!s) s = await fs.getDocs(fs.query(duelle, meine));
       return s.docs.map(duDaten).sort((x, y) => y.erstellt - x.erstellt).slice(0, DU_MAX);
     };
+    // 10.83 Live-Duelle: dieselbe Abfrage wie meineDuelle, aber dauerhaft beobachtet (onSnapshot). Kosten: beim Start wie ein Abruf,
+    //       danach 1 Lesezugriff je geändertem Duell. Rückgabe = Funktion zum Beenden. Ohne Index (failed-precondition) wie meineDuelle alle laden.
+    LB.duelleBeobachten = (pid, seitMs, cb, fehler) => {
+      const meine = fs.where("teil", "array-contains", pid), neu = seitMs > 0 ? [fs.where("erstellt", ">", fs.Timestamp.fromMillis(seitMs))] : [];
+      let stop = null, aus = false;
+      const start = () => {
+        const mitIndex = duIndex, q = mitIndex ? fs.query(duelle, meine, ...neu, fs.orderBy("erstellt", "desc"), fs.limit(DU_MAX)) : fs.query(duelle, meine);
+        stop = fs.onSnapshot(q, snap => { if (!aus) cb(snap.docs.map(duDaten).sort((x, y) => y.erstellt - x.erstellt).slice(0, DU_MAX)); }, e => {
+          if (mitIndex && e && e.code === "failed-precondition") { duIndex = false; LB.duIndexFehlt = true; if (!aus) start(); return; }
+          if (!aus && fehler) fehler(e);
+        });
+      };
+      LB.signIn().then(() => { if (!aus) start(); }, e => { if (!aus && fehler) fehler(e); });
+      return () => { aus = true; if (stop) stop(); };
+    };
+    // 10.83 Vorbereitung „Kombi“ (noch ungenutzt): nur Duelle, die seit seitMs geändert wurden – braucht den Index duelle: teil (Arrays) + gz (aufsteigend)
+    LB.duelleGeaendert = async (pid, seitMs) => (await fs.getDocs(fs.query(duelle, fs.where("teil", "array-contains", pid),
+      fs.where("gz", ">", fs.Timestamp.fromMillis(seitMs)), fs.orderBy("gz"), fs.limit(DU_MAX)))).docs.map(duDaten);
     // 10.73: Bibeljahr-Link – Öffnung zählen (linkauf), Herkunft eines neuen Spielers (herkunft/{pid}), Auswertung nur für den Verwalter
     LB.linkAuf = async (o) => { await LB.signIn(); await fs.addDoc(fs.collection(db, "linkauf"), { q: String(o.q || "").slice(0, 12), c: String(o.c || "").slice(0, 8), neu: !!o.neu, z: fs.serverTimestamp() }); };
     LB.herkunftSetzen = async (pid, o) => { await LB.signIn(); await fs.setDoc(ref("herkunft", pid), { q: String(o.q || "").slice(0, 12), c: String(o.c || "").slice(0, 8), von: String(o.von || "").slice(0, 64), z: fs.serverTimestamp() }); };

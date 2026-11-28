@@ -4367,7 +4367,7 @@ function sbSchluss(root, sieg, remis) {
 /* Herausforderer: fertige Duelle einmal als Auflösung zeigen (Warteschlange, nacheinander) */
 let duAufloesQ = [];
 function duAufloesVersuch() {
-  if (!duAufloesQ.length || duSpiel || document.querySelector(".modal, .sb-ov") || !["home", "duelle", "bib", "spielen", "rank", "profil", "lernen", "ich"].includes(current)) return;
+  if (!duAufloesQ.length || duSpiel || document.querySelector(".modal, .sb-ov") || !["home", "duelle", "zusammen", "bib", "spielen", "rank", "profil", "lernen", "ich"].includes(current)) return;  /* 10.83: auch im Reiter Arena („zusammen“) – Ergebnisse kommen jetzt live */
   const d = duAufloesQ.shift(), du = d.vonErg, er = d.anErg, typ = duTypVon(d) || "vers", art = DU_TYPEN[typ].art || d.art;
   const kf = 1 /* 6.93: keine Kürzung bei Duellen */, sieg0 = duVgl(du, er, art) > 0, remis0 = duVgl(du, er, art) === 0, tal = Math.round((sieg0 ? DU_SIEG_TAL : remis0 ? DU_REMIS_TAL : 0) * kf),
     mn = typeof smFrei === "function" && smFrei() ? (sieg0 ? DU_SIEG_MANNA : remis0 ? DU_REMIS_MANNA : 0) : 0;
@@ -4482,6 +4482,7 @@ function duMerkLesen() { try { const l = JSON.parse(localStorage.getItem(LS + ":
 function duMerkSchreiben(l) { try { localStorage.setItem(LS + ":dufertig", JSON.stringify(l.map(d => ({ id: d.id, v: d.v, art: d.art, k: d.k, modus: d.modus, von: d.von, an: d.an, vonName: d.vonName, anName: d.anName, vonErg: d.vonErg, anErg: d.anErg, seed: d.seed, opt: d.opt, status: d.status, erstellt: d.erstellt, ablauf: d.ablauf, fertig: d.fertig })))); } catch (e) {} }
 const duSig = () => (duListe || []).map(d => d.id + ":" + d.status).join("|");
 function duAuffrischen(maxAlt) {
+  if (duLive && duLive.ok) return;  /* 10.83: Live-Beobachter liefert jede Änderung sofort – kein Nachfragen alle paar Minuten */
   if (!duOk() || duSpiel || duListe === null || duFrischLaeuft || Date.now() - duGeladen < maxAlt) return;
   duFrischLaeuft = true; const vorher = duSig();
   duAktualisieren().then(() => {
@@ -4491,16 +4492,62 @@ function duAuffrischen(maxAlt) {
     if (["home", "duelle", "bib", "zusammen"].includes(current)) { const y = window.scrollY; go(current); window.scrollTo(0, y); }
   }).catch(() => { duFrischLaeuft = false; });
 }
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") duAuffrischen(DU_FRISCH_ZURUECK); });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState !== "visible") return; if (!duLive && duOk()) duLiveAn(); duAuffrischen(DU_FRISCH_ZURUECK); });
 /* Duelle laden; alte (über 30 Tage) und abgelaufene still aufräumen */
-async function duAktualisieren() {
-  if (!duOk()) return duListe;
+/* 9.57 schlanker laden: nur Duelle der letzten 8 Tage (offene sind höchstens 7 Tage alt). War die App länger nicht offen, reicht das Fenster
+   bis 8 Tage vor den letzten Abruf zurück (höchstens 30 Tage) – so geht kein Ergebnis verloren. Ältere Ergebnisse kommen aus dem Gerätespeicher. */
+function duSeit() {
+  const jetzt = Date.now(), letzter = Math.min(jetzt, +localStorage.getItem(LS + ":dustand") || 0);
+  return Math.max(jetzt - DU_TAGE_HALTEN * 864e5, (letzter || 0) - DU_FENSTER_TAGE * 864e5);
+}
+/* 10.83 Live-Duelle: Die App beobachtet ihre Duelle dauerhaft (Firestore onSnapshot). Beim Start kostet das so viel wie ein normaler Abruf,
+   danach nur 1 Lesezugriff je geänderter Herausforderung/Annahme/Ablehnung – ohne Änderung nichts. Das Nachfragen alle 2/5/10 Min. entfällt.
+   Reißt die Beobachtung ab (Fehler, alte Regeln), läuft alles wie vorher über duAktualisieren() mit Abruf; neuer Versuch bei Rückkehr in die App. */
+let duLive = null, duLiveFehlerZeit = 0;
+const DU_LIVE_NEUVERSUCH = 5 * 60000;
+function duLiveAn() {
+  const L = window.LB;
+  if (duLive) { if (duLive.pid === S.pid) return true; try { duLive.stop(); } catch (e) {} duLive = null; }
+  if (!duOk() || !L.duelleBeobachten || Date.now() - duLiveFehlerZeit < DU_LIVE_NEUVERSUCH) return false;
+  let fertig; const o = { pid: S.pid, ok: false, n: 0, stop: () => {} }; o.erst = new Promise(r => (fertig = r)); duLive = o;
   try {
-    /* 9.57 schlanker laden: nur Duelle der letzten 8 Tage (offene sind höchstens 7 Tage alt). War die App länger nicht offen, reicht das Fenster
-       bis 8 Tage vor den letzten Abruf zurück (höchstens 30 Tage) – so geht kein Ergebnis verloren. Ältere Ergebnisse kommen aus dem Gerätespeicher. */
-    const L = window.LB, jetzt = Date.now(), standKey = LS + ":dustand", letzter = Math.min(jetzt, +localStorage.getItem(standKey) || 0);
-    const seit = Math.max(jetzt - DU_TAGE_HALTEN * 864e5, (letzter || 0) - DU_FENSTER_TAGE * 864e5);
-    const alle = await L.meineDuelle(S.pid, seit);
+    o.stop = L.duelleBeobachten(S.pid, duSeit(), alle => {
+      if (duLive !== o) return;
+      const erstes = !o.ok, vorher = duSig(), bekannt = new Set((duListe || []).map(d => d.id));
+      try { duVerarbeiten(alle); } catch (e) { console.warn("Live-Duelle:", e); }
+      o.ok = true; o.n++; fertig();
+      if (erstes || duSig() === vorher) return;
+      duLiveNeuZeigen(erstes ? [] : (duListe || []).filter(d => !bekannt.has(d.id) && d.status === "offen" && d.von !== S.pid));
+    }, e => {
+      console.warn("Live-Duelle beendet:", e && (e.code || e.message));
+      if (duLive === o) duLive = null; duLiveFehlerZeit = Date.now(); fertig();
+    });
+  } catch (e) { duLive = null; duLiveFehlerZeit = Date.now(); fertig(); return false; }
+  return true;
+}
+/* Änderung sichtbar machen: Hinweis bei neuer Herausforderung, betroffene Ansicht neu zeichnen (nicht während eines Spiels, Tippens oder Fensters) */
+function duLiveNeuZeigen(neue) {
+  if (neue.length && !duSpiel && !document.body.classList.contains("spiel-laeuft")) {
+    const n = neue[0].vonName || "Jemand";
+    toast(`${svg("duell", "#ff8a5c")}<div><b>${esc(neue.length > 1 ? neue.length + " neue Herausforderungen" : n + " fordert dich heraus!")}</b><br>${neue.length > 1 ? "Schau in die Arena." : duMarke(neue[0]) + " · in der Arena"}</div>`);
+  }
+  try { tbDuSetzen(); } catch (e) {}
+  const tippt = /^(INPUT|TEXTAREA)$/.test((document.activeElement || {}).tagName || "");
+  if (duSpiel || tippt || document.querySelector(".modal, .sb-ov")) return;
+  if (["home", "duelle", "bib", "zusammen"].includes(current)) { const y = window.scrollY; go(current); window.scrollTo(0, y); }
+}
+/* erzwingen = trotz Live-Beobachter frisch abrufen (Knopf „Neu laden“, Prüfung nach Fehlern) */
+async function duAktualisieren(erzwingen) {
+  if (!duOk()) return duListe;
+  if (!erzwingen && duLiveAn()) { const o = duLive; await o.erst; if (duLive === o && o.ok) return duListe; }
+  try {
+    const alle = await window.LB.meineDuelle(S.pid, duSeit());
+    duVerarbeiten(alle);
+  } catch (e) { duFehler = "laden"; }
+  return duListe;
+}
+function duVerarbeiten(alle) {
+    const L = window.LB, jetzt = Date.now(), standKey = LS + ":dustand";
     duListe = alle.filter(d => {
       /* nur Varianten anzeigen, die diese App-Version kennt (spätere Duell-Arten bleiben unberührt) */
       if (!duTypVon(d) || (d.modus || "1v1") !== "1v1" || !d.vonErg || (d.status === "fertig" && !d.anErg)) return false;
@@ -4519,8 +4566,6 @@ async function duAktualisieren() {
     try { localStorage.setItem(standKey, String(jetzt)); } catch (e) {}
     duGeladen = Date.now();
     duFehler = ""; duBelohnen(); try { duKorrektur(); } catch (e) {} duZaehlen(); tbDuSetzen();
-  } catch (e) { duFehler = "laden"; }
-  return duListe;
 }
 /* Siege und Spiele aus den Duellen selbst ableiten (Quelle der Wahrheit) – nie verringern, nie doppelt zählen.
    Ältere Duelle werden nach 30 Tagen gelöscht; deren Zählung bleibt im Spielstand erhalten (Maximum). */
@@ -4660,7 +4705,7 @@ VIEWS.duelle = () => {
   if ($("duAlle")) $("duAlle").onclick = () => { SFX.tap(); duAlle = !duAlle; VIEWS.duelle(); };
   wireGo();
   $("duNeu").onclick = () => { SFX.tap(); go("zusammen"); };
-  if ($("duNeuLaden")) $("duNeuLaden").onclick = () => { duAktualisieren().then(() => current === "duelle" && VIEWS.duelle()); };
+  if ($("duNeuLaden")) $("duNeuLaden").onclick = () => { duAktualisieren(true).then(() => current === "duelle" && VIEWS.duelle()); };
   const annehmen = duAnnehmen;
   screen.querySelectorAll("[data-an]").forEach(b => b.onclick = () => { SFX.tap(); const d = liste.find(x => x.id === b.dataset.an); if (d) annehmen(d); });
   screen.querySelectorAll("[data-ab]").forEach(b => b.onclick = () => { SFX.tap(); const d = liste.find(x => x.id === b.dataset.ab); if (d) duAblehnenFrage(d, () => annehmen(d)); });
@@ -4952,7 +4997,7 @@ async function duEnde() {
     }
   } catch (e) {
     /* Hat der Herausforderer das Duell inzwischen abgebrochen? Dann gibt es nichts mehr zu senden. */
-    if (!D.neu) { try { await duAktualisieren(); weg = !duFehler && !(duListe || []).some(x => x.id === D.id); } catch (e2) {} }
+    if (!D.neu) { try { await duAktualisieren(true); weg = !duFehler && !(duListe || []).some(x => x.id === D.id); } catch (e2) {} }
     if (weg) { titel = "Herausforderung zurückgezogen"; zeile = `${esc(D.gegner)} hat dieses Duell abgebrochen. Deine XP für die Runde bekommst du trotzdem.`; }
     else { fehler = true; titel = "Nicht gesendet";
       zeile = D.neu && D.k === "plagen" && /permission/i.test(String((e && (e.code || e.message)) || "")) ? "Das Duell „Plagen in Ägypten“ wird gerade freigeschaltet – bitte versuche es später nochmal. Deine XP für die Runde bekommst du trotzdem." /* 10.38: bis die neuen Firebase-Regeln veröffentlicht sind */
